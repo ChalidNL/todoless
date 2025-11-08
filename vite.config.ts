@@ -10,20 +10,8 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 800,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react-big-calendar') || id.includes('date-fns')) return 'calendar'
-            if (id.includes('@dnd-kit')) return 'dnd'
-            if (id.includes('dexie')) return 'dexie'
-            if (id.includes('framer-motion')) return 'framer'
-            if (id.includes('react-router')) return 'router'
-            if (id.includes('react-dom') || id.includes('react/jsx-runtime') || id.includes('react')) return 'react'
-            return 'vendor'
-          }
-        },
-      },
-    },
+    // Let Rollup decide chunking to avoid evaluation-order issues with some libraries
+    // (react-big-calendar + prop-types caused a TDZ error when force-split into a custom chunk)
+    // If you want vendor splitting later, re-introduce manualChunks cautiously without touching react-big-calendar
   },
 })

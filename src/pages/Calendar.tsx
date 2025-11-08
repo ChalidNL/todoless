@@ -1,3 +1,6 @@
+// Ensure prop-types is evaluated before react-big-calendar in production builds
+// to avoid potential TDZ issues when bundlers reorder modules
+import 'prop-types'
 import { useMemo, useState, useEffect } from 'react'
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
