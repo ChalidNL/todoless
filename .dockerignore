@@ -5,8 +5,8 @@ node_modules
 # Build outputs
 /dist
 
-# Exclude backend from frontend build context (frontend Dockerfile builds from repo root)
-/server
+# Keep backend in context for fullstack image builds
+# (Frontend Dockerfile will ignore server files during COPY steps anyway)
 
 # VCS and IDE
 .git
