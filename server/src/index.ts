@@ -16,7 +16,30 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
 const ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173'
 
-app.use(helmet())
+// Helmet security headers. On LAN HTTP we must NOT force HTTPS upgrades,
+// otherwise browsers will try to fetch assets over https and fail with
+// ERR_SSL_PROTOCOL_ERROR. We therefore provide an explicit CSP without
+// the "upgrade-insecure-requests" directive.
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'data:'],
+      formAction: ["'self'"],
+      frameAncestors: ["'self'"],
+      imgSrc: ["'self'", 'data:'],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'"],
+      scriptSrcAttr: ["'none'"],
+      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
+      // Critical: disable HTTPS upgrade on plain HTTP deployments
+      upgradeInsecureRequests: null as any,
+    },
+  },
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  crossOriginResourcePolicy: { policy: 'same-origin' },
+}))
 app.use(express.json())
 app.use(cookieParser())
 // Allow single or multiple origins via CORS_ORIGIN (comma-separated). In dev, also allow localhost/LAN http origins.
