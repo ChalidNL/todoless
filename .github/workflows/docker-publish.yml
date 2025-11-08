@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -52,6 +54,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./server
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
@@ -63,6 +67,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
           platforms: linux/amd64,linux/arm64
           push: true
           build-args: |

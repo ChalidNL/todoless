@@ -14,6 +14,7 @@ RUN if [ -f package-lock.json ]; then npm ci; \
     else npm install; fi
 
 # Copy source and build
+# Copy only necessary sources (reduced context already via .dockerignore)
 COPY . .
 # Vite will inline VITE_* env vars available at build time
 RUN echo "Building with VITE_API_URL=${VITE_API_URL}" && npm run build
