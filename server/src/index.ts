@@ -16,28 +16,13 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
 const ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173'
 
-// Helmet security headers. On LAN HTTP we must NOT force HTTPS upgrades,
-// otherwise browsers will try to fetch assets over https and fail with
-// ERR_SSL_PROTOCOL_ERROR. We therefore provide an explicit CSP without
-// the "upgrade-insecure-requests" directive.
+// Helmet security headers. For LAN HTTP we disable strict COOP/COEP and CSP to
+// avoid HTTPS upgrades and agent-cluster warnings in browsers. The API is not
+// exposed publicly here.
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      baseUri: ["'self'"],
-      fontSrc: ["'self'", 'https:', 'data:'],
-      formAction: ["'self'"],
-      frameAncestors: ["'self'"],
-      imgSrc: ["'self'", 'data:'],
-      objectSrc: ["'none'"],
-      scriptSrc: ["'self'"],
-      scriptSrcAttr: ["'none'"],
-      styleSrc: ["'self'", 'https:', "'unsafe-inline'"],
-      // Critical: disable HTTPS upgrade on plain HTTP deployments
-      upgradeInsecureRequests: null as any,
-    },
-  },
-  crossOriginOpenerPolicy: { policy: 'same-origin' },
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
   crossOriginResourcePolicy: { policy: 'same-origin' },
 }))
 app.use(express.json())
@@ -78,6 +63,7 @@ if (process.env.SERVE_STATIC === 'true') {
   ]
   const publicDir = candidates.find(p => fs.existsSync(p))
   if (publicDir) {
+    logger.info('static:enabled', { dir: publicDir })
     app.use(express.static(publicDir))
     // SPA fallback: only for non-API GET requests
     app.get('*', (req, res, next) => {
