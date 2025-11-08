@@ -39,6 +39,14 @@ A modern, multi-user todo list and task management application with workflows, l
    - Backend API: http://localhost:4000
    - Default login: `admin` / `admin123` (⚠️ Change immediately!)
 
+Images are published automatically to GHCR:
+
+```bash
+# pull (optional, compose pulls automatically)
+docker pull ghcr.io/chalidnl/todoless-backend:latest
+docker pull ghcr.io/chalidnl/todoless-frontend:latest
+```
+
 ### Local Development
 
 1. **Install dependencies:**

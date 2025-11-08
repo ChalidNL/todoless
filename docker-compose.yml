@@ -3,16 +3,12 @@ name: todoless
 
 services:
   todoless-frontend:
-    image: chalidnl/todoless-frontend:latest
+    image: ghcr.io/chalidnl/todoless-frontend:latest
     container_name: todoless
     restart: unless-stopped
-    build:
-      # Build directly from the public GitHub repo
-      context: "https://github.com/ChalidNL/todoless.git#main"
-      dockerfile: Dockerfile
-      args:
-        # Passed to Vite at build time
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    environment:
+      # For completeness if you later add runtime reads; currently baked at build time
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     labels:
       - "casaos.app.name=Todoless"
       - "casaos.icon=https://icon.casaos.io/main/all/tasks.png"
@@ -23,13 +19,9 @@ services:
       - todoless-backend
 
   todoless-backend:
-    image: chalidnl/todoless-backend:latest
+    image: ghcr.io/chalidnl/todoless-backend:latest
     container_name: todoless-backend
     restart: unless-stopped
-    build:
-      # Build server from the 'server' subdirectory in the same repo
-      context: "https://github.com/ChalidNL/todoless.git#main:server"
-      dockerfile: Dockerfile
     environment:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
