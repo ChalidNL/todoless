@@ -1,0 +1,17 @@
+# Dependencies and caches
+node_modules
+.pnpm-store
+
+# Build outputs
+/dist
+
+# VCS and IDE
+.git
+.gitignore
+.vscode
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

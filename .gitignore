@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+# Logs
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+# Editor
+dist/
+build/
+# OS
+*.local
+
+# Environment variables
+# Builds
+.env
+.env.local
+.env.*.local
+# Env files
+
+.env.*
+
+# Secrets (do NOT commit tokens)
+secrets/
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Docker volumes
+server/data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo

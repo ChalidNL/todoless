@@ -1,0 +1,181 @@
+@import './styles/base.css';
+@import './styles/taskview.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* default accent: sky-500 -> rgb(14,165,233) */
+  --accent: 14 165 233;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px];
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-50 active:shadow-none disabled:opacity-50;
+}
+
+.input {
+  @apply w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent/40;
+}
+
+.card {
+  @apply rounded-lg bg-white p-3 shadow-card;
+}
+
+/* Sidebar typography utilities */
+@layer components {
+  .sidebar-section-title { @apply text-xs font-semibold uppercase text-gray-500 tracking-wide; }
+  .sidebar-link { @apply flex items-center py-2 px-3 rounded-md hover:bg-gray-100 text-sm font-medium text-gray-800 transition-colors; }
+  .icon-standard { 
+    width: 22px !important; 
+    height: 22px !important; 
+    min-width: 22px;
+    min-height: 22px;
+    flex-shrink: 0;
+  }
+}
+
+/* Sidebar collapse perfection */
+aside.group\/sidebar {
+  overflow-x: hidden;
+}
+aside.group\/sidebar::-webkit-scrollbar {
+  display: none;
+}
+aside.group\/sidebar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+@layer components {
+
+  /* Management pages compact style */
+  .manage-page { @apply px-6 py-3; }
+  .manage-header { @apply flex items-center justify-between mb-3; }
+  button.create-btn { @apply text-sm px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700; }
+}
+
+/* Shake animation for duplicate warning */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Mobile touch-friendly adjustments */
+@media (max-width: 640px) {
+  .btn {
+    min-height: 40px;
+    padding: 0.5rem 0.75rem; /* py-2 px-3 */
+  }
+  .chip {
+    padding: 0.25rem 0.5rem; /* py-1 px-2 */
+  }
+  .input {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem; /* py-2 */
+  }
+}
+
+/* Calendar theme styling - matches current accent and clean design */
+.calendar-wrapper .rbc-calendar {
+  font-family: inherit;
+  font-size: 0.875rem;
+}
+
+.calendar-wrapper .rbc-header {
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  border-bottom: 2px solid rgb(var(--accent) / 0.2);
+  background: rgb(var(--accent) / 0.05);
+}
+
+.calendar-wrapper .rbc-today {
+  background-color: rgb(var(--accent) / 0.08);
+}
+
+.calendar-wrapper .rbc-event {
+  background-color: rgb(var(--accent));
+  border: none;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+}
+
+.calendar-wrapper .rbc-event:hover {
+  background-color: rgb(var(--accent) / 0.85);
+}
+
+.calendar-wrapper .rbc-event.rbc-selected {
+  background-color: rgb(var(--accent) / 0.9);
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 1px;
+}
+
+.calendar-wrapper .rbc-toolbar button {
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.calendar-wrapper .rbc-toolbar button:hover {
+  background: #f9fafb;
+}
+
+.calendar-wrapper .rbc-toolbar button.rbc-active {
+  background: rgb(var(--accent));
+  color: white;
+  border-color: rgb(var(--accent));
+}
+
+.calendar-wrapper .rbc-month-view, 
+.calendar-wrapper .rbc-time-view {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.calendar-wrapper .rbc-time-slot {
+  border-top: 1px solid #f3f4f6;
+}
+
+.calendar-wrapper .rbc-current-time-indicator {
+  background-color: rgb(var(--accent));
+  height: 2px;
+}
+
+.calendar-wrapper .rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid #f9fafb;
+}
+
+.calendar-wrapper .rbc-timeslot-group {
+  min-height: 60px;
+  border-left: 1px solid #e5e7eb;
+}
+
+.calendar-wrapper .rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #e5e7eb;
+}
+
+.calendar-wrapper .rbc-time-header-content {
+  border-left: 1px solid #e5e7eb;
+}
+
+.calendar-wrapper .rbc-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+}

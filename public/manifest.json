@@ -1,0 +1,42 @@
+{
+  "name": "TodoLess - Smart Todo Manager",
+  "short_name": "TodoLess",
+  "description": "A powerful, offline-first todo list with labels, workflows, and smart syntax",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "orientation": "any",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { 
+      "src": "/icon-192.svg", 
+      "sizes": "192x192", 
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    { 
+      "src": "/icon-512.svg", 
+      "sizes": "512x512", 
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Add",
+      "description": "Quickly add a new task",
+      "url": "/?action=add",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Today",
+      "short_name": "Today",
+      "description": "View today's tasks",
+      "url": "/today",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}
