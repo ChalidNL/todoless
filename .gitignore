@@ -40,14 +40,15 @@ Thumbs.db
 logs/
 *.log
 
-# Database files
+# Database files (persist via volume; don't commit examples)
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
+!server/data/.keep
 
-# Docker volumes
+# Docker volume path (keep placeholder file to ensure directory exists)
 server/data/
 
 # Temporary files

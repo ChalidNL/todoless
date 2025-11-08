@@ -22,7 +22,7 @@ RUN echo "Building with VITE_API_URL=${VITE_API_URL}" && npm run build
 FROM nginx:1.27-alpine AS runtime
 LABEL org.opencontainers.image.title="Todoless" \
       org.opencontainers.image.description="Todoless v3 static SPA built with Vite + React" \
-      org.opencontainers.image.url="https://github.com/your-org/todoless" \
+    org.opencontainers.image.url="https://github.com/ChalidNL/todoless" \
       org.opencontainers.image.licenses="MIT"
 
 # Copy Nginx config and built assets
