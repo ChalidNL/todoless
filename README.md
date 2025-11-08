@@ -47,6 +47,22 @@ docker pull ghcr.io/chalidnl/todoless-backend:latest
 docker pull ghcr.io/chalidnl/todoless-frontend:latest
 ```
 
+### Canonical docker-compose.yml
+
+Er is precies één compose-bestand en dat is `docker-compose.yml` in de root. Dit is het enige, canonieke bestand voor productie en CasaOS deployments.
+
+### CasaOS (Stack)
+
+1. Open CasaOS → App → Stacks → New Stack
+2. Plak de inhoud van `docker-compose.yml` (main branch)
+3. Voeg environment variables toe:
+   - `JWT_SECRET` = sterke, willekeurige string
+   - `CORS_ORIGIN` = `http://<host>:3000`
+   - `VITE_API_URL` = `http://<host>:4000` (frontend praat met backend)
+4. Deploy → Frontend op `http://<host>:3000`, Backend op `http://<host>:4000`
+
+Persistente data: named volume `todoless-data` → `/app/data` (SQLite).
+
 ### Local Development
 
 1. **Install dependencies:**
