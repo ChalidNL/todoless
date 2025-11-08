@@ -1,7 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Calendar as BigCalendar, dateFnsLocalizer, Views } from 'react-big-calendar'
-// @ts-ignore - types may be missing for dragAndDrop addon
-import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import { format, parse, startOfWeek, getDay, startOfYear, endOfYear, eachMonthOfInterval } from 'date-fns'
@@ -12,6 +10,9 @@ import { mutateTodo, Users } from '../db/dexieClient'
 import { parseDueToDate } from '../utils/date'
 import type { Todo, User } from '../db/schema'
 import CloseButton from '../components/ui/CloseButton'
+
+// @ts-ignore - types may be missing for dragAndDrop addon
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop'
 
 const locales = {
   'en-US': enUS,
