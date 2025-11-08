@@ -14,7 +14,6 @@ permissions:
   packages: write
 
 env:
-  OWNER: ${{ toLower(github.repository_owner) }}
   # Default API URL used to bake into the frontend build; can be overridden via repo/Org variables
   FRONTEND_VITE_API_URL: ${{ vars.FRONTEND_VITE_API_URL || 'http://localhost:4000' }}
 
@@ -56,9 +55,9 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ env.OWNER }}/todoless-backend:latest
-            ghcr.io/${{ env.OWNER }}/todoless-backend:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ env.OWNER }}/todoless-backend:${{ github.sha }}
+            ghcr.io/chalidnl/todoless-backend:latest
+            ghcr.io/chalidnl/todoless-backend:${{ steps.meta.outputs.version }}
+            ghcr.io/chalidnl/todoless-backend:${{ github.sha }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -69,6 +68,6 @@ jobs:
           build-args: |
             VITE_API_URL=${{ env.FRONTEND_VITE_API_URL }}
           tags: |
-            ghcr.io/${{ env.OWNER }}/todoless-frontend:latest
-            ghcr.io/${{ env.OWNER }}/todoless-frontend:${{ steps.meta.outputs.version }}
-            ghcr.io/${{ env.OWNER }}/todoless-frontend:${{ github.sha }}
+            ghcr.io/chalidnl/todoless-frontend:latest
+            ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.version }}
+            ghcr.io/chalidnl/todoless-frontend:${{ github.sha }}
