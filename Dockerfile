@@ -26,6 +26,9 @@ LABEL org.opencontainers.image.title="Todoless" \
     org.opencontainers.image.url="https://github.com/ChalidNL/todoless" \
       org.opencontainers.image.licenses="MIT"
 
+# Install small curl for healthcheck
+RUN apk add --no-cache curl
+
 # Copy Nginx config and built assets
 COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -33,6 +36,6 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 80
 
 # Optional: basic healthcheck (nginx serves index.html)
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 CMD wget -qO- http://localhost/ >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -fsS http://localhost/ >/dev/null || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
