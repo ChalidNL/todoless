@@ -2,6 +2,8 @@
 
 # 1) Build stage
 FROM node:20-alpine AS builder
+ARG VITE_API_URL=http://localhost:4000
+ENV VITE_API_URL=${VITE_API_URL}
 WORKDIR /app
 
 # Install deps first (better layer caching)
@@ -13,7 +15,8 @@ RUN if [ -f package-lock.json ]; then npm ci; \
 
 # Copy source and build
 COPY . .
-RUN npm run build
+# Vite will inline VITE_* env vars available at build time
+RUN echo "Building with VITE_API_URL=${VITE_API_URL}" && npm run build
 
 # 2) Runtime stage
 FROM nginx:1.27-alpine AS runtime
