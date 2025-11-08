@@ -4,7 +4,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install deps with caching
+# Install deps with caching (including devDependencies for build)
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 RUN if [ -f package-lock.json ]; then npm ci; \
     elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; \
@@ -16,6 +16,12 @@ COPY . .
 
 # Build typescript
 RUN npm run build
+
+# Remove devDependencies after build
+RUN if [ -f package-lock.json ]; then npm prune --production; \
+    elif [ -f yarn.lock ]; then corepack enable && yarn install --production --frozen-lockfile --force; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --prod --frozen-lockfile; \
+    else npm prune --production; fi
 
 ENV NODE_ENV=production
 ENV PORT=4000
