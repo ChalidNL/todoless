@@ -3,7 +3,6 @@ name: todoless
 
 services:
   todoless-frontend:
-    image: chalidnl/todoless-frontend:latest
     container_name: todoless
     restart: unless-stopped
     build:
@@ -21,7 +20,6 @@ services:
       - todoless-backend
 
   todoless-backend:
-    image: chalidnl/todoless-backend:latest
     container_name: todoless-backend
     restart: unless-stopped
     build:
