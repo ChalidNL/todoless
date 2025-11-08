@@ -31,8 +31,8 @@ interface AuthState {
   completeReset: (token: string, newPassword: string) => Promise<void>
 }
 
-// Resolve API base: prefer explicit VITE_API_URL, otherwise use current host (works for LAN/mobile)
-const API = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' ? `http://${window.location.hostname}:4000` : 'http://localhost:4000')
+// Resolve API base: prefer explicit VITE_API_URL, otherwise same-origin at runtime
+const API = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000')
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
