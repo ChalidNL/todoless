@@ -1,11 +1,11 @@
 import { Router, type Request, type Response } from 'express'
-import { db, UserRow } from './db'
+import { db, UserRow } from './db.js'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
-import { generateTOTPSecret, toDataURL, verifyTOTP } from './utils/totp'
+import { generateTOTPSecret, toDataURL, verifyTOTP } from './utils/totp.js'
 import rateLimit from 'express-rate-limit'
-import { logger } from './logger'
-import { requireAuth, requireRole } from './middleware'
+import { logger } from './logger.js'
+import { requireAuth, requireRole } from './middleware.js'
 
 export function authRouter(secret: string) {
   const router = Router()

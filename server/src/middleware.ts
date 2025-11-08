@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { db, UserRow } from './db'
+import { db, UserRow } from './db.js'
 
 export interface AuthedRequest extends Request {
   user?: Pick<UserRow, 'id' | 'username' | 'role' | 'twofa_enabled'> & { twofa_verified?: boolean }

@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express'
-import { db, TaskRow } from './db'
-import { broadcastToUsers } from './events'
-import type { AuthedRequest } from './middleware'
+import { db, TaskRow } from './db.js'
+import { broadcastToUsers } from './events.js'
+import type { AuthedRequest } from './middleware.js'
 
 export function tasksRouter() {
   const router = Router()

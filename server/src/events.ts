@@ -1,5 +1,5 @@
 import type { Response } from 'express'
-import { logger } from './logger'
+import { logger } from './logger.js'
 
 type Client = {
   userId: number

@@ -3,11 +3,11 @@ import express from 'express'
 import helmet from 'helmet'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
-import { authRouter } from './auth'
-import { tasksRouter } from './tasks'
-import { requireAuth, require2FA } from './middleware'
-import { addClient, removeClient } from './events'
-import { logger } from './logger'
+import { authRouter } from './auth.js'
+import { tasksRouter } from './tasks.js'
+import { requireAuth, require2FA } from './middleware.js'
+import { addClient, removeClient } from './events.js'
+import { logger } from './logger.js'
 
 const app = express()
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
