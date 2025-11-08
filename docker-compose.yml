@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     environment:
       JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://192.168.2.100:3000}
       DB_PATH: "/app/data/todoless.db"
     volumes:
       - todoless-data:/app/data
