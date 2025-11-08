@@ -32,9 +32,7 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       DB_PATH: "/app/data/todoless.db"
     volumes:
-      - type: volume
-        source: todoless-data
-        target: /app/data
+      - todoless-data:/app/data
     ports:
       - "4000:4000"
     healthcheck:
