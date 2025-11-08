@@ -3,8 +3,11 @@ name: Publish Docker images
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +15,8 @@ permissions:
 
 env:
   OWNER: ${{ toLower(github.repository_owner) }}
-  FRONTEND_VITE_API_URL: http://localhost:4000
+  # Default API URL used to bake into the frontend build; can be overridden via repo/Org variables
+  FRONTEND_VITE_API_URL: ${{ vars.FRONTEND_VITE_API_URL || 'http://localhost:4000' }}
 
 jobs:
   build-and-push:
@@ -38,7 +42,9 @@ jobs:
         id: meta
         run: |
           VERSION=latest
-          if [[ "${{ github.event_name }}" == "release" ]]; then
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          elif [[ "${{ github.event_name }}" == "release" ]]; then
             VERSION="${{ github.event.release.tag_name }}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
