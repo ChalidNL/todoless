@@ -1,0 +1,51 @@
+# Fullstack image: serves React app and API on one port using Node/Express
+
+# ---- Frontend build ----
+FROM node:20-alpine AS frontend
+WORKDIR /app
+COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
+RUN if [ -f package-lock.json ]; then npm ci; \
+    elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; \
+    else npm install; fi
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+COPY . .
+RUN npm run build
+
+# ---- Backend build ----
+FROM node:20-slim AS backend
+WORKDIR /app
+COPY server/package.json server/package-lock.json* server/yarn.lock* server/pnpm-lock.yaml* ./
+RUN if [ -f package-lock.json ]; then npm ci; \
+    elif [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; \
+    elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; \
+    else npm install; fi
+COPY server .
+RUN npm run build && npm prune --production || true
+
+# ---- Runtime ----
+FROM node:20-slim
+WORKDIR /app
+# Runtime deps for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends wget && rm -rf /var/lib/apt/lists/*
+# Backend
+COPY --from=backend /app/node_modules ./server/node_modules
+COPY --from=backend /app/dist ./server/dist
+COPY --from=backend /app/package.json ./server/package.json
+# Frontend (served statically by Express)
+COPY --from=frontend /app/dist ./server/public
+# Env
+ENV NODE_ENV=production \
+    PORT=4000 \
+    JWT_SECRET=change-me \
+    CORS_ORIGIN=http://localhost:3000 \
+    DB_PATH=/app/data/todoless.db \
+    SERVE_STATIC=true \
+    COOKIE_SECURE=false
+# Data
+RUN mkdir -p /app/data
+VOLUME ["/app/data"]
+EXPOSE 4000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 CMD wget --spider -q http://localhost:4000/api/health || exit 1
+CMD ["node", "server/dist/index.js"]

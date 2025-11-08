@@ -1,5 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
+import path from 'path'
+import fs from 'fs'
 import helmet from 'helmet'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -43,6 +45,21 @@ app.use('/api/auth', authRouter(JWT_SECRET))
 
 // Protected tasks routes
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
+
+// Optional static file serving (for single-container fullstack deployment)
+if (process.env.SERVE_STATIC === 'true') {
+  const publicDir = path.join(process.cwd(), 'public')
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir))
+    // SPA fallback: only for non-API GET requests
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) return next()
+      const indexPath = path.join(publicDir, 'index.html')
+      if (fs.existsSync(indexPath)) return res.sendFile(indexPath)
+      return next()
+    })
+  }
+}
 
 // Server-Sent Events for real-time updates (auth + 2FA protected)
 app.get('/api/events', requireAuth(JWT_SECRET), require2FA(), (req: any, res) => {
