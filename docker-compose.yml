@@ -3,55 +3,35 @@ name: todoless
 
 services:
   todoless-frontend:
-    image: node:20-alpine
     container_name: todoless
     restart: unless-stopped
-    entrypoint: ""
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Passed to Vite at build time
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
     labels:
       - "casaos.app.name=Todoless"
       - "casaos.icon=https://icon.casaos.io/main/all/tasks.png"
-    working_dir: /app
-    volumes:
-      - ./:/app/src
-    command:
-      - /bin/sh
-      - -lc
-      - |
-        set -e
-        cd src
-        npm install
-        npm run build
-        npx --yes serve -s dist -l 3000
     ports:
-      - "3000:3000"
+      # Nginx in the image listens on 80
+      - "3000:80"
     depends_on:
       - todoless-backend
 
   todoless-backend:
-    image: node:20-alpine
     container_name: todoless-backend
     restart: unless-stopped
-    entrypoint: ""
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     environment:
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       DB_PATH: "/app/data/todoless.db"
     volumes:
-      - ./server:/app/src
       - todoless-data:/app/data
-    working_dir: /app
-    command:
-      - /bin/sh
-      - -lc
-      - |
-        set -e
-        apk add --no-cache python3 make g++ build-base sqlite-dev wget
-        cd src
-        npm install
-        npm run build
-        node dist/index.js
     ports:
       - "4000:4000"
     healthcheck:
