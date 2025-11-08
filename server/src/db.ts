@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3'
 import bcrypt from 'bcrypt'
-import { logger } from './logger'
+import { logger } from './logger.js'
 
 const DB_PATH = process.env.DB_PATH || 'family.db'
 export const db = new Database(DB_PATH)
