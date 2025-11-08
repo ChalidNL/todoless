@@ -6,7 +6,8 @@ services:
     container_name: todoless
     restart: unless-stopped
     build:
-      context: .
+      # Build directly from the public GitHub repo
+      context: "https://github.com/ChalidNL/todoless.git#main"
       dockerfile: Dockerfile
       args:
         # Passed to Vite at build time
@@ -24,7 +25,8 @@ services:
     container_name: todoless-backend
     restart: unless-stopped
     build:
-      context: ./server
+      # Build server from the 'server' subdirectory in the same repo
+      context: "https://github.com/ChalidNL/todoless.git#main:server"
       dockerfile: Dockerfile
     environment:
       JWT_SECRET: ${JWT_SECRET}
