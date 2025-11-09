@@ -10,7 +10,7 @@ services:
       - "casaos.app.name=Todoless"
       - "casaos.icon=https://raw.githubusercontent.com/ChalidNL/todoless/main/public/icons/todoless-bw.svg"
     ports:
-      - "3000:80" # Nginx exposes 80
+      - "5174:80" # Match development port for consistency
     depends_on:
       - todoless-backend
     networks:
