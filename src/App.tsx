@@ -303,10 +303,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </div>
-        <footer className="fixed bottom-0 left-0 right-0 py-2 text-center text-sm font-medium z-50 flex items-center justify-center gap-2" style={{ backgroundColor: '#111', opacity: 0.9, color: 'white' }}>
-          <img src="/icons/palestine-flag.svg" alt="Palestine flag" className="w-6 h-4" />
-          <span>In solidarity with Palestine</span>
-        </footer>
+
         </main>
         {/* Mobile drawer - responsive width based on sidebar state */}
         {mobileNavOpen && (
