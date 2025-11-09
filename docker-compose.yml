@@ -13,6 +13,8 @@ services:
       - "3000:80" # Nginx exposes 80
     depends_on:
       - todoless-backend
+    networks:
+      - todoless-net
 
   todoless-backend:
     image: ghcr.io/chalidnl/todoless-backend:latest
@@ -28,12 +30,18 @@ services:
       - todoless-data:/app/data
     ports:
       - "4000:4000"
+    networks:
+      - todoless-net
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:4000/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 60s
+
+networks:
+  todoless-net:
+    driver: bridge
 
 volumes:
   todoless-data:
