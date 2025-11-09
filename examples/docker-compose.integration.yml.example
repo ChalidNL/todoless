@@ -1,0 +1,52 @@
+version: "3.8"
+name: todoless-integration
+
+# Integration environment for automated CI testing
+# Runs ephemeral instances with test data
+
+services:
+  todoless-frontend-integration:
+    image: ghcr.io/chalidnl/todoless-frontend:${TAG:-latest}
+    container_name: todoless-integration-frontend
+    restart: "no"  # Don't restart on failure in CI
+    ports:
+      - "5174:80"
+    depends_on:
+      - todoless-backend-integration
+    networks:
+      - todoless-integration-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  todoless-backend-integration:
+    image: ghcr.io/chalidnl/todoless-backend:${TAG:-latest}
+    container_name: todoless-integration-backend
+    restart: "no"
+    environment:
+      JWT_SECRET: integration-test-secret-do-not-use-in-prod
+      CORS_ORIGIN: "*"
+      DB_PATH: "/app/data/todoless.db"
+      COOKIE_SECURE: "false"
+      NODE_ENV: test
+    volumes:
+      - todoless-integration-data:/app/data
+    ports:
+      - "4000:4000"
+    networks:
+      - todoless-integration-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:4000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  todoless-integration-net:
+    driver: bridge
+
+volumes:
+  todoless-integration-data:
+    driver: local

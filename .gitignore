@@ -67,8 +67,5 @@ docker-compose.*.yml
 docker-compose.override.yml
 !docker-compose.yml  # Keep only canonical production compose
 
-# Archive folder (old/deprecated files kept for reference)
-# Commit archive/ but ignore its contents to keep history clean
-archive/*
-!archive/.gitkeep
-!archive/README.md
+# Examples folder contains reference files (IS committed to repo)
+# No ignore rules needed - all examples/* should be tracked

@@ -6,12 +6,12 @@ Todoless uses a structured deployment pipeline with four distinct environments.
 
 | Environment | Purpose | Port | Compose File | Auto-deploy |
 |------------|---------|------|--------------|-------------|
-| **Development** | Local coding with hot-reload | 5174 | `docker-compose.dev.yml` (copy from archive/) | No |
-| **Integration** | Automated CI testing | 5174 | `docker-compose.integration.yml` (copy from archive/) | Yes (on PR) |
-| **Staging** | Pre-production testing | 5175 | `docker-compose.staging.yml` (copy from archive/) | Yes (on merge to main) |
+| **Development** | Local coding with hot-reload | 5174 | `docker-compose.dev.yml` (copy from examples/) | No |
+| **Integration** | Automated CI testing | 5174 | `docker-compose.integration.yml` (copy from examples/) | Yes (on PR) |
+| **Staging** | Pre-production testing | 5175 | `docker-compose.staging.yml` (copy from examples/) | Yes (on merge to main) |
 | **Production** | Live deployment | 5174 | `docker-compose.yml` (canonical, committed) | Yes (on release tag) |
 
-**Note**: Only `docker-compose.yml` is committed to the repository. Other environment-specific compose files are available as examples in `archive/` and should be copied locally as needed.
+**Note**: Only `docker-compose.yml` is committed to the repository. Other environment-specific compose files are available as templates in `examples/` and should be copied locally as needed.
 
 ---
 
@@ -46,7 +46,7 @@ docker-compose -f docker-compose.dev.yml up --build
 **Setup**:
 ```bash
 # Copy example compose
-cp archive/docker-compose.integration.yml.example docker-compose.integration.yml
+cp examples/docker-compose.integration.yml.example docker-compose.integration.yml
 
 # Manually (for local integration testing)
 TAG=pr-123 docker-compose -f docker-compose.integration.yml up -d
@@ -75,7 +75,7 @@ docker-compose -f docker-compose.integration.yml down -v
 **Setup**:
 ```bash
 # Copy example compose
-cp archive/docker-compose.staging.yml.example docker-compose.staging.yml
+cp examples/docker-compose.staging.yml.example docker-compose.staging.yml
 
 # Deploy staging
 docker-compose -f docker-compose.staging.yml up -d

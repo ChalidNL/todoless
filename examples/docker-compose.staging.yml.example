@@ -1,0 +1,51 @@
+version: "3.8"
+name: todoless-staging
+
+# Staging environment for pre-production testing
+# Mirrors production setup but with staging-specific config
+
+services:
+  todoless-frontend-staging:
+    image: ghcr.io/chalidnl/todoless-frontend:${TAG:-latest}
+    container_name: todoless-staging
+    restart: unless-stopped
+    labels:
+      - "casaos.app.name=Todoless Staging"
+      - "casaos.icon=https://raw.githubusercontent.com/ChalidNL/todoless/main/public/icons/todoless-bw.svg"
+    ports:
+      - "5175:80"  # Different port to avoid conflict with prod
+    depends_on:
+      - todoless-backend-staging
+    networks:
+      - todoless-staging-net
+
+  todoless-backend-staging:
+    image: ghcr.io/chalidnl/todoless-backend:${TAG:-latest}
+    container_name: todoless-backend-staging
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      DB_PATH: "/app/data/todoless.db"
+      COOKIE_SECURE: "false"
+      NODE_ENV: staging
+    volumes:
+      - todoless-staging-data:/app/data
+    ports:
+      - "4001:4000"  # Different port to avoid conflict with prod
+    networks:
+      - todoless-staging-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:4000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  todoless-staging-net:
+    driver: bridge
+
+volumes:
+  todoless-staging-data:
+    driver: local

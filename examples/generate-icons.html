@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Generate PWA Icons</title>
+</head>
+<body>
+  <h1>PWA Icon Generator for TodoLess</h1>
+  <div>
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+  </div>
+  <div style="margin-top: 20px;">
+    <button id="download192">Download 192x192</button>
+    <button id="download512">Download 512x512</button>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d')
+      
+      // Background - sky blue
+      ctx.fillStyle = '#0ea5e9'
+      ctx.fillRect(0, 0, size, size)
+      
+      // Add rounded corners effect
+      ctx.globalCompositeOperation = 'destination-in'
+      ctx.beginPath()
+      ctx.roundRect(0, 0, size, size, size * 0.15)
+      ctx.fill()
+      ctx.globalCompositeOperation = 'source-over'
+      
+      // Draw checkmark icon in white
+      ctx.strokeStyle = '#ffffff'
+      ctx.lineWidth = size * 0.08
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      
+      const centerX = size / 2
+      const centerY = size / 2
+      const checkSize = size * 0.35
+      
+      ctx.beginPath()
+      ctx.moveTo(centerX - checkSize, centerY)
+      ctx.lineTo(centerX - checkSize * 0.2, centerY + checkSize * 0.6)
+      ctx.lineTo(centerX + checkSize * 0.8, centerY - checkSize * 0.6)
+      ctx.stroke()
+      
+      // Add subtle circle border around checkmark
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'
+      ctx.lineWidth = size * 0.04
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, size * 0.4, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+    
+    // Generate both sizes
+    drawIcon(document.getElementById('canvas192'), 192)
+    drawIcon(document.getElementById('canvas512'), 512)
+    
+    // Download handlers
+    document.getElementById('download192').addEventListener('click', () => {
+      const link = document.createElement('a')
+      link.download = 'icon-192.png'
+      link.href = document.getElementById('canvas192').toDataURL()
+      link.click()
+    })
+    
+    document.getElementById('download512').addEventListener('click', () => {
+      const link = document.createElement('a')
+      link.download = 'icon-512.png'
+      link.href = document.getElementById('canvas512').toDataURL()
+      link.click()
+    })
+    
+    console.log('Icons generated! Click buttons to download.')
+  </script>
+</body>
+</html>
