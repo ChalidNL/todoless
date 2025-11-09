@@ -114,13 +114,14 @@ export default function DashboardView() {
       })
 
       // Special-case: built-in priority on Todo if defined
-      const priorityCounts: Record<string, number> = { High: 0, Medium: 0, Low: 0 }
+      const priorityCounts: Record<string, number> = { High: 0, Medium: 0, Low: 0, 'No Priority': 0 }
       todos.forEach((t: Todo) => {
         if (t.priority === 'high') priorityCounts.High++
         else if (t.priority === 'medium') priorityCounts.Medium++
         else if (t.priority === 'low') priorityCounts.Low++
+        else priorityCounts['No Priority']++
       })
-      if (priorityCounts.High + priorityCounts.Medium + priorityCounts.Low > 0) {
+      if (todos.length > 0) {
         widgets.unshift({
           name: 'Priority',
           data: Object.entries(priorityCounts).map(([label, count]) => ({ label, count }))
@@ -164,16 +165,10 @@ export default function DashboardView() {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-sm text-gray-600 mt-1">Overview of your tasks and workflows</p>
         </div>
-        <button
-          onClick={() => navigate('/saved/all')}
-          className="px-4 py-2 rounded-lg border-2 border-gray-900 bg-gray-900 text-white font-medium hover:opacity-90 transition-opacity text-sm"
-        >
-          View All Tasks →
-        </button>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <button onClick={() => navigate('/saved/all')} className="text-left">
           <SummaryCard title="Total Tasks" value={stats.total} color="indigo" />
         </button>
@@ -181,24 +176,20 @@ export default function DashboardView() {
         <SummaryCard title="Completed" value={stats.completed} color="green" />
         <SummaryCard title="Due Today" value={stats.dueToday} color="indigo" />
         <SummaryCard title="Overdue" value={stats.overdue} color="red" />
+        {stats.blocked > 0 && (
+          <SummaryCard title="Blocked" value={stats.blocked} color="red" />
+        )}
       </div>
 
       {/* Completion Progress */}
       <div className="p-6 rounded-xl border-2 border-gray-200 bg-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium text-gray-600">Completion Rate</div>
-            <div className="text-3xl font-bold text-gray-900 mt-1">{stats.completionRate}%</div>
-            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-green-600 h-2 rounded-full transition-all"
-                style={{ width: `${stats.completionRate}%` }}
-              />
-            </div>
-          </div>
-          <div className="w-20 h-20 rounded-full border-8 border-green-100 flex items-center justify-center text-xl font-bold text-green-600">
-            {stats.completionRate}%
-          </div>
+        <div className="text-sm font-medium text-gray-600">Completion Rate</div>
+        <div className="text-3xl font-bold text-gray-900 mt-1">{stats.completionRate}%</div>
+        <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-green-600 h-2 rounded-full transition-all"
+            style={{ width: `${stats.completionRate}%` }}
+          />
         </div>
       </div>
 
@@ -233,7 +224,7 @@ export default function DashboardView() {
           {attrWidgets.map(w => (
             <div key={w.name} className="p-4 rounded-xl border-2 border-gray-200 bg-white">
               <div className="text-sm font-semibold text-gray-900 mb-3">{w.name}</div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {w.data.map(row => (
                   <div key={row.label} className="p-2 rounded-lg border border-gray-200 text-center">
                     <div className="text-xs text-gray-500">{row.label}</div>
@@ -298,19 +289,6 @@ export default function DashboardView() {
           <div className="text-xs text-gray-500">Custom filters</div>
         </button>
       </div>
-
-      {/* Tips */}
-      {stats.blocked > 0 && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200">
-          <div className="flex items-start gap-3">
-            <div className="text-2xl">⚠️</div>
-            <div>
-              <div className="text-sm font-medium text-red-900">You have {stats.blocked} blocked task{stats.blocked !== 1 ? 's' : ''}</div>
-              <div className="text-xs text-red-700 mt-1">Review blocked tasks to keep your workflow moving</div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

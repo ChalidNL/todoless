@@ -87,7 +87,7 @@ export default function BulkImport() {
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
         title="Bulk Import"
-        infoText="Importeer meerdere taken of notities tegelijk. Eén item per regel voor taken, blokken gescheiden door lege regel voor notities."
+        infoText="Import multiple tasks or notes at once. One item per line for tasks, blocks separated by empty line for notes."
         showCreate={false}
         showSearch={false}
       />

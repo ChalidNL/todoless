@@ -14,8 +14,10 @@ function Badge({ color, children }: { color: 'yellow'|'green'|'red'|'gray'|'blue
 }
 
 export default function SecurityCenterPage() {
-  const { user, listInvites, createInvite, revokeInvite, listResetRequests, approveReset, denyReset } = useAuth()
-  const [tab, setTab] = useState<'invites'|'resets'>('invites')
+  const { user, listInvites, createInvite, revokeInvite, listResetRequests, approveReset, denyReset, listUsers, blockUser } = useAuth()
+  const [tab, setTab] = useState<'invites'|'resets'|'users'>('invites')
+  const [users, setUsers] = useState<any[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
   const [invites, setInvites] = useState<Invite[]>([])
   const [loadingInv, setLoadingInv] = useState(false)
   const [items, setItems] = useState<ResetRequest[]>([])
@@ -25,8 +27,9 @@ export default function SecurityCenterPage() {
   const [justApproved, setJustApproved] = useState<{ id: string; token: string; expires_at: string } | null>(null)
 
   useEffect(() => {
-    if (tab === 'invites') refreshInvites()
-    if (tab === 'resets') refreshResets()
+  if (tab === 'invites') refreshInvites()
+  if (tab === 'resets') refreshResets()
+  if (tab === 'users') refreshUsers()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
 
@@ -37,6 +40,11 @@ export default function SecurityCenterPage() {
   async function refreshResets() {
     setLoadingRes(true)
     try { setItems(await listResetRequests()) } finally { setLoadingRes(false) }
+  }
+
+  async function refreshUsers() {
+    setLoadingUsers(true)
+    try { setUsers(await listUsers()) } finally { setLoadingUsers(false) }
   }
 
   async function onCreate() {
@@ -56,7 +64,44 @@ export default function SecurityCenterPage() {
       <div className="flex gap-2 mb-4">
         <button className={`px-3 py-1.5 rounded border ${tab==='invites'?'bg-gray-900 text-white':'hover:bg-gray-50'}`} onClick={() => setTab('invites')}>Invites</button>
         <button className={`px-3 py-1.5 rounded border ${tab==='resets'?'bg-gray-900 text-white':'hover:bg-gray-50'}`} onClick={() => setTab('resets')}>Reset requests</button>
+        <button className={`px-3 py-1.5 rounded border ${tab==='users'?'bg-gray-900 text-white':'hover:bg-gray-50'}`} onClick={() => setTab('users')}>Users</button>
       </div>
+      {tab === 'users' && (
+        <div className="space-y-4">
+          <div className="border rounded">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-left">
+                <tr>
+                  <th className="p-2">ID</th>
+                  <th className="p-2">Username</th>
+                  <th className="p-2">Email</th>
+                  <th className="p-2">Role</th>
+                  <th className="p-2">Status</th>
+                  <th className="p-2"/>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingUsers ? (
+                  <tr><td className="p-2" colSpan={6}>Loading…</td></tr>
+                ) : users.length === 0 ? (
+                  <tr><td className="p-2" colSpan={6}>No users</td></tr>
+                ) : users.map(u => (
+                  <tr key={u.id} className="border-t">
+                    <td className="p-2 font-mono text-xs break-all">{u.id}</td>
+                    <td className="p-2">{u.username}</td>
+                    <td className="p-2">{u.email || '-'}</td>
+                    <td className="p-2">{u.role}</td>
+                    <td className="p-2">{u.blocked ? <Badge color="red">blocked</Badge> : <Badge color="green">active</Badge>}</td>
+                    <td className="p-2 text-right">
+                      <button className="px-2 py-1 text-xs rounded border hover:bg-gray-50 disabled:opacity-50" disabled={u.blocked} onClick={async ()=>{ await blockUser(u.id); await refreshUsers() }}>Block</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {tab === 'invites' && (
         <div className="space-y-4">

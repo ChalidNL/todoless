@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Labels, Users, Workflows } from '../db/dexieClient'
-import type { Label, User, Workflow } from '../db/schema'
+import { Labels, Users, Workflows, Attributes } from '../db/dexieClient'
+import type { Label, User, Workflow, AttributeDef } from '../db/schema'
 import { useFilterContext } from '../contexts/FilterContext'
 import { useViewMode } from '../contexts/ViewModeContext'
 import { useSort } from '../contexts/SortContext'
@@ -11,6 +11,7 @@ export default function GlobalFilters() {
   const [labels, setLabels] = useState<Label[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [attributes, setAttributes] = useState<AttributeDef[]>([])
   const {
     selectedLabelIds,
     toggleLabel,
@@ -37,10 +38,26 @@ export default function GlobalFilters() {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    Promise.all([Labels.list(), Users.list(), Workflows.list()]).then(([ls, us, ws]) => {
+    Promise.all([Labels.list(), Users.list(), Workflows.list(), Attributes.list()]).then(([ls, us, ws, as]) => {
       setLabels(ls)
-      setUsers(us)
+      // Combine 'You' en 'Admin' tot één user
+      const seen = new Set()
+      const filtered = []
+      for (const u of us) {
+        const key = (u.username || '').toLowerCase()
+        if (key === 'you' || key === 'admin') {
+          if (!seen.has('me')) {
+            filtered.push({ ...u, username: 'me', name: 'Me' })
+            seen.add('me')
+          }
+        } else if (!seen.has(key)) {
+          filtered.push(u)
+          seen.add(key)
+        }
+      }
+      setUsers(filtered)
       setWorkflows(ws)
+      setAttributes(as)
     })
   }, [])
 
@@ -71,41 +88,39 @@ export default function GlobalFilters() {
           </div>
           <div className="space-y-5 text-sm text-gray-800">
             {/* Types */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 sm:col-span-1">
-                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Types</div>
-                <div className="flex flex-col gap-2">
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedTypes.includes('tasks')}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        const next = new Set(selectedTypes)
-                        if (checked) next.add('tasks'); else next.delete('tasks')
-                        const arr = Array.from(next) as Array<'tasks' | 'notes'>
-                        setSelectedTypes(arr.length ? arr : ['tasks'])
-                      }}
-                      className="w-4 h-4"
-                    />
-                    Tasks
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedTypes.includes('notes')}
-                      onChange={(e) => {
-                        const checked = e.target.checked
-                        const next = new Set(selectedTypes)
-                        if (checked) next.add('notes'); else next.delete('notes')
-                        const arr = Array.from(next) as Array<'tasks' | 'notes'>
-                        setSelectedTypes(arr.length ? arr : ['notes'])
-                      }}
-                      className="w-4 h-4"
-                    />
-                    Notes
-                  </label>
-                </div>
+            <div>
+              <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Types</div>
+              <div className="flex flex-wrap gap-2">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes('tasks')}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      const next = new Set(selectedTypes)
+                      if (checked) next.add('tasks'); else next.delete('tasks')
+                      const arr = Array.from(next) as Array<'tasks' | 'notes'>
+                      setSelectedTypes(arr.length ? arr : ['tasks'])
+                    }}
+                    className="w-4 h-4"
+                  />
+                  Tasks
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes('notes')}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      const next = new Set(selectedTypes)
+                      if (checked) next.add('notes'); else next.delete('notes')
+                      const arr = Array.from(next) as Array<'tasks' | 'notes'>
+                      setSelectedTypes(arr.length ? arr : ['notes'])
+                    }}
+                    className="w-4 h-4"
+                  />
+                  Notes
+                </label>
               </div>
             </div>
 
@@ -119,10 +134,17 @@ export default function GlobalFilters() {
                 <input type="checkbox" className="sr-only" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
                 <svg className={`w-4 h-4 ${showArchived ? 'text-gray-900' : 'text-gray-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
               </label>
-              <label title="Blocked only" className="inline-flex items-center justify-center w-8 h-8 rounded border border-gray-300 hover:bg-gray-50 cursor-pointer">
-                <input type="checkbox" className="sr-only" checked={blockedOnly} onChange={(e) => setBlockedOnly(e.target.checked)} />
-                <svg className={`w-4 h-4 ${blockedOnly ? 'text-red-600' : 'text-gray-600'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M4 4h16l-6 7v7l-4-2v-5L4 4z"/></svg>
-              </label>
+              <button
+                title={blockedOnly ? "Show all items" : "Show blocked only"}
+                onClick={() => setBlockedOnly(!blockedOnly)}
+                className={`inline-flex items-center justify-center w-8 h-8 rounded border transition-all ${
+                  blockedOnly ? 'border-red-400 bg-red-50' : 'border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                <svg className={`w-4 h-4 ${blockedOnly ? 'text-red-600' : 'text-gray-600'}`} fill={blockedOnly ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                </svg>
+              </button>
             </div>
             {/* View Mode & Sort - mobile only */}
             <div className="md:hidden space-y-3 pb-3 border-b border-gray-200">
@@ -198,7 +220,7 @@ export default function GlobalFilters() {
             </div>
 
             {/* Filters Grid */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <div>
                 <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Labels</div>
                 <div className="space-y-1">
@@ -273,14 +295,25 @@ export default function GlobalFilters() {
                   {workflows.length > 6 && <div className="text-xs text-gray-400 px-1">+{workflows.length - 6} more...</div>}
                 </div>
               </div>
+              <div>
+                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Attributes</div>
+                <div className="space-y-1">
+                  {attributes.length === 0 ? (
+                    <div className="text-xs text-gray-400">No attributes</div>
+                  ) : (
+                    attributes.filter(a => !a.isDefault).slice(0, 6).map((a) => (
+                      <div key={a.id} className="text-xs text-gray-600 px-1 py-0.5 truncate">
+                        {a.name}
+                      </div>
+                    ))
+                  )}
+                  {attributes.filter(a => !a.isDefault).length > 6 && <div className="text-xs text-gray-400 px-1">+{attributes.filter(a => !a.isDefault).length - 6} more...</div>}
+                </div>
+              </div>
             </div>
 
             {/* Bottom Actions */}
-            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={blockedOnly} onChange={(e) => setBlockedOnly(e.target.checked)} className="w-4 h-4" />
-                <span>Blocked only</span>
-              </label>
+            <div className="flex items-center justify-end pt-2 border-t border-gray-200">
               <button className="px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md border border-gray-300" onClick={clear}>Clear All</button>
             </div>
           </div>

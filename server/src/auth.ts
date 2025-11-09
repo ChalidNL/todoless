@@ -14,14 +14,29 @@ export function authRouter(secret: string) {
 
   function issueCookie(res: any, payload: any) {
     const token = jwt.sign(payload, secret, { expiresIn: '7d' })
-    const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production'
-    res.cookie('token', token, {
+    const isProduction = process.env.NODE_ENV === 'production'
+    const secure = process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProduction
+    
+    // For development/LAN access, use 'lax' sameSite. For production with HTTPS, use 'strict'.
+    // Note: 'none' requires secure=true, which won't work with HTTP on LAN
+    const sameSite = isProduction ? 'strict' : 'lax'
+    
+    const cookieOptions: any = {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite,
       secure,
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
-    })
+    }
+    
+    // In development, don't set domain to allow localhost and LAN IPs
+    // Production can set explicit domain via env var if needed
+    if (isProduction && process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN
+    }
+    
+    res.cookie('token', token, cookieOptions)
+    logger.info('auth:cookie-issued', { secure, sameSite, hasDomain: !!cookieOptions.domain })
   }
 
   // Disable open registration. Only allow if there are no users (initial install), which we seed anyway.
@@ -31,20 +46,39 @@ export function authRouter(secret: string) {
 
   router.post('/login', limiter, async (req, res) => {
     const { username, password, code } = req.body as { username: string; password: string; code?: string }
+    logger.info('auth:login-attempt', { 
+      username, 
+      hasPassword: !!password, 
+      passwordLength: password?.length,
+      origin: req.headers.origin, 
+      userAgent: req.headers['user-agent'],
+      body: req.body
+    })
+    
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined
-    if (!user) return res.status(401).json({ error: 'invalid_credentials' })
+    if (!user) {
+      logger.warn('auth:login-failed', { username, reason: 'user_not_found' })
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
+    
+    logger.info('auth:user-found', { username, hasHash: !!user.password_hash })
     const ok = await bcrypt.compare(password, user.password_hash)
-    if (!ok) return res.status(401).json({ error: 'invalid_credentials' })
+    logger.info('auth:password-compare', { username, result: ok })
+    if (!ok) {
+      logger.warn('auth:login-failed', { username, reason: 'invalid_password' })
+      return res.status(401).json({ error: 'invalid_credentials' })
+    }
 
     if (user.twofa_enabled) {
       if (!code || !user.twofa_secret || !verifyTOTP(user.twofa_secret, code)) {
         // Signal 2FA required
+        logger.info('auth:2fa-required', { username })
         return res.status(401).json({ twofaRequired: true })
       }
     }
 
     issueCookie(res, { id: user.id, username: user.username, role: user.role, twofa_enabled: !!user.twofa_enabled, twofa_verified: !!user.twofa_enabled })
-    logger.info('auth:login', { username })
+    logger.info('auth:login-success', { username, userId: user.id })
     return res.json({ ok: true })
   })
 
@@ -64,6 +98,75 @@ export function authRouter(secret: string) {
       return res.json({ user: { id: u.id, username: u.username, email: u.email, role: u.role, twofa_enabled: !!u.twofa_enabled } })
     } catch {
       return res.json({ user: null })
+    }
+  })
+
+  // Update profile (username/email)
+  router.post('/profile', requireAuth(secret), (req, res) => {
+    try {
+      const u = (req as any).user as { id: number; username: string }
+      const { username, email } = req.body as { username?: string; email?: string }
+      if (!username && !email) return res.status(400).json({ error: 'nothing_to_update' })
+      const updates: string[] = []
+      const values: any[] = []
+      if (username) {
+        updates.push('username = ?')
+        values.push(username)
+      }
+      if (email !== undefined) {
+        updates.push('email = ?')
+        values.push(email || null)
+      }
+      values.push(u.id)
+      db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values)
+      logger.info('auth:profile-updated', { user_id: u.id, updated: updates })
+      // Issue new cookie with updated username
+      if (username) {
+        const updated = db.prepare('SELECT * FROM users WHERE id = ?').get(u.id) as UserRow
+        issueCookie(res, { id: updated.id, username: updated.username, role: updated.role, twofa_enabled: !!updated.twofa_enabled })
+      }
+      return res.json({ ok: true })
+    } catch (e: any) {
+      logger.error('auth:profile-update-failed', { error: e.message })
+      return res.status(500).json({ error: 'update_failed' })
+    }
+  })
+
+  // Change password (requires current password for security)
+  router.post('/change-password', requireAuth(secret), async (req, res) => {
+    try {
+      const u = (req as any).user as { id: number; username: string }
+      const { currentPassword, newPassword } = req.body as { currentPassword: string; newPassword: string }
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'missing_fields' })
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'password_too_short' })
+      }
+      
+      // Verify current password
+      const user = db.prepare('SELECT * FROM users WHERE id = ?').get(u.id) as UserRow | undefined
+      if (!user) {
+        return res.status(404).json({ error: 'user_not_found' })
+      }
+      
+      const valid = await bcrypt.compare(currentPassword, user.password_hash)
+      if (!valid) {
+        logger.warn('auth:password-change-failed', { user_id: u.id, reason: 'invalid_current_password' })
+        return res.status(401).json({ error: 'invalid_current_password' })
+      }
+      
+      // Update password
+      const hash = await bcrypt.hash(newPassword, 12)
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, u.id)
+      logger.info('auth:password-changed', { user_id: u.id })
+      
+      return res.json({ ok: true })
+    } catch (e: any) {
+      logger.error('auth:password-change-error', { error: e.message })
+      return res.status(500).json({ error: 'change_failed' })
     }
   })
 
@@ -181,7 +284,7 @@ export function authRouter(secret: string) {
     const { username } = req.body as { username: string }
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as UserRow | undefined
     if (!user) return res.status(404).json({ error: 'not_found' })
-    const secret = generateTOTPSecret(`Family Organizer (${username})`)
+    const secret = generateTOTPSecret(`TodoLess (${username})`)
     db.prepare('UPDATE users SET twofa_secret = ?, twofa_enabled = 0 WHERE id = ?').run(secret.ascii, user.id)
     toDataURL(secret.otpauth_url!).then((qr) => res.json({ qr, secret: secret.ascii })).catch(() => res.status(500).json({ error: 'qr_failed' }))
   })

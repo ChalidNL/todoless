@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { parseDueToDate } from '../utils/date'
 import type { Label, Todo, User, AttributeDef } from '../db/schema'
@@ -76,6 +76,16 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
       }
     } catch {}
   }, [])
+
+  // Deduplicate users by id
+  const uniqueUsers = useMemo(() => {
+    const seen = new Set<string>()
+    return users.filter(u => {
+      if (seen.has(u.id)) return false
+      seen.add(u.id)
+      return true
+    })
+  }, [users])
 
   // Sync live labels if todo prop changes externally
   useEffect(() => {
@@ -379,8 +389,22 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
             </button>
           )
         })}
+          {/* Priority chip */}
+          {todo.priority && (
+            <span
+              className={clsx(
+                'chip text-[11px] px-2 py-0.5 border font-semibold',
+                todo.priority === 'high' ? 'border-red-400 text-red-600 bg-red-50' :
+                todo.priority === 'medium' ? 'border-yellow-400 text-yellow-700 bg-yellow-50' :
+                'border-gray-300 text-gray-600 bg-gray-50'
+              )}
+              title={`Priority: ${todo.priority}`}
+            >
+              {todo.priority === 'high' ? 'High' : todo.priority === 'medium' ? 'Medium' : 'Low'}
+            </span>
+          )}
         {(todo.assigneeIds || []).map((uid) => {
-          const u = users.find((x) => x.id === uid)
+          const u = uniqueUsers.find((x) => x.id === uid)
           if (!u) return null
           const initials = (u.firstName?.[0] || '') + (u.lastName?.[0] || '') || u.name?.[0] || 'U'
           return (
@@ -616,7 +640,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
                   e.preventDefault()
                   const raw = assigneeInput.trim().replace(/^@/, '')
                   if (!raw) return
-                  const u = users.find((x) => x.name?.toLowerCase().includes(raw.toLowerCase()))
+                  const u = uniqueUsers.find((x) => x.name?.toLowerCase().includes(raw.toLowerCase()))
                   if (!u) return
                   const next = [u.id]
                   await mutateTodo(todo.id, { assigneeIds: next })
@@ -630,7 +654,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
           {assigneeInput.trim() && (
             <div className="mt-2 max-h-40 overflow-y-auto border-t pt-2">
               <div className="mb-1 text-xs text-gray-500">Available users</div>
-              {users
+              {uniqueUsers
                 .filter((u) => !(todo.assigneeIds || []).includes(u.id))
                 .filter((u) => u.name?.toLowerCase().includes(assigneeInput.trim().replace(/^@/, '').toLowerCase()))
                 .slice(0, 8)

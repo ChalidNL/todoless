@@ -128,12 +128,17 @@ export default function SavedView() {
   }
 
   // De-duplicate projection for "All" view: prefer uniqueness by serverId, then clientId, then id
+  // Also deduplicate by plain ID to catch any double-rendering issues
   if (viewId === 'all') {
     const seen = new Set<string>()
     filtered = filtered.filter((t: Todo) => {
+      // Primary dedup: serverId or clientId or local id
       const key = (t.serverId ? `s:${t.serverId}` : (t.clientId ? `c:${t.clientId}` : `l:${t.id}`))
       if (seen.has(key)) return false
+      // Secondary dedup: plain ID (in case serverId/clientId not set)
+      if (seen.has(t.id)) return false
       seen.add(key)
+      seen.add(t.id)
       return true
     })
   }

@@ -9,9 +9,24 @@ import { authRouter } from './auth.js'
 import { tasksRouter } from './tasks.js'
 import { requireAuth, require2FA } from './middleware.js'
 import { addClient, removeClient } from './events.js'
-import { logger } from './logger.js'
+import { logger, getRecentLogs } from './logger.js'
+/* TEST-ONLY: Seed admin user in dev/test */
+import bcrypt from 'bcrypt'
+import { db } from './db.js'
 
 const app = express()
+
+if (process.env.NODE_ENV !== 'production') {
+  (async () => {
+    const admin = db.prepare('SELECT * FROM users WHERE username = ?').get('admin')
+    if (!admin) {
+      const hash = await bcrypt.hash('admin123', 12)
+      db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)')
+        .run('admin', 'admin@localhost', hash, 'adult')
+      logger.info('TEST-ONLY: seeded admin user for dev/test', { username: 'admin', password: 'admin123' })
+    }
+  })()
+}
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
 const ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173'
@@ -53,6 +68,17 @@ app.use('/api/auth', authRouter(JWT_SECRET))
 
 // Protected tasks routes
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
+
+// Logs endpoint (admin only)
+app.get('/api/logs', requireAuth(JWT_SECRET), (req: any, res) => {
+  const user = req.user
+  if (user?.role !== 'adult') {
+    return res.status(403).json({ error: 'admin_only' })
+  }
+  const count = Math.min(Math.max(Number(req.query.count) || 100, 1), 500)
+  const logs = getRecentLogs(count)
+  return res.json({ logs })
+})
 
 // Optional static file serving (for single-container fullstack deployment)
 if (process.env.SERVE_STATIC === 'true') {

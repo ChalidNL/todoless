@@ -1,4 +1,4 @@
-# Todoless
+# ![Todoless Logo](./public/icons/todoless-bw.svg) Todoless
 
 Modern family task management with multi-user support, workflows, and real-time sync.
 

@@ -6,6 +6,8 @@ import { SavedViews } from '../db/dexieClient'
 import type { SavedView } from '../db/schema'
 import SaveViewButton from './SaveViewButton'
 
+const APP_VERSION = '0.0.1' // Sync with package.json
+
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const asideRef = useRef<HTMLElement | null>(null)
@@ -95,7 +97,16 @@ export default function Sidebar({ className }: { className?: string }) {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded bg-accent/10 text-accent font-bold text-sm">T</div>
-            <span className="text-sm font-semibold">Todoless</span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold">Todoless</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-500">v{APP_VERSION}</span>
+                {/* TEST-ONLY: Development environment indicator */}
+                {import.meta.env.DEV && (
+                  <span className="text-[10px] font-bold text-red-600 tracking-wide">TEST</span>
+                )}
+              </div>
+            </div>
           </div>
         )}
         <button
@@ -118,7 +129,16 @@ export default function Sidebar({ className }: { className?: string }) {
           {!collapsed && (
             <>
               <div className="flex h-6 w-6 items-center justify-center rounded bg-accent/10 text-accent font-bold text-xs">T</div>
-              <span className="text-sm font-semibold">Todoless</span>
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-semibold">Todoless</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-500 leading-none">v{APP_VERSION}</span>
+                  {/* TEST-ONLY: Mobile development environment indicator */}
+                  {import.meta.env.DEV && (
+                    <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none">TEST</span>
+                  )}
+                </div>
+              </div>
             </>
           )}
           <span className="text-lg font-bold text-gray-700">
@@ -238,7 +258,7 @@ export default function Sidebar({ className }: { className?: string }) {
               },
               { 
                 to: '/manage/notes', 
-                name: 'Notities', 
+                name: 'Notes', 
                 icon: <svg className="inline-block icon-standard" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>

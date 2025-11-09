@@ -33,7 +33,8 @@ interface AuthState {
 
 // In development, Vite proxies /api to backend. In production, nginx proxies /api.
 // So we always use same-origin (empty string = relative URLs)
-const API = ''
+/* TEST-ONLY: Force LAN API base for dev/test login issues */
+const API = import.meta.env.DEV ? 'http://192.168.2.123:4000' : ''
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
@@ -67,26 +68,46 @@ export const useAuth = create<AuthState>((set: Setter, get: Getter) => ({
       set({ error: e.message, user: null, loading: false, ready: true })
     }
   },
+  // Listen for external refresh events (e.g., profile updated)
+  // and re-fetch current user silently
+  // This avoids stale avatar initials after username change
+  // Event dispatched from Settings page after /profile update
+  initEventHook: (() => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('auth:refresh', () => {
+        get().me().catch(() => {})
+      })
+    }
+  })(),
   login: async (payload: { username: string; password: string; code?: string }) => {
     set({ loading: true, error: null })
     try {
+      console.log('[AUTH] Login attempt:', { username: payload.username, hasPassword: !!payload.password, hasCode: !!payload.code })
       const res = await fetch(`${API}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload),
       })
+      console.log('[AUTH] Login response:', { status: res.status, ok: res.ok })
       if (res.status === 401) {
         const body = await res.json().catch(() => ({}))
+        console.log('[AUTH] 401 response body:', body)
         if (body.twofaRequired) {
           set({ loading: false })
           return { twofaRequired: true }
         }
       }
-      if (!res.ok) throw new Error('login_failed')
+      if (!res.ok) {
+        const errorBody = await res.json().catch(() => ({}))
+        console.error('[AUTH] Login failed:', { status: res.status, body: errorBody })
+        throw new Error('login_failed')
+      }
+      console.log('[AUTH] Login successful, fetching user info')
       await get().me()
       set({ loading: false, ready: true })
     } catch (e: any) {
+      console.error('[AUTH] Login error:', e)
       set({ error: e.message, loading: false, ready: true })
     }
   },

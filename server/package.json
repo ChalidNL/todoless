@@ -1,6 +1,6 @@
 {
-  "name": "family-organizer-server",
-  "version": "1.0.0",
+  "name": "todoless-server",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {

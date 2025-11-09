@@ -130,7 +130,17 @@ export default function LabelsManagement() {
                 </div>
                 {/* Actions inline */}
                 {editingLabel?.id === label.id && (
-                  <input type="color" className="w-8 h-8 cursor-pointer rounded border-2 border-gray-300" value={editingLabel.color} onChange={(e) => setEditingLabel({ ...editingLabel, color: e.target.value })} />
+                  <input 
+                    type="color" 
+                    className="w-8 h-8 cursor-pointer rounded border-2 border-gray-300" 
+                    value={editingLabel.color} 
+                    onChange={(e) => {
+                      const newColor = e.target.value
+                      setEditingLabel({ ...editingLabel, color: newColor })
+                      // Apply color change immediately
+                      handleUpdate(label, { name: editingLabel.name, color: newColor })
+                    }} 
+                  />
                 )}
                 <button
                   className="w-8 h-8 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"

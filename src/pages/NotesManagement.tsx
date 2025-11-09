@@ -163,7 +163,7 @@ export default function NotesManagement() {
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
         title="Notes"
-        infoText="Snelle notities, te pinnen en te delen. Je kunt ze koppelen aan taken."
+        infoText="Quick notes, pinnable and shareable. Link them to tasks for context."
         onCreateClick={startNew}
         createTitle="New note"
         searchValue={localSearch}

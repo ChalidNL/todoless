@@ -281,6 +281,7 @@ export const db = new TodolessDB()
 // Simple event bus for todo changes so UI can subscribe and update immediately
 export const todoBus = new EventTarget()
 export const labelBus = new EventTarget()
+export const notesBus = new EventTarget()
 
 // UUID generator with fallback for browsers that don't support crypto.randomUUID
 function generateUUID(): string {
@@ -562,13 +563,24 @@ export const Notes = {
       userId: n.userId || 'local-user',
     }
     await db.notes.add(note)
+    try {
+      const added = await db.notes.get(id)
+      notesBus.dispatchEvent(new CustomEvent('note:added', { detail: added }))
+    } catch {}
     return id
   },
   update: async (id: string, patch: Partial<Note>) => {
     if (!patch.updatedAt) patch.updatedAt = new Date().toISOString()
-    return db.notes.update(id, patch)
+    await db.notes.update(id, patch)
+    try {
+      const updated = await db.notes.get(id)
+      notesBus.dispatchEvent(new CustomEvent('note:updated', { detail: updated }))
+    } catch {}
   },
-  remove: (id: string) => db.notes.delete(id),
+  remove: async (id: string) => {
+    await db.notes.delete(id)
+    notesBus.dispatchEvent(new CustomEvent('note:removed', { detail: { id } }))
+  },
 }
 
 // Clear all local data (used on logout for security)

@@ -3,23 +3,24 @@ import ManagementHeader from '../components/ManagementHeader'
 import { useRealtime } from '../store/realtime'
 
 interface LogEntry {
-  id: number
-  timestamp: string // ISO string for stability across refreshes
-  level: 'info' | 'warn' | 'error' | 'debug'
-  message: string
+  t: string // ISO timestamp
+  lvl: 'info' | 'warn' | 'error' | 'debug'
+  msg: string
+  meta?: any
 }
 
 export default function Logs() {
   const [logs, setLogs] = useState<LogEntry[]>([])
   const [autoScroll, setAutoScroll] = useState(true)
   const { status, lastEventAt, errorCount, lastError } = useRealtime()
-  const [levelFilter, setLevelFilter] = useState<LogEntry['level']>(() => {
+  const [levelFilter, setLevelFilter] = useState<LogEntry['lvl']>(() => {
     try {
-      return (localStorage.getItem('logLevelFilter') as LogEntry['level']) || 'debug'
+      return (localStorage.getItem('logLevelFilter') as LogEntry['lvl']) || 'debug'
     } catch {
       return 'debug'
     }
   })
+  const [loading, setLoading] = useState(false)
   const statusUI = useMemo(() => {
     const map: Record<string, { color: string; text: string; title?: string }> = {
       connected: { color: 'bg-green-500', text: 'connected' },
@@ -31,77 +32,25 @@ export default function Logs() {
     const since = lastEventAt ? ` • last event ${timeAgo(lastEventAt)}` : ''
     return { ...s, label: `${s.text}${since}` }
   }, [status, lastEventAt, errorCount, lastError])
-  const [debugEnabled, setDebugEnabled] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem('debugEnabled')
-      return stored !== 'false' // default ON
-    } catch {
-      return true
-    }
-  })
 
+  // Fetch server logs on mount
   useEffect(() => {
-    try { localStorage.setItem('debugEnabled', String(debugEnabled)) } catch {}
-  }, [debugEnabled])
-
-  // Persist logs to survive refresh and keep original timestamps
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('adminLogs')
-      if (raw) {
-        const parsed = JSON.parse(raw) as LogEntry[]
-        setLogs(parsed.slice(-500))
+    const fetchLogs = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/logs?count=200', { credentials: 'include' })
+        if (res.ok) {
+          const data = await res.json()
+          setLogs(data.logs || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch server logs:', err)
+      } finally {
+        setLoading(false)
       }
-    } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }
+    fetchLogs()
   }, [])
-  useEffect(() => {
-    try { localStorage.setItem('adminLogs', JSON.stringify(logs.slice(-500))) } catch {}
-  }, [logs])
-
-  useEffect(() => {
-    if (!debugEnabled) return
-    // Intercept console methods
-    const originalLog = console.log
-    const originalWarn = console.warn
-    const originalError = console.error
-    const originalInfo = console.info
-
-    const addLog = (level: LogEntry['level'], ...args: any[]) => {
-      const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')
-      const entry: LogEntry = {
-        id: Date.now() + Math.random(),
-        timestamp: new Date().toISOString(),
-        level,
-        message,
-      }
-      setLogs(prev => [...prev.slice(-499), entry]) // Keep last 500
-    }
-
-    console.log = (...args: any[]) => {
-      addLog('debug', ...args)
-      originalLog(...args)
-    }
-    console.info = (...args: any[]) => {
-      addLog('info', ...args)
-      originalInfo(...args)
-    }
-    console.warn = (...args: any[]) => {
-      addLog('warn', ...args)
-      originalWarn(...args)
-    }
-    console.error = (...args: any[]) => {
-      addLog('error', ...args)
-      originalError(...args)
-    }
-
-    return () => {
-      console.log = originalLog
-      console.warn = originalWarn
-      console.error = originalError
-      console.info = originalInfo
-    }
-  }, [debugEnabled])
 
   useEffect(() => {
     if (autoScroll) {
@@ -110,13 +59,28 @@ export default function Logs() {
     }
   }, [logs, autoScroll])
 
+  const handleRefresh = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/logs?count=200', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        setLogs(data.logs || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch server logs:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const clearLogs = () => setLogs([])
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
         title="Logs"
-        infoText="Real-time console output voor debugging. Logs worden automatisch bijgewerkt."
+        infoText="Server logs and diagnostics. Admin only."
         showCreate={false}
         showSearch={false}
       />
@@ -126,31 +90,29 @@ export default function Logs() {
           <span className="text-sm text-gray-700">Realtime: {statusUI.label}</span>
         </div>
         <label className="inline-flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={debugEnabled} onChange={(e) => setDebugEnabled(e.target.checked)} />
-          Capture logs
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm">
           Level
           <select
             className="border rounded px-2 py-1 text-sm"
             value={levelFilter}
             onChange={(e) => {
-              const v = e.target.value as LogEntry['level']
+              const v = e.target.value as LogEntry['lvl']
               setLevelFilter(v)
               try { localStorage.setItem('logLevelFilter', v) } catch {}
             }}
           >
-            <option value="debug">debug (laagste)</option>
+            <option value="debug">debug (lowest)</option>
             <option value="info">info</option>
             <option value="warn">warn</option>
-            <option value="error">error (hoogste)</option>
+            <option value="error">error (highest)</option>
           </select>
         </label>
         <label className="inline-flex items-center gap-2 text-sm">
           <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
           Auto-scroll
         </label>
-        <button className="btn text-sm" onClick={clearLogs}>Clear</button>
+        <button className="btn text-sm" onClick={handleRefresh} disabled={loading}>
+          {loading ? 'Loading...' : 'Refresh'}
+        </button>
         <div className="text-sm text-gray-600">{logs.length} entries</div>
       </div>
       <div id="logs-container" className="flex-1 overflow-y-auto p-4 font-mono text-xs bg-gray-900 text-gray-100">
@@ -158,17 +120,17 @@ export default function Logs() {
           <div className="text-gray-500">No logs yet...</div>
         ) : (
           logs
-            .filter(log => severity(log.level) >= severity(levelFilter))
-            .map(log => (
-              <div key={log.id} className="mb-1 flex gap-2">
-                <span className="text-gray-500">{formatTime(log.timestamp)}</span>
+            .filter(log => severity(log.lvl) >= severity(levelFilter))
+            .map((log, i) => (
+              <div key={i} className="mb-1 flex gap-2">
+                <span className="text-gray-500">{formatTime(log.t)}</span>
                 <span className={`font-semibold ${
-                  log.level === 'error' ? 'text-red-400' :
-                  log.level === 'warn' ? 'text-yellow-400' :
-                  log.level === 'info' ? 'text-blue-400' :
+                  log.lvl === 'error' ? 'text-red-400' :
+                  log.lvl === 'warn' ? 'text-yellow-400' :
+                  log.lvl === 'info' ? 'text-blue-400' :
                   'text-gray-300'
-                }`}>{log.level.toUpperCase()}</span>
-                <span className="flex-1">{log.message}</span>
+                }`}>{log.lvl.toUpperCase()}</span>
+                <span className="flex-1">{log.msg}</span>
               </div>
             ))
         )}
@@ -188,7 +150,7 @@ function timeAgo(ts: number) {
   return `${h}h ago`
 }
 
-function severity(level: LogEntry['level']): number {
+function severity(level: LogEntry['lvl']): number {
   switch (level) {
     case 'debug': return 10
     case 'info': return 20

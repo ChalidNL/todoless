@@ -70,7 +70,7 @@ export default function AttributesMgmt() {
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
         title="Attributes"
-        infoText="Voeg eigen velden toe aan taken (tekst, nummer, datum of select)."
+        infoText="Add custom fields to tasks (text, number, date, or select)."
         onCreateClick={() => setCreatePopup(true)}
         createTitle="Create attribute"
         searchValue={searchQuery}
@@ -111,26 +111,35 @@ export default function AttributesMgmt() {
                 )}
               </div>
               <div className="flex gap-2">
+                {attr.isDefault ? (
+                  <div className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded border-2 border-gray-200 bg-gray-50 text-gray-400 text-xs">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"/>
+                    </svg>
+                    System Default
+                  </div>
+                ) : (
+                  <>
                 <button
-                  onClick={() => !attr.isDefault && handleQuickRename(attr)}
+                  onClick={() => handleQuickRename(attr)}
                   className="flex-1 w-8 h-8 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"
                   title="Rename"
-                  disabled={attr.isDefault}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </button>
                 <button
-                  onClick={() => !attr.isDefault && handleDelete(attr.id)}
-                  className={`w-8 h-8 flex items-center justify-center rounded border-2 border-gray-300 ${attr.isDefault ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-50 text-red-600'}`}
+                  onClick={() => handleDelete(attr.id)}
+                  className="w-8 h-8 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-red-50 text-red-600"
                   title="Delete"
-                  disabled={attr.isDefault}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

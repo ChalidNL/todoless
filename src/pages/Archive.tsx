@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ManagementHeader from '../components/ManagementHeader'
-import { Labels, Notes, Todos } from '../db/dexieClient'
+import { Labels, Notes, Todos, notesBus } from '../db/dexieClient'
 import type { Label, Note, Todo } from '../db/schema'
 import { useFilterContext } from '../contexts/FilterContext'
 
@@ -20,7 +20,27 @@ export default function Archive() {
     setLabels(ls)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { 
+    load()
+    
+    // Listen for note updates to sync pin/archive changes in real-time
+    const onNoteUpdated = (e: Event) => {
+      const detail = (e as CustomEvent).detail as Note
+      setNotes(prev => prev.map(n => n.id === detail.id ? detail : n))
+    }
+    const onNoteRemoved = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { id: string }
+      setNotes(prev => prev.filter(n => n.id !== detail.id))
+    }
+    
+    notesBus.addEventListener('note:updated', onNoteUpdated)
+    notesBus.addEventListener('note:removed', onNoteRemoved)
+    
+    return () => {
+      notesBus.removeEventListener('note:updated', onNoteUpdated)
+      notesBus.removeEventListener('note:removed', onNoteRemoved)
+    }
+  }, [])
 
   const restoreNote = async (n: Note) => {
     await Notes.update(n.id, { archived: false })
@@ -52,11 +72,11 @@ export default function Archive() {
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
         title="Archive"
-        infoText="Hier vind je voltooide taken en gearchiveerde notities. Je kunt zoeken en snel terugvinden."
+        infoText="Completed tasks and archived notes. Search and restore quickly."
         showCreate={false}
         searchValue={q}
         onSearchChange={setQ}
-        searchPlaceholder="Zoek in archive..."
+        searchPlaceholder="Search archive..."
       />
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Summary */}
@@ -76,7 +96,7 @@ export default function Archive() {
         <section>
           <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Completed tasks</div>
           {completedTodos.length === 0 ? (
-            <div className="rounded border bg-white p-3 text-sm text-gray-600">Geen voltooide taken</div>
+            <div className="rounded border bg-white p-3 text-sm text-gray-600">No completed tasks</div>
           ) : (
             <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {completedTodos.map(t => (
@@ -106,7 +126,7 @@ export default function Archive() {
         <section>
           <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Archived notes</div>
           {archivedNotes.length === 0 ? (
-            <div className="rounded border bg-white p-3 text-sm text-gray-600">Geen gearchiveerde notities</div>
+            <div className="rounded border bg-white p-3 text-sm text-gray-600">No archived notes</div>
           ) : (
             <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {archivedNotes.map(n => (

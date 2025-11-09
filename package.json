@@ -1,10 +1,10 @@
 {
   "name": "todoless",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5174 --strictPort",
     "build": "vite build",
     "preview": "vite preview"
   },
