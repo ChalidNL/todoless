@@ -71,8 +71,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=frontend
           platforms: linux/amd64,linux/arm64
           push: true
-          build-args: |
-            VITE_API_URL=${{ env.FRONTEND_VITE_API_URL }}
+          # No VITE_API_URL; frontend uses relative /api paths proxied by nginx
           tags: |
             ghcr.io/chalidnl/todoless-frontend:latest
             ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.version }}
