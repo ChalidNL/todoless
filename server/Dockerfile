@@ -36,7 +36,7 @@ RUN mkdir -p /app/data \
 ENV NODE_ENV=production \
     PORT=4000 \
     JWT_SECRET=change-me \
-    CORS_ORIGIN=http://localhost:3000 \
+    CORS_ORIGIN=http://localhost:5174 \
     DB_PATH=/app/data/todoless.db
 
 EXPOSE 4000

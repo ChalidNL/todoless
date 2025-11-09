@@ -1,59 +1,78 @@
 # Todoless
 
-A modern, multi-user todo list and task management application with workflows, labels, and calendar views.
+Modern family task management with multi-user support, workflows, and real-time sync.
 
 ## Features
 
-- 🔐 **Secure Authentication**: JWT-based auth with optional 2FA
-- 👥 **Multi-user**: Multiple user roles with permission controls
-- 📋 **Flexible Organization**: Labels, lists, workflows, and custom attributes
-- 📅 **Calendar & Planning**: Due dates, repeating tasks, and calendar view
-- 🎯 **Multiple Views**: List, kanban, calendar, and custom saved views
-- 🌙 **Theming**: Per-user theme colors and dark mode
-- 📱 **Responsive**: Works on desktop, tablet, and mobile
-- 🏠 **Self-hosted**: Run locally or on your server with Docker
+- 🔐 Secure authentication with optional 2FA
+- 👥 Multi-user with role-based access
+- 📋 Labels, workflows, and custom attributes
+- 📅 Calendar view and planning dashboard
+- 🔄 Real-time sync across devices
+- 📱 PWA support
+- 🏠 Self-hosted
 
 ## Quick Start
 
-### Docker Compose (Recommended)
+### Docker Compose (Production)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ChalidNL/todoless.git
-   cd todoless
+1. **Create environment file** `.env`:
+   ```env
+   JWT_SECRET=your-strong-random-secret-here
    ```
 
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env and set a secure JWT_SECRET
-   ```
-
-3. **Start the application:**
+2. **Deploy**:
    ```bash
    docker compose up -d
    ```
 
-4. **Access the app:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:4000
-   - Default login: `admin` / `admin123` (⚠️ Change immediately!)
+3. **Access**: http://your-server:5174
+   - Default login: `admin` / `admin123` (change immediately!)
 
-Tip: De compose bouwt direct vanaf de publieke GitHub repo; je hoeft lokaal niets te clonen als je de compose in CasaOS plakt.
+### Local Development
 
-### Canonical docker-compose.yml
+**Backend**:
+```bash
+cd server
+npm install
+npm run dev  # Runs on :4000
+```
 
-Er is precies één compose-bestand en dat is `docker-compose.yml` in de root. Dit is het enige, canonieke bestand voor productie en CasaOS deployments.
+**Frontend** (new terminal):
+```bash
+npm install
+npm run dev  # Runs on :5174
+```
 
-### CasaOS (Stack)
+Create `server/.env`:
+```env
+JWT_SECRET=dev-secret
+CORS_ORIGIN=http://localhost:5174
+DB_PATH=./data/todoless.db
+COOKIE_SECURE=false
+PORT=4000
+```
 
-1. Open CasaOS → App → Stacks → New Stack
+## Architecture
+
+- **Frontend**: React + Vite + TypeScript + TailwindCSS
+- **Backend**: Node.js + Express + SQLite
+- **Deployment**: Docker with nginx reverse proxy
+
+## License
+
+MIT
 2. Plak de inhoud van `docker-compose.yml` (main branch)
-3. Voeg environment variables toe:
-   - `JWT_SECRET` = sterke, willekeurige string
-   - `CORS_ORIGIN` = `http://<host>:3000`
-   - `VITE_API_URL` = `http://<host>:4000` (frontend praat met backend)
-4. Deploy → Frontend op `http://<host>:3000`, Backend op `http://<host>:4000`
+2. **Compose plakken:**
+   ```yaml
+   # Paste de volledige docker-compose.yml hier
+   ```
+
+3. **Environment variabelen aanpassen:**
+   - `JWT_SECRET` = een sterke random waarde (gebruik `openssl rand -base64 32`)
+   - `CORS_ORIGIN` = `http://<host>:5174`
+
+4. Deploy → App op `http://<host>:5174` (nginx proxied /api naar backend:4000)
 
 Persistente data: named volume `todoless-data` → `/app/data` (SQLite).
 
@@ -91,16 +110,6 @@ Persistente data: named volume `todoless-data` → `/app/data` (SQLite).
 - SQLite with better-sqlite3
 - JWT authentication
 - bcrypt + optional 2FA (TOTP)
-
-## Configuration
-
-Create a `.env` file in the root directory:
-
-```env
-JWT_SECRET=your-secure-random-secret-here
-CORS_ORIGIN=http://localhost:3000
-VITE_API_URL=http://localhost:4000
-```
 
 ## License
 
