@@ -2,7 +2,7 @@ import ProtectedRoute from '../../components/auth/ProtectedRoute'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../store/auth'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+const API = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000')
 
 interface Task { id: number; title: string; workflow: string | null; workflowStage: string | null; created_by: number; assigned_to: number | null }
 
