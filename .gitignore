@@ -18,9 +18,9 @@ build/
 .env
 .env.local
 .env.*.local
-# Env files
-
-.env.*
+# Allow .env.example files for documentation
+!.env.example
+!server/.env.example
 
 # Secrets (do NOT commit tokens)
 secrets/
