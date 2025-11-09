@@ -4,7 +4,9 @@ import { useSync } from '../store/sync'
 import type { Todo, User } from '../db/schema'
 import { logger } from './logger'
 
-const API = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000')
+// In development, Vite proxies /api to backend. In production, nginx proxies /api.
+// So we always use same-origin (empty string = relative URLs)
+const API = ''
 const MERGE_WINDOW_MS = 15000 // time window to correlate local-unsynced and server-created tasks
 
 async function api(path: string, init?: RequestInit) {

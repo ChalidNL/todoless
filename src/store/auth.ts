@@ -31,8 +31,9 @@ interface AuthState {
   completeReset: (token: string, newPassword: string) => Promise<void>
 }
 
-// Resolve API base: prefer explicit VITE_API_URL, otherwise same-origin at runtime
-const API = (import.meta as any).env?.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4000')
+// In development, Vite proxies /api to backend. In production, nginx proxies /api.
+// So we always use same-origin (empty string = relative URLs)
+const API = ''
 
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
