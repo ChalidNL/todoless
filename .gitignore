@@ -1,20 +1,16 @@
 # Dependencies
 node_modules/
 npm-debug.log*
-# Logs
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
 # Build output
-# Editor
 dist/
 build/
-# OS
 *.local
 
 # Environment variables
-# Builds
 .env
 .env.local
 .env.*.local
@@ -24,6 +20,7 @@ build/
 
 # Secrets (do NOT commit tokens)
 secrets/
+
 # IDE
 .vscode/*
 !.vscode/extensions.json
@@ -40,16 +37,18 @@ Thumbs.db
 logs/
 *.log
 
-# Database files (persist via volume; don't commit examples)
+# Database files (NEVER commit databases - use volumes)
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
+*.sqlite-journal
 !server/data/.keep
 
-# Docker volume path (keep placeholder file to ensure directory exists)
+# Docker volume path
 server/data/
+server/public/
 
 # Temporary files
 tmp/
@@ -62,3 +61,8 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Archive folder (old/deprecated files kept for reference)
+# Commit archive/ but ignore its contents to keep history clean
+archive/*
+!archive/.gitkeep

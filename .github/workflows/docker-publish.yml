@@ -1,6 +1,8 @@
-name: Publish Docker images
+name: Build and Deploy
 
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main ]
     tags:
@@ -12,14 +14,14 @@ on:
 permissions:
   contents: read
   packages: write
-
-env:
-  # Default API URL used to bake into the frontend build; can be overridden via repo/Org variables
-  FRONTEND_VITE_API_URL: ${{ vars.FRONTEND_VITE_API_URL || 'http://192.168.2.100:4000' }}
+  pull-requests: write
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      frontend-tag: ${{ steps.meta.outputs.frontend-tag }}
+      backend-tag: ${{ steps.meta.outputs.backend-tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,43 +41,76 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute tags
+      - name: Compute tags and environment
         id: meta
         run: |
-          VERSION=latest
+          # Determine version and environment
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             VERSION="${GITHUB_REF_NAME}"
-          elif [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
+            ENV="production"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            VERSION="pr-${{ github.event.pull_request.number }}"
+            ENV="integration"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            VERSION="latest"
+            ENV="staging"
+          else
+            VERSION="latest"
+            ENV="development"
           fi
+          
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "frontend-tag=ghcr.io/chalidnl/todoless-frontend:$VERSION" >> $GITHUB_OUTPUT
+          echo "backend-tag=ghcr.io/chalidnl/todoless-backend:$VERSION" >> $GITHUB_OUTPUT
+          echo "Building for environment: $ENV with tag: $VERSION"
 
       - name: Build and push backend
         uses: docker/build-push-action@v6
         with:
           context: ./server
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          cache-from: type=gha,scope=backend-${{ steps.meta.outputs.environment }}
+          cache-to: type=gha,mode=max,scope=backend-${{ steps.meta.outputs.environment }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/chalidnl/todoless-backend:latest
             ghcr.io/chalidnl/todoless-backend:${{ steps.meta.outputs.version }}
             ghcr.io/chalidnl/todoless-backend:${{ github.sha }}
+            ${{ steps.meta.outputs.version == 'latest' && 'ghcr.io/chalidnl/todoless-backend:latest' || '' }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
           context: .
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          cache-from: type=gha,scope=frontend-${{ steps.meta.outputs.environment }}
+          cache-to: type=gha,mode=max,scope=frontend-${{ steps.meta.outputs.environment }}
           platforms: linux/amd64,linux/arm64
           push: true
-          # No VITE_API_URL; frontend uses relative /api paths proxied by nginx
           tags: |
-            ghcr.io/chalidnl/todoless-frontend:latest
             ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.version }}
             ghcr.io/chalidnl/todoless-frontend:${{ github.sha }}
+            ${{ steps.meta.outputs.version == 'latest' && 'ghcr.io/chalidnl/todoless-frontend:latest' || '' }}
+
+      - name: Comment PR with image tags
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `✅ **Integration images built successfully!**
+              
+              **Frontend**: \`ghcr.io/chalidnl/todoless-frontend:pr-${{ github.event.pull_request.number }}\`
+              **Backend**: \`ghcr.io/chalidnl/todoless-backend:pr-${{ github.event.pull_request.number }}\`
+              
+              Deploy to integration:
+              \`\`\`bash
+              TAG=pr-${{ github.event.pull_request.number }} docker-compose -f docker-compose.integration.yml up -d
+              \`\`\`
+              `
+            })
 
       # Fullstack image disabled after reverting to stable two-container architecture.
       # To re-enable later, uncomment this block and ensure docker-compose references the combined image.

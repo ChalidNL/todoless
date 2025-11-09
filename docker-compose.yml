@@ -1,6 +1,9 @@
 version: "3.8"
 name: todoless
 
+# Production environment
+# Single canonical compose file for stable deployments
+
 services:
   todoless-frontend:
     image: ghcr.io/chalidnl/todoless-frontend:latest
