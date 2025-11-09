@@ -78,18 +78,20 @@ jobs:
             ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.version }}
             ghcr.io/chalidnl/todoless-frontend:${{ github.sha }}
 
-      - name: Build and push fullstack
-        uses: docker/build-push-action@v6
-        with:
-          file: ./Dockerfile.fullstack
-          context: .
-          cache-from: type=gha,scope=fullstack
-          cache-to: type=gha,mode=max,scope=fullstack
-          platforms: linux/amd64,linux/arm64
-          push: true
-          build-args: |
-            VITE_API_URL=${{ env.FRONTEND_VITE_API_URL }}
-          tags: |
-            ghcr.io/chalidnl/todoless:latest
-            ghcr.io/chalidnl/todoless:${{ steps.meta.outputs.version }}
-            ghcr.io/chalidnl/todoless:${{ github.sha }}
+      # Fullstack image disabled after reverting to stable two-container architecture.
+      # To re-enable later, uncomment this block and ensure docker-compose references the combined image.
+      # - name: Build and push fullstack
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     file: ./Dockerfile.fullstack
+      #     context: .
+      #     cache-from: type=gha,scope=fullstack
+      #     cache-to: type=gha,mode=max,scope=fullstack
+      #     platforms: linux/amd64,linux/arm64
+      #     push: true
+      #     build-args: |
+      #       VITE_API_URL=${{ env.FRONTEND_VITE_API_URL }}
+      #     tags: |
+      #       ghcr.io/chalidnl/todoless:latest
+      #       ghcr.io/chalidnl/todoless:${{ steps.meta.outputs.version }}
+      #       ghcr.io/chalidnl/todoless:${{ github.sha }}

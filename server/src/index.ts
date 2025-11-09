@@ -27,24 +27,24 @@ app.use(helmet({
 }))
 app.use(express.json())
 app.use(cookieParser())
-// Allow single or multiple origins via CORS_ORIGIN (comma-separated). In dev, also allow localhost/LAN http origins.
+// Allow single or multiple origins via CORS_ORIGIN (comma-separated). Special-case '*' to allow any origin (echoed) which is handy when front is proxied via nginx.
 const allowlist = ORIGIN.split(',').map(s => s.trim()).filter(Boolean)
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true)
-    if (allowlist.length && allowlist.includes(origin)) return callback(null, true)
-    if (process.env.NODE_ENV !== 'production') {
-      try {
-        const u = new URL(origin)
-        const isLocalhost = u.hostname === 'localhost'
-        const isLanIPv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(u.hostname)
-        const isHttp = u.protocol === 'http:'
-        if (isHttp && (isLocalhost || isLanIPv4)) return callback(null, true)
-      } catch {}
-    }
-    return callback(new Error('Not allowed by CORS'))
-  },
-  credentials: true,
+const allowAny = allowlist.includes('*')
+app.use(cors((req, callback) => {
+  const origin = req.header('Origin')
+  if (!origin) return callback(null, { origin: true, credentials: true })
+  if (allowAny) return callback(null, { origin: true, credentials: true })
+  if (allowlist.length && allowlist.includes(origin)) return callback(null, { origin: true, credentials: true })
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const u = new URL(origin)
+      const isLocalhost = u.hostname === 'localhost'
+      const isLanIPv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(u.hostname)
+      const isHttp = u.protocol === 'http:'
+      if (isHttp && (isLocalhost || isLanIPv4)) return callback(null, { origin: true, credentials: true })
+    } catch {}
+  }
+  return callback(new Error('Not allowed by CORS'))
 }))
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
