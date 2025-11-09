@@ -47,6 +47,9 @@ PORT=4000
 
 ### Build and Run with Docker Compose
 ```powershell
+# Copy example compose for local development
+Copy-Item archive\docker-compose.dev.yml.example docker-compose.dev.yml
+
 # Build and start both containers
 docker-compose -f docker-compose.dev.yml up --build
 
@@ -57,7 +60,9 @@ docker-compose -f docker-compose.dev.yml down
 docker-compose -f docker-compose.dev.yml up --build --force-recreate
 ```
 
-Access at: http://localhost:3000
+**Note**: `docker-compose.dev.yml` is not committed to git. Copy from `archive/docker-compose.dev.yml.example` as needed.
+
+Access at: http://localhost:5174
 
 ### View Logs
 ```powershell
