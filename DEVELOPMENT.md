@@ -45,11 +45,58 @@ PORT=4000
 
 ## Docker Development (Production-like)
 
+### Environment-specific Compose Files
+
+For local development, create your own `docker-compose.dev.yml`:
+
+```yaml
+version: "3.8"
+name: todoless-dev
+
+services:
+  todoless-frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todoless-dev
+    restart: unless-stopped
+    ports:
+      - "5174:80"
+    depends_on:
+      - todoless-backend-dev
+    networks:
+      - todoless-dev-net
+
+  todoless-backend-dev:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: todoless-backend-dev
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: dev-secret-change-in-production
+      CORS_ORIGIN: "*"
+      DB_PATH: "/app/data/todoless.db"
+      COOKIE_SECURE: "false"
+      NODE_ENV: development
+    volumes:
+      - todoless-dev-data:/app/data
+    ports:
+      - "4000:4000"
+    networks:
+      - todoless-dev-net
+
+networks:
+  todoless-dev-net:
+    driver: bridge
+
+volumes:
+  todoless-dev-data:
+    driver: local
+```
+
 ### Build and Run with Docker Compose
 ```powershell
-# Copy example compose for local development
-Copy-Item examples\docker-compose.dev.yml.example docker-compose.dev.yml
-
 # Build and start both containers
 docker-compose -f docker-compose.dev.yml up --build
 
@@ -60,7 +107,7 @@ docker-compose -f docker-compose.dev.yml down
 docker-compose -f docker-compose.dev.yml up --build --force-recreate
 ```
 
-**Note**: `docker-compose.dev.yml` is not committed to git. Copy from `examples/docker-compose.dev.yml.example` as needed.
+**Note**: `docker-compose.dev.yml` is not committed to git (auto-ignored).
 
 Access at: http://localhost:5174
 

@@ -67,5 +67,5 @@ docker-compose.*.yml
 docker-compose.override.yml
 !docker-compose.yml  # Keep only canonical production compose
 
-# Examples folder contains reference files (IS committed to repo)
-# No ignore rules needed - all examples/* should be tracked
+# Examples/templates folder (local only, not committed)
+examples/

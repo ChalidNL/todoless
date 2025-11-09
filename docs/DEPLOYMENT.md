@@ -6,12 +6,12 @@ Todoless uses a structured deployment pipeline with four distinct environments.
 
 | Environment | Purpose | Port | Compose File | Auto-deploy |
 |------------|---------|------|--------------|-------------|
-| **Development** | Local coding with hot-reload | 5174 | `docker-compose.dev.yml` (copy from examples/) | No |
-| **Integration** | Automated CI testing | 5174 | `docker-compose.integration.yml` (copy from examples/) | Yes (on PR) |
-| **Staging** | Pre-production testing | 5175 | `docker-compose.staging.yml` (copy from examples/) | Yes (on merge to main) |
+| **Development** | Local coding with hot-reload | 5174 | Create your own `docker-compose.dev.yml` | No |
+| **Integration** | Automated CI testing | 5174 | CI creates ephemeral compose | Yes (on PR) |
+| **Staging** | Pre-production testing | 5175 | Create your own `docker-compose.staging.yml` | Manual |
 | **Production** | Live deployment | 5174 | `docker-compose.yml` (canonical, committed) | Yes (on release tag) |
 
-**Note**: Only `docker-compose.yml` is committed to the repository. Other environment-specific compose files are available as templates in `examples/` and should be copied locally as needed.
+**Note**: Only `docker-compose.yml` is committed to the repository. All other compose files are environment-specific and should be created locally as needed. See examples in this documentation.
 
 ---
 
@@ -44,14 +44,53 @@ docker-compose -f docker-compose.dev.yml up --build
 **Trigger**: GitHub Actions on pull request
 
 **Setup**:
+CI automatically creates ephemeral compose configuration. For local integration testing, create `docker-compose.integration.yml`:
+
+```yaml
+version: "3.8"
+name: todoless-integration
+
+services:
+  todoless-frontend-integration:
+    image: ghcr.io/chalidnl/todoless-frontend:${TAG:-latest}
+    container_name: todoless-integration-frontend
+    restart: "no"
+    ports:
+      - "5174:80"
+    depends_on:
+      - todoless-backend-integration
+    networks:
+      - todoless-integration-net
+
+  todoless-backend-integration:
+    image: ghcr.io/chalidnl/todoless-backend:${TAG:-latest}
+    container_name: todoless-integration-backend
+    restart: "no"
+    environment:
+      JWT_SECRET: integration-test-secret
+      CORS_ORIGIN: "*"
+      DB_PATH: "/app/data/todoless.db"
+      COOKIE_SECURE: "false"
+      NODE_ENV: test
+    volumes:
+      - todoless-integration-data:/app/data
+    ports:
+      - "4000:4000"
+    networks:
+      - todoless-integration-net
+
+networks:
+  todoless-integration-net:
+    driver: bridge
+
+volumes:
+  todoless-integration-data:
+    driver: local
+```
+
+**Usage**:
 ```bash
-# Copy example compose
-cp examples/docker-compose.integration.yml.example docker-compose.integration.yml
-
-# Manually (for local integration testing)
 TAG=pr-123 docker-compose -f docker-compose.integration.yml up -d
-
-# Run tests against integration environment
 npm test
 docker-compose -f docker-compose.integration.yml down -v
 ```
@@ -70,13 +109,55 @@ docker-compose -f docker-compose.integration.yml down -v
 
 **Purpose**: Pre-production validation with real-world data
 
-**Trigger**: Auto-deploy on merge to `main` branch
+**Trigger**: Manual deployment
 
 **Setup**:
-```bash
-# Copy example compose
-cp examples/docker-compose.staging.yml.example docker-compose.staging.yml
+Create `docker-compose.staging.yml`:
 
+```yaml
+version: "3.8"
+name: todoless-staging
+
+services:
+  todoless-frontend-staging:
+    image: ghcr.io/chalidnl/todoless-frontend:${TAG:-latest}
+    container_name: todoless-staging
+    restart: unless-stopped
+    ports:
+      - "5175:80"
+    depends_on:
+      - todoless-backend-staging
+    networks:
+      - todoless-staging-net
+
+  todoless-backend-staging:
+    image: ghcr.io/chalidnl/todoless-backend:${TAG:-latest}
+    container_name: todoless-backend-staging
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      DB_PATH: "/app/data/todoless.db"
+      COOKIE_SECURE: "false"
+      NODE_ENV: staging
+    volumes:
+      - todoless-staging-data:/app/data
+    ports:
+      - "4001:4000"
+    networks:
+      - todoless-staging-net
+
+networks:
+  todoless-staging-net:
+    driver: bridge
+
+volumes:
+  todoless-staging-data:
+    driver: local
+```
+
+**Usage**:
+```bash
 # Deploy staging
 docker-compose -f docker-compose.staging.yml up -d
 
