@@ -38,6 +38,10 @@ Thumbs.db
 # Logs
 logs/
 *.log
+coverage/
+*.tmp
+*.bak
+.github/
 
 # Database files (NEVER commit databases - use volumes)
 *.db
