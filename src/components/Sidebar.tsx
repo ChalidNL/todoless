@@ -95,28 +95,30 @@ export default function Sidebar({ className }: { className?: string }) {
       {/* Header - hide on mobile in drawer, show on desktop */}
       <div className={clsx('items-center border-b p-3', collapsed ? 'justify-center hidden md:flex' : 'justify-between hidden md:flex')}>
         {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-accent/10 text-accent font-bold text-sm">T</div>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold">Todoless</span>
-              <div className="flex items-center gap-1.5">
-                <a
-                  href={`/changes/${APP_VERSION}.md`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-gray-500 underline hover:text-accent"
-                  title={`Bekijk changelog voor v${APP_VERSION}`}
-                >
-                  v{APP_VERSION}
-                </a>
-                {IS_TEST ? (
-                  <span className="text-[10px] font-bold text-red-600 tracking-wide">TST</span>
-                ) : null}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-accent/10 text-accent font-bold text-sm">T</div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold">Todoless</span>
+                <div className="flex items-center gap-1.5">
+                      {IS_TEST ? (
+                        <span className="text-[10px] font-bold text-red-600 tracking-wide mr-1">TEST</span>
+                      ) : null}
+                      <a
+                        href={`/changes/${APP_VERSION}.md`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-gray-500 underline hover:text-accent"
+                        title={`View changelog for v${APP_VERSION}`}
+                      >
+                        v{APP_VERSION}
+                      </a>
+                </div>
               </div>
             </div>
           </div>
         )}
-        <button
+      <button
           className="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100"
           onClick={toggleCollapse}
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -139,18 +141,18 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col items-start">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                  <a
-                    href={`/changes/${APP_VERSION}.md`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-gray-500 underline hover:text-accent leading-none"
-                    title={`Bekijk changelog voor v${APP_VERSION}`}
-                  >
-                    v{APP_VERSION}
-                  </a>
-                  {IS_TEST ? (
-                    <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none">TST</span>
-                  ) : null}
+                      {IS_TEST ? (
+                        <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none mr-1">TEST</span>
+                      ) : null}
+                      <a
+                        href={`/changes/${APP_VERSION}.md`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-gray-500 underline hover:text-accent leading-none"
+                        title={`View changelog for v${APP_VERSION}`}
+                      >
+                        v{APP_VERSION}
+                      </a>
                 </div>
               </div>
             </>
