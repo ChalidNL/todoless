@@ -79,3 +79,7 @@ examples/
 # Documentation (except README)
 *.md
 !README.md
+
+# Release notes (local only)
+changes/
+public/changes/

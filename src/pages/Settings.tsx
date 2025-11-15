@@ -4,6 +4,7 @@ import { Users } from '../db/dexieClient'
 import { flushDatabase, importMockData } from '../utils/devTools'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
 import { useAuth } from '../store/auth'
+import packageJson from '../../package.json'
 
 export default function Settings() {
   const { color, setColor } = useUserTheme()
@@ -16,6 +17,8 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const { isInstallable, isInstalled, promptInstall } = useInstallPrompt()
   const { user, me } = useAuth()
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false)
+  const [releaseNotes, setReleaseNotes] = useState('')
 
   useEffect(() => {
     setHideCompleted(localStorage.getItem('hideCompleted') === '1')
@@ -333,8 +336,84 @@ export default function Settings() {
               <p className="mt-2 text-xs text-gray-500">These actions only affect your local browser database (IndexedDB). Remote/server data is not touched.</p>
             </div>
           )}
+
+          {/* Version Info */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold mb-1">About TodoLess</div>
+                <button
+                  className="text-xs text-gray-600 hover:text-accent underline cursor-pointer transition-colors"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`/changes/${packageJson.version}.md`)
+                      if (response.ok) {
+                        const text = await response.text()
+                        setReleaseNotes(text)
+                        setShowReleaseNotes(true)
+                      } else {
+                        alert(`Release notes for version ${packageJson.version} not found`)
+                      }
+                    } catch (error) {
+                      console.error('Failed to load release notes:', error)
+                      alert('Failed to load release notes')
+                    }
+                  }}
+                  title="Click to view release notes"
+                >
+                  Version {packageJson.version}
+                </button>
+              </div>
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Release Notes Modal */}
+      {showReleaseNotes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowReleaseNotes(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">Release Notes - v{packageJson.version}</h2>
+              <button
+                className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100"
+                onClick={() => setShowReleaseNotes(false)}
+                title="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="prose prose-sm max-w-none">
+                {releaseNotes.split('\n').map((line, i) => {
+                  if (line.startsWith('# ')) {
+                    return <h1 key={i} className="text-2xl font-bold mb-4">{line.substring(2)}</h1>
+                  } else if (line.startsWith('## ')) {
+                    return <h2 key={i} className="text-xl font-semibold mt-6 mb-3">{line.substring(3)}</h2>
+                  } else if (line.startsWith('### ')) {
+                    return <h3 key={i} className="text-lg font-semibold mt-4 mb-2">{line.substring(4)}</h3>
+                  } else if (line.startsWith('#### ')) {
+                    return <h4 key={i} className="text-base font-semibold mt-3 mb-2">{line.substring(5)}</h4>
+                  } else if (line.startsWith('- ')) {
+                    return <li key={i} className="ml-4">{line.substring(2)}</li>
+                  } else if (line.startsWith('**') && line.endsWith('**')) {
+                    return <p key={i} className="font-semibold mb-2">{line.substring(2, line.length - 2)}</p>
+                  } else if (line.trim() === '') {
+                    return <br key={i} />
+                  } else {
+                    return <p key={i} className="mb-2">{line}</p>
+                  }
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
