@@ -101,6 +101,9 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
+                      {getVersionString().startsWith('TEST') && (
+                        <span className="text-[10px] font-bold text-red-600 tracking-wide mr-1">TST</span>
+                      )}
                       <a
                         href={`/changes/${getVersionString().replace(/[^\d.]/g, '')}.md`}
                         target="_blank"
@@ -108,7 +111,7 @@ export default function Sidebar({ className }: { className?: string }) {
                         className="text-[10px] text-gray-500 underline hover:text-accent"
                         title={`View changelog for ${getVersionString()}`}
                       >
-                        {getVersionString()}
+                        {getVersionString().replace(/^TEST /, '')}
                       </a>
                 </div>
               </div>
