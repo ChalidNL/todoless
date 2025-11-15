@@ -6,7 +6,7 @@ import { useAuth } from '../store/auth';
 import { SavedViews } from '../db/dexieClient';
 import type { SavedView } from '../db/schema';
 import SaveViewButton from './SaveViewButton';
-import { APP_VERSION, IS_TEST } from '../utils/version';
+import { getVersionString } from '../config/version';
 
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
@@ -101,17 +101,14 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                      {IS_TEST ? (
-                        <span className="text-[10px] font-bold text-red-600 tracking-wide mr-1">TEST</span>
-                      ) : null}
                       <a
-                        href={`/changes/${APP_VERSION}.md`}
+                        href={`/changes/${getVersionString().replace(/[^\d.]/g, '')}.md`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-gray-500 underline hover:text-accent"
-                        title={`View changelog for v${APP_VERSION}`}
+                        title={`View changelog for ${getVersionString()}`}
                       >
-                        v{APP_VERSION}
+                        {getVersionString()}
                       </a>
                 </div>
               </div>
@@ -141,17 +138,14 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col items-start">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                      {IS_TEST ? (
-                        <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none mr-1">TEST</span>
-                      ) : null}
                       <a
-                        href={`/changes/${APP_VERSION}.md`}
+                        href={`/changes/${getVersionString().replace(/[^\d.]/g, '')}.md`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-gray-500 underline hover:text-accent leading-none"
-                        title={`View changelog for v${APP_VERSION}`}
+                        title={`View changelog for ${getVersionString()}`}
                       >
-                        v{APP_VERSION}
+                        {getVersionString()}
                       </a>
                 </div>
               </div>
