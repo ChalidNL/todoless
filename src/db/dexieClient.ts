@@ -292,65 +292,53 @@ class TodolessDB extends Dexie {
       notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
-    // v17: add slug to savedViews for URL-friendly names
+    // v17: add ownerId to labels, shared to todos and notes for privacy model
     this.version(17).stores({
-      labels: 'id, name, shared, workflowId, userId',
-      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
+      labels: 'id, name, shared, workflowId, userId, ownerId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
       users: 'id, name, email, role, ageGroup',
       workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId, slug',
+      savedViews: 'id, name, userId',
       lists: 'id, name, visibility',
       attributes: 'id, name, type, defaultValue',
       points: 'id, userId, todoId, date',
       settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared',
     }).upgrade(async (tx) => {
-      // Generate slugs for all existing saved views
-      const views = await tx.table('savedViews').toArray()
-      const existingSlugs: string[] = []
-
-      for (const view of views) {
-        // Skip if already has a slug
-        if (view.slug) {
-          existingSlugs.push(view.slug)
-          continue
+      // Migrate existing data to default shared=true
+      const labels = await tx.table('labels').toArray()
+      for (const label of labels) {
+        if (label.shared === undefined || label.shared === null) {
+          await tx.table('labels').update(label.id, { shared: true })
         }
-
-        // Import slugify function
-        const { generateUniqueSlug } = await import('../utils/slugify')
-        const slug = generateUniqueSlug(view.name, existingSlugs)
-        existingSlugs.push(slug)
-
-        // Update the view with the generated slug
-        await tx.table('savedViews').update(view.id, { slug })
       }
-    })
 
-    // v18: add parentId and order to savedViews for nested subviews
-    this.version(18).stores({
-      labels: 'id, name, shared, workflowId, userId',
-      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId, slug, parentId, order',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
+      const todos = await tx.table('todos').toArray()
+      for (const todo of todos) {
+        if (todo.shared === undefined || todo.shared === null) {
+          await tx.table('todos').update(todo.id, { shared: true })
+        }
+      }
+
+      const notes = await tx.table('notes').toArray()
+      for (const note of notes) {
+        if (note.shared === undefined || note.shared === null) {
+          await tx.table('notes').update(note.id, { shared: true })
+        }
+      }
     })
 
     this.on('populate', async () => {
       const userId = 'local-user'
       await this.users.add({ id: userId, name: 'You', themeColor: '#0ea5e9' })
-      const labelA: Label = { id: generateUUID(), name: 'Inbox', color: '#0ea5e9', shared: false }
-      const labelB: Label = { id: generateUUID(), name: 'Groceries', color: '#84cc16', shared: false }
-      const labelC: Label = { id: generateUUID(), name: 'Work', color: '#f97316', shared: true }
+      const labelA: Label = { id: generateUUID(), name: 'Inbox', color: '#0ea5e9', shared: true, ownerId: userId }
+      const labelB: Label = { id: generateUUID(), name: 'Groceries', color: '#84cc16', shared: true, ownerId: userId }
+      const labelC: Label = { id: generateUUID(), name: 'Work', color: '#f97316', shared: true, ownerId: userId }
       await this.labels.bulkAdd([labelA, labelB, labelC])
       await this.todos.bulkAdd([
-        { id: generateUUID(), title: 'Welcome to Todoless', completed: false, labelIds: [labelA.id], userId },
-        { id: generateUUID(), title: 'Add your first label', completed: false, labelIds: [labelA.id], userId },
-        { id: generateUUID(), title: 'Buy milk', completed: false, labelIds: [labelB.id], userId },
+        { id: generateUUID(), title: 'Welcome to Todoless', completed: false, labelIds: [labelA.id], userId, shared: true },
+        { id: generateUUID(), title: 'Add your first label', completed: false, labelIds: [labelA.id], userId, shared: true },
+        { id: generateUUID(), title: 'Buy milk', completed: false, labelIds: [labelB.id], userId, shared: true },
       ])
       // Example list
       const inboxList: List = { id: generateUUID(), name: 'My List', description: 'Example list', labelIds: [labelA.id] }
@@ -429,12 +417,17 @@ export const Labels = {
       '#f472b6', // pink
     ]
     const color = colors[Math.floor(Math.random() * colors.length)]
-    return await Labels.add({ name: name.trim(), color, shared: false })
+    // Get current user for ownerId
+    const users = await db.users.toArray()
+    const currentUserId = users[0]?.id || 'local-user'
+    return await Labels.add({ name: name.trim(), color, shared: true, ownerId: currentUserId })
   },
   list: () => db.labels.toArray(),
   add: async (l: Omit<Label, 'id'>) => {
     const id = generateUUID()
-    await db.labels.add({ ...l, id })
+    // Default shared to true if not specified
+    const labelData = { ...l, id, shared: l.shared !== undefined ? l.shared : true }
+    await db.labels.add(labelData)
     logger.info('label:add', { id, name: l.name })
     try {
       const added = await db.labels.get(id)
@@ -446,7 +439,7 @@ export const Labels = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ name: l.name, color: l.color, shared: l.shared || false })
+          body: JSON.stringify({ name: l.name, color: l.color, shared: labelData.shared })
         })
       } catch (e) {
         logger.warn('label:add:server_failed', { id, error: String(e) })
@@ -482,7 +475,9 @@ export const Todos = {
   add: async (t: Omit<Todo, 'id'>) => {
     const id = generateUUID()
     const clientId = (t as any).clientId || generateUUID()
-    await db.todos.add({ ...t, id, clientId })
+    // Default shared to true if not specified
+    const todoData = { ...t, id, clientId, shared: t.shared !== undefined ? t.shared : true }
+    await db.todos.add(todoData)
     logger.info('todo:add', { id, title: t.title })
     try {
       const added = await db.todos.get(id)
@@ -595,30 +590,12 @@ export const Settings = {
 export const SavedViews = {
   list: () => db.savedViews.toArray(),
   get: (id: string) => db.savedViews.get(id),
-  getBySlug: (slug: string) => db.savedViews.where('slug').equals(slug).first(),
-  update: async (id: string, patch: Partial<SavedView>) => {
-    // If name is being updated, regenerate slug
-    if (patch.name) {
-      const allViews = await db.savedViews.toArray()
-      const existingSlugs = allViews.filter(v => v.id !== id).map(v => v.slug)
-      const { generateUniqueSlug } = await import('../utils/slugify')
-      patch.slug = generateUniqueSlug(patch.name, existingSlugs)
-    }
-    return db.savedViews.update(id, patch)
-  },
-  add: async (input: Omit<SavedView, 'id' | 'userId' | 'slug'> & { userId?: string }) => {
+  update: (id: string, patch: Partial<SavedView>) => db.savedViews.update(id, patch),
+  add: async (input: Omit<SavedView, 'id' | 'userId'> & { userId?: string }) => {
     const id = generateUUID()
-
-    // Generate unique slug
-    const allViews = await db.savedViews.toArray()
-    const existingSlugs = allViews.map(v => v.slug)
-    const { generateUniqueSlug } = await import('../utils/slugify')
-    const slug = generateUniqueSlug(input.name, existingSlugs)
-
     const view: SavedView = {
       id,
       name: input.name,
-      slug,
       labelFilterIds: input.labelFilterIds || [],
       attributeFilters: input.attributeFilters || {},
       statusFilter: input.statusFilter,
@@ -643,7 +620,6 @@ export const SavedViews = {
         const view: SavedView = {
           id: 'me',
           name: '@me',
-          slug: 'me',
           icon: '🙋',
           labelFilterIds: [],
           attributeFilters: {
@@ -685,7 +661,6 @@ export const SavedViews = {
         await db.savedViews.put({
           id: 'all',
           name: 'All',
-          slug: 'all',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: {},
@@ -697,37 +672,15 @@ export const SavedViews = {
           isDefault: true,
         })
       } else if (!allView.isDefault) {
-        await db.savedViews.update('all', { isDefault: true, icon: '⭐', slug: 'all' })
+        await db.savedViews.update('all', { isDefault: true, icon: '⭐' })
       }
       
-      // Default "My Tasks" view (tasks assigned to me)
-      const meView = await db.savedViews.get('me')
-      if (!meView) {
-        await db.savedViews.put({
-          id: 'me',
-          name: 'My Tasks',
-          slug: 'me',
-          icon: '👤',
-          labelFilterIds: [],
-          attributeFilters: { assignedToMe: true }, // Special filter flag for assigned tasks
-          sortBy: 'created',
-          viewMode: 'list',
-          userId: currentUserId,
-          showInSidebar: true,
-          isSystem: true,
-          isDefault: true,
-        })
-      } else if (!meView.isDefault) {
-        await db.savedViews.update('me', { isDefault: true, icon: '👤', slug: 'me' })
-      }
-
       // Default "Backlog" view (hidden by default)
       const backlogView = await db.savedViews.get('backlog')
       if (!backlogView) {
         await db.savedViews.put({
           id: 'backlog',
           name: 'Backlog',
-          slug: 'backlog',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: { workflowStage: 'Backlog' },
@@ -739,32 +692,7 @@ export const SavedViews = {
           isDefault: true,
         })
       } else if (!backlogView.isDefault) {
-        await db.savedViews.update('backlog', { isDefault: true, icon: '⭐', slug: 'backlog' })
-      }
-    } catch (e) {
-      // ignore
-    }
-  },
-  ensureMeView: async () => {
-    try {
-      const users = await db.users.toArray()
-      const currentUserId = users[0]?.id || 'local-user'
-      const meView = await db.savedViews.get('me')
-      if (!meView) {
-        await db.savedViews.put({
-          id: 'me',
-          name: 'My Tasks',
-          slug: 'me',
-          icon: '👤',
-          labelFilterIds: [],
-          attributeFilters: { assignedToMe: true },
-          sortBy: 'created',
-          viewMode: 'list',
-          userId: currentUserId,
-          showInSidebar: true,
-          isSystem: true,
-          isDefault: true,
-        })
+        await db.savedViews.update('backlog', { isDefault: true, icon: '⭐' })
       }
     } catch (e) {
       // ignore
@@ -784,6 +712,7 @@ export const Notes = {
       labelIds: n.labelIds || [],
       pinned: n.pinned || false,
       archived: n.archived || false,
+      shared: n.shared !== undefined ? n.shared : true,
       createdAt: now,
       updatedAt: now,
       userId: n.userId || 'local-user',

@@ -243,6 +243,13 @@ export default function NotesManagement() {
                   <div key={n.id} className={`rounded-lg border-2 p-3 hover:shadow-md transition-shadow flex flex-col ${isFlagged ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
                 {/* Top row: title bar actions */}
                 <div className="mb-2 flex items-center justify-end gap-1">
+                  {n.shared === false && (
+                    <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
+                      <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  )}
                   {n.pinned && (
                     <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
                       <PinIcon filled size={16} />
@@ -434,6 +441,13 @@ export default function NotesManagement() {
                 <div key={n.id} className={`rounded-lg border-2 p-3 hover:shadow-md transition-shadow flex flex-col ${isFlagged ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
                 {/* Top row: title bar actions */}
                 <div className="mb-2 flex items-center justify-end gap-1">
+                  {n.shared === false && (
+                    <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
+                      <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  )}
                   {n.pinned && (
                     <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS labels (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT UNIQUE NOT NULL,
   color TEXT,
-  shared INTEGER NOT NULL DEFAULT 0
+  shared INTEGER NOT NULL DEFAULT 1,
+  owner_id INTEGER,
+  FOREIGN KEY(owner_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
@@ -84,8 +86,51 @@ try {
   if (!names.has('client_id')) {
     db.prepare(`ALTER TABLE tasks ADD COLUMN client_id TEXT`).run()
   }
+  if (!names.has('shared')) {
+    db.prepare(`ALTER TABLE tasks ADD COLUMN shared INTEGER DEFAULT 1`).run()
+  }
 } catch (e) {
   logger.error('db:migration_failed', { error: String(e) })
+}
+
+// Migrate labels table to add owner_id and update default shared value
+try {
+  const labelColumns = db.prepare(`PRAGMA table_info(labels)`).all() as Array<{ name: string }>
+  const labelNames = new Set(labelColumns.map(c => c.name))
+
+  if (!labelNames.has('owner_id')) {
+    db.prepare(`ALTER TABLE labels ADD COLUMN owner_id INTEGER`).run()
+    // Set first adult user as owner of all existing labels
+    const firstAdult = db.prepare('SELECT id FROM users WHERE role = ? LIMIT 1').get('adult') as any
+    if (firstAdult) {
+      db.prepare('UPDATE labels SET owner_id = ? WHERE owner_id IS NULL').run(firstAdult.id)
+    }
+  }
+  // Update existing labels to be shared by default (shared=1)
+  db.prepare('UPDATE labels SET shared = 1 WHERE shared = 0 OR shared IS NULL').run()
+} catch (e) {
+  logger.error('db:migration_labels_failed', { error: String(e) })
+}
+
+// Create notes table if it doesn't exist
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT,
+      labels TEXT,
+      pinned INTEGER DEFAULT 0,
+      archived INTEGER DEFAULT 0,
+      shared INTEGER NOT NULL DEFAULT 1,
+      owner_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(owner_id) REFERENCES users(id)
+    );
+  `)
+} catch (e) {
+  logger.error('db:notes_table_failed', { error: String(e) })
 }
 
 // Seed an initial adult user if none exists
@@ -119,4 +164,26 @@ export type TaskRow = {
   attributes: string | null
   created_at: string
   client_id: string | null
+  shared: 0 | 1
+}
+
+export type LabelRow = {
+  id: number
+  name: string
+  color: string | null
+  shared: 0 | 1
+  owner_id: number | null
+}
+
+export type NoteRow = {
+  id: number
+  title: string
+  content: string | null
+  labels: string | null
+  pinned: 0 | 1
+  archived: 0 | 1
+  shared: 0 | 1
+  owner_id: number
+  created_at: string
+  updated_at: string
 }

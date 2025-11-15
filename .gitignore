@@ -75,3 +75,7 @@ docker-compose.override.yml
 
 # Examples/templates folder (local only, not committed)
 examples/
+
+# Documentation (except README)
+*.md
+!README.md

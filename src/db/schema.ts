@@ -18,6 +18,7 @@ export interface Label {
   color: string
   shared: boolean
   workflowId?: string
+  ownerId?: string
 }
 
 export interface Workflow {
@@ -52,6 +53,7 @@ export interface Todo {
   linkedNoteIds?: string[]
   serverId?: number // Server task ID for sync
   clientId?: string // Client-generated correlation id to avoid duplicates
+  shared?: boolean
 }
 
 export interface SavedView {
@@ -122,7 +124,6 @@ export interface Note {
   pinned?: boolean
   archived?: boolean
   shared?: boolean
-  sharedWith?: string[] // user IDs
   dueDate?: string
   flagged?: boolean
   attributes?: Record<string, any>

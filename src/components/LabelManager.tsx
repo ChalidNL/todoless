@@ -54,9 +54,9 @@ export default function LabelManager({ todo, labels, onClose, onLabelsChange, on
       }
       // create new label
       const color = pastel()
-      const id = await Labels.add({ name: raw, color, shared: false })
+      const id = await Labels.add({ name: raw, color, shared: true })
       newId = id
-      newLabel = { id, name: raw, color, shared: false }
+      newLabel = { id, name: raw, color, shared: true }
       // Update local labels immediately so suggestions show the new label
       setLocalLabels((prev) => [...prev, newLabel!])
     }

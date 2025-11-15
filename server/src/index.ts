@@ -17,6 +17,7 @@ const app = express()
 import { labelsRouter } from './labels.js'
 import { importRouter } from './import.js'
 import { countersRouter } from './counters.js'
+import { notesRouter } from './notes.js'
 
 /* TEST-ONLY: Seed admin user in local/test omgeving. Nooit in productie! */
 if (process.env.NODE_ENV !== 'production') {
@@ -72,11 +73,11 @@ app.use(cors((req, callback) => {
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 app.use('/api/auth', authRouter(JWT_SECRET))
-// Labels sync API
-app.use('/api/labels', labelsRouter())
 
-// Protected tasks routes
+// Protected routes
+app.use('/api/labels', requireAuth(JWT_SECRET), labelsRouter())
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
+app.use('/api/notes', requireAuth(JWT_SECRET), notesRouter())
 
 // Import and counters endpoints
 app.use('/api/import', requireAuth(JWT_SECRET), require2FA(), importRouter())

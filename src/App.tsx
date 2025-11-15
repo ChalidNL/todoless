@@ -90,7 +90,7 @@ export default function App() {
             if (duplicate) {
               labelIds.push(duplicate.id)
             } else {
-              const id = await Labels.add({ name, color: '#0ea5e9', shared: false })
+              const id = await Labels.add({ name, color: '#0ea5e9', shared: true })
               labelIds.push(id)
             }
           }

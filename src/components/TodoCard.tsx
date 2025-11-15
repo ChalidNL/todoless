@@ -5,6 +5,7 @@ import type { Label, Todo, User, AttributeDef } from '../db/schema'
 import { Users, mutateTodo, db, Attributes, Todos, labelBus } from '../db/dexieClient'
 import { useNavigate } from 'react-router-dom'
 import { useFilterContext } from '../contexts/FilterContext'
+import { useAuth } from '../store/auth'
 import LabelManager from './LabelManager'
 import AttributeIcons from './AttributeIcons'
 import AttributeMiniEditor from './AttributeMiniEditor'
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, onLabelsChange }: Props) {
+  const { user } = useAuth()
   // Fix missing state initializations
   const [liveAttributes, setLiveAttributes] = useState<Record<string, any>>({ ...(todo.attributes || {}) })
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false)
@@ -55,6 +57,8 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
   const [liveLabelIds, setLiveLabelIds] = useState<string[]>([...todo.labelIds])
   // Keep a live copy of blocked status for instant flag color
   const [liveBlocked, setLiveBlocked] = useState(todo.blocked || false)
+  // Keep a live copy of shared status for instant privacy toggle
+  const [liveShared, setLiveShared] = useState(todo.shared !== false)
   // Keep a live copy of labels list for instant updates when creating new labels
   const [liveLabels, setLiveLabels] = useState<Label[]>(labels)
   // Map labelIds to label objects for instant lookup
@@ -106,6 +110,11 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
   useEffect(() => {
     setLiveBlocked(todo.blocked || false)
   }, [todo.blocked])
+
+  // Sync live shared state
+  useEffect(() => {
+    setLiveShared(todo.shared !== false)
+  }, [todo.shared])
 
   // Sync live labels list and mapping when prop changes
   useEffect(() => {
@@ -340,6 +349,33 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
           >
             <svg className="w-4 h-4" fill={liveBlocked ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+            </svg>
+          </button>
+
+          {/* Privacy Icon - Yellow when private */}
+          <button
+            className={clsx(
+              "p-1.5 w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105",
+              !liveShared
+                ? "border-yellow-400 text-yellow-600 bg-yellow-50"
+                : "border-gray-200 text-gray-800 bg-white hover:bg-gray-50"
+            )}
+            onClick={async () => {
+              // Check if user is the owner
+              const isOwner = !todo.userId || !user?.id || todo.userId === user.id.toString()
+              if (!isOwner) {
+                alert('Only the task owner can change privacy settings')
+                return
+              }
+              const newShared = !liveShared
+              setLiveShared(newShared) // Instant visual feedback
+              await mutateTodo(todo.id, { shared: newShared })
+              if (onLabelsChange) await onLabelsChange()
+            }}
+            title={liveShared ? 'Shared (click to make private)' : 'Private (click to make shared)'}
+          >
+            <svg className="w-4 h-4" fill={!liveShared ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </button>
 

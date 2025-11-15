@@ -3,7 +3,6 @@ import { Icon } from '../components/Icon'
 import ManagementHeader from '../components/ManagementHeader'
 import { Labels, Notes, Todos, mutateTodo, Users } from '../db/dexieClient'
 import { parseSmartSyntax } from '../utils/smartSyntax'
-import { parseLines } from '../utils/lineParser'
 import { useAuth } from '../store/auth'
 import { syncTasksFromServer, pushPendingTodos } from '../utils/syncTasks'
 
@@ -12,8 +11,6 @@ export default function BulkImport() {
   const [noteInput, setNoteInput] = useState('')
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<string>('')
-  const [importLog, setImportLog] = useState<string>('')
-  const [logFile, setLogFile] = useState<string>('')
   const { user: authUser } = useAuth()
 
   const syncDownThenPush = async () => {
@@ -34,44 +31,58 @@ export default function BulkImport() {
       const currentUser = authUser ? users.find(u => u.name === authUser.username) : users[0]
       const userId = currentUser?.id || 'local-user'
 
-      // Parse using new line parser
-      const parsed = parseLines(userId, taskInput)
+      const lines = taskInput.split('\n').filter(l => l.trim())
+      let imported = 0, failed = 0, duplicates = 0
+      const existingTodos = await Todos.list()
+      // Build set of existing titles (normalized)
+      const existingTitles = new Set(existingTodos.map(todo => titleKey(todo.title)))
+      const importedThisBatch = new Set<string>()
 
-      // Send to server for idempotent import
-      const response = await fetch('/api/import/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          items: parsed.map(p => ({
-            title: p.title,
-            labels: p.labels
-          }))
-        })
-      })
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.statusText}`)
+      const labelsBefore = await Labels.list()
+      const createdLabelNames: string[] = []
+      for (const line of lines) {
+        const labels = await Labels.list();
+        const parsed = parseSmartSyntax(line, labels);
+        if (parsed.title.trim()) {
+          let labelIds: string[] = [...parsed.labelIds];
+          // Duplicate check: normalized title against existing + this batch
+          const key = titleKey(parsed.title);
+          if (existingTitles.has(key) || importedThisBatch.has(key)) {
+            duplicates++;
+            continue;
+          }
+          if (parsed.missingLabels && parsed.missingLabels.length) {
+            for (const name of parsed.missingLabels) {
+              const id = await Labels.findOrCreate(name);
+              if (!labelIds.includes(id)) labelIds.push(id);
+              if (!labelsBefore.find(l => l.name.trim().toLowerCase() === name.trim().toLowerCase())) {
+                createdLabelNames.push(name);
+              }
+            }
+          }
+          try {
+            await Todos.add({
+              title: parsed.title,
+              completed: false,
+              userId,
+              labelIds,
+              order: Date.now() + imported,
+              createdAt: new Date().toISOString(),
+              dueDate: parsed.dueDate,
+            });
+            importedThisBatch.add(key);
+            imported++;
+          } catch {
+            failed++;
+          }
+        } else {
+          failed++;
+        }
       }
-
-      const result = await response.json()
-      const { summary, log, logFile: filename } = result
-
-      // Sync from server to get the newly imported items
+      // Always sync after import to ensure labels and todos are visible everywhere
       await syncDownThenPush()
 
-      // Set detailed result with all stats
-      const parts = []
-      if (summary.imported > 0) parts.push(`✅ Imported: ${summary.imported}`)
-      if (summary.updated > 0) parts.push(`↻ Updated: ${summary.updated}`)
-      if (summary.skipped > 0) parts.push(`⊘ Skipped: ${summary.skipped}`)
-      if (summary.failed > 0) parts.push(`✗ Failed: ${summary.failed}`)
-
-      setResult(parts.join(' | '))
-      setImportLog(log || '')
-      setLogFile(filename || '')
+      setResult(`✅ Geslaagd: ${imported} | ❌ Fout: ${failed} | ⚠️ Duplicaten: ${duplicates}`)
       setTaskInput('')
 
       // Dispatch events to refresh UI components
@@ -116,7 +127,7 @@ export default function BulkImport() {
           failed++
         }
       }
-      setResult(`✅ Imported: ${imported} | ❌ Failed: ${failed} | ⚠️ Duplicates: ${duplicates}`)
+      setResult(`✅ Geslaagd: ${imported} | ❌ Fout: ${failed} | ⚠️ Duplicaten: ${duplicates}`)
       setNoteInput('')
     } catch (e) {
       setResult(`❌ Error: ${e instanceof Error ? e.message : String(e)}`)
@@ -180,46 +191,37 @@ export default function BulkImport() {
 
         {/* Result */}
         {result && (
-          <div className="mt-6 space-y-4">
-            <div className={`shadow-lg rounded-xl border-2 p-5 flex flex-col items-center justify-center text-base font-medium transition-all
-              ${result.startsWith('✅') ? 'bg-gradient-to-br from-green-50 via-green-100 to-green-50 border-green-400 text-green-900' : 'bg-gradient-to-br from-red-50 via-red-100 to-red-50 border-red-400 text-red-900'}`}
-            >
-              <div className="flex items-center gap-3 mb-3">
-                {result.startsWith('✅') ? (
-                  <Icon emoji="✅" className="text-2xl" />
-                ) : (
-                  <Icon emoji="❌" className="text-2xl" />
-                )}
-                <span className="text-lg font-bold">Import Result</span>
-              </div>
-              <div className="text-base mb-3">{result}</div>
-              {logFile && (
-                <button
-                  onClick={() => {
-                    const link = document.createElement('a')
-                    link.href = `/api/import/logs/${logFile}`
-                    link.download = logFile
-                    link.click()
-                  }}
-                  className="btn btn-sm bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
-                >
-                  <Icon emoji="📄" className="text-base" />
-                  Download Detailed Log
-                </button>
+          <div className={`mt-6 shadow-lg rounded-xl border-2 p-5 flex flex-col items-center justify-center text-base font-medium transition-all
+            ${result.startsWith('✅') ? 'bg-gradient-to-br from-green-50 via-green-100 to-green-50 border-green-400 text-green-900' : 'bg-gradient-to-br from-red-50 via-red-100 to-red-50 border-red-400 text-red-900'}`}
+          >
+            <div className="flex items-center gap-3 mb-2">
+              {result.startsWith('✅') ? (
+                <Icon emoji="✅" className="text-2xl" />
+              ) : (
+                <Icon emoji="❌" className="text-2xl" />
+              )}
+              <span className="text-lg font-bold">Import Result</span>
+            </div>
+            <div className="flex flex-wrap gap-4 text-base justify-center">
+              {result.match(/Geslaagd: (\d+)/) && (
+                <span className="flex items-center gap-1.5 text-green-700 bg-green-50 px-3 py-1.5 rounded-lg border border-green-300">
+                  <Icon emoji="✅" className="text-lg" />
+                  <span><b>{result.match(/Geslaagd: (\d+)/)![1]}</b> imported</span>
+                </span>
+              )}
+              {result.match(/Duplicaten: (\d+)/) && parseInt(result.match(/Duplicaten: (\d+)/)![1]) > 0 && (
+                <span className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-300">
+                  <Icon emoji="⚠️" className="text-lg" />
+                  <span><b>{result.match(/Duplicaten: (\d+)/)![1]}</b> skipped</span>
+                </span>
+              )}
+              {result.match(/Fout: (\d+)/) && parseInt(result.match(/Fout: (\d+)/)![1]) > 0 && (
+                <span className="flex items-center gap-1.5 text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-300">
+                  <Icon emoji="❌" className="text-lg" />
+                  <span><b>{result.match(/Fout: (\d+)/)![1]}</b> failed</span>
+                </span>
               )}
             </div>
-
-            {/* Expandable log preview */}
-            {importLog && (
-              <details className="bg-gray-50 rounded-lg border p-4">
-                <summary className="cursor-pointer font-semibold text-sm text-gray-700 hover:text-gray-900">
-                  📋 View Detailed Log
-                </summary>
-                <pre className="mt-3 text-xs bg-white p-3 rounded border overflow-x-auto max-h-96 overflow-y-auto">
-                  {importLog}
-                </pre>
-              </details>
-            )}
           </div>
         )}
       </div>

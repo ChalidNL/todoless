@@ -1,24 +1,9 @@
-# TodoLess
+# ![Todoless Logo](https://raw.githubusercontent.com/ChalidNL/todoless/main/public/icons/todoless-bw.svg) Todoless
 
-<p align="center">
-  <img src="public/icons/todoless-bw.svg" alt="TodoLess Logo" width="128" height="128">
-</p>
-
-Modern multi-user task management with workflows, labels, and real-time sync.
+Modern multi-user task management with workflows and real-time sync.
 
 ## Features
 
-- **Smart Task Management**: Create, organize, and track tasks with rich metadata
-- **Labels & Workflows**: Categorize tasks with labels and manage workflows with custom stages
-- **Saved Views**: Create custom views with filters (labels, assignees, due dates, workflows)
-- **Hierarchical Subviews**: Organize views with parent-child relationships
-- **My Tasks View**: Dedicated view for tasks assigned to you
-- **Repeat Tasks**: Set tasks to repeat daily, weekly, monthly, or yearly
-- **Real-time Sync**: Server-side sync with SSE (Server-Sent Events)
-- **Multi-user Support**: Team collaboration with task assignments
-- **Notes & Archive**: Reference notes and archived task management
-- **Bulk Import**: Import multiple tasks at once with labels
-- **Offline-first**: Works offline with IndexedDB, syncs when online
 
 ## Quick Start
 
@@ -27,7 +12,6 @@ Modern multi-user task management with workflows, labels, and real-time sync.
 1. **Create environment file** `.env`:
    ```env
    JWT_SECRET=your-strong-random-secret-here
-   CORS_ORIGIN=http://your-server:5174
    ```
 
 2. **Deploy**:
@@ -36,78 +20,90 @@ Modern multi-user task management with workflows, labels, and real-time sync.
    ```
 
 3. **Access**: http://your-server:5174
-   - Default login: `admin` / `admin123` (⚠️ change immediately!)
+   - Default login: `admin` / `admin123` (change immediately!)
+
+### Local Development
+
+**Backend**:
+```bash
+cd server
+npm install
+npm run dev  # Runs on :4000
+```
+
+**Frontend** (new terminal):
+```bash
+npm install
+npm run dev  # Runs on :5174
+```
+
+Create `server/.env`:
+```env
+JWT_SECRET=dev-secret
+CORS_ORIGIN=http://localhost:5174
+DB_PATH=./data/todoless.db
+COOKIE_SECURE=false
+PORT=4000
+```
+
+## Architecture
+
+- **Frontend**: React + Vite + TypeScript + TailwindCSS
+- **Backend**: Node.js + Express + SQLite
+- **Deployment**: Docker with nginx reverse proxy
+
+## License
+
+MIT
+2. Plak de inhoud van `docker-compose.yml` (main branch)
+2. **Compose plakken:**
+   ```yaml
+   # Paste de volledige docker-compose.yml hier
+   ```
+
+3. **Environment variabelen aanpassen:**
+   - `JWT_SECRET` = een sterke random waarde (gebruik `openssl rand -base64 32`)
+   - `CORS_ORIGIN` = `http://<host>:5174`
+
+4. Deploy → App op `http://<host>:5174` (nginx proxied /api naar backend:4000)
+
+Persistente data: named volume `todoless-data` → `/app/data` (SQLite).
 
 ### Local Development
 
 1. **Install dependencies:**
    ```bash
    npm install
-   cd server && npm install && cd ..
+   cd server && npm install
    ```
 
-2. **Create `server/.env`:**
-   ```env
-   JWT_SECRET=dev-secret
-   CORS_ORIGIN=http://localhost:5174
-   DB_PATH=./data/todoless.db
-   COOKIE_SECURE=false
-   PORT=4000
-   ```
-
-3. **Start backend** (in one terminal):
+2. **Start backend:**
    ```bash
    cd server
-   npm run dev  # Runs on :4000
+   npm run dev
    ```
 
-4. **Start frontend** (in another terminal):
+3. **Start frontend (in new terminal):**
    ```bash
-   npm run dev  # Runs on :5174
+   npm run dev
    ```
 
-5. **Access**: http://localhost:5174
+4. **Access:** http://localhost:5174
 
-## Architecture
+## Tech Stack
 
 **Frontend:**
 - React 18 + TypeScript + Vite
-- TailwindCSS for styling
-- Dexie.js for IndexedDB (offline-first)
-- Zustand for global state management
-- React Router for navigation
+- TailwindCSS
+- Dexie (IndexedDB)
+- Zustand for state management
 
 **Backend:**
 - Node.js + Express + TypeScript
 - SQLite with better-sqlite3
-- JWT authentication with httpOnly cookies
-- bcrypt password hashing + optional 2FA (TOTP)
-- Server-Sent Events (SSE) for real-time sync
-
-**Deployment:**
-- Docker with nginx reverse proxy
-- Named volume for persistent SQLite database
-- Single-port setup (nginx proxies /api to backend)
-
-## Version History
-
-### v0.0.2 (Current)
-- Hierarchical subviews with parent-child relationships
-- Expand/collapse functionality for nested views
-- My Tasks view (tasks assigned to you)
-- Yearly repeat option
-- Archive bulk delete (completed tasks & archived notes)
-- Full English translation
-
-### v0.0.1
-- Initial release with core task management
-- Labels, workflows, and saved views
-- Real-time sync and multi-user support
+- JWT authentication
+- bcrypt + optional 2FA (TOTP)
 
 ## License
 
 MIT
-
----
-
-Built with ❤️ using React, TypeScript, and SQLite

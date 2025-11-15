@@ -119,11 +119,11 @@ export async function importMockData() {
 
   // Labels
   const labels: Label[] = [
-    { id: uuid(), name: 'Inbox', color: '#0ea5e9', shared: false },
+    { id: uuid(), name: 'Inbox', color: '#0ea5e9', shared: true },
     { id: uuid(), name: 'Work', color: '#f97316', shared: true },
-    { id: uuid(), name: 'Personal', color: '#6366f1', shared: false },
+    { id: uuid(), name: 'Personal', color: '#6366f1', shared: true },
     { id: uuid(), name: 'Urgent', color: '#ef4444', shared: true },
-    { id: uuid(), name: 'Groceries', color: '#84cc16', shared: false },
+    { id: uuid(), name: 'Groceries', color: '#84cc16', shared: true },
   ]
   await db.labels.bulkAdd(labels)
 
@@ -168,7 +168,7 @@ export async function importMockData() {
   // Notes
   const notes: Note[] = [
     { id: uuid(), title: 'Project ideas', content: '- AI feature\n- Offline mode', labelIds: [labels[1].id], pinned: true, archived: false, shared: true, sharedWith: [alice.id], flagged: false, createdAt: iso(now), updatedAt: iso(now), userId: me.id },
-    { id: uuid(), title: 'Shopping list', content: 'Milk\nEggs\nBread', labelIds: [labels[4].id], pinned: false, archived: false, shared: false, sharedWith: [], flagged: false, createdAt: iso(now), updatedAt: iso(now), userId: me.id },
+    { id: uuid(), title: 'Shopping list', content: 'Milk\nEggs\nBread', labelIds: [labels[4].id], pinned: false, archived: false, shared: true, sharedWith: [], flagged: false, createdAt: iso(now), updatedAt: iso(now), userId: me.id },
     { id: uuid(), title: 'Q4 OKRs', content: 'Grow MAU to 10k', labelIds: [labels[1].id, labels[3].id], pinned: false, archived: false, shared: true, sharedWith: [bob.id], flagged: true, createdAt: iso(now), updatedAt: iso(now), userId: me.id, dueDate: iso(addDays(now, 14)) },
   ]
   await db.notes.bulkAdd(notes)

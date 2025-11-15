@@ -8,17 +8,17 @@ type TodoInput = {
 
 export async function bulkImportTodos(todosWithLabels: TodoInput[], userId: string) {
   return db.transaction('rw', db.todos, db.labels, async () => {
-    // 1. Collect unique labels and add them
+    // 1. Unieke labels verzamelen en toevoegen
     const labelNames = [...new Set(todosWithLabels.flatMap(todo => todo.labels || []))];
     const existingLabels = await db.labels.where('name').anyOf(labelNames).and(l => l.userId === userId).toArray();
     const newLabels = labelNames.filter(name => !existingLabels.some(l => l.name === name)).map(name => ({ name, userId }));
     if (newLabels.length) await db.labels.bulkAdd(newLabels);
 
-    // 2. Get label IDs
+    // 2. Label-IDs ophalen
     const allLabels = await db.labels.where('userId').equals(userId).toArray();
     const getLabelIds = (names: string[]) => names.map(name => allLabels.find(l => l.name === name)?.id).filter((id): id is string => Boolean(id));
 
-    // 3. Check for duplicates and add todos
+    // 3. Duplicaat-check en todos toevoegen
     const existingTodos = await db.todos.where('userId').equals(userId).toArray();
     let added = 0, duplicates = 0, errors = [];
     for (const todo of todosWithLabels) {

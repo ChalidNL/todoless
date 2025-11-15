@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { Label, Workflow } from '../db/schema'
 import { Workflows } from '../db/dexieClient'
+import PrivacyToggle from './ui/PrivacyToggle'
+import { useAuth } from '../store/auth'
 
 interface Props {
   initial?: Label | null
@@ -9,16 +11,17 @@ interface Props {
 }
 
 export default function LabelEditor({ initial, onSave, onCancel }: Props) {
+  const { user } = useAuth()
   const [name, setName] = useState(initial?.name ?? '')
   const [color, setColor] = useState(initial?.color ?? '#0ea5e9')
-  const [shared, setShared] = useState(initial?.shared ?? false)
+  const [shared, setShared] = useState(initial?.shared ?? true)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [defaultWorkflowId, setDefaultWorkflowId] = useState<string | undefined>(initial?.workflowId)
 
   useEffect(() => {
     setName(initial?.name ?? '')
     setColor(initial?.color ?? '#0ea5e9')
-    setShared(initial?.shared ?? false)
+    setShared(initial?.shared ?? true)
     setDefaultWorkflowId(initial?.workflowId)
   }, [initial])
 
@@ -51,10 +54,17 @@ export default function LabelEditor({ initial, onSave, onCancel }: Props) {
           />
         </div>
       </div>
-      <label className="mb-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={shared} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setShared(e.target.checked)} />
-        Shared
-      </label>
+      <div className="mb-3">
+        <label className="mb-1 block text-xs text-gray-600">Privacy</label>
+        <PrivacyToggle
+          shared={shared}
+          onChange={(newShared) => setShared(newShared)}
+          ownerId={initial?.ownerId}
+          currentUserId={user?.id?.toString()}
+          showLabel={true}
+          size="sm"
+        />
+      </div>
       <div className="mb-3">
         <label className="mb-1 block text-xs text-gray-600">Default Workflow (optional)</label>
         <select
