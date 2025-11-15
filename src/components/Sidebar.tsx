@@ -1,12 +1,12 @@
-import clsx from 'clsx'
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
-import { useAuth } from '../store/auth'
-import { SavedViews } from '../db/dexieClient'
-import type { SavedView } from '../db/schema'
-import SaveViewButton from './SaveViewButton'
 
-const APP_VERSION = '0.0.1' // Sync with package.json
+import clsx from 'clsx';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useAuth } from '../store/auth';
+import { SavedViews } from '../db/dexieClient';
+import type { SavedView } from '../db/schema';
+import SaveViewButton from './SaveViewButton';
+import { APP_VERSION, IS_TEST } from '../utils/version';
 
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
@@ -100,11 +100,18 @@ export default function Sidebar({ className }: { className?: string }) {
             <div className="flex flex-col">
               <span className="text-sm font-semibold">Todoless</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-gray-500">v{APP_VERSION}</span>
-                {/* TEST-ONLY: Development environment indicator */}
-                {import.meta.env.DEV && (
-                  <span className="text-[10px] font-bold text-red-600 tracking-wide">TEST</span>
-                )}
+                <a
+                  href={`/changes/${APP_VERSION}.md`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-gray-500 underline hover:text-accent"
+                  title={`Bekijk changelog voor v${APP_VERSION}`}
+                >
+                  v{APP_VERSION}
+                </a>
+                {IS_TEST ? (
+                  <span className="text-[10px] font-bold text-red-600 tracking-wide">TST</span>
+                ) : null}
               </div>
             </div>
           </div>
@@ -132,11 +139,18 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col items-start">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-gray-500 leading-none">v{APP_VERSION}</span>
-                  {/* TEST-ONLY: Mobile development environment indicator */}
-                  {import.meta.env.DEV && (
-                    <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none">TEST</span>
-                  )}
+                  <a
+                    href={`/changes/${APP_VERSION}.md`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-gray-500 underline hover:text-accent leading-none"
+                    title={`Bekijk changelog voor v${APP_VERSION}`}
+                  >
+                    v{APP_VERSION}
+                  </a>
+                  {IS_TEST ? (
+                    <span className="text-[10px] font-bold text-red-600 tracking-wide leading-none">TST</span>
+                  ) : null}
                 </div>
               </div>
             </>

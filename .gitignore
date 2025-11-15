@@ -1,3 +1,6 @@
+# Development changelogs/history
+# (hidden for end users, only for dev/test)
+changes/
 # TEST-ONLY: Exclude reset scripts
 reset-todoless.bat
 # Dependencies
