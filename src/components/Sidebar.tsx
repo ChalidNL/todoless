@@ -6,7 +6,7 @@ import { useAuth } from '../store/auth';
 import { SavedViews } from '../db/dexieClient';
 import type { SavedView } from '../db/schema';
 import SaveViewButton from './SaveViewButton';
-import { getVersionString } from '../config/version';
+import { getVersionString, VERSION, ENV } from '../config/version';
 
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
@@ -101,17 +101,17 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                      {getVersionString().startsWith('TEST') && (
+                      {(ENV === 'test' || ENV === 'development') && (
                         <span className="text-[10px] font-bold text-red-600 tracking-wide mr-1">TST</span>
                       )}
                       <a
-                        href={`/changes/${getVersionString().replace(/[^\d.]/g, '')}.md`}
+                        href={`/changes/${VERSION}.md`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[10px] text-gray-500 underline hover:text-accent"
-                        title={`View changelog for ${getVersionString()}`}
+                        title={`View changelog for v${VERSION}`}
                       >
-                        {getVersionString().replace(/^TEST /, '')}
+                        v{VERSION}
                       </a>
                 </div>
               </div>
