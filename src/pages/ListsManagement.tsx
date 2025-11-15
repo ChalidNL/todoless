@@ -5,6 +5,7 @@ import DataTable, { Column } from '../components/DataTable'
 import type { List, Todo, Label } from '../db/schema'
 import { Lists, Todos, Labels } from '../db/dexieClient'
 import { useFilterContext } from '../contexts/FilterContext'
+import Icon from '../components/Icon'
 
 export default function ListsManagement() {
   const navigate = useNavigate()
@@ -180,7 +181,7 @@ export default function ListsManagement() {
               setEditingList(list)
             }}
           >
-            ✏️ Edit
+            <Icon emoji="✏️" /> Edit
           </button>
           <button
             className="rounded bg-red-100 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-200"
@@ -189,7 +190,7 @@ export default function ListsManagement() {
               handleDelete(list.id)
             }}
           >
-            🗑️ Delete
+            <Icon emoji="🗑️" /> Delete
           </button>
         </div>
       )

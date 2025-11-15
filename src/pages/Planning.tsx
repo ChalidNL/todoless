@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { DndContext, DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import type { Todo, Label } from '../db/schema'
-import { Labels, mutateTodo, Todos } from '../db/dexieClient'
+import type { Todo } from '../db/schema'
+import { mutateTodo, Todos } from '../db/dexieClient'
 import useFilteredTodos from '../hooks/useFilteredTodos'
 import { useFilterContext } from '../contexts/FilterContext'
 import TodoCard from '../components/TodoCard'
 import { parseDueToDate } from '../utils/date'
+import useLabels from '../hooks/useLabels'
 
 function isoDate(d: Date) {
   return d.toISOString().substring(0, 10)
@@ -14,6 +15,7 @@ function isoDate(d: Date) {
 
 export default function Planning() {
   const { todos } = useFilteredTodos()
+  const { labels, reloadLabels } = useLabels()
   const {
     selectedLabelIds,
     selectedAssigneeIds,
@@ -22,16 +24,6 @@ export default function Planning() {
     dueStart,
     dueEnd,
   } = useFilterContext()
-  const [labels, setLabels] = useState<Label[]>([])
-
-  const reload = async () => {
-    const ls = await Labels.list()
-    setLabels(ls)
-  }
-
-  useEffect(() => {
-    reload()
-  }, [])
 
   const today = useMemo(() => new Date(), [])
   today.setHours(0, 0, 0, 0)
@@ -104,7 +96,7 @@ export default function Planning() {
                   onDelete={async (id) => {
                     await Todos.remove(id)
                   }}
-                  onLabelsChange={reload}
+                  onLabelsChange={reloadLabels}
                 />
               </div>
             ))}

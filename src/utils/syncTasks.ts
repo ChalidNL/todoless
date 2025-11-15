@@ -9,6 +9,59 @@ import { logger } from './logger'
 const API = ''
 const MERGE_WINDOW_MS = 15000 // time window to correlate local-unsynced and server-created tasks
 
+let labelMigrationDone = false
+
+const normalizeTitleKey = (title?: string | null) =>
+  (title || '').trim().toLowerCase().replace(/\s+/g, ' ')
+
+function normalizeLabelIdsArray(input: any): string[] {
+  if (!input) return []
+  if (typeof input === 'string') {
+    try {
+      return normalizeLabelIdsArray(JSON.parse(input))
+    } catch {
+      return []
+    }
+  }
+  if (Array.isArray(input)) {
+    return input.map((id) => String(id))
+  }
+  return []
+}
+
+function arraysEqual(a: string[], b: string[]) {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false
+  }
+  return true
+}
+
+async function ensureLocalLabelIdsAreStrings() {
+  if (labelMigrationDone) return
+  try {
+    await db.todos.toCollection().modify((todo) => {
+      if (Array.isArray((todo as any).labelIds)) {
+        const normalized = (todo as any).labelIds.map((id: any) => String(id))
+        const changed = normalized.some((val: string, idx: number) => val !== (todo as any).labelIds[idx])
+        if (changed) {
+          ;(todo as any).labelIds = normalized
+        }
+      }
+    })
+  } catch (e) {
+    logger.warn('sync:labels:migration_failed', { error: String(e) })
+  } finally {
+    labelMigrationDone = true
+  }
+}
+
+function serializeLabelIds(ids?: string[]): string | null {
+  if (!ids || !ids.length) return null
+  const normalized = ids.map((id) => String(id)).filter(Boolean)
+  return normalized.length ? JSON.stringify(normalized) : null
+}
+
 async function api(path: string, init?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -43,33 +96,107 @@ export interface ServerUser {
  */
 export async function syncTasksFromServer(currentUser: ServerUser) {
   try {
+    await ensureLocalLabelIdsAreStrings()
     try { useSync.getState().setPhase('running') } catch {}
     // 1. Fetch tasks from server
-    const { items } = await api('/api/tasks')
-    const serverTasks: ServerTask[] = items || []
-    
-    // 2. Update or create local user record to match server
-    const localUsers = await Users.list()
-    let localUserId = localUsers.find(u => u.name === currentUser.username)?.id
-    if (!localUserId) {
-      // Create a local user that matches server
-      localUserId = `server-${currentUser.id}`
+    const { items: taskItems } = await api('/api/tasks')
+    const serverTasks: ServerTask[] = taskItems || []
+
+    // 2. Fetch labels from server
+    const { items: labelItems } = await api('/api/labels')
+    const previousLabels = await db.labels.toArray()
+    const nameToServerId = new Map<string, string>()
+    for (const label of labelItems || []) {
+      nameToServerId.set((label.name || '').trim().toLowerCase(), String(label.id))
+    }
+    const idRemap = new Map<string, string>()
+    previousLabels.forEach((label) => {
+      const key = (label.name || '').trim().toLowerCase()
+      const nextId = nameToServerId.get(key)
+      if (nextId && nextId !== label.id) {
+        idRemap.set(label.id, nextId)
+      }
+    })
+    // Clear local labels and re-add from server
+    await db.labels.clear()
+    for (const label of labelItems || []) {
+      await db.labels.add({
+        id: String(label.id),
+        name: label.name,
+        color: label.color || '#0ea5e9',
+        shared: !!label.shared,
+      })
+    }
+    let remapApplied = false
+    if (idRemap.size) {
+      await db.todos.toCollection().modify((todo) => {
+        const ids = (todo as any).labelIds
+        if (!Array.isArray(ids) || !ids.length) return
+        let changed = false
+        const next = ids.map((id: string) => {
+          const mapped = idRemap.get(id)
+          if (mapped && mapped !== id) {
+            changed = true
+            return mapped
+          }
+          return String(id)
+        })
+        if (changed) {
+          remapApplied = true
+          ;(todo as any).labelIds = next
+        }
+      })
+      // Update server tasks so labels column references the new IDs as well
+      for (const st of serverTasks) {
+        const original = normalizeLabelIdsArray(st.labels)
+        if (!original.length) continue
+        const remapped = original.map((id) => idRemap.get(id) ?? id)
+        if (!arraysEqual(original, remapped)) {
+          try {
+            await api(`/api/tasks/${st.id}`, { method: 'PATCH', body: JSON.stringify({ labels: JSON.stringify(remapped) }) })
+            st.labels = JSON.stringify(remapped)
+          } catch (e) {
+            logger.warn('sync:labels:server_patch_failed', { taskId: st.id, error: String(e) })
+          }
+        }
+      }
+      if (remapApplied) {
+        await pushPendingTodos().catch(() => {})
+      }
+    }
+
+    // 3. Fetch users from server
+    const { items: userItems } = await api('/api/users').catch(() => ({ items: [] }))
+    // Clear local users and re-add from server
+    await db.users.clear()
+    for (const user of userItems || []) {
+      await db.users.add({
+        id: String(user.id),
+        name: user.username,
+        email: user.email || undefined,
+        role: user.role || 'adult',
+      })
+    }
+
+    // 4. Update or create local user record to match currentUser
+    let localUserId = String(currentUser.id)
+    const localUsers = await db.users.toArray()
+    if (!localUsers.find(u => u.id === localUserId)) {
       await db.users.add({
         id: localUserId,
         name: currentUser.username,
         email: currentUser.email || undefined,
-        themeColor: '#0ea5e9',
-      } as User)
-    } else {
-      // Update existing user
-      await db.users.update(localUserId, {
-        name: currentUser.username,
-        email: currentUser.email || undefined,
+        role: currentUser.role || 'adult',
       })
     }
 
-    // 3. Sync tasks: convert server tasks to local format
+    // 5. Sync tasks: convert server tasks to local format
     const existingTodos = await Todos.list()
+    const serverIds = new Set(serverTasks.map((t) => t.id))
+    const stale = existingTodos.filter((t) => t.serverId && !serverIds.has(t.serverId))
+    if (stale.length) {
+      await db.todos.bulkDelete(stale.map((t) => t.id))
+    }
     const existingByServerId = new Map(
       existingTodos
         .filter(t => t.serverId)
@@ -78,9 +205,9 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
 
     for (const st of serverTasks) {
       const localTodo = existingByServerId.get(st.id)
-      const labelIds = st.labels ? JSON.parse(st.labels) : []
+      const labelIds = normalizeLabelIdsArray(st.labels)
       const attributes = st.attributes ? JSON.parse(st.attributes) : {}
-      
+
       const todoData: Partial<Todo> = {
         title: st.title,
         completed: !!st.completed,
@@ -102,7 +229,7 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
         let merged = false
         try {
           const createdAtTs = new Date(st.created_at).getTime()
-          const unsynced = await db.todos.where('serverId').equals(undefined as any).toArray()
+          const unsynced = (await db.todos.toArray()).filter(t => t.serverId === undefined)
           const candidate = unsynced.find(t => {
             if (!t.title || t.title.trim().toLowerCase() !== (st.title || '').trim().toLowerCase()) return false
             if (!t.createdAt) return true // fallback: no createdAt, match on title only
@@ -127,7 +254,9 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
       }
     }
 
-    logger.info('sync:tasks', { count: serverTasks.length })
+    await dedupeLocalTitles()
+
+    logger.info('sync:tasks+labels+users', { tasks: serverTasks.length, labels: (labelItems || []).length, users: (userItems || []).length })
     try { useSync.getState().setPhase('done') } catch {}
   } catch (e) {
     logger.error('sync:tasks:failed', { error: String(e) })
@@ -148,7 +277,7 @@ export async function pushTodoToServer(todo: Todo): Promise<number | null> {
         completed: todo.completed,
         workflow: todo.workflowId || null,
         workflowStage: todo.workflowStage || null,
-        labels: todo.labelIds?.length ? JSON.stringify(todo.labelIds) : null,
+        labels: serializeLabelIds(todo.labelIds),
         attributes: todo.attributes ? JSON.stringify(todo.attributes) : null,
       }
       await api(`/api/tasks/${todo.serverId}`, { method: 'PATCH', body: JSON.stringify(body) })
@@ -160,7 +289,7 @@ export async function pushTodoToServer(todo: Todo): Promise<number | null> {
         completed: todo.completed,
         workflow: todo.workflowId || null,
         workflowStage: todo.workflowStage || null,
-        labels: todo.labelIds?.length ? JSON.stringify(todo.labelIds) : null,
+        labels: serializeLabelIds(todo.labelIds),
         attributes: todo.attributes ? JSON.stringify(todo.attributes) : null,
         clientId: todo.clientId || undefined,
       }
@@ -213,13 +342,56 @@ let es: EventSource | null = null
  */
 export async function pushPendingTodos() {
   try {
-    const pending = await db.todos.where('serverId').equals(undefined as any).toArray()
+  const pending = (await db.todos.toArray()).filter(t => t.serverId === undefined)
     for (const t of pending) {
       await pushTodoToServer(t as any)
     }
     logger.info('sync:pending:push_complete', { count: pending.length })
   } catch (e) {
     logger.error('sync:pending:push_failed', { error: String(e) })
+  }
+}
+
+/**
+ * Sync labels from server to local database
+ */
+async function syncLabelsFromServer() {
+  try {
+    const response = await fetch(`${API}/api/labels`, { credentials: 'include' })
+    if (!response.ok) {
+      logger.warn('sync:labels:fetch_failed', { status: response.status })
+      return
+    }
+
+    const data = await response.json()
+    const serverLabels = data.items || []
+
+    // Upsert labels into local database
+    for (const serverLabel of serverLabels) {
+      const existing = await db.labels.where('id').equals(String(serverLabel.id)).first()
+
+      if (existing) {
+        // Update existing label
+        await db.labels.update(String(serverLabel.id), {
+          name: serverLabel.name,
+          color: serverLabel.color || '#0ea5e9',
+          shared: serverLabel.shared === 1
+        })
+      } else {
+        // Add new label
+        await db.labels.add({
+          id: String(serverLabel.id),
+          name: serverLabel.name,
+          color: serverLabel.color || '#0ea5e9',
+          shared: serverLabel.shared === 1,
+          userId: 'server'
+        } as any)
+      }
+    }
+
+    logger.info('sync:labels:complete', { count: serverLabels.length })
+  } catch (e) {
+    logger.error('sync:labels:failed', { error: String(e) })
   }
 }
 
@@ -257,6 +429,30 @@ export function startRealtimeSync(currentUser: ServerUser) {
         const todos = await db.todos.where('serverId').equals(id).toArray()
         for (const t of todos) await db.todos.delete(t.id)
         try { useRealtime.getState().markEvent() } catch {}
+        // Trigger UI update for deleted todo
+        import('../db/dexieClient').then(({ todoBus }) => {
+          todoBus.dispatchEvent(new CustomEvent('todo:mutated'))
+        }).catch(() => {})
+        window.dispatchEvent(new CustomEvent('todos:refresh'))
+      } catch {}
+    })
+    es.addEventListener('labels:updated', async (ev: MessageEvent) => {
+      try {
+        // Trigger a full label sync from server
+        await syncLabelsFromServer()
+        // Dispatch events to refresh UI components
+        window.dispatchEvent(new CustomEvent('labels:refresh'))
+        import('../db/dexieClient').then(({ labelBus }) => {
+          labelBus.dispatchEvent(new CustomEvent('label:updated'))
+        }).catch(() => {})
+        try { useRealtime.getState().markEvent() } catch {}
+      } catch {}
+    })
+    es.addEventListener('task:created', async (ev: MessageEvent) => {
+      try {
+        const { task } = JSON.parse(ev.data)
+        await applyServerTask(task, currentUser)
+        try { useRealtime.getState().markEvent() } catch {}
       } catch {}
     })
     es.onerror = (e: any) => {
@@ -291,7 +487,7 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
   if (!existing && item.client_id) {
     existing = await db.todos.where('clientId').equals(item.client_id).first()
   }
-  const labelIds = item.labels ? JSON.parse(item.labels) : []
+  const labelIds = normalizeLabelIdsArray(item.labels)
   const attributes = item.attributes ? JSON.parse(item.attributes) : {}
   const patch: Partial<Todo> = {
     title: item.title,
@@ -307,6 +503,11 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
   }
   if (existing) {
     await db.todos.update(existing.id, patch)
+    // Trigger UI update events for real-time sync
+    import('../db/dexieClient').then(({ todoBus }) => {
+      todoBus.dispatchEvent(new CustomEvent('todo:mutated'))
+    }).catch(() => {})
+    window.dispatchEvent(new CustomEvent('todos:refresh'))
     return
   }
   // No serverId match yet: try to merge with a recent local, unsynced todo (same title, close createdAt)
@@ -326,6 +527,49 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
   } catch {}
   // Fallback: create new
   await Todos.add({ ...patch, completed: !!item.completed, userId: localUserId } as any)
+  // Trigger UI update for new todo
+  window.dispatchEvent(new CustomEvent('todos:refresh'))
+}
+
+async function dedupeLocalTitles() {
+  const todos = await db.todos.toArray()
+  const keepers = new Map<string, Todo>()
+  const toDelete: Todo[] = []
+
+  const prefer = (a: Todo, b: Todo) => {
+    const labelsA = Array.isArray(a.labelIds) ? a.labelIds.length : 0
+    const labelsB = Array.isArray(b.labelIds) ? b.labelIds.length : 0
+    if (labelsB > labelsA) return b
+    if (labelsA > labelsB) return a
+    if (!a.serverId && b.serverId) return b
+    if (a.serverId && !b.serverId) return a
+    const createdA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+    const createdB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+    return createdB < createdA ? b : a
+  }
+
+  for (const todo of todos) {
+    const key = normalizeTitleKey(todo.title)
+    if (!key) continue
+    const current = keepers.get(key)
+    if (!current) {
+      keepers.set(key, todo)
+      continue
+    }
+    const best = prefer(current, todo)
+    const loser = best === current ? todo : current
+    keepers.set(key, best)
+    toDelete.push(loser)
+  }
+
+  if (!toDelete.length) return
+
+  await db.todos.bulkDelete(toDelete.map((t) => t.id))
+  for (const todo of toDelete) {
+    if (todo.serverId) {
+      try { await deleteTodoFromServer(todo.serverId) } catch {}
+    }
+  }
 }
 
 // -------------------------------

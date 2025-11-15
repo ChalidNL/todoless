@@ -2,7 +2,7 @@ import Database from 'better-sqlite3'
 import bcrypt from 'bcrypt'
 import { logger } from './logger.js'
 
-const DB_PATH = process.env.DB_PATH || 'family.db'
+const DB_PATH = process.env.DB_PATH || 'todoless-server.db'
 export const db = new Database(DB_PATH)
 
 db.pragma('journal_mode = WAL')
@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS users (
   role TEXT NOT NULL CHECK (role IN ('adult','child')) DEFAULT 'adult',
   twofa_secret TEXT,
   twofa_enabled INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS labels (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  color TEXT,
+  shared INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS tasks (

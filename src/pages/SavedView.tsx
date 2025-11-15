@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { Labels, SavedViews, Todos } from '../db/dexieClient'
-import type { Label, SavedView as SV, Todo } from '../db/schema'
+import { SavedViews, Todos } from '../db/dexieClient'
+import type { SavedView as SV, Todo } from '../db/schema'
 import { parseDueToDate } from '../utils/date'
 import TodoCard from '../components/TodoCard'
 import useFilteredTodos from '../hooks/useFilteredTodos'
@@ -11,6 +11,7 @@ import CalendarView from '../components/CalendarView'
 import WorkflowKanban from '../components/WorkflowKanban'
 import { Workflows } from '../db/dexieClient'
 import type { Workflow } from '../db/schema'
+import useLabels from '../hooks/useLabels'
 
 const VIEW_TITLES: Record<string, string> = {
   all: 'All',
@@ -21,20 +22,19 @@ const VIEW_TITLES: Record<string, string> = {
 export default function SavedView() {
   const { viewId } = useParams()
   const { todos: globalFilteredTodos } = useFilteredTodos()
+  const { labels, reloadLabels } = useLabels()
   const { mode } = useViewMode()
   const [title, setTitle] = useState(viewId ? VIEW_TITLES[viewId] ?? viewId : 'Saved View')
-  const [labels, setLabels] = useState<Label[]>([])
   const [saved, setSaved] = useState<SV | null>(null)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
 
-  const reload = async () => {
-    const [ls, ws] = await Promise.all([Labels.list(), Workflows.list()])
-    setLabels(ls)
+  const reloadWorkflows = async () => {
+    const ws = await Workflows.list()
     setWorkflows(ws)
   }
 
   useEffect(() => {
-    reload()
+    reloadWorkflows()
   }, [])
 
   useEffect(() => {
@@ -44,8 +44,11 @@ export default function SavedView() {
       if (viewId === 'me') {
         try { await SavedViews.ensureMeView?.() } catch {}
       }
-      // Try to load a custom saved view by ID
-      const v = await SavedViews.get(viewId)
+      // Try to load a custom saved view by slug first, then by ID
+      let v = await SavedViews.getBySlug(viewId)
+      if (!v) {
+        v = await SavedViews.get(viewId)
+      }
       if (!active) return
       if (v) {
         setSaved(v)
@@ -181,7 +184,7 @@ export default function SavedView() {
           <div className="text-lg font-semibold">{title}</div>
         </div>
         <div className="rounded border border-gray-200 bg-white p-3">
-          <WorkflowKanban workflow={eligible} todos={kanbanTodos} labels={labels} onReload={reload} />
+          <WorkflowKanban workflow={eligible} todos={kanbanTodos} labels={labels} onReload={reloadWorkflows} />
         </div>
       </div>
     )
@@ -194,7 +197,7 @@ export default function SavedView() {
     const handleMoveRight = async (todo: Todo) => {
       if (!defaultWf || !firstNonBacklog) return
       await Todos.update(todo.id, { workflowId: defaultWf.id, workflowStage: firstNonBacklog, completed: false })
-      await reload()
+      await reloadWorkflows()
     }
     return (
       <div className="space-y-3">
@@ -242,19 +245,18 @@ export default function SavedView() {
                 labels={labels}
                 onToggle={async (id, completed) => {
                   await Todos.update(id, { completed })
-                  await reload()
                 }}
                 onUpdate={async (id, title) => {
                   await Todos.update(id, { title })
-                  await reload()
                 }}
+                onLabelsChange={reloadLabels}
               />
             ))}
           </div>
           
           <CheckedDivider 
             checkedTodoIds={checked.map((t) => t.id)}
-            onUncheckComplete={reload}
+            onUncheckComplete={reloadWorkflows}
           />
           
           {checked.length > 0 && (
@@ -266,12 +268,11 @@ export default function SavedView() {
                   labels={labels}
                   onToggle={async (id, completed) => {
                     await Todos.update(id, { completed })
-                    await reload()
                   }}
                   onUpdate={async (id, title) => {
                     await Todos.update(id, { title })
-                    await reload()
                   }}
+                  onLabelsChange={reloadLabels}
                 />
               ))}
             </div>

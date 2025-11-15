@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { clearLocalData } from '../../db/dexieClient'
 import { useAuth } from '../../store/auth'
 import { useNavigate } from 'react-router-dom'
 
@@ -15,6 +16,13 @@ export default function LoginPage() {
   /* TEST-ONLY: Debug state for login API */
   const [debug, setDebug] = useState<any>(null)
 
+    const [wiping, setWiping] = useState(false)
+    const handleWipe = async () => {
+      setWiping(true)
+      await clearLocalData()
+      setTimeout(() => setWiping(false), 1000)
+      window.location.reload()
+    }
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = e.currentTarget
@@ -26,7 +34,7 @@ export default function LoginPage() {
     const p = passFromForm || password
     const c = (twofaRequired ? (codeFromForm || code) : undefined) as string | undefined
 
-    /* TEST-ONLY: Debug info for login request */
+    /* TEST-ONLY: Debug info voor login request */
     if (import.meta.env.DEV) {
       setDebug({
         request: { username: u, password: p, code: c },
@@ -46,24 +54,44 @@ export default function LoginPage() {
         ok: res.ok,
         url: res.url,
         headers: Object.fromEntries(res.headers.entries()),
+        body: undefined as any
       }
       let body
       try { body = await res.clone().json() } catch { body = await res.clone().text() }
-      debugInfo.body = body
+      (debugInfo as any).body = body
     } catch (err) {
       debugInfo = { error: String(err) }
     }
     if (import.meta.env.DEV) setDebug((d: any) => ({ ...d, response: debugInfo, ended: new Date().toISOString() }))
     if (res && res.ok) {
       setTwofaRequired(false)
-      navigate('/dashboard', { replace: true })
-    } else if (res && res.status === 401 && debugInfo.body?.twofaRequired) {
+      // Probeer router, maar forceer window.location als fallback
+      try {
+        navigate('/dashboard', { replace: true })
+        setTimeout(() => {
+          if (window.location.pathname !== '/dashboard') {
+            window.location.href = '/dashboard'
+          }
+        }, 500)
+      } catch {
+        window.location.href = '/dashboard'
+      }
+    } else if (res && res.status === 401 && (debugInfo as any).body?.twofaRequired) {
       setTwofaRequired(true)
     }
   }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center px-4">
+      {import.meta.env.DEV && (
+        <button
+          onClick={handleWipe}
+          disabled={wiping}
+          style={{position:'fixed',top:16,right:16,padding:'6px 16px',background:'#ffe066',color:'#222',border:'1px solid #ffd700',borderRadius:6,fontWeight:'bold',fontSize:14,zIndex:1000}}
+        >
+          {wiping ? 'Wiping...' : 'Wipe local data'}
+        </button>
+      )}
       <div className="w-full max-w-md">
         {/* TEST-ONLY: Debug overlay for login API */}
         {import.meta.env.DEV && debug && (

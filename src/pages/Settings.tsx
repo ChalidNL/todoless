@@ -128,16 +128,19 @@ export default function Settings() {
                 className="w-9 h-9 flex items-center justify-center rounded-lg bg-accent text-white hover:opacity-90 transition-opacity"
                 title="Save"
                 onClick={async () => {
+                  /* TEST-ONLY: Profile update triggers full sync of username/displayName in DB and token */
                   // Update local Dexie cache immediately
                   await Users.update('local-user', { name: name || 'You', email: email || undefined })
                   // Also call server profile update so auth cookie reflects new username
+                  let updateOk = false
                   try {
-                    await fetch('/api/auth/profile', {
+                    const res = await fetch('/api/auth/profile', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       credentials: 'include',
                       body: JSON.stringify({ username: name || undefined, email: email || undefined })
                     })
+                    updateOk = res.ok
                   } catch {}
                   // Rename any local user entries that match old server username to the new one to avoid duplicates
                   try {
@@ -152,7 +155,9 @@ export default function Settings() {
                   } catch {}
                   // Force refresh of auth user (so avatar initial updates)
                   await me().catch(() => {})
-                  alert('Profile saved')
+                  // Dispatch custom event to update UI everywhere (avatar, header, etc)
+                  window.dispatchEvent(new Event('auth:refresh'))
+                  alert(updateOk ? 'Profile saved & synced!' : 'Profile saved (local only)')
                 }}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -296,40 +301,38 @@ export default function Settings() {
 
           {/* Data Management */}
           {/* TEST-ONLY: Development data management tools - hidden in production */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="mb-3 text-sm font-semibold flex items-center gap-2">Data <span className="px-2 py-0.5 text-[10px] rounded bg-yellow-100 text-yellow-800 border border-yellow-200" title="Only visible in development builds">TEST ONLY</span></div>
-            {import.meta.env.DEV ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                className="px-3 py-2 rounded-md border text-sm hover:bg-gray-50"
-                onClick={async () => {
-                  const ok = confirm('This will remove ALL local data (labels, todos, notes, views, etc.). Continue?')
-                  if (!ok) return
-                  await flushDatabase()
-                  alert('Database flushed. Minimal defaults restored.')
-                }}
-                title="Remove all local data"
-              >
-                Flush database
-              </button>
-              <button
-                className="px-3 py-2 rounded-md border text-sm bg-accent text-white hover:opacity-90"
-                onClick={async () => {
-                  const ok = confirm('Import mock data? This will clear existing local data first.')
-                  if (!ok) return
-                  await importMockData()
-                  alert('Mock data imported!')
-                }}
-                title="Clear and load mock data"
-              >
-                Import mock data
-              </button>
+          {import.meta.env.DEV && (
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="mb-3 text-sm font-semibold flex items-center gap-2">Data <span className="px-2 py-0.5 text-[10px] rounded bg-yellow-100 text-yellow-800 border border-yellow-200" title="Only visible in development builds">TEST ONLY</span></div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="px-3 py-2 rounded-md border text-sm hover:bg-gray-50"
+                  onClick={async () => {
+                    const ok = confirm('This will remove ALL local data (labels, todos, notes, views, etc.). Continue?')
+                    if (!ok) return
+                    await flushDatabase()
+                    alert('Database flushed. Minimal defaults restored.')
+                  }}
+                  title="Remove all local data"
+                >
+                  Flush database
+                </button>
+                <button
+                  className="px-3 py-2 rounded-md border text-sm bg-accent text-white hover:opacity-90"
+                  onClick={async () => {
+                    const ok = confirm('Import mock data? This will clear existing local data first.')
+                    if (!ok) return
+                    await importMockData()
+                    alert('Mock data imported!')
+                  }}
+                  title="Clear and load mock data"
+                >
+                  Import mock data
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">These actions only affect your local browser database (IndexedDB). Remote/server data is not touched.</p>
             </div>
-            ) : (
-              <p className="text-xs text-gray-400">Test data tools hidden in production.</p>
-            )}
-            {import.meta.env.DEV && <p className="mt-2 text-xs text-gray-500">These actions only affect your local browser database (IndexedDB). Remote/server data is not touched.</p>}
-          </div>
+          )}
         </div>
       </div>
     </div>

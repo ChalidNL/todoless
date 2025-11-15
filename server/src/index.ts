@@ -13,17 +13,24 @@ import { logger, getRecentLogs } from './logger.js'
 /* TEST-ONLY: Seed admin user in dev/test */
 import bcrypt from 'bcrypt'
 import { db } from './db.js'
-
 const app = express()
+import { labelsRouter } from './labels.js'
+import { importRouter } from './import.js'
+import { countersRouter } from './counters.js'
 
+/* TEST-ONLY: Seed admin user in local/test omgeving. Nooit in productie! */
 if (process.env.NODE_ENV !== 'production') {
   (async () => {
-    const admin = db.prepare('SELECT * FROM users WHERE username = ?').get('admin')
-    if (!admin) {
-      const hash = await bcrypt.hash('admin123', 12)
-      db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)')
-        .run('admin', 'admin@localhost', hash, 'adult')
-      logger.info('TEST-ONLY: seeded admin user for dev/test', { username: 'admin', password: 'admin123' })
+    try {
+      const admin = db.prepare('SELECT * FROM users WHERE username = ?').get('admin')
+      if (!admin) {
+        const hash = await bcrypt.hash('admin123', 12)
+        db.prepare('INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)')
+          .run('admin', 'admin@localhost', hash, 'adult')
+        logger.info('TEST-ONLY: admin user seeded', { username: 'admin' })
+      }
+    } catch (err) {
+      logger.error('TEST-ONLY: admin seed failed', { err: String(err) })
     }
   })()
 }
@@ -65,9 +72,15 @@ app.use(cors((req, callback) => {
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 app.use('/api/auth', authRouter(JWT_SECRET))
+// Labels sync API
+app.use('/api/labels', labelsRouter())
 
 // Protected tasks routes
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
+
+// Import and counters endpoints
+app.use('/api/import', requireAuth(JWT_SECRET), require2FA(), importRouter())
+app.use('/api/counters', requireAuth(JWT_SECRET), require2FA(), countersRouter())
 
 // Logs endpoint (admin only)
 app.get('/api/logs', requireAuth(JWT_SECRET), (req: any, res) => {

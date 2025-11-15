@@ -201,7 +201,7 @@ export default function App() {
           <Sidebar />
         </div>
         <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
-        <header className="sticky top-0 z-10 border-b bg-white/70 backdrop-blur">
+        <header className="sticky top-0 z-10 bg-white/70 backdrop-blur">
           <div className="flex w-full items-center gap-3 px-4 py-3">
             {/* Mobile hamburger only */}
             <button
@@ -280,7 +280,6 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/tasks" element={<Dashboard />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/planning" element={<Planning />} />
               <Route path="/today" element={<Today />} />

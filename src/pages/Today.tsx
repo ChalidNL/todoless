@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import type { Todo, Label } from '../db/schema'
-import { Labels, mutateTodo } from '../db/dexieClient'
+import type { Todo } from '../db/schema'
+import { mutateTodo } from '../db/dexieClient'
 import useFilteredTodos from '../hooks/useFilteredTodos'
 import { parseDueToDate } from '../utils/date'
 import { useViewMode } from '../contexts/ViewModeContext'
+import useLabels from '../hooks/useLabels'
 
 function isoDate(d: Date) {
   return d.toISOString().substring(0, 10)
@@ -12,17 +13,8 @@ function isoDate(d: Date) {
 
 export default function Today() {
   const { todos } = useFilteredTodos()
-  const [labels, setLabels] = useState<Label[]>([])
+  const { labels } = useLabels()
   const { mode } = useViewMode()
-
-  const reload = async () => {
-    const ls = await Labels.list()
-    setLabels(ls)
-  }
-
-  useEffect(() => {
-    reload()
-  }, [])
 
   const today = useMemo(() => {
     const d = new Date()

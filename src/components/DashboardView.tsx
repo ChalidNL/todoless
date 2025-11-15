@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Todos, Workflows, Labels, Notes, Attributes, Users, todoBus } from '../db/dexieClient'
-import type { Todo, Workflow, AttributeDef, User } from '../db/schema'
+import type { Todo, AttributeDef } from '../db/schema'
 import { useSync } from '../store/sync'
 
 interface SummaryCardProps {
@@ -45,103 +45,132 @@ export default function DashboardView() {
   const [attrWidgets, setAttrWidgets] = useState<Array<{ name: string; data: Array<{ label: string; count: number }> }>>([])
 
   useEffect(() => {
+    let cancelled = false
+
     const loadStats = async () => {
-      const todos = await Todos.list()
-      const workflows = await Workflows.list()
-      const labels = await Labels.list()
-      const notes = await Notes.list()
-      const attrs = await Attributes.list()
-      const users = await Users.list()
-      const currentUserId = users[0]?.id || 'local-user'
-      
-      const completed = todos.filter((t: Todo) => t.completed).length
-      const blocked = todos.filter((t: Todo) => t.blocked).length
-      const pending = todos.filter((t: Todo) => !t.completed).length
-      
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const todayStr = today.toISOString().split('T')[0]
-      
-      const dueToday = todos.filter((t: Todo) => {
-        if (t.completed) return false
-        const due = t.dueDate || (t.attributes as any)?.dueDate
-        return due && due.startsWith(todayStr)
-      }).length
-      
-      const overdue = todos.filter((t: Todo) => {
-        if (t.completed) return false
-        const due = t.dueDate || (t.attributes as any)?.dueDate
-        if (!due) return false
-        return due < todayStr
-      }).length
-      
-      const rate = todos.length > 0 ? Math.round((completed / todos.length) * 100) : 0
-      
-      setStats({
-        total: todos.length,
-        completed,
-        blocked,
-        pending,
-        dueToday,
-        overdue,
-        workflows: workflows.length,
-        labels: labels.length,
-        notes: notes.length,
-        completionRate: rate,
-      })
+      try {
+        // Fetch server counters as source of truth
+        let serverCounters = null
+        try {
+          const response = await fetch('/api/counters', { credentials: 'include' })
+          if (response.ok) {
+            serverCounters = await response.json()
+          }
+        } catch (e) {
+          console.warn('Failed to fetch server counters, using local data', e)
+        }
 
-      // My Tasks (pending, top 5 by createdAt or title fallback)
-      const mine = todos
-        .filter((t: Todo) => t.userId === currentUserId && !t.completed)
-        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-        .slice(0, 5)
-      setMyTasks(mine)
+        const [todos, workflows, labels, notes, attrs, users] = await Promise.all([
+          Todos.list(),
+          Workflows.list(),
+          Labels.list(),
+          Notes.list(),
+          Attributes.list(),
+          Users.list(),
+        ])
 
-      // Attribute widgets: only for select-type attributes
-      const widgets: Array<{ name: string; data: Array<{ label: string; count: number }> }> = []
-      attrs.filter((a: AttributeDef) => a.type === 'select').slice(0, 2).forEach((a) => {
-        const counts: Record<string, number> = {}
-        const options = a.options || []
-        // initialize
-        options.forEach(opt => { counts[opt.label || opt.value] = 0 })
-        todos.forEach((t: Todo) => {
-          const val = (t.attributes && (t.attributes[a.id] ?? t.attributes[a.name])) || null
-          if (!val) return
-          const key = (options.find(o => o.value === val)?.label) || String(val)
-          counts[key] = (counts[key] || 0) + 1
+        if (cancelled) return
+
+        // Use server counters if available, otherwise fall back to local
+        const total = serverCounters?.total ?? todos.length
+        const completed = serverCounters?.completed ?? todos.filter((t: Todo) => t.completed).length
+        const pending = serverCounters?.active ?? todos.filter((t: Todo) => !t.completed).length
+        const labelsCount = serverCounters?.labels ?? labels.length
+
+        const blocked = todos.filter((t: Todo) => t.blocked).length
+
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const todayStr = today.toISOString().split('T')[0]
+
+        const dueToday = todos.filter((t: Todo) => {
+          if (t.completed) return false
+          const due = t.dueDate || (t.attributes as any)?.dueDate
+          return due && due.startsWith(todayStr)
+        }).length
+
+        const overdue = todos.filter((t: Todo) => {
+          if (t.completed) return false
+          const due = t.dueDate || (t.attributes as any)?.dueDate
+          if (!due) return false
+          return due < todayStr
+        }).length
+
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
+
+        setStats({
+          total,
+          completed,
+          blocked,
+          pending,
+          dueToday,
+          overdue,
+          workflows: workflows.length,
+          labels: labelsCount,
+          notes: notes.length,
+          completionRate,
         })
-        widgets.push({ name: a.name, data: Object.entries(counts).map(([label, count]) => ({ label, count })) })
-      })
 
-      // Special-case: built-in priority on Todo if defined
-      const priorityCounts: Record<string, number> = { High: 0, Medium: 0, Low: 0, 'No Priority': 0 }
-      todos.forEach((t: Todo) => {
-        if (t.priority === 'high') priorityCounts.High++
-        else if (t.priority === 'medium') priorityCounts.Medium++
-        else if (t.priority === 'low') priorityCounts.Low++
-        else priorityCounts['No Priority']++
-      })
-      if (todos.length > 0) {
-        widgets.unshift({
-          name: 'Priority',
-          data: Object.entries(priorityCounts).map(([label, count]) => ({ label, count }))
-        })
+        const currentUserId = users[0]?.id || 'local-user'
+        const mine = todos.filter((t: Todo) => t.userId === currentUserId && !t.completed)
+        const fallback = mine.length ? mine : todos.filter((t: Todo) => !t.completed)
+        setMyTasks(
+          fallback
+            .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+            .slice(0, 5)
+        )
+
+        const widgets = attrs
+          .filter((def: AttributeDef) => def.type === 'select' && Array.isArray(def.options) && def.options.length > 0)
+          .map(def => {
+            const counts: Record<string, number> = {}
+            todos.forEach(todo => {
+              const value = (todo.attributes as any)?.[def.id]
+              if (!value) return
+              counts[value] = (counts[value] || 0) + 1
+            })
+
+            const rows = (def.options || [])
+              .map(opt => ({
+                label: opt.label || opt.value,
+                count: counts[opt.value] || 0,
+              }))
+              .filter(row => row.count > 0)
+              .sort((a, b) => b.count - a.count)
+              .slice(0, 4)
+
+            if (!rows.length) return null
+            return { name: def.name, data: rows }
+          })
+          .filter((widget): widget is { name: string; data: Array<{ label: string; count: number }> } => Boolean(widget))
+          .slice(0, 4)
+
+        setAttrWidgets(widgets)
+      } catch (error) {
+        console.error('Failed to load dashboard stats', error)
       }
-      setAttrWidgets(widgets)
     }
-    // initial
-    loadStats()
-    // refresh when todos change (added/updated/removed/mutated)
-    const handler = () => { void loadStats() }
-    todoBus.addEventListener('todo:added', handler as EventListener)
-    todoBus.addEventListener('todo:updated', handler as EventListener)
-    todoBus.addEventListener('todo:removed', handler as EventListener)
-    todoBus.addEventListener('todo:mutated', handler as EventListener)
+
+    void loadStats()
+
+    const handler: EventListener = () => { void loadStats() }
+    const customHandler = (e: Event) => { void loadStats() }
+
+    todoBus.addEventListener('todo:added', handler)
+    todoBus.addEventListener('todo:updated', handler)
+    todoBus.addEventListener('todo:removed', handler)
+    todoBus.addEventListener('todo:mutated', handler)
+    window.addEventListener('todos:refresh', customHandler)
+    window.addEventListener('labels:refresh', customHandler)
+
     return () => {
-      todoBus.removeEventListener('todo:added', handler as EventListener)
-      todoBus.removeEventListener('todo:updated', handler as EventListener)
-      todoBus.removeEventListener('todo:removed', handler as EventListener)
-      todoBus.removeEventListener('todo:mutated', handler as EventListener)
+      cancelled = true
+      todoBus.removeEventListener('todo:added', handler)
+      todoBus.removeEventListener('todo:updated', handler)
+      todoBus.removeEventListener('todo:removed', handler)
+      todoBus.removeEventListener('todo:mutated', handler)
+      window.removeEventListener('todos:refresh', customHandler)
+      window.removeEventListener('labels:refresh', customHandler)
     }
   }, [])
 

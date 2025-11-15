@@ -21,13 +21,86 @@ function uuid(): string {
  * Remove ALL local data from Dexie. Does not touch remote/server.
  */
 export async function flushDatabase() {
+  // First, delete ALL server data (todos, labels, notes, etc.)
+  try {
+    // Get all todos with serverIds and delete from server
+    const todos = await Todos.list()
+    for (const todo of todos) {
+      if (todo.serverId) {
+        try {
+          await fetch(`/api/tasks/${todo.serverId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          })
+        } catch (e) {
+          console.warn('Failed to delete server todo:', e)
+        }
+      }
+    }
+
+    // Delete all labels from server
+    const labels = await Labels.list()
+    for (const label of labels) {
+      if (label.id) {
+        try {
+          await fetch(`/api/labels/${label.id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          })
+        } catch (e) {
+          console.warn('Failed to delete server label:', e)
+        }
+      }
+    }
+
+    // Delete all notes from server
+    const notes = await Notes.list()
+    for (const note of notes) {
+      if (note.id) {
+        try {
+          await fetch(`/api/notes/${note.id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+          })
+        } catch (e) {
+          console.warn('Failed to delete server note:', e)
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to clear server data:', e)
+  }
+
+  // Then clear local data
   await clearLocalData()
+
+  // TEST-ONLY: Also clear cookies, localStorage, and sessionStorage for a full reset
+  try {
+    // Clear all cookies (browser only)
+    if (typeof document !== 'undefined') {
+      document.cookie.split(';').forEach(function(c) {
+        document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date(0).toUTCString() + ';path=/');
+      });
+    }
+    // Clear localStorage and sessionStorage
+    if (typeof localStorage !== 'undefined') localStorage.clear()
+    if (typeof sessionStorage !== 'undefined') sessionStorage.clear()
+    // Clear any service worker caches
+    if (typeof caches !== 'undefined' && caches.keys) {
+      caches.keys().then(keys => keys.forEach(key => caches.delete(key)))
+    }
+  } catch {}
+
   // Re-seed minimal defaults that the app assumes (users, default workflow, default views)
   const me: User = { id: 'local-user', name: 'You', themeColor: '#0ea5e9' }
   await db.users.put(me)
   await ensureDefaults()
   await SavedViews.ensureDefaultViews()
   await SavedViews.ensureMeView()
+
+  // Trigger full UI refresh
+  window.dispatchEvent(new CustomEvent('todos:refresh'))
+  window.dispatchEvent(new CustomEvent('labels:refresh'))
 }
 
 /**

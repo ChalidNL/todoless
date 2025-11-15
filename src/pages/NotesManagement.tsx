@@ -4,6 +4,7 @@ import type { Label, Note, Todo, User } from '../db/schema'
 import LinkTaskModal from '../components/LinkTaskModal'
 import ShareNoteModal from '../components/ShareNoteModal'
 import ManagementHeader from '../components/ManagementHeader'
+import { PinIcon } from '../components/IconSet'
 
 export default function NotesManagement() {
   const [notes, setNotes] = useState<Note[]>([])
@@ -244,9 +245,7 @@ export default function NotesManagement() {
                 <div className="mb-2 flex items-center justify-end gap-1">
                   {n.pinned && (
                     <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 12V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
-                      </svg>
+                      <PinIcon filled size={16} />
                     </div>
                   )}
                   <button
@@ -291,16 +290,14 @@ export default function NotesManagement() {
                 </div>
                 {/* Options panel - All icons in ONE ROW */}
                 {openMenuId === n.id && (
-                  <div className="w-full max-w-full flex flex-wrap items-center justify-start gap-1.5 p-2 bg-white rounded-lg border border-gray-200 shadow-md overflow-hidden">
+                  <div className="w-full max-w-full inline-flex flex-wrap items-center justify-start gap-1.5 p-2 bg-white rounded-lg border border-gray-200 shadow-md overflow-x-auto">
                     {/* Pin toggle (black/white; filled when active) */}
                     <button
                       className={`p-1.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border transition-all hover:scale-105 ${n.pinned ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-200 text-gray-800 bg-white hover:bg-gray-50'}`}
                       title={n.pinned ? 'Unpin' : 'Pin'}
                       onClick={() => togglePin(n)}
                     >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 12V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
-                      </svg>
+                      <PinIcon filled={n.pinned} size={16} />
                     </button>
 
                     {/* Schedule / Due date - click to open options */}

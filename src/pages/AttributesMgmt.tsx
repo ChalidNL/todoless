@@ -4,6 +4,7 @@ import { Attributes, Todos, Workflows } from '../db/dexieClient'
 import { useFilterContext } from '../contexts/FilterContext'
 import ManagementHeader from '../components/ManagementHeader'
 import CreateButton from '../components/ui/CreateButton'
+import Icon from '../components/Icon'
 
 export default function AttributesMgmt() {
   const [attributes, setAttributes] = useState<AttributeDef[]>([])
@@ -95,7 +96,7 @@ export default function AttributesMgmt() {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-sm truncate flex items-center gap-1" title={attr.name}>
                     {attr.name}
-                    {attr.isDefault && <span title="Default" className="text-yellow-500">⭐</span>}
+                    {attr.isDefault && <Icon emoji="⭐" title="Default" className="text-yellow-500" />}
                   </div>
                 </div>
               </div>
@@ -211,7 +212,7 @@ export default function AttributesMgmt() {
                   >
                     {workflows.map(w => (
                       <option key={w.id} value={w.id}>
-                        {w.name}{w.isDefault ? ' ⭐' : ''}
+                        {w.name}{w.isDefault ? <Icon emoji="⭐" className="inline text-yellow-500" /> : ''}
                       </option>
                     ))}
                   </select>

@@ -22,10 +22,12 @@ export default function useFilteredTodos() {
     const onAdded = (e: Event) => {
       const detail = (e as CustomEvent).detail as Todo
       console.log('useFilteredTodos: todo:added event received', detail)
+      if (!detail || !detail.id) return
       setRawTodos((s) => [detail, ...s])
     }
     const onUpdated = (e: Event) => {
       const detail = (e as CustomEvent).detail as Todo
+      if (!detail || !detail.id) return
       setRawTodos((s) => s.map((t) => (t.id === detail.id ? detail : t)))
     }
     const onRemoved = (e: Event) => {
@@ -50,7 +52,9 @@ export default function useFilteredTodos() {
   // Recompute filtered todos when rawTodos or any filter changes
   const filtered = useMemo(() => {
   const f = apply(rawTodos)
-  const sorted = sortTodosBy(sortValue, f, labels)
+  // Remove duplicate tasks by id
+  const unique = Array.from(new Set(f.map(t => t.id))).map(id => f.find(t => t.id === id)).filter((t): t is Todo => t !== undefined)
+  const sorted = sortTodosBy(sortValue, unique, labels)
   const unchecked = sorted.filter((t) => !t.completed)
   const checked = sorted.filter((t) => t.completed)
   if (!showCompleted) return unchecked

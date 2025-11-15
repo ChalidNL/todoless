@@ -5,19 +5,20 @@ import { CSS } from '@dnd-kit/utilities'
 import { useNavigate, useParams } from 'react-router-dom'
 import TodoCard from '../components/TodoCard'
 import CheckedDivider from '../components/CheckedDivider'
-import { Labels, Todos, Lists } from '../db/dexieClient'
-import type { Label, List, Todo } from '../db/schema'
+import { Todos, Lists } from '../db/dexieClient'
+import type { List, Todo } from '../db/schema'
 import useFilteredTodos from '../hooks/useFilteredTodos'
 import { useViewMode } from '../contexts/ViewModeContext'
 import { useFilterContext } from '../contexts/FilterContext'
+import useLabels from '../hooks/useLabels'
 
 export default function ListView() {
   const { listId } = useParams()
   const navigate = useNavigate()
   const { todos } = useFilteredTodos()
+  const { labels, reloadLabels } = useLabels()
   const { mode } = useViewMode()
   const { setSelectedLabelIds, clear } = useFilterContext()
-  const [labels, setLabels] = useState<Label[]>([])
   const [list, setList] = useState<List | null>(null)
   const [modifyMode] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -46,15 +47,14 @@ export default function ListView() {
             await Todos.remove(id)
             await reload()
           }}
-          onLabelsChange={reload}
+          onLabelsChange={reloadLabels}
         />
       </div>
     )
   }
 
   const reload = async () => {
-    const [ls, lx] = await Promise.all([Labels.list(), Lists.list()])
-    setLabels(ls)
+    const lx = await Lists.list()
     const found = lx.find((l) => l.id === listId)
     setList(found ?? null)
   }

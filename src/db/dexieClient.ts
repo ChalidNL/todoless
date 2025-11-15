@@ -1,3 +1,47 @@
+/**
+ * TEST-ONLY: Normalize all todos to use userId for assignment and filtering.
+ * Converts any legacy displayName references to userId if found.
+ * Run once after import/migration to clean up local data.
+ */
+export async function normalizeTodosUserMapping() {
+  const users = await db.users.toArray()
+  const userMap: Record<string, string> = {}
+  users.forEach(u => {
+    if (u.name) userMap[u.name.toLowerCase()] = u.id
+    if (u.username) userMap[u.username.toLowerCase()] = u.id
+  })
+  const todos = await db.todos.toArray()
+  for (const todo of todos) {
+    let changed = false
+    // Fix main userId
+    if (todo.userId && !users.find(u => u.id === todo.userId)) {
+      // Try to map by displayName
+      const mappedId = userMap[(todo.userId || '').toLowerCase()]
+      if (mappedId) {
+        todo.userId = mappedId
+        changed = true
+      }
+    }
+    // Fix assigneeIds
+    if (Array.isArray(todo.assigneeIds)) {
+      const nextAssignees = todo.assigneeIds.map(aid => {
+        if (users.find(u => u.id === aid)) return aid
+        const mappedId = userMap[(aid || '').toLowerCase()]
+        return mappedId || aid
+      })
+      if (JSON.stringify(nextAssignees) !== JSON.stringify(todo.assigneeIds)) {
+        todo.assigneeIds = nextAssignees
+        changed = true
+      }
+    }
+    if (changed) {
+      const updates: Partial<Todo> = {}
+      if (todo.userId) updates.userId = todo.userId
+      if (todo.assigneeIds) updates.assigneeIds = todo.assigneeIds
+      await db.todos.update(todo.id, updates)
+    }
+  }
+}
 import Dexie, { Table } from 'dexie'
 import type { Label, Todo, User, Workflow, SavedView, List, AttributeDef, PointsEntry, AppSettings, Note } from './schema'
 import { logger } from '../utils/logger'
@@ -18,7 +62,7 @@ class TodolessDB extends Dexie {
     super('todoless')
 
     this.version(1).stores({
-      labels: 'id, name, shared, workflowId',
+      labels: 'id, name, shared, workflowId, userId',
       todos: 'id, userId, completed',
       users: 'id, name',
       workflows: 'id, name',
@@ -27,7 +71,7 @@ class TodolessDB extends Dexie {
 
     // v2: add lists table and extend todos indexes
     this.version(2).stores({
-      labels: 'id, name, shared, workflowId',
+      labels: 'id, name, shared, workflowId, userId',
       todos: 'id, userId, completed, labelIds, listId, assignee, dueDate',
       users: 'id, name',
       workflows: 'id, name',
@@ -234,6 +278,54 @@ class TodolessDB extends Dexie {
       notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
+    // v16: add userId index to labels for query and sync
+    this.version(16).stores({
+      labels: 'id, name, shared, workflowId, userId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
+      users: 'id, name, email, role, ageGroup',
+      workflows: 'id, name, labelIds, checkboxOnly',
+      savedViews: 'id, name, userId',
+      lists: 'id, name, visibility',
+      attributes: 'id, name, type, defaultValue',
+      points: 'id, userId, todoId, date',
+      settings: 'id',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
+    })
+
+    // v17: add slug to savedViews for URL-friendly names
+    this.version(17).stores({
+      labels: 'id, name, shared, workflowId, userId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
+      users: 'id, name, email, role, ageGroup',
+      workflows: 'id, name, labelIds, checkboxOnly',
+      savedViews: 'id, name, userId, slug',
+      lists: 'id, name, visibility',
+      attributes: 'id, name, type, defaultValue',
+      points: 'id, userId, todoId, date',
+      settings: 'id',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
+    }).upgrade(async (tx) => {
+      // Generate slugs for all existing saved views
+      const views = await tx.table('savedViews').toArray()
+      const existingSlugs: string[] = []
+
+      for (const view of views) {
+        // Skip if already has a slug
+        if (view.slug) {
+          existingSlugs.push(view.slug)
+          continue
+        }
+
+        // Import slugify function
+        const { generateUniqueSlug } = await import('../utils/slugify')
+        const slug = generateUniqueSlug(view.name, existingSlugs)
+        existingSlugs.push(slug)
+
+        // Update the view with the generated slug
+        await tx.table('savedViews').update(view.id, { slug })
+      }
+    })
+
     this.on('populate', async () => {
       const userId = 'local-user'
       await this.users.add({ id: userId, name: 'You', themeColor: '#0ea5e9' })
@@ -302,20 +394,73 @@ function generateUUID(): string {
 
 // Convenience CRUD helpers (minimal)
 export const Labels = {
+  /**
+   * Find a label by name (case-insensitive). If not found, create it.
+   */
+  findOrCreate: async (name: string) => {
+    const labels = await db.labels.toArray()
+    const found = labels.find(l => l.name.trim().toLowerCase() === name.trim().toLowerCase())
+    if (found) return found.id
+    // TEST-ONLY: random color for new labels
+    const colors = [
+      '#0ea5e9', // blue
+      '#f59e42', // orange
+      '#10b981', // green
+      '#ef4444', // red
+      '#a78bfa', // purple
+      '#fbbf24', // yellow
+      '#6366f1', // indigo
+      '#14b8a6', // teal
+      '#eab308', // gold
+      '#f472b6', // pink
+    ]
+    const color = colors[Math.floor(Math.random() * colors.length)]
+    return await Labels.add({ name: name.trim(), color, shared: false })
+  },
   list: () => db.labels.toArray(),
   add: async (l: Omit<Label, 'id'>) => {
     const id = generateUUID()
     await db.labels.add({ ...l, id })
+    logger.info('label:add', { id, name: l.name })
     try {
       const added = await db.labels.get(id)
       labelBus.dispatchEvent(new CustomEvent('label:added', { detail: added }))
+
+      // Push to server immediately
+      try {
+        await fetch('/api/labels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: l.name, color: l.color, shared: l.shared || false })
+        })
+      } catch (e) {
+        logger.warn('label:add:server_failed', { id, error: String(e) })
+      }
     } catch (e) {
       /* ignore */
     }
     return id
   },
-  update: (id: string, patch: Partial<Label>) => db.labels.update(id, patch),
-  remove: (id: string) => db.labels.delete(id),
+  update: async (id: string, patch: Partial<Label>) => {
+    const res = await db.labels.update(id, patch)
+    try {
+      const updated = await db.labels.get(id)
+      labelBus.dispatchEvent(new CustomEvent('label:updated', { detail: updated }))
+    } catch (e) {
+      /* ignore */
+    }
+    return res
+  },
+  remove: async (id: string) => {
+    const res = await db.labels.delete(id)
+    try {
+      labelBus.dispatchEvent(new CustomEvent('label:removed', { detail: { id } }))
+    } catch (e) {
+      /* ignore */
+    }
+    return res
+  },
 }
 
 export const Todos = {
@@ -436,12 +581,30 @@ export const Settings = {
 export const SavedViews = {
   list: () => db.savedViews.toArray(),
   get: (id: string) => db.savedViews.get(id),
-  update: (id: string, patch: Partial<SavedView>) => db.savedViews.update(id, patch),
-  add: async (input: Omit<SavedView, 'id' | 'userId'> & { userId?: string }) => {
+  getBySlug: (slug: string) => db.savedViews.where('slug').equals(slug).first(),
+  update: async (id: string, patch: Partial<SavedView>) => {
+    // If name is being updated, regenerate slug
+    if (patch.name) {
+      const allViews = await db.savedViews.toArray()
+      const existingSlugs = allViews.filter(v => v.id !== id).map(v => v.slug)
+      const { generateUniqueSlug } = await import('../utils/slugify')
+      patch.slug = generateUniqueSlug(patch.name, existingSlugs)
+    }
+    return db.savedViews.update(id, patch)
+  },
+  add: async (input: Omit<SavedView, 'id' | 'userId' | 'slug'> & { userId?: string }) => {
     const id = generateUUID()
+
+    // Generate unique slug
+    const allViews = await db.savedViews.toArray()
+    const existingSlugs = allViews.map(v => v.slug)
+    const { generateUniqueSlug } = await import('../utils/slugify')
+    const slug = generateUniqueSlug(input.name, existingSlugs)
+
     const view: SavedView = {
       id,
       name: input.name,
+      slug,
       labelFilterIds: input.labelFilterIds || [],
       attributeFilters: input.attributeFilters || {},
       statusFilter: input.statusFilter,
@@ -466,6 +629,7 @@ export const SavedViews = {
         const view: SavedView = {
           id: 'me',
           name: '@me',
+          slug: 'me',
           icon: '🙋',
           labelFilterIds: [],
           attributeFilters: {
@@ -598,6 +762,12 @@ export async function clearLocalData() {
       db.settings.clear(),
       db.notes.clear(),
     ])
+
+    // Trigger UI refresh events so all components update
+    todoBus.dispatchEvent(new CustomEvent('todo:mutated'))
+    labelBus.dispatchEvent(new CustomEvent('label:updated'))
+    window.dispatchEvent(new CustomEvent('todos:refresh'))
+    window.dispatchEvent(new CustomEvent('labels:refresh'))
   } catch (e) {
     // ignore
   }
@@ -633,4 +803,3 @@ export async function ensureDefaults() {
     // ignore
   }
 }
-

@@ -1,16 +1,9 @@
-# ![Todoless Logo](./public/icons/todoless-bw.svg) Todoless
+# ![Todoless Logo](https://raw.githubusercontent.com/ChalidNL/todoless/main/public/icons/todoless-bw.svg) Todoless
 
-Modern family task management with multi-user support, workflows, and real-time sync.
+Modern multi-user task management with workflows and real-time sync.
 
 ## Features
 
-- 🔐 Secure authentication with optional 2FA
-- 👥 Multi-user with role-based access
-- 📋 Labels, workflows, and custom attributes
-- 📅 Calendar view and planning dashboard
-- 🔄 Real-time sync across devices
-- 📱 PWA support
-- 🏠 Self-hosted
 
 ## Quick Start
 

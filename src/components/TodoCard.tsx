@@ -23,6 +23,26 @@ interface Props {
 }
 
 export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, onLabelsChange }: Props) {
+  // Fix missing state initializations
+  const [liveAttributes, setLiveAttributes] = useState<Record<string, any>>({ ...(todo.attributes || {}) })
+  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false)
+  const [attributePickerOpen, setAttributePickerOpen] = useState(false)
+  const [linkNoteOpen, setLinkNoteOpen] = useState(false)
+  const [assigneeInput, setAssigneeInput] = useState('')
+  const [showOptions, setShowOptions] = useState(false)
+  const [linkedNoteIds, setLinkedNoteIds] = useState<string[]>(todo.linkedNoteIds || [])
+  const [attributeDefs, setAttributeDefs] = useState<AttributeDef[]>([])
+  const [attributeEditorDef, setAttributeEditorDef] = useState<AttributeDef | null>(null)
+  const [dateInput, setDateInput] = useState<string>(() => {
+    const raw = (todo as any).dueDate || (todo as any).attributes?.dueDate || ''
+    return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.substring(0, 10) : ''
+  })
+  const [timeInput, setTimeInput] = useState(todo.dueTime || '')
+  const [repeatInput, setRepeatInput] = useState(todo.repeat || '')
+  const [weeklyDays, setWeeklyDays] = useState<string[]>(() => {
+    const days = (todo.attributes as any)?.repeatDays
+    return Array.isArray(days) ? days : []
+  })
   const navigate = useNavigate()
   const { setSelectedLabelIds, setSelectedAssigneeIds, clear } = useFilterContext()
   const [editing, setEditing] = useState(false)
@@ -37,29 +57,15 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
   const [liveBlocked, setLiveBlocked] = useState(todo.blocked || false)
   // Keep a live copy of labels list for instant updates when creating new labels
   const [liveLabels, setLiveLabels] = useState<Label[]>(labels)
-  // Unified schedule editor (date + time + repeat)
+  // Map labelIds to label objects for instant lookup
+  const [localLabelsById, setLocalLabelsById] = useState<Record<string, Label>>(() => {
+    const map: Record<string, Label> = {}
+    labels.forEach(l => { map[l.id] = l })
+    return map
+  })
+  // ...existing code...
   const [scheduleOpen, setScheduleOpen] = useState(false)
-  const [assigneePickerOpen, setAssigneePickerOpen] = useState(false)
-  const [attributePickerOpen, setAttributePickerOpen] = useState(false)
-  const [linkNoteOpen, setLinkNoteOpen] = useState(false)
-  const [assigneeInput, setAssigneeInput] = useState('')
   const [users, setUsers] = useState<User[]>([])
-  const [linkedNoteIds, setLinkedNoteIds] = useState<string[]>(todo.linkedNoteIds || [])
-  const [attributeDefs, setAttributeDefs] = useState<AttributeDef[]>([])
-  const [attributeEditorDef, setAttributeEditorDef] = useState<AttributeDef | null>(null)
-  const [liveAttributes, setLiveAttributes] = useState<Record<string, any>>({ ...(todo.attributes || {}) })
-  const [localLabelsById, setLocalLabelsById] = useState<Record<string, Label>>({})
-  const [dateInput, setDateInput] = useState<string>(() => {
-    const raw = (todo as any).dueDate || (todo as any).attributes?.dueDate || ''
-    return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.substring(0, 10) : ''
-  })
-  const [timeInput, setTimeInput] = useState(todo.dueTime || '')
-  const [repeatInput, setRepeatInput] = useState(todo.repeat || '')
-  const [weeklyDays, setWeeklyDays] = useState<string[]>(() => {
-    const days = (todo.attributes as any)?.repeatDays
-    return Array.isArray(days) ? days : []
-  })
-  const [showOptions, setShowOptions] = useState(false)
 
   useEffect(() => {
     Users.list().then(setUsers)
@@ -101,9 +107,12 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
     setLiveBlocked(todo.blocked || false)
   }, [todo.blocked])
 
-  // Sync live labels list when prop changes
+  // Sync live labels list and mapping when prop changes
   useEffect(() => {
     setLiveLabels(labels)
+    const map: Record<string, Label> = {}
+    labels.forEach(l => { map[l.id] = l })
+    setLocalLabelsById(map)
   }, [labels])
 
   // Listen for label:added events to update liveLabels instantly
@@ -360,7 +369,10 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
       )}
 
       {/* Chips row (labels, assignees, due, attributes) placed above editors */}
-      <div className="subitem flex flex-wrap items-center gap-1.5 w-full overflow-hidden">
+      <div
+        className="subitem flex flex-wrap items-center gap-1.5 w-full overflow-x-auto"
+        style={{ WebkitOverflowScrolling: 'touch', maxWidth: '100%' }}
+      >
         {liveLabelIds.map((id) => {
           const l = localLabelsById[id] || liveLabels.find((x) => x.id === id)
           if (!l) return null

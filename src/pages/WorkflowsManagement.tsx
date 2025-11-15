@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Icon } from '../components/Icon'
 import type { Workflow, Todo } from '../db/schema'
 import { Workflows, Todos } from '../db/dexieClient'
 import WorkflowEditor from '../components/WorkflowEditor'
@@ -106,7 +107,7 @@ export default function WorkflowsManagement() {
                     getUsedInCount(workflow.id) > 0 ? 'bg-red-500' : 'bg-gray-200'
                   }`}>
                     {workflow.isDefault ? (
-                      <span className="text-lg">⭐</span>
+                      <Icon emoji="⭐" />
                     ) : (
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z" />

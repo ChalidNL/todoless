@@ -57,6 +57,7 @@ export interface Todo {
 export interface SavedView {
   id: string
   name: string
+  slug: string // URL-friendly version of name
   icon?: string
   labelFilterIds?: string[]
   attributeFilters?: Record<string, any>

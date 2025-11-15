@@ -1,3 +1,5 @@
+# TEST-ONLY: Exclude reset scripts
+reset-todoless.bat
 # Dependencies
 node_modules/
 npm-debug.log*

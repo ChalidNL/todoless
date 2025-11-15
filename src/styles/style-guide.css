@@ -1,3 +1,64 @@
+/* Sidebar icon container for perfect centering and equal size (emoji & svg) */
+.sidebar-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  box-sizing: border-box;
+}
+.sidebar-icon-emoji {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  text-align: center;
+  display: inline-block;
+}
+.sidebar-icon-svg, .sidebar-icon-font {
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+}
+/* Sidebar icon container for perfect centering and equal size */
+.icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+.icon-container .emoji,
+.icon-container .color-icon {
+  font-size: 28px;
+  line-height: 1;
+  display: block;
+  text-align: center;
+}
+.icon-container svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+  margin: 0 auto;
+}
+/* Sidebar icon wrapper for perfect centering */
+.sidebar-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  width: 48px;
+}
+.sidebar-icon-wrapper .icon-standard,
+.sidebar-icon-wrapper svg,
+.sidebar-icon-wrapper span {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto;
+  line-height: 1;
+  vertical-align: middle;
+}
 /**
  * TODOLESS V3 - DESIGN SYSTEM & STYLE GUIDE
  * Complete UI/UX consistency specification

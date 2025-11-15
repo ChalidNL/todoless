@@ -34,10 +34,42 @@ interface AuthState {
 // In development, Vite proxies /api to backend. In production, nginx proxies /api.
 // So we always use same-origin (empty string = relative URLs)
 /* TEST-ONLY: Force LAN API base for dev/test login issues */
-const API = import.meta.env.DEV ? 'http://192.168.2.123:4000' : ''
+// TEST-ONLY: Force API base to LAN-IP for mobile testing
+// TEST-ONLY: pick a base URL when running on a LAN host for mobile testing
+const getApiBase = () => {
+  if (import.meta.env.DEV) {
+    // Allow override via environment variable for mobile testing
+    if (import.meta.env.VITE_API_BASE) {
+      return import.meta.env.VITE_API_BASE;
+    }
+    const host = window.location.hostname;
+    // Force LAN-IP for mobile/devices on 192.*
+    if (host.startsWith('192.') && import.meta.env.VITE_LAN_API_HOST) {
+      return `http://${import.meta.env.VITE_LAN_API_HOST}:4000`;
+    }
+    // Default: use relative path for Vite proxy
+    return '';
+  }
+  // Production: same-origin (nginx will proxy /api)
+  return '';
+};
+
+// Gebruik getApiBase() in fetch calls:
+export async function login(username: string, password: string) {
+  const res = await fetch(`${getApiBase()}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  if (!res.ok) throw new Error('Login failed');
+  return await res.json();
+}
 
 async function api(path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
+  // `path` is expected to already contain the leading /api segment (e.g. '/api/auth/me')
+  const base = getApiBase()
+  const url = `${base}${path}`
+  const res = await fetch(url, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...init })
   const json = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error(json.error || 'request_failed'), { response: json })
   return json
@@ -83,7 +115,7 @@ export const useAuth = create<AuthState>((set: Setter, get: Getter) => ({
     set({ loading: true, error: null })
     try {
       console.log('[AUTH] Login attempt:', { username: payload.username, hasPassword: !!payload.password, hasCode: !!payload.code })
-      const res = await fetch(`${API}/api/auth/login`, {
+  const res = await fetch(`${getApiBase()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -105,6 +137,19 @@ export const useAuth = create<AuthState>((set: Setter, get: Getter) => ({
       }
       console.log('[AUTH] Login successful, fetching user info')
       await get().me()
+      // Autosync: haal direct serverdata op naar Dexie
+      try {
+        const user = get().user
+        if (user) {
+          await syncTasksFromServer(user)
+        }
+      } catch (e) {
+        console.warn('Sync na login faalde:', e)
+      }
+      // Force dashboard refresh: trigger Dexie event voor dashboard
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('todo:mutated'))
+      }
       set({ loading: false, ready: true })
     } catch (e: any) {
       console.error('[AUTH] Login error:', e)
