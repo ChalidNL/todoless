@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { SavedViews, Todos } from '../db/dexieClient'
+import { SavedViews, Todos, Users } from '../db/dexieClient'
 import type { SavedView as SV, Todo } from '../db/schema'
 import { parseDueToDate } from '../utils/date'
 import TodoCard from '../components/TodoCard'
@@ -27,6 +27,7 @@ export default function SavedView() {
   const [title, setTitle] = useState(viewId ? VIEW_TITLES[viewId] ?? viewId : 'Saved View')
   const [saved, setSaved] = useState<SV | null>(null)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [currentUserId, setCurrentUserId] = useState<string>('local-user')
 
   const reloadWorkflows = async () => {
     const ws = await Workflows.list()
@@ -35,6 +36,12 @@ export default function SavedView() {
 
   useEffect(() => {
     reloadWorkflows()
+    // Load current user ID
+    ;(async () => {
+      const users = await Users.list()
+      const userId = users[0]?.id || 'local-user'
+      setCurrentUserId(userId)
+    })()
   }, [])
 
   useEffect(() => {
@@ -78,8 +85,17 @@ export default function SavedView() {
           dueStart: af.dueStart || null,
           dueEnd: af.dueEnd || null,
           workflowStage: af.workflowStage || null,
+          assignedToMe: af.assignedToMe === true || af.assignedToMe === 'true',
         }
       }
+
+      // Handle "assigned to me" filter
+      if (f.assignedToMe) {
+        filtered = filtered.filter((t: Todo) =>
+          Array.isArray(t.assigneeIds) && t.assigneeIds.includes(currentUserId)
+        )
+      }
+
       // Apply the same shape as global filters without mutating global state
       if (Array.isArray(f.selectedLabelIds) && f.selectedLabelIds.length > 0) {
         filtered = filtered.filter((t: Todo) => f.selectedLabelIds.every((id: string) => t.labelIds.includes(id)))

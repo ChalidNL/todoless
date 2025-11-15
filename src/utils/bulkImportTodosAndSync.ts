@@ -13,17 +13,17 @@ export async function bulkImportTodosAndSync(
 ) {
   setSyncing(true);
   await db.transaction('rw', db.todos, db.labels, async () => {
-    // Unieke labels toevoegen
+    // Add unique labels
     const labelNames = [...new Set(todosWithLabels.flatMap(todo => todo.labels || []))];
     const existingLabels = await db.labels.where('name').anyOf(labelNames).and(l => l.userId === userId).toArray();
     const newLabels = labelNames.filter(name => !existingLabels.some(l => l.name === name)).map(name => ({ name, userId }));
     if (newLabels.length) await db.labels.bulkAdd(newLabels);
 
-    // Label-IDs ophalen
+    // Get label IDs
     const allLabels = await db.labels.where('userId').equals(userId).toArray();
     const getLabelIds = (names: string[]) => names.map(name => allLabels.find(l => l.name === name)?.id).filter((id): id is string => Boolean(id));
 
-    // Duplicaat-check en todos toevoegen
+    // Check for duplicates and add todos
     const existingTodos = await db.todos.where('userId').equals(userId).toArray();
     for (const todo of todosWithLabels) {
       const isDuplicate = existingTodos.some(e => e.title === todo.title);

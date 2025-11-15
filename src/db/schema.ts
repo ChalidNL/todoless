@@ -43,7 +43,7 @@ export interface Todo {
   assigneeIds?: string[]
   dueDate?: string
   dueTime?: string
-  repeat?: 'daily' | 'weekly' | 'monthly' | null
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | null
   createdAt?: string
   priority?: 'low' | 'medium' | 'high'
   attributes?: Record<string, any>
@@ -68,6 +68,8 @@ export interface SavedView {
   showInSidebar?: boolean
   isSystem?: boolean
   isDefault?: boolean
+  parentId?: string // For subviews - ID of parent view
+  order?: number // Display order within parent
 }
 
 export interface List {

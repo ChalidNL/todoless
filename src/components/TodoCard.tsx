@@ -509,7 +509,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
                   await mutateTodo(todo.id, {
                     dueDate: dateInput || undefined,
                     dueTime: timeInput || undefined,
-                    repeat: (repeatInput as 'daily' | 'weekly' | 'monthly') || undefined,
+                    repeat: (repeatInput as 'daily' | 'weekly' | 'monthly' | 'yearly') || undefined,
                     attributes: { ...(nextAttrs as any), repeatDays: repeatInput === 'weekly' ? weeklyDays : undefined },
                   })
                   setScheduleOpen(false)
@@ -554,6 +554,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
               </select>
             </div>
           </div>

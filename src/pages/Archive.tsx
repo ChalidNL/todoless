@@ -54,6 +54,38 @@ export default function Archive() {
     await load()
   }
 
+  const deleteAllCompletedTasks = async () => {
+    if (!confirm(`Are you sure you want to permanently delete all ${completedTodos.length} completed tasks? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Delete all completed tasks
+      for (const todo of completedTodos) {
+        await Todos.remove(todo.id)
+      }
+      await load()
+    } catch (e) {
+      alert('Failed to delete tasks: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+
+  const deleteAllArchivedNotes = async () => {
+    if (!confirm(`Are you sure you want to permanently delete all ${archivedNotes.length} archived notes? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      // Delete all archived notes
+      for (const note of archivedNotes) {
+        await Notes.remove(note.id)
+      }
+      await load()
+    } catch (e) {
+      alert('Failed to delete notes: ' + (e instanceof Error ? e.message : String(e)))
+    }
+  }
+
   const completedTodos = useMemo(() => {
     const s = q.trim().toLowerCase()
     return todos
@@ -96,7 +128,17 @@ export default function Archive() {
         {/* Completed tasks */}
         {selectedTypes.includes('tasks') && (
         <section>
-          <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Completed tasks</div>
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase text-gray-500">Completed tasks</div>
+            {completedTodos.length > 0 && (
+              <button
+                onClick={deleteAllCompletedTasks}
+                className="text-xs px-3 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+              >
+                Delete All ({completedTodos.length})
+              </button>
+            )}
+          </div>
           {completedTodos.length === 0 ? (
             <div className="rounded border bg-white p-3 text-sm text-gray-600">No completed tasks</div>
           ) : (
@@ -126,7 +168,17 @@ export default function Archive() {
         {/* Archived notes */}
         {selectedTypes.includes('notes') && (
         <section>
-          <div className="mb-2 text-xs font-semibold uppercase text-gray-500">Archived notes</div>
+          <div className="mb-2 flex items-center justify-between">
+            <div className="text-xs font-semibold uppercase text-gray-500">Archived notes</div>
+            {archivedNotes.length > 0 && (
+              <button
+                onClick={deleteAllArchivedNotes}
+                className="text-xs px-3 py-1 rounded border border-red-300 text-red-600 hover:bg-red-50 transition-colors"
+              >
+                Delete All ({archivedNotes.length})
+              </button>
+            )}
+          </div>
           {archivedNotes.length === 0 ? (
             <div className="rounded border bg-white p-3 text-sm text-gray-600">No archived notes</div>
           ) : (

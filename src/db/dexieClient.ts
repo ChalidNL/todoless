@@ -326,6 +326,20 @@ class TodolessDB extends Dexie {
       }
     })
 
+    // v18: add parentId and order to savedViews for nested subviews
+    this.version(18).stores({
+      labels: 'id, name, shared, workflowId, userId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
+      users: 'id, name, email, role, ageGroup',
+      workflows: 'id, name, labelIds, checkboxOnly',
+      savedViews: 'id, name, userId, slug, parentId, order',
+      lists: 'id, name, visibility',
+      attributes: 'id, name, type, defaultValue',
+      points: 'id, userId, todoId, date',
+      settings: 'id',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
+    })
+
     this.on('populate', async () => {
       const userId = 'local-user'
       await this.users.add({ id: userId, name: 'You', themeColor: '#0ea5e9' })
@@ -671,6 +685,7 @@ export const SavedViews = {
         await db.savedViews.put({
           id: 'all',
           name: 'All',
+          slug: 'all',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: {},
@@ -682,15 +697,37 @@ export const SavedViews = {
           isDefault: true,
         })
       } else if (!allView.isDefault) {
-        await db.savedViews.update('all', { isDefault: true, icon: '⭐' })
+        await db.savedViews.update('all', { isDefault: true, icon: '⭐', slug: 'all' })
       }
       
+      // Default "My Tasks" view (tasks assigned to me)
+      const meView = await db.savedViews.get('me')
+      if (!meView) {
+        await db.savedViews.put({
+          id: 'me',
+          name: 'My Tasks',
+          slug: 'me',
+          icon: '👤',
+          labelFilterIds: [],
+          attributeFilters: { assignedToMe: true }, // Special filter flag for assigned tasks
+          sortBy: 'created',
+          viewMode: 'list',
+          userId: currentUserId,
+          showInSidebar: true,
+          isSystem: true,
+          isDefault: true,
+        })
+      } else if (!meView.isDefault) {
+        await db.savedViews.update('me', { isDefault: true, icon: '👤', slug: 'me' })
+      }
+
       // Default "Backlog" view (hidden by default)
       const backlogView = await db.savedViews.get('backlog')
       if (!backlogView) {
         await db.savedViews.put({
           id: 'backlog',
           name: 'Backlog',
+          slug: 'backlog',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: { workflowStage: 'Backlog' },
@@ -702,7 +739,32 @@ export const SavedViews = {
           isDefault: true,
         })
       } else if (!backlogView.isDefault) {
-        await db.savedViews.update('backlog', { isDefault: true, icon: '⭐' })
+        await db.savedViews.update('backlog', { isDefault: true, icon: '⭐', slug: 'backlog' })
+      }
+    } catch (e) {
+      // ignore
+    }
+  },
+  ensureMeView: async () => {
+    try {
+      const users = await db.users.toArray()
+      const currentUserId = users[0]?.id || 'local-user'
+      const meView = await db.savedViews.get('me')
+      if (!meView) {
+        await db.savedViews.put({
+          id: 'me',
+          name: 'My Tasks',
+          slug: 'me',
+          icon: '👤',
+          labelFilterIds: [],
+          attributeFilters: { assignedToMe: true },
+          sortBy: 'created',
+          viewMode: 'list',
+          userId: currentUserId,
+          showInSidebar: true,
+          isSystem: true,
+          isDefault: true,
+        })
       }
     } catch (e) {
       // ignore

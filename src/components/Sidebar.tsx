@@ -6,12 +6,19 @@ import { SavedViews } from '../db/dexieClient'
 import type { SavedView } from '../db/schema'
 import SaveViewButton from './SaveViewButton'
 
-const APP_VERSION = '0.0.1' // Sync with package.json
+const APP_VERSION = '0.0.2' // Sync with package.json
 
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const asideRef = useRef<HTMLElement | null>(null)
   const [saved, setSaved] = useState<SavedView[]>([])
+  const [expandedViews, setExpandedViews] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('sidebar:expanded-views')
+      if (stored) return new Set(JSON.parse(stored))
+    } catch {}
+    return new Set<string>()
+  })
   const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -32,13 +39,40 @@ export default function Sidebar({ className }: { className?: string }) {
     })
   }
 
+  const toggleViewExpanded = (viewId: string) => {
+    setExpandedViews((prev) => {
+      const next = new Set(prev)
+      if (next.has(viewId)) {
+        next.delete(viewId)
+      } else {
+        next.add(viewId)
+      }
+      try {
+        localStorage.setItem('sidebar:expanded-views', JSON.stringify(Array.from(next)))
+      } catch {}
+      return next
+    })
+  }
+
   const loadSaved = async () => {
     try {
       await SavedViews.ensureMeView()
       await SavedViews.ensureDefaultViews()
       const list = await SavedViews.list()
-      // Sort by name asc
-      list.sort((a, b) => a.name.localeCompare(b.name))
+      // Sort by name asc, then by order within parent
+      list.sort((a, b) => {
+        // First, separate by parent
+        if (a.parentId !== b.parentId) {
+          if (!a.parentId) return -1
+          if (!b.parentId) return 1
+        }
+        // Then by order if specified
+        if (a.order !== undefined && b.order !== undefined) {
+          return a.order - b.order
+        }
+        // Finally by name
+        return a.name.localeCompare(b.name)
+      })
       setSaved(list)
     } catch {}
   }
@@ -89,6 +123,110 @@ export default function Sidebar({ className }: { className?: string }) {
   // Start collapsed on mobile by default, but allow user to expand
   // Use localStorage if available, else default to collapsed on small screens
   // (No separate isMobileCollapsed flag so user can expand on mobile.)
+
+  // Helper function to get child views
+  const getChildViews = (parentId: string): SavedView[] => {
+    return saved.filter((v) => v.parentId === parentId && v.showInSidebar !== false)
+  }
+
+  // Helper function to render a view with its children
+  const renderView = (v: SavedView, level: number = 0): JSX.Element => {
+    const children = getChildViews(v.id)
+    const hasChildren = children.length > 0
+    const isExpanded = expandedViews.has(v.id)
+
+    return (
+      <div key={v.id}>
+        <li className="group flex items-center">
+          {hasChildren && !collapsed && (
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                toggleViewExpanded(v.id)
+              }}
+              className="w-5 h-5 flex items-center justify-center shrink-0 hover:bg-gray-200 rounded transition-colors"
+              title={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              <svg className="w-3 h-3 transition-transform" style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+          {!hasChildren && !collapsed && level > 0 && <div className="w-5" />}
+          <NavLink
+            className={(s: { isActive: boolean }) => `flex-1 sidebar-link ${collapsed ? 'justify-center' : 'justify-start'} ${s.isActive ? 'text-accent' : ''}`}
+            style={{ paddingLeft: !collapsed && level > 0 ? `${level * 12}px` : undefined }}
+            to={`/saved/${v.slug || v.id}`}
+            title={collapsed ? v.name : ''}
+          >
+            <span className="icon-container">
+              {v.isDefault ? (
+                <span className="sidebar-icon-emoji">⭐</span>
+              ) : v.icon ? (
+                <span className="color-icon">{v.icon}</span>
+              ) : (
+                <svg className="icon-standard" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              )}
+            </span>
+            {!collapsed && <span className="ml-2">{v.name}</span>}
+          </NavLink>
+          {!collapsed && !v.isDefault && !v.isSystem && (
+            <div className="mr-1 hidden gap-1 group-hover:flex">
+              <button
+                className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"
+                title="Rename"
+                onClick={async (e) => {
+                  e.preventDefault(); e.stopPropagation()
+                  const next = window.prompt('Rename view', v.name)?.trim()
+                  if (!next || next === v.name) return
+                  const all = await SavedViews.list()
+                  const duplicate = all.find((x) => x.id !== v.id && x.name.toLowerCase() === next.toLowerCase())
+                  if (duplicate) {
+                    alert(`View "${next}" already exists`)
+                    return
+                  }
+                  if (next.toLowerCase() === 'all') {
+                    alert('"All" is a reserved system view name')
+                    return
+                  }
+                  await SavedViews.update(v.id, { name: next })
+                  loadSaved()
+                }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              {!v.isSystem && !v.isDefault && (
+                <button
+                className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-red-50 text-red-600"
+                title="Delete"
+                onClick={async (e) => {
+                  e.preventDefault(); e.stopPropagation()
+                  if (!confirm('Delete this view?')) return
+                  await SavedViews.remove(v.id)
+                  loadSaved()
+                }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                </button>
+              )}
+            </div>
+          )}
+        </li>
+        {hasChildren && isExpanded && !collapsed && (
+          <ul className="space-y-1">
+            {children.map((child) => renderView(child, level + 1))}
+          </ul>
+        )}
+      </div>
+    )
+  }
 
   return (
   <aside ref={asideRef as any} className={clsx('group/sidebar sticky top-0 h-screen shrink-0 flex flex-col border-r bg-white transition-[width] duration-300 ease-in-out', collapsed ? 'w-[56px]' : 'w-72', className)}>
@@ -176,75 +314,8 @@ export default function Sidebar({ className }: { className?: string }) {
             </div>
           )}
           <ul className="space-y-1">
-            {/* All saved views (including default ones) */}
-            {saved.filter((v) => v.showInSidebar !== false).map((v) => (
-                <li key={v.id} className="group flex items-center">
-                  <NavLink
-                    className={(s: { isActive: boolean }) => `flex-1 sidebar-link ${collapsed ? 'justify-center' : 'justify-start'} ${s.isActive ? 'text-accent' : ''}`}
-                    to={`/saved/${v.slug || v.id}`}
-                    title={collapsed ? v.name : ''}
-                  >
-                    <span className="icon-container">
-                      {v.isDefault ? (
-                        <span className="sidebar-icon-emoji">⭐</span>
-                      ) : v.icon ? (
-                        <span className="color-icon">{v.icon}</span>
-                      ) : (
-                        <svg className="icon-standard" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                        </svg>
-                      )}
-                    </span>
-                    {!collapsed && <span className="ml-2">{v.name}</span>}
-                  </NavLink>
-                  {!collapsed && !v.isDefault && !v.isSystem && (
-                    <div className="mr-1 hidden gap-1 group-hover:flex">
-                      <button
-                        className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"
-                        title="Rename"
-                        onClick={async (e) => {
-                          e.preventDefault(); e.stopPropagation()
-                          const next = window.prompt('Rename view', v.name)?.trim()
-                          if (!next || next === v.name) return
-                          // Check for duplicate
-                          const all = await SavedViews.list()
-                          const duplicate = all.find((x) => x.id !== v.id && x.name.toLowerCase() === next.toLowerCase())
-                          if (duplicate) {
-                            alert(`View "${next}" already exists`)
-                            return
-                          }
-                          if (next.toLowerCase() === 'all') {
-                            alert('"All" is a reserved system view name')
-                            return
-                          }
-                          await SavedViews.update(v.id, { name: next })
-                          loadSaved()
-                        }}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      {!v.isSystem && !v.isDefault && (
-                        <button
-                        className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-red-50 text-red-600"
-                        title="Delete"
-                        onClick={async (e) => {
-                          e.preventDefault(); e.stopPropagation()
-                          if (!confirm('Delete this view?')) return
-                          await SavedViews.remove(v.id)
-                          loadSaved()
-                        }}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </li>
-              ))}
+            {/* All saved views (top-level only, renderView handles children recursively) */}
+            {saved.filter((v) => !v.parentId && v.showInSidebar !== false).map((v) => renderView(v))}
           </ul>
         </div>
 

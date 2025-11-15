@@ -116,7 +116,7 @@ export default function BulkImport() {
           failed++
         }
       }
-      setResult(`✅ Geslaagd: ${imported} | ❌ Fout: ${failed} | ⚠️ Duplicaten: ${duplicates}`)
+      setResult(`✅ Imported: ${imported} | ❌ Failed: ${failed} | ⚠️ Duplicates: ${duplicates}`)
       setNoteInput('')
     } catch (e) {
       setResult(`❌ Error: ${e instanceof Error ? e.message : String(e)}`)

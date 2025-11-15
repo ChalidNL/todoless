@@ -112,10 +112,14 @@ export default function DashboardView() {
         })
 
         const currentUserId = users[0]?.id || 'local-user'
-        const mine = todos.filter((t: Todo) => t.userId === currentUserId && !t.completed)
-        const fallback = mine.length ? mine : todos.filter((t: Todo) => !t.completed)
+        // My tasks = tasks assigned to me (via assigneeIds)
+        const mine = todos.filter((t: Todo) =>
+          !t.completed &&
+          Array.isArray(t.assigneeIds) &&
+          t.assigneeIds.includes(currentUserId)
+        )
         setMyTasks(
-          fallback
+          mine
             .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
             .slice(0, 5)
         )
