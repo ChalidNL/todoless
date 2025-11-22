@@ -202,7 +202,7 @@ export default function DashboardView() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <button onClick={() => navigate('/saved/all')} className="text-left">
+        <button onClick={() => navigate('/filter/all')} className="text-left">
           <SummaryCard title="Total Tasks" value={stats.total} color="indigo" />
         </button>
         <SummaryCard title="Pending" value={stats.pending} color="purple" />
@@ -232,7 +232,7 @@ export default function DashboardView() {
           <div className="flex items-center justify-between mb-2">
             <div className="text-sm font-semibold text-gray-900">My tasks</div>
             <button
-              onClick={() => navigate('/saved/me')}
+              onClick={() => navigate('/filter/me')}
               className="text-xs underline text-gray-600 hover:text-gray-900"
             >
               View all
@@ -309,7 +309,7 @@ export default function DashboardView() {
           <div className="text-xs text-gray-500">Reference notes</div>
         </button>
         <button
-          onClick={() => navigate('/manage/views')}
+          onClick={() => navigate('/manage/filters')}
           className="p-4 rounded-lg border-2 border-gray-200 bg-white hover:border-gray-400 hover:shadow-md transition-all text-left"
         >
           <div className="mb-2">
@@ -318,8 +318,8 @@ export default function DashboardView() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </div>
-          <div className="text-sm font-medium text-gray-900">Saved Views</div>
-          <div className="text-xs text-gray-500">Custom filters</div>
+          <div className="text-sm font-medium text-gray-900">Filters</div>
+          <div className="text-xs text-gray-500">Saved filters</div>
         </button>
       </div>
     </div>

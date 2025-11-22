@@ -212,96 +212,152 @@ export default function GlobalFilters() {
               </div>
             </div>
 
-            {/* Filters Grid */}
-            <div className="grid grid-cols-4 gap-4">
+            {/* Filters Grid - Multi-select dropdowns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Labels Dropdown */}
               <div>
-                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Labels</div>
-                <div className="space-y-1">
-                  {labels.length === 0 ? (
-                    <div className="text-xs text-gray-400">No labels</div>
-                  ) : (
-                    labels.slice(0, 6).map((l) => (
-                      <label key={l.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedLabelIds.includes(l.id)}
-                          onChange={() => toggleLabel(l.id)}
-                          className="w-3.5 h-3.5"
-                        />
-                        <span className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: l.color }} />
-                        <span className="flex-1 truncate text-sm">{l.name}</span>
-                      </label>
-                    ))
-                  )}
-                  {labels.length > 6 && <div className="text-xs text-gray-400 px-1">+{labels.length - 6} more...</div>}
+                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">
+                  Labels {selectedLabelIds.length > 0 && `(${selectedLabelIds.length})`}
                 </div>
+                <details className="relative">
+                  <summary className="cursor-pointer list-none px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                    {selectedLabelIds.length === 0 ? (
+                      <span className="text-gray-500">Select labels...</span>
+                    ) : (
+                      <span className="text-gray-900">
+                        {selectedLabelIds.length === 1
+                          ? labels.find(l => l.id === selectedLabelIds[0])?.name
+                          : `${selectedLabelIds.length} labels selected`}
+                      </span>
+                    )}
+                  </summary>
+                  <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {labels.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No labels</div>
+                    ) : (
+                      labels.map((l) => (
+                        <label key={l.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedLabelIds.includes(l.id)}
+                            onChange={() => toggleLabel(l.id)}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                          <span className="inline-block h-3 w-3 rounded-full flex-shrink-0" style={{ backgroundColor: l.color }} />
+                          <span className="flex-1 truncate">{l.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </details>
               </div>
+
+              {/* Assignees Dropdown */}
               <div>
-                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Assignees</div>
-                <div className="space-y-1">
-                  {users.length === 0 ? (
-                    <div className="text-xs text-gray-400">No users</div>
-                  ) : (
-                    users.slice(0, 6).map((u) => (
-                      <label key={u.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedAssigneeIds.includes(u.id)}
-                          onChange={(e) => {
-                            const checked = e.target.checked
-                            setSelectedAssigneeIds(
-                              checked ? [...selectedAssigneeIds, u.id] : selectedAssigneeIds.filter((x) => x !== u.id)
-                            )
-                          }}
-                          className="w-3.5 h-3.5"
-                        />
-                        <span className="flex-1 truncate text-sm">{u.name || 'User'}</span>
-                      </label>
-                    ))
-                  )}
-                  {users.length > 6 && <div className="text-xs text-gray-400 px-1">+{users.length - 6} more...</div>}
+                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">
+                  Assignees {selectedAssigneeIds.length > 0 && `(${selectedAssigneeIds.length})`}
                 </div>
+                <details className="relative">
+                  <summary className="cursor-pointer list-none px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                    {selectedAssigneeIds.length === 0 ? (
+                      <span className="text-gray-500">Select assignees...</span>
+                    ) : (
+                      <span className="text-gray-900">
+                        {selectedAssigneeIds.length === 1
+                          ? users.find(u => u.id === selectedAssigneeIds[0])?.name || 'User'
+                          : `${selectedAssigneeIds.length} assignees selected`}
+                      </span>
+                    )}
+                  </summary>
+                  <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {users.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No users</div>
+                    ) : (
+                      users.map((u) => (
+                        <label key={u.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedAssigneeIds.includes(u.id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setSelectedAssigneeIds(
+                                checked ? [...selectedAssigneeIds, u.id] : selectedAssigneeIds.filter((x) => x !== u.id)
+                              )
+                            }}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                          <span className="flex-1 truncate">{u.name || 'User'}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </details>
               </div>
+
+              {/* Workflows Dropdown */}
               <div>
-                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Workflows</div>
-                <div className="space-y-1">
-                  {workflows.length === 0 ? (
-                    <div className="text-xs text-gray-400">No workflows</div>
-                  ) : (
-                    workflows.slice(0, 6).map((w) => (
-                      <label key={w.id} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selectedWorkflowIds.includes(w.id)}
-                          onChange={(e) => {
-                            const checked = e.target.checked
-                            setSelectedWorkflowIds(
-                              checked ? [...selectedWorkflowIds, w.id] : selectedWorkflowIds.filter((x) => x !== w.id)
-                            )
-                          }}
-                          className="w-3.5 h-3.5"
-                        />
-                        <span className="flex-1 truncate text-sm">{w.name}</span>
-                      </label>
-                    ))
-                  )}
-                  {workflows.length > 6 && <div className="text-xs text-gray-400 px-1">+{workflows.length - 6} more...</div>}
+                <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">
+                  Workflows {selectedWorkflowIds.length > 0 && `(${selectedWorkflowIds.length})`}
                 </div>
+                <details className="relative">
+                  <summary className="cursor-pointer list-none px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                    {selectedWorkflowIds.length === 0 ? (
+                      <span className="text-gray-500">Select workflows...</span>
+                    ) : (
+                      <span className="text-gray-900">
+                        {selectedWorkflowIds.length === 1
+                          ? workflows.find(w => w.id === selectedWorkflowIds[0])?.name
+                          : `${selectedWorkflowIds.length} workflows selected`}
+                      </span>
+                    )}
+                  </summary>
+                  <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {workflows.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No workflows</div>
+                    ) : (
+                      workflows.map((w) => (
+                        <label key={w.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selectedWorkflowIds.includes(w.id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked
+                              setSelectedWorkflowIds(
+                                checked ? [...selectedWorkflowIds, w.id] : selectedWorkflowIds.filter((x) => x !== w.id)
+                              )
+                            }}
+                            className="w-4 h-4 rounded border-gray-300"
+                          />
+                          <span className="flex-1 truncate">{w.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </details>
               </div>
+
+              {/* Attributes Dropdown (read-only for now) */}
               <div>
                 <div className="mb-2 text-xs text-gray-600 font-semibold uppercase">Attributes</div>
-                <div className="space-y-1">
-                  {attributes.length === 0 ? (
-                    <div className="text-xs text-gray-400">No attributes</div>
-                  ) : (
-                    attributes.filter(a => !a.isDefault).slice(0, 6).map((a) => (
-                      <div key={a.id} className="text-xs text-gray-600 px-1 py-0.5 truncate">
-                        {a.name}
-                      </div>
-                    ))
-                  )}
-                  {attributes.filter(a => !a.isDefault).length > 6 && <div className="text-xs text-gray-400 px-1">+{attributes.filter(a => !a.isDefault).length - 6} more...</div>}
-                </div>
+                <details className="relative">
+                  <summary className="cursor-pointer list-none px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm">
+                    <span className="text-gray-500">View attributes...</span>
+                  </summary>
+                  <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {attributes.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No attributes</div>
+                    ) : (
+                      attributes.filter(a => !a.isDefault).map((a) => (
+                        <div key={a.id} className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
+                          {a.name}
+                        </div>
+                      ))
+                    )}
+                    {attributes.filter(a => !a.isDefault).length === 0 && attributes.length > 0 && (
+                      <div className="px-3 py-2 text-xs text-gray-400">Only default attributes</div>
+                    )}
+                  </div>
+                </details>
               </div>
             </div>
 

@@ -5,7 +5,9 @@
       "Bash(npm run build:*)",
       "Bash(xcopy:*)",
       "Bash(robocopy:*)",
-      "Bash(copy:*)"
+      "Bash(copy:*)",
+      "Bash(move SaveViewButton.tsx SaveFilterButton.tsx)",
+      "Bash(move:*)"
     ],
     "deny": [],
     "ask": []

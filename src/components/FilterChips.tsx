@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Labels, Users, Workflows, SavedViews } from '../db/dexieClient'
+import { Labels, Users, Workflows, SavedFilters } from '../db/dexieClient'
 import { useNavigate } from 'react-router-dom'
 import type { Label, User, Workflow } from '../db/schema'
 import { useFilterContext } from '../contexts/FilterContext'
@@ -115,16 +115,16 @@ export default function FilterChips() {
             dueStart,
             dueEnd,
           }
-          const id = await SavedViews.add({
+          const id = await SavedFilters.add({
             name,
             attributeFilters: { filters: JSON.stringify(payload) },
           })
-          // Notify sidebar to refresh its saved views list
-          try { window.dispatchEvent(new Event('saved-views:refresh')) } catch {}
-          navigate(`/saved/${id}`)
+          // Notify sidebar to refresh its saved filters list
+          try { window.dispatchEvent(new Event('saved-filters:refresh')) } catch {}
+          navigate(`/filter/${id}`)
         }}
       >
-        Save View
+        Save Filter
       </button>
     </div>
   )

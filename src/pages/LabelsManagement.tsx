@@ -32,7 +32,7 @@ export default function LabelsManagement() {
     // Use EXACT same pattern as TodoCard label click
     try { clear() } catch {}
     setSelectedLabelIds([label.id])
-    navigate('/saved/all')
+    navigate('/filter/all')
   }
 
   useEffect(() => {

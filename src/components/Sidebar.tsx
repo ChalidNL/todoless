@@ -3,15 +3,15 @@ import clsx from 'clsx';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../store/auth';
-import { SavedViews } from '../db/dexieClient';
-import type { SavedView } from '../db/schema';
-import SaveViewButton from './SaveViewButton';
-import { getVersionString, VERSION, ENV } from '../config/version';
+import { SavedFilters } from '../db/dexieClient';
+import type { SavedFilter } from '../db/schema';
+import SaveFilterButton from './SaveFilterButton';
+import { getVersionString, VERSION, isTestOrDevEnvironment } from '../config/version';
 
 export default function Sidebar({ className }: { className?: string }) {
   const navigate = useNavigate()
   const asideRef = useRef<HTMLElement | null>(null)
-  const [saved, setSaved] = useState<SavedView[]>([])
+  const [saved, setSaved] = useState<SavedFilter[]>([])
   const { user } = useAuth()
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -34,9 +34,9 @@ export default function Sidebar({ className }: { className?: string }) {
 
   const loadSaved = async () => {
     try {
-      await SavedViews.ensureMeView()
-      await SavedViews.ensureDefaultViews()
-      const list = await SavedViews.list()
+      await SavedFilters.ensureMeFilter()
+      await SavedFilters.ensureDefaultFilters()
+      const list = await SavedFilters.list()
       // Sort by name asc
       list.sort((a, b) => a.name.localeCompare(b.name))
       setSaved(list)
@@ -46,8 +46,8 @@ export default function Sidebar({ className }: { className?: string }) {
   useEffect(() => {
     loadSaved()
     const handler = () => loadSaved()
-    window.addEventListener('saved-views:refresh', handler)
-    return () => window.removeEventListener('saved-views:refresh', handler)
+    window.addEventListener('saved-filters:refresh', handler)
+    return () => window.removeEventListener('saved-filters:refresh', handler)
   }, [])
 
   // Simple swipe gestures: swipe right from left edge to expand, swipe left on sidebar to collapse
@@ -101,7 +101,7 @@ export default function Sidebar({ className }: { className?: string }) {
               <div className="flex flex-col">
                 <span className="text-sm font-semibold">Todoless</span>
                 <div className="flex items-center gap-1.5">
-                      {(ENV === 'test' || ENV === 'development') && (
+                      {isTestOrDevEnvironment() && (
                         <span className="text-[10px] font-bold text-red-600 tracking-wide mr-1">TST</span>
                       )}
                       <a
@@ -181,56 +181,56 @@ export default function Sidebar({ className }: { className?: string }) {
             </li>
           </ul>
         </div>
-        {/* Saved Views */}
+        {/* Saved Filters */}
         <div>
           {!collapsed && (
             <div className="sidebar-section-title mb-2 px-2">
-              <span>SAVED VIEWS</span>
+              <span>SAVED FILTERS</span>
             </div>
           )}
           <ul className="space-y-1">
-            {/* All saved views (including default ones) */}
-            {saved.filter((v) => v.showInSidebar !== false).map((v) => (
-                <li key={v.id} className="group flex items-center">
+            {/* All saved filters (including default ones) */}
+            {saved.filter((f) => f.showInSidebar !== false).map((f) => (
+                <li key={f.id} className="group flex items-center">
                   <NavLink
                     className={(s: { isActive: boolean }) => `flex-1 sidebar-link ${collapsed ? 'justify-center' : 'justify-start'} ${s.isActive ? 'text-accent' : ''}`}
-                    to={`/saved/${v.id}`}
-                    title={collapsed ? v.name : ''}
+                    to={`/filter/${f.id}`}
+                    title={collapsed ? f.name : ''}
                   >
                     <span className="icon-container">
-                      {v.isDefault ? (
+                      {f.isDefault ? (
                         <span className="sidebar-icon-emoji">⭐</span>
-                      ) : v.icon ? (
-                        <span className="color-icon">{v.icon}</span>
+                      ) : f.icon ? (
+                        <span className="color-icon">{f.icon}</span>
                       ) : (
                         <svg className="icon-standard" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                         </svg>
                       )}
                     </span>
-                    {!collapsed && <span className="ml-2">{v.name}</span>}
+                    {!collapsed && <span className="ml-2">{f.name}</span>}
                   </NavLink>
-                  {!collapsed && !v.isDefault && !v.isSystem && (
+                  {!collapsed && !f.isDefault && !f.isSystem && (
                     <div className="mr-1 hidden gap-1 group-hover:flex">
                       <button
                         className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"
                         title="Rename"
                         onClick={async (e) => {
                           e.preventDefault(); e.stopPropagation()
-                          const next = window.prompt('Rename view', v.name)?.trim()
-                          if (!next || next === v.name) return
+                          const next = window.prompt('Rename filter', f.name)?.trim()
+                          if (!next || next === f.name) return
                           // Check for duplicate
-                          const all = await SavedViews.list()
-                          const duplicate = all.find((x) => x.id !== v.id && x.name.toLowerCase() === next.toLowerCase())
+                          const all = await SavedFilters.list()
+                          const duplicate = all.find((x) => x.id !== f.id && x.name.toLowerCase() === next.toLowerCase())
                           if (duplicate) {
-                            alert(`View "${next}" already exists`)
+                            alert(`Filter "${next}" already exists`)
                             return
                           }
                           if (next.toLowerCase() === 'all') {
-                            alert('"All" is a reserved system view name')
+                            alert('"All" is a reserved system filter name')
                             return
                           }
-                          await SavedViews.update(v.id, { name: next })
+                          await SavedFilters.update(f.id, { name: next })
                           loadSaved()
                         }}
                       >
@@ -238,14 +238,14 @@ export default function Sidebar({ className }: { className?: string }) {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
-                      {!v.isSystem && !v.isDefault && (
+                      {!f.isSystem && !f.isDefault && (
                         <button
                         className="w-6 h-6 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-red-50 text-red-600"
                         title="Delete"
                         onClick={async (e) => {
                           e.preventDefault(); e.stopPropagation()
-                          if (!confirm('Delete this view?')) return
-                          await SavedViews.remove(v.id)
+                          if (!confirm('Delete this filter?')) return
+                          await SavedFilters.remove(f.id)
                           loadSaved()
                         }}
                       >
@@ -266,11 +266,11 @@ export default function Sidebar({ className }: { className?: string }) {
           {!collapsed && <div className="sidebar-section-title mb-2 px-2">MANAGEMENT</div>}
           <ul className="space-y-1">
             {[
-              { 
-                to: '/manage/views', 
-                name: 'Views', 
+              {
+                to: '/manage/filters',
+                name: 'Filters',
                 icon: <svg className="inline-block icon-standard" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
               },
               { 

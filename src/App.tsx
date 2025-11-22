@@ -6,13 +6,13 @@ const Settings = lazy(() => import('./pages/Settings'))
 const CalendarPage = lazy(() => import('./pages/Calendar'))
 const Planning = lazy(() => import('./pages/Planning'))
 const Today = lazy(() => import('./pages/Today'))
-const SavedView = lazy(() => import('./pages/SavedView'))
+const SavedFilter = lazy(() => import('./pages/SavedFilter'))
 const ListView = lazy(() => import('./pages/ListView'))
 const LabelsManagement = lazy(() => import('./pages/LabelsManagement'))
 const WorkflowsManagement = lazy(() => import('./pages/WorkflowsManagement'))
 const AttributesPage = lazy(() => import('./pages/Attributes'))
 const NotesManagement = lazy(() => import('./pages/NotesManagement'))
-const ViewsManagement = lazy(() => import('./pages/ViewsManagement'))
+const FiltersManagement = lazy(() => import('./pages/FiltersManagement'))
 const AttributesManagement = lazy(() => import('./pages/AttributesMgmt'))
 const Archive = lazy(() => import('./pages/Archive'))
 const Logs = lazy(() => import('./pages/Logs'))
@@ -138,8 +138,8 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('global-search', { detail: '' }))
         // Only navigate if not already on a task list page (Google Keep style: add and stay)
         const currentPath = location.pathname
-        if (!currentPath.startsWith('/saved/') && !currentPath.startsWith('/lists/') && currentPath !== '/') {
-          navigate('/saved/all')
+        if (!currentPath.startsWith('/filter/') && !currentPath.startsWith('/lists/') && currentPath !== '/') {
+          navigate('/filter/all')
         }
         // todoBus already dispatches 'todo:added' event, so useFilteredTodos will update automatically
       } else {
@@ -284,7 +284,7 @@ export default function App() {
               <Route path="/planning" element={<Planning />} />
               <Route path="/today" element={<Today />} />
               <Route path="/attributes" element={<AttributesPage />} />
-              <Route path="/manage/views" element={<ViewsManagement />} />
+              <Route path="/manage/filters" element={<FiltersManagement />} />
               <Route path="/manage/labels" element={<LabelsManagement />} />
               <Route path="/manage/workflows" element={<WorkflowsManagement />} />
               <Route path="/manage/attributes" element={<AttributesManagement />} />
@@ -297,7 +297,7 @@ export default function App() {
               {/* Auth + server-backed task routes */}
               <Route path="/backlog" element={<BacklogServer />} />
               <Route path="/kanban" element={<KanbanServer />} />
-              <Route path="/saved/:viewId" element={<SavedView />} />
+              <Route path="/filter/:filterId" element={<SavedFilter />} />
               <Route path="/lists/:listId" element={<ListView />} />
             </Routes>
           </Suspense>

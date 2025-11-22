@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { SavedViews, Todos, Users } from '../db/dexieClient'
-import type { SavedView as SV, Todo } from '../db/schema'
+import { SavedFilters, Todos, Users } from '../db/dexieClient'
+import type { SavedFilter as SF, Todo } from '../db/schema'
 import { parseDueToDate } from '../utils/date'
 import TodoCard from '../components/TodoCard'
 import useFilteredTodos from '../hooks/useFilteredTodos'
@@ -19,13 +19,13 @@ const VIEW_TITLES: Record<string, string> = {
   completed: 'Completed',
 }
 
-export default function SavedView() {
-  const { viewId } = useParams()
+export default function SavedFilter() {
+  const { filterId } = useParams()
   const { todos: globalFilteredTodos, reload: reloadTodos } = useFilteredTodos()
   const { labels, reloadLabels } = useLabels()
   const { mode } = useViewMode()
-  const [title, setTitle] = useState(viewId ? VIEW_TITLES[viewId] ?? viewId : 'Saved View')
-  const [saved, setSaved] = useState<SV | null>(null)
+  const [title, setTitle] = useState(filterId ? VIEW_TITLES[filterId] ?? filterId : 'Saved Filter')
+  const [saved, setSaved] = useState<SF | null>(null)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('local-user')
   const [, setForceUpdate] = useState(0)
@@ -48,14 +48,14 @@ export default function SavedView() {
   useEffect(() => {
     let active = true
     ;(async () => {
-      if (!viewId) return
-      if (viewId === 'me') {
-        try { await SavedViews.ensureMeView?.() } catch {}
+      if (!filterId) return
+      if (filterId === 'me') {
+        try { await SavedFilters.ensureMeFilter?.() } catch {}
       }
-      // Try to load a custom saved view by slug first, then by ID
-      let v = await SavedViews.getBySlug(viewId)
+      // Try to load a custom saved filter by slug first, then by ID
+      let v = await SavedFilters.getBySlug(filterId)
       if (!v) {
-        v = await SavedViews.get(viewId)
+        v = await SavedFilters.get(filterId)
       }
       if (!active) return
       if (v) {
@@ -63,14 +63,14 @@ export default function SavedView() {
         setTitle(v.name)
       } else {
         setSaved(null)
-        setTitle(VIEW_TITLES[viewId] ?? viewId)
+        setTitle(VIEW_TITLES[filterId] ?? filterId)
       }
-      // Force re-render and reload todos when viewId changes
+      // Force re-render and reload todos when filterId changes
       await reloadTodos()
       setForceUpdate(prev => prev + 1)
     })()
     return () => { active = false }
-  }, [viewId, reloadTodos])
+  }, [filterId, reloadTodos])
 
   let filtered = globalFilteredTodos
   if (saved) {
@@ -91,7 +91,7 @@ export default function SavedView() {
           workflowStage: af.workflowStage || null,
           assignedToMe: af.assignedToMe === true || af.assignedToMe === 'true',
         }
-        console.log('[SavedView v0.0.49] Parsed filters for view:', saved.name, 'filters:', f)
+        console.log('[SavedFilter v0.0.53] Parsed filters for filter:', saved.name, 'filters:', f)
       }
 
       // Handle "assigned to me" filter
@@ -109,16 +109,16 @@ export default function SavedView() {
         filtered = filtered.filter((t: Todo) => t.workflowId && f.selectedWorkflowIds.includes(t.workflowId))
       }
       if (Array.isArray(f.selectedAssigneeIds) && f.selectedAssigneeIds.length > 0) {
-        console.log('[SavedView v0.0.49] Filtering by assignees:', f.selectedAssigneeIds)
+        console.log('[SavedFilter v0.0.53] Filtering by assignees:', f.selectedAssigneeIds)
         const before = filtered.length
         filtered = filtered.filter((t: Todo) => {
           const matches = (t.assigneeIds || []).some((id: string) => f.selectedAssigneeIds.includes(id))
           if (matches) {
-            console.log('[SavedView v0.0.49] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
+            console.log('[SavedFilter v0.0.53] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
           }
           return matches
         })
-        console.log('[SavedView v0.0.49] Assignee filter result:', filtered.length, 'of', before, 'todos')
+        console.log('[SavedFilter v0.0.53] Assignee filter result:', filtered.length, 'of', before, 'todos')
       }
       if (f.blockedOnly) {
         filtered = filtered.filter((t: Todo) => t.blocked)
@@ -145,13 +145,13 @@ export default function SavedView() {
     } catch {
       // ignore parse errors
     }
-  } else if (viewId) {
-    // Built-in views: use global filters and add specific logic
+  } else if (filterId) {
+    // Built-in filters: use global filters and add specific logic
     filtered = globalFilteredTodos.filter((t: Todo) => {
-      if (viewId === 'all') return true
-      if (viewId === 'completed') return t.completed
-      if (viewId === 'today') return !t.completed
-      if (viewId === 'backlog') {
+      if (filterId === 'all') return true
+      if (filterId === 'completed') return t.completed
+      if (filterId === 'today') return !t.completed
+      if (filterId === 'backlog') {
         // Backlog: items with no workflowStage or explicitly in 'Backlog'
         const stage = (t.workflowStage || '').toLowerCase()
         return !stage || stage === 'backlog'
@@ -160,9 +160,9 @@ export default function SavedView() {
     })
   }
 
-  // De-duplicate projection for "All" view: prefer uniqueness by serverId, then clientId, then id
+  // De-duplicate projection for "All" filter: prefer uniqueness by serverId, then clientId, then id
   // Also deduplicate by plain ID to catch any double-rendering issues
-  if (viewId === 'all') {
+  if (filterId === 'all') {
     const seen = new Set<string>()
     filtered = filtered.filter((t: Todo) => {
       // Primary dedup: serverId or clientId or local id
@@ -220,8 +220,8 @@ export default function SavedView() {
     )
   }
 
-  // Backlog special view with quick-move arrow
-  if (viewId === 'backlog') {
+  // Backlog special filter with quick-move arrow
+  if (filterId === 'backlog') {
     const defaultWf = workflows.find((w) => w.id === 'default-kanban') || workflows.find((w) => w.isDefault)
     const firstNonBacklog = defaultWf?.stages?.find(s => s.toLowerCase() !== 'backlog') || defaultWf?.stages?.[0]
     const handleMoveRight = async (todo: Todo) => {
@@ -264,7 +264,7 @@ export default function SavedView() {
         <div className="text-lg font-semibold">{title}</div>
       </div>
       {filtered.length === 0 ? (
-        <div className="text-center text-sm text-gray-500">No todos in this view.</div>
+        <div className="text-center text-sm text-gray-500">No todos in this filter.</div>
       ) : (
         <>
           <div className={mode === 'tiles' ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>

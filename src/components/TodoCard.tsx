@@ -435,7 +435,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
                 } else {
                   try { clear() } catch {}
                   setSelectedLabelIds([id])
-                  navigate('/saved/all')
+                  navigate('/filter/all')
                 }
               }}
             >
@@ -475,7 +475,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
                 } else {
                   try { clear() } catch {}
                   setSelectedAssigneeIds([uid])
-                  navigate('/saved/all')
+                  navigate('/filter/all')
                 }
               }}
             >

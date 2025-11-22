@@ -98,7 +98,7 @@ export default function ListView() {
                   key={id}
                   className="chip border-gray-200 text-[11px] px-1.5 py-0.5 hover:bg-gray-50"
                   style={{ borderColor: l.color }}
-                  onClick={() => { try { clear() } catch {}; setSelectedLabelIds([id]); navigate('/saved/all') }}
+                  onClick={() => { try { clear() } catch {}; setSelectedLabelIds([id]); navigate('/filter/all') }}
                   title={`Open label: ${l.name}`}
                 >
                   <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: l.color }} />

@@ -43,7 +43,7 @@ export async function normalizeTodosUserMapping() {
   }
 }
 import Dexie, { Table } from 'dexie'
-import type { Label, Todo, User, Workflow, SavedView, List, AttributeDef, PointsEntry, AppSettings, Note } from './schema'
+import type { Label, Todo, User, Workflow, SavedFilter, List, AttributeDef, PointsEntry, AppSettings, Note } from './schema'
 import { logger } from '../utils/logger'
 
 class TodolessDB extends Dexie {
@@ -51,7 +51,7 @@ class TodolessDB extends Dexie {
   todos!: Table<Todo, string>
   users!: Table<User, string>
   workflows!: Table<Workflow, string>
-  savedViews!: Table<SavedView, string>
+  savedFilters!: Table<SavedFilter, string>
   lists!: Table<List, string>
   attributes!: Table<AttributeDef, string>
   points!: Table<PointsEntry, string>
@@ -328,6 +328,32 @@ class TodolessDB extends Dexie {
       }
     })
 
+    // v18: Rename savedViews → savedFilters (terminology refactoring)
+    this.version(18).stores({
+      labels: 'id, name, shared, workflowId, userId, ownerId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
+      users: 'id, name, email, role, ageGroup',
+      workflows: 'id, name, labelIds, checkboxOnly',
+      savedFilters: 'id, name, userId',
+      lists: 'id, name, visibility',
+      attributes: 'id, name, type, defaultValue',
+      points: 'id, userId, todoId, date',
+      settings: 'id',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared',
+      savedViews: null, // Delete old table
+    }).upgrade(async (tx) => {
+      // Migrate data from savedViews to savedFilters
+      try {
+        const oldViews = await tx.table('savedViews').toArray()
+        if (oldViews && oldViews.length > 0) {
+          await tx.table('savedFilters').bulkAdd(oldViews)
+          logger.info('dexie:migration', { message: `Migrated ${oldViews.length} views to filters` })
+        }
+      } catch (e) {
+        logger.warn('dexie:migration', { message: 'No old savedViews to migrate', error: String(e) })
+      }
+    })
+
     this.on('populate', async () => {
       const userId = 'local-user'
       await this.users.add({ id: userId, name: 'You', themeColor: '#0ea5e9' })
@@ -586,18 +612,18 @@ export const Settings = {
   set: (s: AppSettings) => db.settings.put(s),
 }
 
-// Saved Views helpers
-export const SavedViews = {
-  list: () => db.savedViews.toArray(),
-  get: (id: string) => db.savedViews.get(id),
+// Saved Filters helpers
+export const SavedFilters = {
+  list: () => db.savedFilters.toArray(),
+  get: (id: string) => db.savedFilters.get(id),
   getBySlug: async (slug: string) => {
-    const views = await db.savedViews.toArray()
-    return views.find((v) => v.slug === slug)
+    const filters = await db.savedFilters.toArray()
+    return filters.find((f) => f.slug === slug)
   },
-  update: (id: string, patch: Partial<SavedView>) => db.savedViews.update(id, patch),
-  add: async (input: Omit<SavedView, 'id' | 'userId'> & { userId?: string }) => {
+  update: (id: string, patch: Partial<SavedFilter>) => db.savedFilters.update(id, patch),
+  add: async (input: Omit<SavedFilter, 'id' | 'userId'> & { userId?: string }) => {
     const id = generateUUID()
-    const view: SavedView = {
+    const filter: SavedFilter = {
       id,
       name: input.name,
       slug: input.slug || input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -611,20 +637,21 @@ export const SavedViews = {
       isSystem: input.isSystem,
       userId: input.userId || 'local-user',
     }
-    await db.savedViews.add(view)
+    await db.savedFilters.add(filter)
     return id
   },
-  remove: (id: string) => db.savedViews.delete(id),
-  ensureMeView: async () => {
+  remove: (id: string) => db.savedFilters.delete(id),
+  ensureMeFilter: async () => {
     try {
-      const me = await db.savedViews.get('me')
+      const me = await db.savedFilters.get('me')
       // Determine current user id (first user or fallback)
       const users = await db.users.toArray()
       const currentUserId = users[0]?.id || 'local-user'
       if (!me) {
-        const view: SavedView = {
+        const filter: SavedFilter = {
           id: 'me',
           name: '@me',
+          slug: 'me',
           icon: '🙋',
           labelFilterIds: [],
           attributeFilters: {
@@ -641,31 +668,36 @@ export const SavedViews = {
           showInSidebar: true,
           isSystem: true,
         }
-        await db.savedViews.put(view)
+        await db.savedFilters.put(filter)
       } else {
         // Keep user binding updated if empty
         if (!me.userId) {
-          await db.savedViews.update('me', { userId: currentUserId })
+          await db.savedFilters.update('me', { userId: currentUserId })
         }
         if (me.isSystem !== true) {
-          await db.savedViews.update('me', { isSystem: true })
+          await db.savedFilters.update('me', { isSystem: true })
+        }
+        // Ensure slug is set (for existing filters created before v0.0.53)
+        if (!me.slug) {
+          await db.savedFilters.update('me', { slug: 'me' })
         }
       }
     } catch (e) {
       // ignore
     }
   },
-  ensureDefaultViews: async () => {
+  ensureDefaultFilters: async () => {
     try {
       const users = await db.users.toArray()
       const currentUserId = users[0]?.id || 'local-user'
-      
-      // Default "All" view (always visible)
-      const allView = await db.savedViews.get('all')
-      if (!allView) {
-        await db.savedViews.put({
+
+      // Default "All" filter (always visible)
+      const allFilter = await db.savedFilters.get('all')
+      if (!allFilter) {
+        await db.savedFilters.put({
           id: 'all',
           name: 'All',
+          slug: 'all',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: {},
@@ -676,16 +708,20 @@ export const SavedViews = {
           isSystem: true,
           isDefault: true,
         })
-      } else if (!allView.isDefault) {
-        await db.savedViews.update('all', { isDefault: true, icon: '⭐' })
+      } else {
+        // Ensure isDefault and slug are set
+        if (!allFilter.isDefault || !allFilter.slug) {
+          await db.savedFilters.update('all', { isDefault: true, icon: '⭐', slug: 'all' })
+        }
       }
-      
-      // Default "Backlog" view (hidden by default)
-      const backlogView = await db.savedViews.get('backlog')
-      if (!backlogView) {
-        await db.savedViews.put({
+
+      // Default "Backlog" filter (hidden by default)
+      const backlogFilter = await db.savedFilters.get('backlog')
+      if (!backlogFilter) {
+        await db.savedFilters.put({
           id: 'backlog',
           name: 'Backlog',
+          slug: 'backlog',
           icon: '⭐',
           labelFilterIds: [],
           attributeFilters: { workflowStage: 'Backlog' },
@@ -696,8 +732,11 @@ export const SavedViews = {
           isSystem: true,
           isDefault: true,
         })
-      } else if (!backlogView.isDefault) {
-        await db.savedViews.update('backlog', { isDefault: true, icon: '⭐' })
+      } else {
+        // Ensure isDefault and slug are set
+        if (!backlogFilter.isDefault || !backlogFilter.slug) {
+          await db.savedFilters.update('backlog', { isDefault: true, icon: '⭐', slug: 'backlog' })
+        }
       }
     } catch (e) {
       // ignore

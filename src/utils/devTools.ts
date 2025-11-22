@@ -1,4 +1,4 @@
-import { db, Labels, Lists, Notes, SavedViews, Todos, Users, Workflows, ensureDefaults, clearLocalData } from '../db/dexieClient'
+import { db, Labels, Lists, Notes, SavedFilters, Todos, Users, Workflows, ensureDefaults, clearLocalData } from '../db/dexieClient'
 import type { Label, List, Note, Todo, Workflow, User } from '../db/schema'
 
 function uuid(): string {
@@ -95,8 +95,8 @@ export async function flushDatabase() {
   const me: User = { id: 'local-user', name: 'You', themeColor: '#0ea5e9' }
   await db.users.put(me)
   await ensureDefaults()
-  await SavedViews.ensureDefaultViews()
-  await SavedViews.ensureMeView()
+  await SavedFilters.ensureDefaultFilters()
+  await SavedFilters.ensureMeFilter()
 
   // Trigger full UI refresh
   window.dispatchEvent(new CustomEvent('todos:refresh'))
@@ -180,8 +180,8 @@ export async function importMockData() {
   await db.todos.update(todo0.id, { linkedNoteIds: [note0.id] })
 
   // Saved Views (ensure + a custom one)
-  await SavedViews.ensureDefaultViews()
-  await SavedViews.ensureMeView()
+  await SavedFilters.ensureDefaultFilters()
+  await SavedFilters.ensureMeFilter()
   await db.savedViews.put({
     id: uuid(),
     name: 'High Priority',

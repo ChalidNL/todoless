@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { useFilterContext } from '../contexts/FilterContext'
 import { useSort } from '../contexts/SortContext'
-import { SavedViews } from '../db/dexieClient'
+import { SavedFilters } from '../db/dexieClient'
 
 interface Props {
   onRefresh?: () => void
 }
 
-export default function SaveViewButton({ onRefresh }: Props) {
+export default function SaveFilterButton({ onRefresh }: Props) {
   const {
     selectedLabelIds,
     blockedOnly,
@@ -34,35 +34,35 @@ export default function SaveViewButton({ onRefresh }: Props) {
 
   const onSave = async () => {
     setError(null)
-    const name = window.prompt('Save current view as…', 'My view')?.trim()
+    const name = window.prompt('Save current filter as…', 'My filter')?.trim()
     if (!name) return
 
     // Check if 'All' is being used
     if (name.toLowerCase() === 'all') {
-      setError('"All" is a reserved system view name')
+      setError('"All" is a reserved system filter name')
       setTimeout(() => setError(null), 3000)
       return
     }
 
     setSaving(true)
     try {
-      const existing = await SavedViews.list()
-  const duplicate = existing.find((v) => v.name.toLowerCase() === name.toLowerCase())
+      const existing = await SavedFilters.list()
+  const duplicate = existing.find((f) => f.name.toLowerCase() === name.toLowerCase())
 
       if (duplicate) {
         if (duplicate.isSystem) {
-          setError('Cannot overwrite a system view')
+          setError('Cannot overwrite a system filter')
           setTimeout(() => setError(null), 3000)
           setSaving(false)
           return
         }
-        const overwrite = window.confirm(`View "${name}" already exists. Overwrite?`)
+        const overwrite = window.confirm(`Filter "${name}" already exists. Overwrite?`)
         if (!overwrite) {
           setSaving(false)
           return
         }
-        // Update existing view
-        await SavedViews.update(duplicate.id, {
+        // Update existing filter
+        await SavedFilters.update(duplicate.id, {
           labelFilterIds: selectedLabelIds,
           attributeFilters: {
             sort: sortValue,
@@ -74,8 +74,8 @@ export default function SaveViewButton({ onRefresh }: Props) {
           },
         })
       } else {
-        // Create new view with default filter icon
-        await SavedViews.add({
+        // Create new filter with default filter icon
+        await SavedFilters.add({
           name,
           icon: '🔍',
           labelFilterIds: selectedLabelIds,
@@ -90,12 +90,12 @@ export default function SaveViewButton({ onRefresh }: Props) {
           },
         })
       }
-      window.dispatchEvent(new Event('saved-views:refresh'))
+      window.dispatchEvent(new Event('saved-filters:refresh'))
       // Clear all filters after save
       window.dispatchEvent(new CustomEvent('filters:clear'))
       if (onRefresh) onRefresh()
     } catch (e) {
-      setError('Failed to save view')
+      setError('Failed to save filter')
       setTimeout(() => setError(null), 3000)
     } finally {
       setSaving(false)
@@ -108,7 +108,7 @@ export default function SaveViewButton({ onRefresh }: Props) {
         className="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100 text-lg"
         disabled={saving}
         onClick={onSave}
-        title="Save current view"
+        title="Save current filter"
       >
         💾
       </button>

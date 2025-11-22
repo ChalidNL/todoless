@@ -56,7 +56,7 @@ export interface Todo {
   shared?: boolean
 }
 
-export interface SavedView {
+export interface SavedFilter {
   id: string
   name: string
   slug: string // URL-friendly version of name
@@ -70,7 +70,7 @@ export interface SavedView {
   showInSidebar?: boolean
   isSystem?: boolean
   isDefault?: boolean
-  parentId?: string // For subviews - ID of parent view
+  parentId?: string // For subfilters - ID of parent filter
   order?: number // Display order within parent
 }
 
