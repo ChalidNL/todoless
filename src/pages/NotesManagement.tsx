@@ -241,35 +241,37 @@ export default function NotesManagement() {
                 const noteLabelIds = liveLabelIds[n.id] || n.labelIds
                 return (
                   <div key={n.id} className={`rounded-lg border-2 p-3 hover:shadow-md transition-shadow flex flex-col ${isFlagged ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
-                {/* Top row: title bar actions */}
-                <div className="mb-2 flex items-center justify-end gap-1">
-                  {n.shared === false && (
-                    <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
-                      <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                {/* Top row: Title on left, icons and options button on right */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0 font-medium text-sm truncate cursor-pointer" onClick={() => startEdit(n)} title={n.title || '(untitled)'}>
+                    {n.title || '(untitled)'}
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {n.shared === false && (
+                      <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
+                        <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    )}
+                    {n.pinned && (
+                      <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
+                        <PinIcon filled size={16} />
+                      </div>
+                    )}
+                    <button
+                      className="p-1.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 hover:text-gray-900"
+                      onClick={() => setOpenMenuId(openMenuId === n.id ? null : n.id)}
+                      title="Options"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                       </svg>
-                    </div>
-                  )}
-                  {n.pinned && (
-                    <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
-                      <PinIcon filled size={16} />
-                    </div>
-                  )}
-                  <button
-                    className="p-1.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 hover:text-gray-900"
-                    onClick={() => setOpenMenuId(openMenuId === n.id ? null : n.id)}
-                    title="Options"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                    </svg>
-                  </button>
+                    </button>
+                  </div>
                 </div>
                 {/* Content (click to edit) */}
                 <div className="flex-1 min-w-0 mb-3 cursor-pointer" onClick={() => startEdit(n)} title="Click to edit">
-                  <div className="font-medium text-sm truncate mb-1" title={n.title || '(untitled)'}>
-                    {n.title || '(untitled)'}
-                  </div>
                   <div className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap">{n.content}</div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {noteLabelIds.map(id => {
@@ -439,37 +441,37 @@ export default function NotesManagement() {
               const noteLabelIds = liveLabelIds[n.id] || n.labelIds
               return (
                 <div key={n.id} className={`rounded-lg border-2 p-3 hover:shadow-md transition-shadow flex flex-col ${isFlagged ? 'bg-red-50 border-red-300' : 'bg-white border-gray-200'}`}>
-                {/* Top row: title bar actions */}
-                <div className="mb-2 flex items-center justify-end gap-1">
-                  {n.shared === false && (
-                    <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
-                      <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    </div>
-                  )}
-                  {n.pinned && (
-                    <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
+                {/* Top row: Title on left, icons and options button on right */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0 font-medium text-sm truncate cursor-pointer" onClick={() => startEdit(n)} title={n.title || '(untitled)'}>
+                    {n.title || '(untitled)'}
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {n.shared === false && (
+                      <div className="w-7 h-7 flex items-center justify-center text-yellow-600" title="Private">
+                        <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    )}
+                    {n.pinned && (
+                      <div className="w-7 h-7 flex items-center justify-center text-gray-800" title="Pinned">
+                        <PinIcon filled size={16} />
+                      </div>
+                    )}
+                    <button
+                      className="p-1.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 hover:text-gray-900"
+                      onClick={() => setOpenMenuId(openMenuId === n.id ? null : n.id)}
+                      title="Options"
+                    >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M16 12V4h1c.55 0 1-.45 1-1s-.45-1-1-1H7c-.55 0-1 .45-1 1s.45 1 1 1h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/>
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
                       </svg>
-                    </div>
-                  )}
-                  <button
-                    className="p-1.5 w-7 h-7 shrink-0 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-100 hover:text-gray-900"
-                    onClick={() => setOpenMenuId(openMenuId === n.id ? null : n.id)}
-                    title="Options"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" />
-                    </svg>
-                  </button>
+                    </button>
+                  </div>
                 </div>
                 {/* Content (click to edit) */}
                 <div className="flex-1 min-w-0 mb-3 cursor-pointer" onClick={() => startEdit(n)} title="Click to edit">
-                  <div className="font-medium text-sm truncate mb-1" title={n.title || '(untitled)'}>
-                    {n.title || '(untitled)'}
-                  </div>
                   <div className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap">{n.content}</div>
                   <div className="mt-2 flex flex-wrap gap-1">
                     {noteLabelIds.map(id => {

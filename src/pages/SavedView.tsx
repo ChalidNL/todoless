@@ -21,13 +21,14 @@ const VIEW_TITLES: Record<string, string> = {
 
 export default function SavedView() {
   const { viewId } = useParams()
-  const { todos: globalFilteredTodos } = useFilteredTodos()
+  const { todos: globalFilteredTodos, reload: reloadTodos } = useFilteredTodos()
   const { labels, reloadLabels } = useLabels()
   const { mode } = useViewMode()
   const [title, setTitle] = useState(viewId ? VIEW_TITLES[viewId] ?? viewId : 'Saved View')
   const [saved, setSaved] = useState<SV | null>(null)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('local-user')
+  const [, setForceUpdate] = useState(0)
 
   const reloadWorkflows = async () => {
     const ws = await Workflows.list()
@@ -64,9 +65,12 @@ export default function SavedView() {
         setSaved(null)
         setTitle(VIEW_TITLES[viewId] ?? viewId)
       }
+      // Force re-render and reload todos when viewId changes
+      await reloadTodos()
+      setForceUpdate(prev => prev + 1)
     })()
     return () => { active = false }
-  }, [viewId])
+  }, [viewId, reloadTodos])
 
   let filtered = globalFilteredTodos
   if (saved) {
@@ -87,6 +91,7 @@ export default function SavedView() {
           workflowStage: af.workflowStage || null,
           assignedToMe: af.assignedToMe === true || af.assignedToMe === 'true',
         }
+        console.log('[SavedView v0.0.49] Parsed filters for view:', saved.name, 'filters:', f)
       }
 
       // Handle "assigned to me" filter
@@ -104,7 +109,16 @@ export default function SavedView() {
         filtered = filtered.filter((t: Todo) => t.workflowId && f.selectedWorkflowIds.includes(t.workflowId))
       }
       if (Array.isArray(f.selectedAssigneeIds) && f.selectedAssigneeIds.length > 0) {
-        filtered = filtered.filter((t: Todo) => (t.assigneeIds || []).some((id: string) => f.selectedAssigneeIds.includes(id)))
+        console.log('[SavedView v0.0.49] Filtering by assignees:', f.selectedAssigneeIds)
+        const before = filtered.length
+        filtered = filtered.filter((t: Todo) => {
+          const matches = (t.assigneeIds || []).some((id: string) => f.selectedAssigneeIds.includes(id))
+          if (matches) {
+            console.log('[SavedView v0.0.49] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
+          }
+          return matches
+        })
+        console.log('[SavedView v0.0.49] Assignee filter result:', filtered.length, 'of', before, 'todos')
       }
       if (f.blockedOnly) {
         filtered = filtered.filter((t: Todo) => t.blocked)

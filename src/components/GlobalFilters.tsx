@@ -40,21 +40,14 @@ export default function GlobalFilters() {
   useEffect(() => {
     Promise.all([Labels.list(), Users.list(), Workflows.list(), Attributes.list()]).then(([ls, us, ws, as]) => {
       setLabels(ls)
-      // Combine 'You' en 'Admin' tot één user
-      const seen = new Set()
-      const filtered = []
-      for (const u of us) {
-        const key = (u.username || '').toLowerCase()
-        if (key === 'you' || key === 'admin') {
-          if (!seen.has('me')) {
-            filtered.push({ ...u, username: 'me', name: 'Me' })
-            seen.add('me')
-          }
-        } else if (!seen.has(key)) {
-          filtered.push(u)
-          seen.add(key)
-        }
-      }
+      // v0.0.49: Show ALL users without filtering
+      // Deduplicate by ID to avoid duplicates
+      const seen = new Set<string>()
+      const filtered = us.filter(u => {
+        if (seen.has(u.id)) return false
+        seen.add(u.id)
+        return true
+      })
       setUsers(filtered)
       setWorkflows(ws)
       setAttributes(as)

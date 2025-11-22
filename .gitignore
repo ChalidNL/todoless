@@ -85,3 +85,6 @@ examples/
 # Release notes (local only)
 changes/
 public/changes/
+
+# Ignore local instructions and bugs
+instruction.md

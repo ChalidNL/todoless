@@ -89,6 +89,20 @@ try {
   if (!names.has('shared')) {
     db.prepare(`ALTER TABLE tasks ADD COLUMN shared INTEGER DEFAULT 1`).run()
   }
+
+  // v0.0.48: Add assigneeIds column for multi-assignee support
+  if (!names.has('assigneeIds')) {
+    db.prepare(`ALTER TABLE tasks ADD COLUMN assigneeIds TEXT`).run()
+    logger.info('db:migration:assigneeIds_added')
+
+    // Migrate existing assigned_to values to assigneeIds array
+    const tasksWithAssignee = db.prepare('SELECT id, assigned_to FROM tasks WHERE assigned_to IS NOT NULL').all() as Array<{ id: number; assigned_to: number }>
+    for (const task of tasksWithAssignee) {
+      const assigneeIds = JSON.stringify([task.assigned_to])
+      db.prepare('UPDATE tasks SET assigneeIds = ? WHERE id = ?').run(assigneeIds, task.id)
+    }
+    logger.info('db:migration:assigneeIds_migrated', { count: tasksWithAssignee.length })
+  }
 } catch (e) {
   logger.error('db:migration_failed', { error: String(e) })
 }
@@ -159,7 +173,8 @@ export type TaskRow = {
   workflow: string | null
   workflowStage: string | null
   created_by: number
-  assigned_to: number | null
+  assigned_to: number | null  // DEPRECATED: kept for backwards compatibility
+  assigneeIds: string | null  // NEW: JSON array of user IDs
   labels: string | null
   attributes: string | null
   created_at: string

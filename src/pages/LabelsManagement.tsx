@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Label, Todo } from '../db/schema'
 import { Labels, Todos } from '../db/dexieClient'
 import { useFilterContext } from '../contexts/FilterContext'
@@ -14,6 +15,7 @@ function randomColor(): string {
 
 export default function LabelsManagement() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [labels, setLabels] = useState<Label[]>([])
   const [todos, setTodos] = useState<Todo[]>([])
   const [q, setQ] = useState<string>(() => {
@@ -23,7 +25,15 @@ export default function LabelsManagement() {
   const [editingLabel, setEditingLabel] = useState<Label | null>(null)
   const [createPopup, setCreatePopup] = useState(false)
 
-  const { apply } = useFilterContext()
+  const { apply, setSelectedLabelIds, clear } = useFilterContext()
+
+  // Navigate to All view with label filter (v0.0.43: unified behavior)
+  const handleLabelClick = (label: Label) => {
+    // Use EXACT same pattern as TodoCard label click
+    try { clear() } catch {}
+    setSelectedLabelIds([label.id])
+    navigate('/saved/all')
+  }
 
   useEffect(() => {
     loadData()
@@ -105,19 +115,35 @@ export default function LabelsManagement() {
             return (
               <div key={label.id} className="bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-2">
-                  {/* Privacy icon - always visible when private */}
-                  {!label.shared && editingLabel?.id !== label.id && (
-                    <div className="w-6 h-6 flex items-center justify-center text-yellow-600" title="Private">
-                      <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    </div>
+                  {/* Left section: Color picker (only in edit mode), Privacy icon, Color swatch, Count */}
+                  {editingLabel?.id === label.id ? (
+                    <input
+                      type="color"
+                      className="w-8 h-8 cursor-pointer rounded border-2 border-gray-300 flex-shrink-0"
+                      value={editingLabel.color}
+                      onChange={(e) => {
+                        const newColor = e.target.value
+                        setEditingLabel({ ...editingLabel, color: newColor })
+                        handleUpdate(label, { name: editingLabel.name, color: newColor })
+                      }}
+                    />
+                  ) : (
+                    <>
+                      {/* Privacy icon - visible when private and not editing */}
+                      {!label.shared && (
+                        <div className="w-6 h-6 flex items-center justify-center text-yellow-600" title="Private">
+                          <svg className="w-4 h-4" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                      )}
+                      {/* Color swatch - visual only */}
+                      <div className="w-6 h-6 rounded border-2 border-gray-300 flex-shrink-0 pointer-events-none" style={{ backgroundColor: label.color }} />
+                    </>
                   )}
-                  {/* Color swatch */}
-                  <div className="w-6 h-6 rounded border-2 border-gray-300 flex-shrink-0" style={{ backgroundColor: editingLabel?.id === label.id ? editingLabel.color : label.color }} />
                   {/* Count */}
                   <div className="text-xs text-gray-600 w-6 text-center">{getUsedInCount(label.id)}</div>
-                  {/* Name (editable) */}
+                  {/* Name (editable or clickable to filter) */}
                   <div className="flex-1 min-w-0">
                     {editingLabel?.id === label.id ? (
                       <input
@@ -135,12 +161,16 @@ export default function LabelsManagement() {
                         autoFocus
                       />
                     ) : (
-                      <div className="font-medium text-sm cursor-pointer hover:text-accent truncate" onClick={() => setEditingLabel(label)} title={label.name}>
+                      <div
+                        className="font-medium text-sm cursor-pointer hover:text-accent truncate"
+                        onClick={() => handleLabelClick(label)}
+                        title={`Filter by ${label.name}`}
+                      >
                         {label.name}
                       </div>
                     )}
                   </div>
-                  {/* Privacy toggle when editing */}
+                  {/* Right section: Privacy toggle (edit mode only), Edit/Save button, Delete button */}
                   {editingLabel?.id === label.id && (
                     <button
                       className={`w-8 h-8 flex items-center justify-center rounded border-2 transition-all ${!editingLabel.shared ? 'border-yellow-400 bg-yellow-50 text-yellow-600' : 'border-gray-300 text-gray-500'} ${!isOwner ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}`}
@@ -160,20 +190,6 @@ export default function LabelsManagement() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     </button>
-                  )}
-                  {/* Color picker when editing */}
-                  {editingLabel?.id === label.id && (
-                    <input
-                      type="color"
-                      className="w-8 h-8 cursor-pointer rounded border-2 border-gray-300"
-                      value={editingLabel.color}
-                      onChange={(e) => {
-                        const newColor = e.target.value
-                        setEditingLabel({ ...editingLabel, color: newColor })
-                        // Apply color change immediately
-                        handleUpdate(label, { name: editingLabel.name, color: newColor })
-                      }}
-                    />
                   )}
                   <button
                     className="w-8 h-8 flex items-center justify-center rounded border-2 border-gray-300 hover:bg-gray-100"

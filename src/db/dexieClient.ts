@@ -590,12 +590,17 @@ export const Settings = {
 export const SavedViews = {
   list: () => db.savedViews.toArray(),
   get: (id: string) => db.savedViews.get(id),
+  getBySlug: async (slug: string) => {
+    const views = await db.savedViews.toArray()
+    return views.find((v) => v.slug === slug)
+  },
   update: (id: string, patch: Partial<SavedView>) => db.savedViews.update(id, patch),
   add: async (input: Omit<SavedView, 'id' | 'userId'> & { userId?: string }) => {
     const id = generateUUID()
     const view: SavedView = {
       id,
       name: input.name,
+      slug: input.slug || input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       labelFilterIds: input.labelFilterIds || [],
       attributeFilters: input.attributeFilters || {},
       statusFilter: input.statusFilter,

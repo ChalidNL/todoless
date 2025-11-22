@@ -75,7 +75,8 @@ export interface ServerTask {
   workflow: string | null
   workflowStage: string | null
   created_by: number
-  assigned_to: number | null
+  assigned_to: number | null  // DEPRECATED
+  assigneeIds: string | null  // NEW: JSON array of user IDs
   labels: string | null
   attributes: string | null
   created_at: string
@@ -120,12 +121,17 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
     // Clear local labels and re-add from server
     await db.labels.clear()
     for (const label of labelItems || []) {
-      await db.labels.add({
+      const labelData: any = {
         id: String(label.id),
         name: label.name,
         color: label.color || '#0ea5e9',
         shared: !!label.shared,
-      })
+      }
+      // Only add ownerId if it exists (avoid undefined in indexed fields)
+      if (label.owner_id) {
+        labelData.ownerId = String(label.owner_id)
+      }
+      await db.labels.add(labelData)
     }
     let remapApplied = false
     if (idRemap.size) {
@@ -279,6 +285,9 @@ export async function pushTodoToServer(todo: Todo): Promise<number | null> {
         workflowStage: todo.workflowStage || null,
         labels: serializeLabelIds(todo.labelIds),
         attributes: todo.attributes ? JSON.stringify(todo.attributes) : null,
+        assigneeIds: todo.assigneeIds && todo.assigneeIds.length > 0
+          ? JSON.stringify(todo.assigneeIds.map(id => Number(id)))
+          : null,
       }
       await api(`/api/tasks/${todo.serverId}`, { method: 'PATCH', body: JSON.stringify(body) })
       return todo.serverId
@@ -292,6 +301,9 @@ export async function pushTodoToServer(todo: Todo): Promise<number | null> {
         labels: serializeLabelIds(todo.labelIds),
         attributes: todo.attributes ? JSON.stringify(todo.attributes) : null,
         clientId: todo.clientId || undefined,
+        assigneeIds: todo.assigneeIds && todo.assigneeIds.length > 0
+          ? JSON.stringify(todo.assigneeIds.map(id => Number(id)))
+          : null,
       }
       const { item } = await api('/api/tasks', { method: 'POST', body: JSON.stringify(body) })
         // If an SSE-created record already exists locally for this server id, merge to avoid duplicates
@@ -372,20 +384,29 @@ async function syncLabelsFromServer() {
 
       if (existing) {
         // Update existing label
-        await db.labels.update(String(serverLabel.id), {
+        const updateData: any = {
           name: serverLabel.name,
           color: serverLabel.color || '#0ea5e9',
-          shared: serverLabel.shared === 1
-        })
+          shared: serverLabel.shared === 1,
+        }
+        // Only add ownerId if it exists
+        if (serverLabel.owner_id) {
+          updateData.ownerId = String(serverLabel.owner_id)
+        }
+        await db.labels.update(String(serverLabel.id), updateData)
       } else {
         // Add new label
-        await db.labels.add({
+        const labelData: any = {
           id: String(serverLabel.id),
           name: serverLabel.name,
           color: serverLabel.color || '#0ea5e9',
           shared: serverLabel.shared === 1,
-          userId: 'server'
-        } as any)
+        }
+        // Only add ownerId if it exists
+        if (serverLabel.owner_id) {
+          labelData.ownerId = String(serverLabel.owner_id)
+        }
+        await db.labels.add(labelData)
       }
     }
 
@@ -489,6 +510,19 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
   }
   const labelIds = normalizeLabelIdsArray(item.labels)
   const attributes = item.attributes ? JSON.parse(item.attributes) : {}
+
+  // Parse assigneeIds from server (JSON array → string array for Dexie)
+  let assigneeIds: string[] = []
+  if (item.assigneeIds) {
+    try {
+      const parsed = JSON.parse(item.assigneeIds) as number[]
+      assigneeIds = parsed.map(id => String(id))
+    } catch {}
+  } else if (item.assigned_to) {
+    // Backwards compatibility
+    assigneeIds = [String(item.assigned_to)]
+  }
+
   const patch: Partial<Todo> = {
     title: item.title,
     completed: !!item.completed,
@@ -496,6 +530,7 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
     workflowId: item.workflow || undefined,
     workflowStage: item.workflowStage || undefined,
     labelIds,
+    assigneeIds,  // NOW SYNCED!
     attributes,
     order: new Date(item.created_at).getTime(),
     createdAt: item.created_at,

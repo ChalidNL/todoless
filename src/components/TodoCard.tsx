@@ -12,6 +12,7 @@ import AttributeMiniEditor from './AttributeMiniEditor'
 import AttributeManager from './AttributeManager'
 import CloseButton from './ui/CloseButton'
 import LinkNoteModal from './LinkNoteModal'
+import AssigneeSelector from './AssigneeSelector'
 import clsx from 'clsx'
 
 interface Props {
@@ -30,7 +31,7 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
   const [assigneePickerOpen, setAssigneePickerOpen] = useState(false)
   const [attributePickerOpen, setAttributePickerOpen] = useState(false)
   const [linkNoteOpen, setLinkNoteOpen] = useState(false)
-  const [assigneeInput, setAssigneeInput] = useState('')
+  // assigneeInput removed - now handled in AssigneeSelector component
   const [showOptions, setShowOptions] = useState(false)
   const [linkedNoteIds, setLinkedNoteIds] = useState<string[]>(todo.linkedNoteIds || [])
   const [attributeDefs, setAttributeDefs] = useState<AttributeDef[]>([])
@@ -54,7 +55,10 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
   const [isCoarse, setIsCoarse] = useState(false)
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
   // Keep a live copy of labelIds so new labels appear instantly
-  const [liveLabelIds, setLiveLabelIds] = useState<string[]>([...todo.labelIds])
+  const [liveLabelIds, setLiveLabelIds] = useState<string[]>(() => {
+    console.log('[TodoCard v0.0.52] Init todo:', todo.title, 'labelIds:', todo.labelIds, 'labels prop:', labels.map(l => `${l.id}:${l.name}`))
+    return [...todo.labelIds]
+  })
   // Keep a live copy of blocked status for instant flag color
   const [liveBlocked, setLiveBlocked] = useState(todo.blocked || false)
   // Keep a live copy of shared status for instant privacy toggle
@@ -411,7 +415,10 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
       >
         {liveLabelIds.map((id) => {
           const l = localLabelsById[id] || liveLabels.find((x) => x.id === id)
-          if (!l) return null
+          if (!l) {
+            console.warn('[TodoCard v0.0.52] Label not found for ID:', id, 'Available labels:', Object.keys(localLabelsById), 'liveLabelIds:', liveLabelIds)
+            return null
+          }
           return (
             <button
               key={id}
@@ -653,78 +660,26 @@ export default function TodoCard({ todo, labels, onToggle, onUpdate, onDelete, o
       )}
 
       {assigneePickerOpen && (
-        <div className="mt-2 w-full max-w-full rounded-md border bg-white p-3 shadow-card overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs font-semibold text-gray-700">Assign User</div>
-            <div className="flex items-center gap-1">
-              {(todo.assigneeIds || []).length > 0 && (
-                <button
-                  className={clsx(
-                    "p-1.5 w-7 h-7 flex items-center justify-center rounded-lg border transition-all hover:scale-105",
-                    "border-gray-200 text-gray-800 bg-white hover:bg-red-50 hover:border-red-400 hover:text-red-600"
-                  )}
-                  title="Clear assignee"
-                  onClick={async () => {
-                    await mutateTodo(todo.id, { assigneeIds: [] })
-                    if (onLabelsChange) await onLabelsChange()
-                  }}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              )}
-              <CloseButton onClick={() => setAssigneePickerOpen(false)} />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              className="input text-xs py-1 flex-1"
-              placeholder="@username"
-              value={assigneeInput}
-              onChange={(e) => setAssigneeInput(e.target.value)}
-              disabled={(todo.assigneeIds || []).length > 0}
-              onKeyDown={async (e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  const raw = assigneeInput.trim().replace(/^@/, '')
-                  if (!raw) return
-                  const u = uniqueUsers.find((x) => x.name?.toLowerCase().includes(raw.toLowerCase()))
-                  if (!u) return
-                  const next = [u.id]
-                  await mutateTodo(todo.id, { assigneeIds: next })
-                  setAssigneeInput('')
-                  if (onLabelsChange) await onLabelsChange()
-                }
-              }}
-            />
-          </div>
-          {/* Assignee suggestions - shown while typing */}
-          {assigneeInput.trim() && (
-            <div className="mt-2 max-h-40 overflow-y-auto border-t pt-2">
-              <div className="mb-1 text-xs text-gray-500">Available users</div>
-              {uniqueUsers
-                .filter((u) => !(todo.assigneeIds || []).includes(u.id))
-                .filter((u) => u.name?.toLowerCase().includes(assigneeInput.trim().replace(/^@/, '').toLowerCase()))
-                .slice(0, 8)
-                .map((u) => (
-                  <button
-                    key={u.id}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-gray-50"
-                    onClick={async () => {
-                      const next = [u.id]
-                      await mutateTodo(todo.id, { assigneeIds: next })
-                      setAssigneeInput('')
-                      if (onLabelsChange) await onLabelsChange()
-                    }}
-                  >
-                    {u.name || 'User'}
-                  </button>
-                ))}
-            </div>
-          )}
-          {/* Current assignee section removed; use clear button above for compactness */}
-        </div>
+        <AssigneeSelector
+          users={uniqueUsers}
+          assignedIds={todo.assigneeIds || []}
+          onAssign={async (userId) => {
+            const next = [...(todo.assigneeIds || []), userId]
+            await mutateTodo(todo.id, { assigneeIds: next })
+            if (onLabelsChange) await onLabelsChange()
+          }}
+          onUnassign={async (userId) => {
+            const next = (todo.assigneeIds || []).filter(id => id !== userId)
+            await mutateTodo(todo.id, { assigneeIds: next })
+            if (onLabelsChange) await onLabelsChange()
+          }}
+          onClearAll={async () => {
+            await mutateTodo(todo.id, { assigneeIds: [] })
+            if (onLabelsChange) await onLabelsChange()
+          }}
+          onClose={() => setAssigneePickerOpen(false)}
+          isShared={todo.shared !== false}
+        />
       )}
 
       {/* Old separate time picker removed; merged into scheduleOpen */}

@@ -34,12 +34,13 @@ export function tasksRouter() {
 
   // POST /api/tasks → create task
   router.post('/', (req: AuthedRequest, res: Response) => {
-    const { title, completed, workflow, workflowStage, assigned_to, labels, attributes, clientId, shared } = req.body as {
+    const { title, completed, workflow, workflowStage, assigned_to, assigneeIds, labels, attributes, clientId, shared } = req.body as {
       title: string
       completed?: boolean
       workflow?: string | null
       workflowStage?: string | null
-      assigned_to?: number
+      assigned_to?: number  // DEPRECATED
+      assigneeIds?: number[] | string  // NEW: array or JSON string
       labels?: string
       attributes?: string
       clientId?: string
@@ -49,12 +50,30 @@ export function tasksRouter() {
     const created_by = req.user!.id
     // Default shared to 1 (true)
     const sharedValue = shared !== undefined ? (shared ? 1 : 0) : 1
-    const info = db.prepare('INSERT INTO tasks (title, completed, workflow, workflowStage, created_by, assigned_to, labels, attributes, client_id, shared) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .run(title, completed ? 1 : 0, workflow || null, workflowStage || null, created_by, assigned_to || null, labels || null, attributes || null, clientId || null, sharedValue)
+
+    // Handle assigneeIds: convert array to JSON string
+    let assigneeIdsJson: string | null = null
+    if (assigneeIds) {
+      assigneeIdsJson = typeof assigneeIds === 'string' ? assigneeIds : JSON.stringify(assigneeIds)
+    } else if (assigned_to) {
+      // Backwards compatibility: convert single assigned_to to array
+      assigneeIdsJson = JSON.stringify([assigned_to])
+    }
+
+    const info = db.prepare('INSERT INTO tasks (title, completed, workflow, workflowStage, created_by, assigned_to, assigneeIds, labels, attributes, client_id, shared) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(title, completed ? 1 : 0, workflow || null, workflowStage || null, created_by, assigned_to || null, assigneeIdsJson, labels || null, attributes || null, clientId || null, sharedValue)
     const item = db.prepare('SELECT * FROM tasks WHERE id = ?').get(info.lastInsertRowid) as TaskRow
-    // Notify creator and assignee (if any)
+
+    // Notify creator and ALL assignees
     const targets = [item.created_by]
-    if (item.assigned_to) targets.push(item.assigned_to)
+    if (item.assigneeIds) {
+      try {
+        const ids = JSON.parse(item.assigneeIds) as number[]
+        targets.push(...ids)
+      } catch {}
+    } else if (item.assigned_to) {
+      targets.push(item.assigned_to)
+    }
     broadcastToUsers(targets, 'task.created', { item })
     return res.json({ item })
   })
@@ -77,7 +96,7 @@ export function tasksRouter() {
       return res.status(403).json({ error: 'forbidden' })
     }
 
-    const { title, completed, workflow, workflowStage, assigned_to, labels, attributes, clientId, shared } = req.body
+    const { title, completed, workflow, workflowStage, assigned_to, assigneeIds, labels, attributes, clientId, shared } = req.body
 
     // Only owner can change 'shared' field
     if (shared !== undefined && t.created_by !== userId) {
@@ -90,7 +109,22 @@ export function tasksRouter() {
     if (completed !== undefined) { updates.push('completed = ?'); values.push(completed ? 1 : 0) }
     if (workflow !== undefined) { updates.push('workflow = ?'); values.push(workflow) }
     if (workflowStage !== undefined) { updates.push('workflowStage = ?'); values.push(workflowStage) }
-    if (assigned_to !== undefined) { updates.push('assigned_to = ?'); values.push(assigned_to) }
+
+    // Handle assigneeIds update
+    if (assigneeIds !== undefined) {
+      const assigneeIdsJson = typeof assigneeIds === 'string' ? assigneeIds : JSON.stringify(assigneeIds)
+      updates.push('assigneeIds = ?')
+      values.push(assigneeIdsJson)
+    } else if (assigned_to !== undefined) {
+      // Backwards compatibility: convert single assigned_to to array
+      updates.push('assigned_to = ?')
+      values.push(assigned_to)
+      if (assigned_to !== null) {
+        updates.push('assigneeIds = ?')
+        values.push(JSON.stringify([assigned_to]))
+      }
+    }
+
     if (labels !== undefined) { updates.push('labels = ?'); values.push(labels) }
     if (attributes !== undefined) { updates.push('attributes = ?'); values.push(attributes) }
     if (clientId !== undefined) { updates.push('client_id = ?'); values.push(clientId) }
@@ -99,8 +133,27 @@ export function tasksRouter() {
     values.push(id)
     db.prepare(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`).run(...values)
     const item = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as TaskRow
+
+    // Notify creator and ALL assignees (both old and new)
     const targets = [item.created_by]
-    if (item.assigned_to) targets.push(item.assigned_to)
+    if (item.assigneeIds) {
+      try {
+        const ids = JSON.parse(item.assigneeIds) as number[]
+        targets.push(...ids)
+      } catch {}
+    } else if (item.assigned_to) {
+      targets.push(item.assigned_to)
+    }
+    // Also notify previous assignees if changed
+    if (t.assigneeIds && t.assigneeIds !== item.assigneeIds) {
+      try {
+        const oldIds = JSON.parse(t.assigneeIds) as number[]
+        targets.push(...oldIds)
+      } catch {}
+    } else if (t.assigned_to && t.assigned_to !== item.assigned_to) {
+      targets.push(t.assigned_to)
+    }
+
     broadcastToUsers(targets, 'task.updated', { item })
     return res.json({ item })
   })
@@ -122,8 +175,18 @@ export function tasksRouter() {
       return res.status(403).json({ error: 'forbidden' })
     }
     db.prepare('DELETE FROM tasks WHERE id = ?').run(id)
+
+    // Notify creator and ALL assignees
     const targets = [t.created_by]
-    if (t.assigned_to) targets.push(t.assigned_to)
+    if (t.assigneeIds) {
+      try {
+        const ids = JSON.parse(t.assigneeIds) as number[]
+        targets.push(...ids)
+      } catch {}
+    } else if (t.assigned_to) {
+      targets.push(t.assigned_to)
+    }
+
     broadcastToUsers(targets, 'task.deleted', { id: Number(id) })
     return res.json({ ok: true })
   })

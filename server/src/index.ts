@@ -79,6 +79,17 @@ app.use('/api/labels', requireAuth(JWT_SECRET), labelsRouter())
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
 app.use('/api/notes', requireAuth(JWT_SECRET), notesRouter())
 
+// Users endpoint - returns all users in the workspace/family
+app.get('/api/users', requireAuth(JWT_SECRET), (req: any, res) => {
+  try {
+    const users = db.prepare('SELECT id, username, email, role FROM users ORDER BY username').all()
+    return res.json({ items: users })
+  } catch (err) {
+    logger.error('users:list_failed', { err: String(err) })
+    return res.status(500).json({ error: 'users_list_failed' })
+  }
+})
+
 // Import and counters endpoints
 app.use('/api/import', requireAuth(JWT_SECRET), require2FA(), importRouter())
 app.use('/api/counters', requireAuth(JWT_SECRET), require2FA(), countersRouter())
