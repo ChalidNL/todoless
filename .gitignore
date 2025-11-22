@@ -91,9 +91,8 @@ public/changes/
 instruction.md
 
 # Local-only batch scripts (dev/test only, not for production)
-boot-todoless.bat
-start-todoless-local.bat
-reset-todoless.bat
+# Ignore all bat files in local
+local/*.bat
 
 # Archive (do not push - review before removal)
 # package-lock.json (analyze and clean up, archive for review)
