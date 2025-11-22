@@ -5,7 +5,7 @@
  * Update this file to change the version across the entire app.
  */
 
-export const VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0';
+export const VERSION = '0.0.53';
 
 /**
  * Detect if running in test/development environment based on runtime URL
@@ -30,7 +30,6 @@ export function isTestOrDevEnvironment(): boolean {
   ) {
     return true;
   }
-
   // All other domains are considered production
   return false;
 }
