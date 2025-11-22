@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import ManagementHeader from '../components/ManagementHeader'
 import { useRealtime } from '../store/realtime'
+import SyncStatus from '../components/SyncStatus'
 
 interface LogEntry {
   t: string // ISO timestamp
@@ -84,36 +85,45 @@ export default function Logs() {
         showCreate={false}
         showSearch={false}
       />
-      <div className="p-4 border-b bg-white flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <span className={`inline-block w-4 h-4 rounded-full ${statusUI.color}`} title={statusUI.title || ''}></span>
-          <span className="text-sm text-gray-700">Realtime: {statusUI.label}</span>
+      <div className="p-4 border-b bg-white space-y-3">
+        {/* Sync Status Section */}
+        <div className="flex items-center gap-4 pb-3 border-b border-gray-200">
+          <div className="font-medium text-sm text-gray-700">Sync Status:</div>
+          <SyncStatus />
+          <div className="flex items-center gap-2 ml-auto">
+            <span className={`inline-block w-4 h-4 rounded-full ${statusUI.color}`} title={statusUI.title || ''}></span>
+            <span className="text-sm text-gray-700">Realtime: {statusUI.label}</span>
+          </div>
         </div>
-        <label className="inline-flex items-center gap-2 text-sm">
-          Level
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={levelFilter}
-            onChange={(e) => {
-              const v = e.target.value as LogEntry['lvl']
-              setLevelFilter(v)
-              try { localStorage.setItem('logLevelFilter', v) } catch {}
-            }}
-          >
-            <option value="debug">debug (lowest)</option>
-            <option value="info">info</option>
-            <option value="warn">warn</option>
-            <option value="error">error (highest)</option>
-          </select>
-        </label>
-        <label className="inline-flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
-          Auto-scroll
-        </label>
-        <button className="btn text-sm" onClick={handleRefresh} disabled={loading}>
-          {loading ? 'Loading...' : 'Refresh'}
-        </button>
-        <div className="text-sm text-gray-600">{logs.length} entries</div>
+
+        {/* Log Controls */}
+        <div className="flex items-center gap-4">
+          <label className="inline-flex items-center gap-2 text-sm">
+            Level
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={levelFilter}
+              onChange={(e) => {
+                const v = e.target.value as LogEntry['lvl']
+                setLevelFilter(v)
+                try { localStorage.setItem('logLevelFilter', v) } catch {}
+              }}
+            >
+              <option value="debug">debug (lowest)</option>
+              <option value="info">info</option>
+              <option value="warn">warn</option>
+              <option value="error">error (highest)</option>
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={autoScroll} onChange={(e) => setAutoScroll(e.target.checked)} />
+            Auto-scroll
+          </label>
+          <button className="btn text-sm" onClick={handleRefresh} disabled={loading}>
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+          <div className="text-sm text-gray-600">{logs.length} entries</div>
+        </div>
       </div>
       <div id="logs-container" className="flex-1 overflow-y-auto p-4 font-mono text-xs bg-gray-900 text-gray-100">
         {logs.length === 0 ? (

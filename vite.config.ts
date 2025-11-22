@@ -13,6 +13,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Allow access from network
     port: 5174,
+    strictPort: false, // Auto-retry with next available port if 5174 is in use
     proxy: {
       '/api': {
         target: 'http://localhost:4000',

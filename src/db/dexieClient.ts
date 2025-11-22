@@ -698,7 +698,7 @@ export const SavedFilters = {
           id: 'all',
           name: 'All',
           slug: 'all',
-          icon: '⭐',
+          icon: '📋',
           labelFilterIds: [],
           attributeFilters: {},
           sortBy: 'created',
@@ -709,9 +709,9 @@ export const SavedFilters = {
           isDefault: true,
         })
       } else {
-        // Ensure isDefault and slug are set
-        if (!allFilter.isDefault || !allFilter.slug) {
-          await db.savedFilters.update('all', { isDefault: true, icon: '⭐', slug: 'all' })
+        // Ensure isDefault and slug are set, and update icon for visual consistency
+        if (!allFilter.isDefault || !allFilter.slug || allFilter.icon === '⭐') {
+          await db.savedFilters.update('all', { isDefault: true, icon: '📋', slug: 'all' })
         }
       }
 
@@ -722,7 +722,7 @@ export const SavedFilters = {
           id: 'backlog',
           name: 'Backlog',
           slug: 'backlog',
-          icon: '⭐',
+          icon: '📦',
           labelFilterIds: [],
           attributeFilters: { workflowStage: 'Backlog' },
           sortBy: 'created',
@@ -733,9 +733,9 @@ export const SavedFilters = {
           isDefault: true,
         })
       } else {
-        // Ensure isDefault and slug are set
-        if (!backlogFilter.isDefault || !backlogFilter.slug) {
-          await db.savedFilters.update('backlog', { isDefault: true, icon: '⭐', slug: 'backlog' })
+        // Ensure isDefault and slug are set, and update icon for visual consistency
+        if (!backlogFilter.isDefault || !backlogFilter.slug || backlogFilter.icon === '⭐') {
+          await db.savedFilters.update('backlog', { isDefault: true, icon: '📦', slug: 'backlog' })
         }
       }
     } catch (e) {

@@ -82,7 +82,29 @@ export default function App() {
         console.log('No duplicate, proceeding to create...')
         setIsDuplicate(false)
 
-        const labelIds: string[] = [...parsed.labelIds]
+        // Auto-inherit filter settings if on a filter page
+        const { SavedFilters } = await import('./db/dexieClient')
+        const currentPath = location.pathname
+        const filterMatch = currentPath.match(/^\/filter\/(.+)/)
+        let inheritedLabelIds: string[] = []
+        let inheritedAssigneeIds: string[] = []
+
+        if (filterMatch) {
+          const filterId = filterMatch[1]
+          const activeFilter = await SavedFilters.get(filterId)
+          if (activeFilter && !activeFilter.isSystem) {
+            // Inherit label filters
+            if (activeFilter.labelFilterIds && activeFilter.labelFilterIds.length > 0) {
+              inheritedLabelIds = [...activeFilter.labelFilterIds]
+            }
+            // Inherit assignee filters
+            if (activeFilter.attributeFilters?.assignees) {
+              inheritedAssigneeIds = activeFilter.attributeFilters.assignees.split(',').filter(Boolean)
+            }
+          }
+        }
+
+        const labelIds: string[] = [...parsed.labelIds, ...inheritedLabelIds]
         if (parsed.missingLabels && parsed.missingLabels.length) {
           for (const name of parsed.missingLabels) {
             // Check if label already exists (case-insensitive)
@@ -102,7 +124,9 @@ export default function App() {
             const u = users.find((x) => x.name?.toLowerCase() === name.toLowerCase())
             if (u) mapped.push(u.id)
           })
-          if (mapped.length) assigneeIds = mapped
+          if (mapped.length) assigneeIds = [...mapped, ...inheritedAssigneeIds]
+        } else if (inheritedAssigneeIds.length > 0) {
+          assigneeIds = inheritedAssigneeIds
         }
         let workflowId: string | undefined
         let workflowStage: string | undefined
@@ -137,7 +161,6 @@ export default function App() {
         localStorage.setItem('globalQuery', '')
         window.dispatchEvent(new CustomEvent('global-search', { detail: '' }))
         // Only navigate if not already on a task list page (Google Keep style: add and stay)
-        const currentPath = location.pathname
         if (!currentPath.startsWith('/filter/') && !currentPath.startsWith('/lists/') && currentPath !== '/') {
           navigate('/filter/all')
         }

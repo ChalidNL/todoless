@@ -89,3 +89,15 @@ public/changes/
 
 # Ignore local instructions and bugs
 instruction.md
+
+# Local-only batch scripts (dev/test only, not for production)
+boot-todoless.bat
+start-todoless-local.bat
+reset-todoless.bat
+
+# Archive (do not push - review before removal)
+# package-lock.json (analyze and clean up, archive for review)
+# nginx.conf (review if needed for production deployment)
+
+# Temporary files
+nul

@@ -7,7 +7,7 @@ import { logger } from './logger'
 // In development, Vite proxies /api to backend. In production, nginx proxies /api.
 // So we always use same-origin (empty string = relative URLs)
 const API = ''
-const MERGE_WINDOW_MS = 15000 // time window to correlate local-unsynced and server-created tasks
+const MERGE_WINDOW_MS = 60000 // time window to correlate local-unsynced and server-created tasks (60s for better cross-device sync)
 
 let labelMigrationDone = false
 
@@ -263,7 +263,10 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
     await dedupeLocalTitles()
 
     logger.info('sync:tasks+labels+users', { tasks: serverTasks.length, labels: (labelItems || []).length, users: (userItems || []).length })
-    try { useSync.getState().setPhase('done') } catch {}
+    try {
+      useSync.getState().setPhase('done')
+      useSync.getState().setLastSyncAt(Date.now())
+    } catch {}
   } catch (e) {
     logger.error('sync:tasks:failed', { error: String(e) })
     // Keep phase as idle to allow retry later
@@ -347,6 +350,15 @@ export async function deleteTodoFromServer(serverId: number): Promise<boolean> {
 }
 
 let es: EventSource | null = null
+let reconnectTimer: any = null
+const MIN_RECONNECT_DELAY = 1000 // 1s
+const MAX_RECONNECT_DELAY = 30000 // 30s
+
+function calculateReconnectDelay(attempt: number): number {
+  // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (capped)
+  const delay = Math.min(MIN_RECONNECT_DELAY * Math.pow(2, attempt), MAX_RECONNECT_DELAY)
+  return delay
+}
 
 /**
  * Push any locally created todos that haven't been assigned a serverId yet.
@@ -419,6 +431,12 @@ async function syncLabelsFromServer() {
 export function startRealtimeSync(currentUser: ServerUser) {
   if (es) return
   try {
+    // Clear any pending reconnection timer
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+
     // Set UI status: connecting
     try { useRealtime.getState().setStatus('connecting') } catch {}
     // Use withCredentials so cookies are sent for auth
@@ -426,6 +444,7 @@ export function startRealtimeSync(currentUser: ServerUser) {
     es = new EventSource(`${API}/api/events`, { withCredentials: true } as any)
     es.onopen = () => {
       try { useRealtime.getState().setStatus('connected') } catch {}
+      logger.info('sse:connected', {})
     }
     es.addEventListener('hello', () => {
       try { useRealtime.getState().setStatus('connected') } catch {}
@@ -479,9 +498,29 @@ export function startRealtimeSync(currentUser: ServerUser) {
     es.onerror = (e: any) => {
       // Mark as error but keep connection (browser will retry)
       try { useRealtime.getState().setStatus('error', e?.message || 'connection error') } catch {}
+      logger.warn('sse:error', { error: e?.message || 'unknown' })
+
       if (es && (es as any).readyState === 2 /* CLOSED */) {
-        // Closed; set disconnected
+        // Connection closed; set disconnected and schedule reconnect with backoff
         try { useRealtime.getState().setStatus('disconnected') } catch {}
+        es = null
+
+        // Schedule reconnection with exponential backoff
+        const attempt = useRealtime.getState().reconnectAttempt
+        const delay = calculateReconnectDelay(attempt)
+        const nextReconnectAt = Date.now() + delay
+
+        try {
+          useRealtime.getState().incrementReconnect()
+          useRealtime.getState().setNextReconnectAt(nextReconnectAt)
+        } catch {}
+
+        logger.info('sse:schedule_reconnect', { attempt, delay, nextReconnectAt })
+
+        reconnectTimer = setTimeout(() => {
+          logger.info('sse:attempting_reconnect', { attempt: attempt + 1 })
+          startRealtimeSync(currentUser)
+        }, delay)
       }
     }
   } catch (e) {
@@ -493,7 +532,11 @@ export function startRealtimeSync(currentUser: ServerUser) {
 export function stopRealtimeSync() {
   try { es?.close() } catch {}
   es = null
-  try { useRealtime.getState().setStatus('disconnected') } catch {}
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  try { useRealtime.getState().reset() } catch {}
 }
 
 async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
@@ -537,6 +580,55 @@ async function applyServerTask(item: ServerTask, currentUser: ServerUser) {
     serverId: item.id,
   }
   if (existing) {
+    // Detect potential conflicts: local changes that differ from server
+    let hasConflict = false
+    const conflicts: string[] = []
+
+    if (existing.title !== patch.title && existing.updatedAt && item.created_at) {
+      const localUpdate = new Date(existing.updatedAt).getTime()
+      const serverUpdate = new Date(item.created_at).getTime()
+      if (localUpdate > serverUpdate) {
+        hasConflict = true
+        conflicts.push('title')
+      }
+    }
+
+    if (existing.completed !== patch.completed && existing.updatedAt) {
+      hasConflict = true
+      conflicts.push('completed')
+    }
+
+    if (hasConflict) {
+      // Log conflict for debugging
+      logger.warn('sync:conflict_detected', {
+        todoId: existing.id,
+        serverId: item.id,
+        conflicts,
+        localTitle: existing.title,
+        serverTitle: patch.title,
+      })
+
+      // Store conflict info for user review
+      try {
+        useSync.getState().addConflict({
+          todoId: existing.id,
+          localVersion: {
+            title: existing.title,
+            completed: existing.completed,
+            updatedAt: existing.updatedAt,
+          },
+          serverVersion: {
+            title: patch.title,
+            completed: patch.completed,
+          },
+          timestamp: Date.now(),
+        })
+      } catch {}
+
+      // For now, apply server version (last-write-wins from server)
+      // Future enhancement: show conflict resolution UI
+    }
+
     await db.todos.update(existing.id, patch)
     // Trigger UI update events for real-time sync
     import('../db/dexieClient').then(({ todoBus }) => {

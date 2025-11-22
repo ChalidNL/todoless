@@ -64,8 +64,8 @@ export default function LabelsManagement() {
   }
 
   const getUsedInCount = (labelId: string) => {
-    const filteredTodos = apply(todos)
-    return filteredTodos.filter((t) => t.labelIds?.includes(labelId)).length
+    // Count ALL todos with this label, ignoring any active filters
+    return todos.filter((t) => t.labelIds?.includes(labelId)).length
   }
 
   const handleDelete = async (id: string) => {
