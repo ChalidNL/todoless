@@ -1,3 +1,7 @@
+# Documentation (except README)
+*.md
+!README.md
+!agentic/developments.md
 /.claude
 # Development changelogs/history
 # (hidden for end users, only for dev/test)
