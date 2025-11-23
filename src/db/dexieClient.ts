@@ -641,13 +641,32 @@ export const SavedFilters = {
     return id
   },
   remove: (id: string) => db.savedFilters.delete(id),
-  ensureMeFilter: async () => {
+  ensureMeFilter: async (authUserId?: string | number) => {
     try {
       const me = await db.savedFilters.get('me')
-      // Determine current user id (first user or fallback)
-      const users = await db.users.toArray()
-      const currentUserId = users[0]?.id || 'local-user'
+      // HOTFIX 0.0.55: Prefer authenticated user ID over local DB lookup
+      // This fixes @me filter not working in production when user IDs differ
+      let currentUserId: string
+      if (authUserId !== undefined) {
+        currentUserId = String(authUserId)
+      } else {
+        // Fallback: try local DB (for offline/pre-auth scenarios)
+        const users = await db.users.toArray()
+        currentUserId = users[0]?.id || 'local-user'
+      }
+
       if (!me) {
+        // HOTFIX 0.0.55 v2: Use EXACT same structure as regular filters
+        // Store filter config as JSON in filters field, just like user-created filters
+        const filterConfig = {
+          selectedLabelIds: [],
+          selectedWorkflowIds: [],
+          selectedAssigneeIds: [currentUserId], // Array format, same as other filters
+          blockedOnly: false,
+          dueStart: null,
+          dueEnd: null,
+        }
+
         const filter: SavedFilter = {
           id: 'me',
           name: '@me',
@@ -655,12 +674,8 @@ export const SavedFilters = {
           icon: '🙋',
           labelFilterIds: [],
           attributeFilters: {
-            assignees: currentUserId,
+            filters: JSON.stringify(filterConfig),
             sort: 'created',
-            blockedOnly: '0',
-            workflows: '',
-            dueStart: '',
-            dueEnd: '',
           },
           sortBy: 'created',
           viewMode: 'list',
@@ -670,16 +685,68 @@ export const SavedFilters = {
         }
         await db.savedFilters.put(filter)
       } else {
-        // Keep user binding updated if empty
-        if (!me.userId) {
-          await db.savedFilters.update('me', { userId: currentUserId })
+        // HOTFIX 0.0.55 v2: Always update to use standard filter format
+        const updates: Partial<SavedFilter> = {}
+
+        if (!me.userId || me.userId !== currentUserId) {
+          updates.userId = currentUserId
         }
         if (me.isSystem !== true) {
-          await db.savedFilters.update('me', { isSystem: true })
+          updates.isSystem = true
         }
-        // Ensure slug is set (for existing filters created before v0.0.53)
         if (!me.slug) {
-          await db.savedFilters.update('me', { slug: 'me' })
+          updates.slug = 'me'
+        }
+
+        // Migrate to new format: use filters JSON with selectedAssigneeIds array
+        try {
+          const raw = me.attributeFilters?.filters
+          let needsUpdate = false
+
+          if (!raw) {
+            // Old format detected, migrate to new format
+            needsUpdate = true
+          } else {
+            // Check if current user is in the filter
+            const parsed = JSON.parse(raw)
+            const assignees = parsed.selectedAssigneeIds || []
+            if (!Array.isArray(assignees) || !assignees.includes(currentUserId)) {
+              needsUpdate = true
+            }
+          }
+
+          if (needsUpdate) {
+            const filterConfig = {
+              selectedLabelIds: [],
+              selectedWorkflowIds: [],
+              selectedAssigneeIds: [currentUserId],
+              blockedOnly: false,
+              dueStart: null,
+              dueEnd: null,
+            }
+            updates.attributeFilters = {
+              filters: JSON.stringify(filterConfig),
+              sort: 'created',
+            }
+          }
+        } catch {
+          // Invalid JSON, reset to standard format
+          const filterConfig = {
+            selectedLabelIds: [],
+            selectedWorkflowIds: [],
+            selectedAssigneeIds: [currentUserId],
+            blockedOnly: false,
+            dueStart: null,
+            dueEnd: null,
+          }
+          updates.attributeFilters = {
+            filters: JSON.stringify(filterConfig),
+            sort: 'created',
+          }
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await db.savedFilters.update('me', updates)
         }
       }
     } catch (e) {

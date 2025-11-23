@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { SavedFilters, Todos, Users } from '../db/dexieClient'
+import { SavedFilters, Todos } from '../db/dexieClient'
 import type { SavedFilter as SF, Todo } from '../db/schema'
 import { parseDueToDate } from '../utils/date'
 import TodoCard from '../components/TodoCard'
@@ -12,6 +12,7 @@ import WorkflowKanban from '../components/WorkflowKanban'
 import { Workflows } from '../db/dexieClient'
 import type { Workflow } from '../db/schema'
 import useLabels from '../hooks/useLabels'
+import { useAuth } from '../store/auth'
 
 const VIEW_TITLES: Record<string, string> = {
   all: 'All',
@@ -24,11 +25,15 @@ export default function SavedFilter() {
   const { todos: globalFilteredTodos, reload: reloadTodos } = useFilteredTodos()
   const { labels, reloadLabels } = useLabels()
   const { mode } = useViewMode()
+  const { user: authUser } = useAuth()
   const [title, setTitle] = useState(filterId ? VIEW_TITLES[filterId] ?? filterId : 'Saved Filter')
   const [saved, setSaved] = useState<SF | null>(null)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string>('local-user')
   const [, setForceUpdate] = useState(0)
+
+  // HOTFIX 0.0.55: Use authenticated user ID from auth store instead of local IndexedDB
+  // This ensures @me filter works correctly in production where user IDs may differ
+  const currentUserId = authUser?.id ? String(authUser.id) : 'local-user'
 
   const reloadWorkflows = async () => {
     const ws = await Workflows.list()
@@ -37,12 +42,6 @@ export default function SavedFilter() {
 
   useEffect(() => {
     reloadWorkflows()
-    // Load current user ID
-    ;(async () => {
-      const users = await Users.list()
-      const userId = users[0]?.id || 'local-user'
-      setCurrentUserId(userId)
-    })()
   }, [])
 
   useEffect(() => {
@@ -50,7 +49,8 @@ export default function SavedFilter() {
     ;(async () => {
       if (!filterId) return
       if (filterId === 'me') {
-        try { await SavedFilters.ensureMeFilter?.() } catch {}
+        // HOTFIX 0.0.55: Pass authenticated user ID to ensure @me filter is correct
+        try { await SavedFilters.ensureMeFilter?.(authUser?.id) } catch {}
       }
       // Try to load a custom saved filter by slug first, then by ID
       let v = await SavedFilters.getBySlug(filterId)
@@ -70,7 +70,7 @@ export default function SavedFilter() {
       setForceUpdate(prev => prev + 1)
     })()
     return () => { active = false }
-  }, [filterId, reloadTodos])
+  }, [filterId, reloadTodos, authUser?.id])
 
   let filtered = globalFilteredTodos
   if (saved) {
@@ -89,17 +89,12 @@ export default function SavedFilter() {
           dueStart: af.dueStart || null,
           dueEnd: af.dueEnd || null,
           workflowStage: af.workflowStage || null,
-          assignedToMe: af.assignedToMe === true || af.assignedToMe === 'true',
         }
-        console.log('[SavedFilter v0.0.53] Parsed filters for filter:', saved.name, 'filters:', f)
+        console.log('[SavedFilter v0.0.55 HOTFIX] Parsed filters for filter:', saved.name, 'filters:', f)
       }
 
-      // Handle "assigned to me" filter
-      if (f.assignedToMe) {
-        filtered = filtered.filter((t: Todo) =>
-          Array.isArray(t.assigneeIds) && t.assigneeIds.includes(currentUserId)
-        )
-      }
+      // HOTFIX 0.0.55 v2: Removed special assignedToMe logic
+      // Now @me filter uses standard selectedAssigneeIds array, same as all other filters
 
       // Apply the same shape as global filters without mutating global state
       if (Array.isArray(f.selectedLabelIds) && f.selectedLabelIds.length > 0) {
@@ -109,16 +104,16 @@ export default function SavedFilter() {
         filtered = filtered.filter((t: Todo) => t.workflowId && f.selectedWorkflowIds.includes(t.workflowId))
       }
       if (Array.isArray(f.selectedAssigneeIds) && f.selectedAssigneeIds.length > 0) {
-        console.log('[SavedFilter v0.0.53] Filtering by assignees:', f.selectedAssigneeIds)
+        console.log('[SavedFilter v0.0.55 HOTFIX] Filtering by assignees:', f.selectedAssigneeIds, 'for filter:', saved.name)
         const before = filtered.length
         filtered = filtered.filter((t: Todo) => {
           const matches = (t.assigneeIds || []).some((id: string) => f.selectedAssigneeIds.includes(id))
-          if (matches) {
-            console.log('[SavedFilter v0.0.53] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
+          if (matches && saved.slug === 'me') {
+            console.log('[SavedFilter v0.0.55 HOTFIX @me] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
           }
           return matches
         })
-        console.log('[SavedFilter v0.0.53] Assignee filter result:', filtered.length, 'of', before, 'todos')
+        console.log('[SavedFilter v0.0.55 HOTFIX] Assignee filter result:', filtered.length, 'of', before, 'todos for filter:', saved.name)
       }
       if (f.blockedOnly) {
         filtered = filtered.filter((t: Todo) => t.blocked)

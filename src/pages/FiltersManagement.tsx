@@ -4,6 +4,7 @@ import { SavedFilters, Labels, Workflows, Users } from '../db/dexieClient'
 import type { SavedFilter, Label, Workflow, User } from '../db/schema'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
 import ManagementHeader from '../components/ManagementHeader'
+import { useAuth } from '../store/auth'
 
 const iconOptions = [
   // General
@@ -20,6 +21,7 @@ const iconOptions = [
 ]
 
 export default function FiltersManagement() {
+  const { user: authUser } = useAuth()
   const [filters, setFilters] = useState<SavedFilter[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<Partial<SavedFilter>>({})
@@ -32,7 +34,8 @@ export default function FiltersManagement() {
   const [users, setUsers] = useState<User[]>([])
 
   const loadFilters = async () => {
-    await SavedFilters.ensureMeFilter()
+    // HOTFIX 0.0.55: Pass authenticated user ID
+    await SavedFilters.ensureMeFilter(authUser?.id)
     const all = await SavedFilters.list()
     setFilters(all)
   }

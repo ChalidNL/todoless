@@ -36,7 +36,13 @@
 ## Version: 0.0.55 (Upcoming)
 
 ### Hotfix
-- [x] `@me` filter works on test but fails in production: Fixed by using authenticated user ID from auth store instead of local IndexedDB lookup. Updated SavedFilter.tsx, FiltersManagement.tsx, Sidebar.tsx, and dexieClient.ts ensureMeFilter() to accept and use authUserId parameter. **HOTFIX 0.0.55 - FIXED**
+- [x] `@me` filter works on test but fails in production: **RESOLVED v2** - Completely refactored @me filter to use EXACT same structure as regular filters. Now stores filter config as JSON with selectedAssigneeIds array (same format as user-created filters). Removed all special-case assignedToMe logic. The @me filter now uses the standard assignee filter code path (lines 106-117 in SavedFilter.tsx). Auto-migrates old format filters to new format. Added detailed logging for debugging. **HOTFIX 0.0.55 - FIXED v2**
+
+#### Changes Made (v2)
+- [x] dexieClient.ts ensureMeFilter(): Now creates filter with `attributeFilters.filters = JSON.stringify({ selectedAssigneeIds: [currentUserId], ... })` - exact same format as regular filters
+- [x] SavedFilter.tsx: Removed special assignedToMe handling (lines 97-98), @me now flows through standard selectedAssigneeIds filter logic
+- [x] Added migration logic: Automatically converts old @me filters to new standard format
+- [x] Enhanced logging: Console logs show filter name and matched todos for @me filter debugging
 
 
 ### Major Features

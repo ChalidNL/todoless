@@ -34,7 +34,8 @@ export default function Sidebar({ className }: { className?: string }) {
 
   const loadSaved = async () => {
     try {
-      await SavedFilters.ensureMeFilter()
+      // HOTFIX 0.0.55: Pass authenticated user ID
+      await SavedFilters.ensureMeFilter(user?.id)
       await SavedFilters.ensureDefaultFilters()
       const list = await SavedFilters.list()
       // Sort by name asc
@@ -48,7 +49,7 @@ export default function Sidebar({ className }: { className?: string }) {
     const handler = () => loadSaved()
     window.addEventListener('saved-filters:refresh', handler)
     return () => window.removeEventListener('saved-filters:refresh', handler)
-  }, [])
+  }, [user?.id])
 
   // Simple swipe gestures: swipe right from left edge to expand, swipe left on sidebar to collapse
   useEffect(() => {
