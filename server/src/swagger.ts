@@ -4,7 +4,7 @@ const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
     title: 'TodoLess API',
-    version: '0.0.55',
+    version: '0.0.56',
     description: `Smart todo manager API with labels, workflows, notes, and real-time sync.
 
 **Features:**
