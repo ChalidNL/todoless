@@ -5,7 +5,24 @@ const swaggerDefinition = {
   info: {
     title: 'TodoLess API',
     version: '0.0.55',
-    description: 'Smart todo manager API with labels, workflows, and real-time sync',
+    description: `Smart todo manager API with labels, workflows, notes, and real-time sync.
+
+**Features:**
+- Full CRUD operations for tasks, labels, workflows, notes
+- Export/backup functionality (JSON, CSV, full backup)
+- Real-time sync via Server-Sent Events (tasks, labels, notes)
+- Notes persistence with version tracking and conflict resolution
+- Privacy controls (shared/private items)
+- API token authentication for programmatic access
+- Family workspace support with role-based access
+- Advanced search with complex filters
+
+**Authentication:**
+- Cookie-based JWT tokens for web sessions
+- Bearer token (tdl_...) for API access
+- 2FA support for enhanced security
+
+**Base URL:** Production uses nginx proxy at /api, development uses http://localhost:4000`,
     contact: {
       name: 'TodoLess',
     },
@@ -149,24 +166,187 @@ const swaggerDefinition = {
         type: 'object',
         properties: {
           id: {
+            type: 'integer',
+            description: 'Note ID',
+          },
+          title: {
             type: 'string',
-            description: 'Note UUID',
+            description: 'Note title',
           },
           content: {
             type: 'string',
+            nullable: true,
             description: 'Note content',
           },
-          userId: {
+          labels: {
+            type: 'string',
+            nullable: true,
+            description: 'JSON array of label IDs',
+          },
+          pinned: {
+            type: 'integer',
+            description: 'Whether note is pinned (0 or 1)',
+          },
+          archived: {
+            type: 'integer',
+            description: 'Whether note is archived (0 or 1)',
+          },
+          shared: {
+            type: 'integer',
+            description: 'Whether note is shared (0 or 1)',
+          },
+          owner_id: {
             type: 'integer',
             description: 'User ID who owns this note',
           },
-          createdAt: {
+          created_at: {
             type: 'string',
             format: 'date-time',
           },
-          updatedAt: {
+          updated_at: {
             type: 'string',
             format: 'date-time',
+          },
+          client_id: {
+            type: 'string',
+            nullable: true,
+            description: 'Client-generated ID for deduplication during sync',
+          },
+          version: {
+            type: 'integer',
+            description: 'Version number for conflict resolution',
+          },
+        },
+      },
+      Workflow: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'integer',
+            description: 'Workflow ID',
+          },
+          name: {
+            type: 'string',
+            description: 'Workflow name',
+          },
+          stages: {
+            type: 'string',
+            description: 'JSON array of stage names',
+            example: '["Backlog","Todo","In Progress","Done"]',
+          },
+          checkbox_only: {
+            type: 'integer',
+            description: 'Whether workflow uses checkboxes only (0 or 1)',
+          },
+          owner_id: {
+            type: 'integer',
+            description: 'User ID who owns this workflow',
+          },
+          shared: {
+            type: 'integer',
+            description: 'Whether workflow is shared (0 or 1)',
+          },
+          is_default: {
+            type: 'integer',
+            description: 'Whether this is the default workflow (0 or 1)',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+          },
+        },
+      },
+      SavedFilter: {
+        type: 'object',
+        properties: {
+          id: {
+            type: 'string',
+            description: 'Saved filter ID (client-generated UUID)',
+          },
+          name: {
+            type: 'string',
+            description: 'Filter name',
+          },
+          slug: {
+            type: 'string',
+            description: 'URL-friendly slug',
+          },
+          icon: {
+            type: 'string',
+            nullable: true,
+            description: 'Filter icon (emoji or icon name)',
+          },
+          label_filter_ids: {
+            type: 'string',
+            nullable: true,
+            description: 'JSON array of label IDs',
+          },
+          attribute_filters: {
+            type: 'string',
+            nullable: true,
+            description: 'JSON object of attribute filters',
+          },
+          status_filter: {
+            type: 'string',
+            nullable: true,
+            description: 'Status filter value',
+          },
+          sort_by: {
+            type: 'string',
+            nullable: true,
+            description: 'Sort field',
+          },
+          view_mode: {
+            type: 'string',
+            nullable: true,
+            description: 'View mode (list, tiles, calendar, kanban)',
+          },
+          user_id: {
+            type: 'integer',
+            description: 'User ID who owns this filter',
+          },
+          show_in_sidebar: {
+            type: 'integer',
+            description: 'Whether to show in sidebar (0 or 1)',
+          },
+          is_system: {
+            type: 'integer',
+            description: 'Whether this is a system filter (0 or 1)',
+          },
+          is_default: {
+            type: 'integer',
+            description: 'Whether this is the default filter (0 or 1)',
+          },
+          parent_id: {
+            type: 'string',
+            nullable: true,
+            description: 'Parent filter ID for nested filters',
+          },
+          filter_order: {
+            type: 'integer',
+            nullable: true,
+            description: 'Display order',
+          },
+          created_at: {
+            type: 'string',
+            format: 'date-time',
+          },
+          updated_at: {
+            type: 'string',
+            format: 'date-time',
+          },
+          client_id: {
+            type: 'string',
+            nullable: true,
+            description: 'Client-generated ID for deduplication during sync',
+          },
+          version: {
+            type: 'integer',
+            description: 'Version number for conflict resolution',
           },
         },
       },

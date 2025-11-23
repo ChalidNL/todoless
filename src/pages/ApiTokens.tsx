@@ -217,6 +217,19 @@ export default function ApiTokens() {
                   <p>API tokens allow programmatic access to the TodoLess API. Use them for automation, integrations, and third-party apps.</p>
                   <p className="font-medium">Usage: Include the token in the Authorization header as <code className="bg-blue-100 px-1 rounded">Bearer tdl_...</code></p>
                   <p className="text-xs text-blue-700 mt-2">Note: Tokens bypass 2FA requirements and remain valid until revoked or expired.</p>
+                  <div className="mt-3">
+                    <a
+                      href="/api/docs"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:underline"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h6m0 0v6m0-6L10 20" />
+                      </svg>
+                      Open API Docs
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>

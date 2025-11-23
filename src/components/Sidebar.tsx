@@ -122,7 +122,7 @@ export default function Sidebar({ className }: { className?: string }) {
         </button>
       </div>
       {/* Mobile header with expand/collapse button */}
-      <div className="md:hidden border-b p-2">
+      <div className="md:hidden p-2">
         <button
           className="flex h-9 w-full items-center justify-center gap-2 rounded hover:bg-gray-100 transition-all text-gray-700 font-medium"
           onClick={toggleCollapse}

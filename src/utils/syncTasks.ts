@@ -495,6 +495,31 @@ export function startRealtimeSync(currentUser: ServerUser) {
         try { useRealtime.getState().markEvent() } catch {}
       } catch {}
     })
+    // v0.0.55: Saved filter sync events
+    es.addEventListener('saved-filter.created', async (ev: MessageEvent) => {
+      try {
+        // Trigger a full filter sync from server
+        const { syncFiltersFromServer } = await import('./syncFilters')
+        await syncFiltersFromServer()
+        try { useRealtime.getState().markEvent() } catch {}
+      } catch {}
+    })
+    es.addEventListener('saved-filter.updated', async (ev: MessageEvent) => {
+      try {
+        // Trigger a full filter sync from server
+        const { syncFiltersFromServer } = await import('./syncFilters')
+        await syncFiltersFromServer()
+        try { useRealtime.getState().markEvent() } catch {}
+      } catch {}
+    })
+    es.addEventListener('saved-filter.deleted', async (ev: MessageEvent) => {
+      try {
+        // Trigger a full filter sync from server
+        const { syncFiltersFromServer } = await import('./syncFilters')
+        await syncFiltersFromServer()
+        try { useRealtime.getState().markEvent() } catch {}
+      } catch {}
+    })
     es.onerror = (e: any) => {
       // Mark as error but keep connection (browser will retry)
       try { useRealtime.getState().setStatus('error', e?.message || 'connection error') } catch {}

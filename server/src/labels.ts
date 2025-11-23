@@ -103,7 +103,42 @@ export function labelsRouter() {
     return res.json({ item })
   })
 
-  // PATCH /api/labels/:id → update label (owner only for shared toggle, otherwise allow)
+  /**
+   * @swagger
+   * /api/labels/{id}:
+   *   patch:
+   *     summary: Update a label
+   *     description: Update label name, color, or shared status. Only owner can change shared status.
+   *     tags: [Labels]
+   *     security:
+   *       - cookieAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: Label ID
+   *     requestBody:
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               name:
+   *                 type: string
+   *               color:
+   *                 type: string
+   *               shared:
+   *                 type: boolean
+   *     responses:
+   *       200:
+   *         description: Label updated
+   *       403:
+   *         description: Not owner (when trying to change shared status)
+   *       404:
+   *         description: Label not found
+   */
   router.patch('/:id', (req: AuthedRequest, res: Response) => {
     const { id } = req.params
     const { name, color, shared } = req.body
@@ -131,14 +166,66 @@ export function labelsRouter() {
     return res.json({ item })
   })
 
-  // DELETE /api/labels/:id → delete label
+  /**
+   * @swagger
+   * /api/labels/{id}:
+   *   delete:
+   *     summary: Delete a label
+   *     description: Permanently delete a label
+   *     tags: [Labels]
+   *     security:
+   *       - cookieAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: Label ID
+   *     responses:
+   *       200:
+   *         description: Label deleted
+   */
   router.delete('/:id', (req: Request, res: Response) => {
     const { id } = req.params
     db.prepare('DELETE FROM labels WHERE id = ?').run(id)
     return res.json({ ok: true })
   })
 
-  // PATCH /api/labels/:id/privacy → toggle privacy (owner only)
+  /**
+   * @swagger
+   * /api/labels/{id}/privacy:
+   *   patch:
+   *     summary: Toggle label privacy
+   *     description: Change label shared status and cascade to all tasks/notes with this label (owner only)
+   *     tags: [Labels]
+   *     security:
+   *       - cookieAuth: []
+   *     parameters:
+   *       - in: path
+   *         name: id
+   *         required: true
+   *         schema:
+   *           type: integer
+   *         description: Label ID
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - shared
+   *             properties:
+   *               shared:
+   *                 type: boolean
+   *                 description: New shared status
+   *     responses:
+   *       200:
+   *         description: Privacy updated with cascading
+   *       403:
+   *         description: Not owner
+   */
   router.patch('/:id/privacy', requireLabelOwner(), (req: AuthedRequest, res: Response) => {
     const { shared } = req.body
     const label = req.label!

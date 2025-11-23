@@ -354,6 +354,32 @@ class TodolessDB extends Dexie {
       }
     })
 
+    // v19: v0.0.55 - Add notes sync persistence (serverId, clientId, version)
+    this.version(19).stores({
+      labels: 'id, name, shared, workflowId, userId, ownerId',
+      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
+      users: 'id, name, email, role, ageGroup',
+      workflows: 'id, name, labelIds, checkboxOnly',
+      savedFilters: 'id, name, userId',
+      lists: 'id, name, visibility',
+      attributes: 'id, name, type, defaultValue',
+      points: 'id, userId, todoId, date',
+      settings: 'id',
+      notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared, serverId, clientId, version',
+    }).upgrade(async (tx) => {
+      // Initialize clientId and version for existing notes
+      const notes = await tx.table('notes').toArray()
+      for (const note of notes) {
+        if (!note.clientId) {
+          await tx.table('notes').update(note.id, {
+            clientId: note.id, // Use existing id as clientId for existing notes
+            version: 1, // Initialize version
+          })
+        }
+      }
+      logger.info('dexie:migration:v19', { message: `Initialized sync fields for ${notes.length} notes` })
+    })
+
     this.on('populate', async () => {
       const userId = 'local-user'
       await this.users.add({ id: userId, name: 'You', themeColor: '#0ea5e9' })
@@ -815,6 +841,7 @@ export const Notes = {
   list: () => db.notes.toArray(),
   add: async (n: Omit<Note, 'id' | 'createdAt' | 'updatedAt' | 'userId'> & { userId?: string }) => {
     const id = generateUUID()
+    const clientId = generateUUID() // v0.0.55: Generate clientId for sync tracking
     const now = new Date().toISOString()
     const note: Note = {
       id,
@@ -827,6 +854,8 @@ export const Notes = {
       createdAt: now,
       updatedAt: now,
       userId: n.userId || 'local-user',
+      clientId, // v0.0.55: For deduplication during sync
+      version: 1, // v0.0.55: Initial version for conflict resolution
     }
     await db.notes.add(note)
     try {

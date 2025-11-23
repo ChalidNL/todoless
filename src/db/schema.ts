@@ -131,5 +131,8 @@ export interface Note {
   updatedAt: string
   userId: string
   linkedTodoIds?: string[]
+  serverId?: number // Server note ID for sync
+  clientId?: string // Client-generated correlation ID to avoid duplicates
+  version?: number // Version tracking for conflict resolution
 }
  

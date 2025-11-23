@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { clearLocalData } from '../db/dexieClient'
 import { syncTasksFromServer, startRealtimeSync, stopRealtimeSync, pushPendingTodos } from '../utils/syncTasks'
+import { syncFiltersFromServer } from '../utils/syncFilters'
 
 export type Role = 'adult' | 'child'
 export interface UserInfo { id: number; username: string; email?: string | null; role: Role; twofa_enabled?: boolean }
@@ -88,10 +89,12 @@ export const useAuth = create<AuthState>((set: Setter, get: Getter) => ({
     try {
       const { user } = await api('/api/auth/me')
       set({ user, loading: false, ready: true })
-      // Sync tasks after we know who the user is
+      // Sync tasks and filters after we know who the user is
       if (user) {
         // Pull down server tasks then push any local-only items
         syncTasksFromServer(user).then(() => pushPendingTodos().catch(() => {})).catch(() => {})
+        // v0.0.55: Sync saved filters from server
+        syncFiltersFromServer().catch(() => {})
         startRealtimeSync(user)
       } else {
         stopRealtimeSync()

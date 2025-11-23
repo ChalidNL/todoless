@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useFilterContext } from '../contexts/FilterContext'
 import { useSort } from '../contexts/SortContext'
 import { SavedFilters } from '../db/dexieClient'
+import { pushFilterToServer, updateFilterOnServer } from '../utils/syncFilters'
 
 interface Props {
   onRefresh?: () => void
@@ -73,9 +74,14 @@ export default function SaveFilterButton({ onRefresh }: Props) {
             dueEnd: dueEnd || '',
           },
         })
+        // v0.0.55: Push updated filter to server
+        const updatedFilter = await SavedFilters.get(duplicate.id)
+        if (updatedFilter) {
+          updateFilterOnServer(updatedFilter).catch(() => {})
+        }
       } else {
         // Create new filter with default filter icon
-        await SavedFilters.add({
+        const filterId = await SavedFilters.add({
           name,
           icon: '🔍',
           labelFilterIds: selectedLabelIds,
@@ -89,6 +95,11 @@ export default function SaveFilterButton({ onRefresh }: Props) {
             dueEnd: dueEnd || '',
           },
         })
+        // v0.0.55: Push new filter to server
+        const newFilter = await SavedFilters.get(filterId)
+        if (newFilter) {
+          pushFilterToServer(newFilter).catch(() => {})
+        }
       }
       window.dispatchEvent(new Event('saved-filters:refresh'))
       // Clear all filters after save

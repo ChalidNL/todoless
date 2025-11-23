@@ -5,6 +5,7 @@ import type { SavedFilter, Label, Workflow, User } from '../db/schema'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
 import ManagementHeader from '../components/ManagementHeader'
 import { useAuth } from '../store/auth'
+import { deleteFilterFromServer, updateFilterOnServer } from '../utils/syncFilters'
 
 const iconOptions = [
   // General
@@ -101,6 +102,11 @@ export default function FiltersManagement() {
     }
 
     await SavedFilters.update(editingId, editForm)
+    // v0.0.55: Push changes to server
+    const updated = await SavedFilters.get(editingId)
+    if (updated) {
+      updateFilterOnServer(updated).catch(() => {})
+    }
     await loadData()
     cancelEdit()
   }
@@ -113,6 +119,8 @@ export default function FiltersManagement() {
     }
     if (!confirm('Delete this filter?')) return
     await SavedFilters.remove(id)
+    // v0.0.55: Delete from server as well
+    deleteFilterFromServer(id).catch(() => {})
     await loadData()
   }
 
@@ -440,6 +448,11 @@ export default function FiltersManagement() {
                       checked={filter.showInSidebar !== false}
                       onChange={async (checked) => {
                         await SavedFilters.update(filter.id, { showInSidebar: checked })
+                        // v0.0.55: Push sidebar toggle to server
+                        const updated = await SavedFilters.get(filter.id)
+                        if (updated) {
+                          updateFilterOnServer(updated).catch(() => {})
+                        }
                         await loadData()
                         window.dispatchEvent(new CustomEvent('saved-filters:refresh'))
                       }}

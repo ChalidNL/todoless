@@ -10,6 +10,7 @@ export default function BulkImport() {
   const [taskInput, setTaskInput] = useState('')
   const [noteInput, setNoteInput] = useState('')
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [result, setResult] = useState<string>('')
   const { user: authUser } = useAuth()
 
@@ -136,6 +137,122 @@ export default function BulkImport() {
     }
   }
 
+  const exportJSON = async () => {
+    setExporting(true)
+    setResult('')
+    try {
+      const response = await fetch('/api/export/json', {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Export failed')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `todoless-export-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      setResult('✅ JSON export successful')
+    } catch (e) {
+      setResult(`❌ Export error: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const exportCSV = async () => {
+    setExporting(true)
+    setResult('')
+    try {
+      const response = await fetch('/api/export/csv?includeCompleted=true', {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Export failed')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `todoless-tasks-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      setResult('✅ CSV export successful')
+    } catch (e) {
+      setResult(`❌ Export error: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const exportBackup = async () => {
+    setExporting(true)
+    setResult('')
+    try {
+      const response = await fetch('/api/export/backup', {
+        credentials: 'include'
+      })
+      if (!response.ok) {
+        if (response.status === 403) throw new Error('Admin only')
+        throw new Error('Backup failed')
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `todoless-backup-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      setResult('✅ Full backup successful')
+    } catch (e) {
+      setResult(`❌ Backup error: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const importFromFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setResult('')
+    try {
+      const text = await file.text()
+      const data = JSON.parse(text)
+
+      const response = await fetch('/api/export/import', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+
+      if (!response.ok) {
+        if (response.status === 403) throw new Error('Admin only')
+        throw new Error('Import failed')
+      }
+
+      const result = await response.json()
+      await syncDownThenPush()
+
+      setResult(`✅ Import successful: ${result.imported.tasks} tasks, ${result.imported.labels} labels, ${result.imported.workflows} workflows`)
+
+      // Refresh UI
+      window.dispatchEvent(new CustomEvent('labels:refresh'))
+      window.dispatchEvent(new CustomEvent('todos:refresh'))
+    } catch (e) {
+      setResult(`❌ Import error: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setImporting(false)
+      event.target.value = ''
+    }
+  }
+
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <ManagementHeader
@@ -187,6 +304,64 @@ export default function BulkImport() {
           >
             {importing ? 'Importing...' : 'Import Notes'}
           </button>
+        </section>
+
+        {/* Export/Import from File */}
+        <section className="bg-white rounded-lg border p-4">
+          <h2 className="text-lg font-semibold mb-2">Export / Import</h2>
+          <p className="text-sm text-gray-600 mb-3">
+            Export your data or import from backup file
+          </p>
+
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium mb-2">Export Data</h3>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="btn flex items-center gap-2"
+                  onClick={exportJSON}
+                  disabled={exporting || importing}
+                >
+                  <Icon emoji="📄" className="text-base" />
+                  {exporting ? 'Exporting...' : 'Export JSON'}
+                </button>
+                <button
+                  className="btn flex items-center gap-2"
+                  onClick={exportCSV}
+                  disabled={exporting || importing}
+                >
+                  <Icon emoji="📊" className="text-base" />
+                  {exporting ? 'Exporting...' : 'Export CSV'}
+                </button>
+                <button
+                  className="btn flex items-center gap-2"
+                  onClick={exportBackup}
+                  disabled={exporting || importing}
+                >
+                  <Icon emoji="💾" className="text-base" />
+                  {exporting ? 'Exporting...' : 'Full Backup (Admin)'}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium mb-2">Import from File</h3>
+              <div className="flex items-center gap-2">
+                <label className="btn cursor-pointer flex items-center gap-2">
+                  <Icon emoji="📥" className="text-base" />
+                  <span>{importing ? 'Importing...' : 'Select JSON File'}</span>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importFromFile}
+                    disabled={importing || exporting}
+                    className="hidden"
+                  />
+                </label>
+                <span className="text-xs text-gray-500">(Admin only)</span>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Result */}

@@ -19,6 +19,10 @@ import { importRouter } from './import.js'
 import { countersRouter } from './counters.js'
 import { notesRouter } from './notes.js'
 import { apiTokensRouter } from './api-tokens.js'
+import { workflowsRouter } from './workflows.js'
+import { exportRouter } from './export.js'
+import { searchRouter } from './search.js'
+import { savedFiltersRouter } from './saved-filters.js'
 import swaggerUi from 'swagger-ui-express'
 import { swaggerSpec } from './swagger.js'
 
@@ -109,8 +113,12 @@ app.use('/api/auth', authRouter(JWT_SECRET))
 
 // Protected routes
 app.use('/api/labels', requireAuth(JWT_SECRET), labelsRouter())
+app.use('/api/workflows', requireAuth(JWT_SECRET), workflowsRouter())
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
 app.use('/api/notes', requireAuth(JWT_SECRET), notesRouter())
+app.use('/api/saved-filters', requireAuth(JWT_SECRET), savedFiltersRouter())
+app.use('/api/export', requireAuth(JWT_SECRET), exportRouter())
+app.use('/api/search', requireAuth(JWT_SECRET), searchRouter())
 
 /**
  * @swagger

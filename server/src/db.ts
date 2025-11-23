@@ -161,6 +161,55 @@ try {
   logger.error('db:notes_table_failed', { error: String(e) })
 }
 
+// v0.0.55: Add client_id and version columns for notes sync persistence
+try {
+  const noteColumns = db.prepare(`PRAGMA table_info(notes)`).all() as Array<{ name: string }>
+  const noteNames = new Set(noteColumns.map(c => c.name))
+
+  if (!noteNames.has('client_id')) {
+    db.prepare(`ALTER TABLE notes ADD COLUMN client_id TEXT`).run()
+    logger.info('db:migration:notes_client_id_added')
+  }
+
+  if (!noteNames.has('version')) {
+    db.prepare(`ALTER TABLE notes ADD COLUMN version INTEGER DEFAULT 1`).run()
+    logger.info('db:migration:notes_version_added')
+  }
+} catch (e) {
+  logger.error('db:migration_notes_failed', { error: String(e) })
+}
+
+// v0.0.55: Create saved_filters table for cross-device filter sync
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS saved_filters (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL,
+      icon TEXT,
+      label_filter_ids TEXT,
+      attribute_filters TEXT,
+      status_filter TEXT,
+      sort_by TEXT,
+      view_mode TEXT,
+      user_id INTEGER NOT NULL,
+      show_in_sidebar INTEGER DEFAULT 1,
+      is_system INTEGER DEFAULT 0,
+      is_default INTEGER DEFAULT 0,
+      parent_id TEXT,
+      filter_order INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      client_id TEXT,
+      version INTEGER DEFAULT 1,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+  `)
+  logger.info('db:saved_filters_table_created')
+} catch (e) {
+  logger.error('db:saved_filters_table_failed', { error: String(e) })
+}
+
 // Seed an initial adult user if none exists
 const count = db.prepare('SELECT COUNT(*) as c FROM users').get() as any
 if (count.c === 0) {
@@ -215,6 +264,8 @@ export type NoteRow = {
   owner_id: number
   created_at: string
   updated_at: string
+  client_id: string | null
+  version: number
 }
 
 export type ApiTokenRow = {
@@ -227,4 +278,26 @@ export type ApiTokenRow = {
   last_used_at: string | null
   expires_at: string | null
   revoked: 0 | 1
+}
+
+export type SavedFilterRow = {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  label_filter_ids: string | null
+  attribute_filters: string | null
+  status_filter: string | null
+  sort_by: string | null
+  view_mode: string | null
+  user_id: number
+  show_in_sidebar: 0 | 1
+  is_system: 0 | 1
+  is_default: 0 | 1
+  parent_id: string | null
+  filter_order: number | null
+  created_at: string
+  updated_at: string
+  client_id: string | null
+  version: number
 }
