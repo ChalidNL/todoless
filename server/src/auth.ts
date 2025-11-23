@@ -44,6 +44,54 @@ export function authRouter(secret: string) {
     return res.status(403).json({ error: 'registration_disabled' })
   })
 
+  /**
+   * @swagger
+   * /api/auth/login:
+   *   post:
+   *     summary: Login with username and password
+   *     description: Authenticates a user and sets a JWT token in an httpOnly cookie. Supports 2FA with TOTP code.
+   *     tags: [Authentication]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - username
+   *               - password
+   *             properties:
+   *               username:
+   *                 type: string
+   *                 description: User's username
+   *               password:
+   *                 type: string
+   *                 description: User's password
+   *               code:
+   *                 type: string
+   *                 description: TOTP 2FA code (required if 2FA is enabled)
+   *     responses:
+   *       200:
+   *         description: Login successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 ok:
+   *                   type: boolean
+   *       401:
+   *         description: Invalid credentials or 2FA required
+   *         content:
+   *           application/json:
+   *             schema:
+   *               oneOf:
+   *                 - $ref: '#/components/schemas/Error'
+   *                 - type: object
+   *                   properties:
+   *                     twofaRequired:
+   *                       type: boolean
+   */
   router.post('/login', limiter, async (req, res) => {
     const { username, password, code } = req.body as { username: string; password: string; code?: string }
     logger.info('auth:login-attempt', { 
@@ -82,12 +130,50 @@ export function authRouter(secret: string) {
     return res.json({ ok: true })
   })
 
+  /**
+   * @swagger
+   * /api/auth/logout:
+   *   post:
+   *     summary: Logout current user
+   *     description: Clears the authentication cookie and ends the session
+   *     tags: [Authentication]
+   *     responses:
+   *       200:
+   *         description: Logout successful
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 ok:
+   *                   type: boolean
+   */
   router.post('/logout', (req, res) => {
     res.clearCookie('token', { path: '/' })
     logger.info('auth:logout', {})
     return res.json({ ok: true })
   })
 
+  /**
+   * @swagger
+   * /api/auth/me:
+   *   get:
+   *     summary: Get current user
+   *     description: Returns the currently authenticated user's information from the JWT cookie
+   *     tags: [Authentication]
+   *     responses:
+   *       200:
+   *         description: Current user information
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 user:
+   *                   oneOf:
+   *                     - $ref: '#/components/schemas/User'
+   *                     - type: 'null'
+   */
   router.get('/me', (req, res) => {
     try {
       const token = req.cookies?.token

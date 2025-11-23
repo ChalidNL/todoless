@@ -14,6 +14,20 @@ html, body, #root {
   height: 100%;
 }
 
+/* Lock orientation to portrait on mobile devices */
+@media screen and (orientation: landscape) and (max-width: 768px) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
+
 .chip {
   @apply inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px];
 }

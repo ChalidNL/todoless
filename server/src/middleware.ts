@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { db, UserRow, LabelRow, TaskRow, NoteRow } from './db.js'
+import { db, UserRow, LabelRow, TaskRow, NoteRow, ApiTokenRow } from './db.js'
+import { logger } from './logger.js'
 
 export interface AuthedRequest extends Request {
   user?: Pick<UserRow, 'id' | 'username' | 'role' | 'twofa_enabled'> & { twofa_verified?: boolean }
@@ -11,6 +12,63 @@ export interface AuthedRequest extends Request {
 
 export function requireAuth(secret: string) {
   return (req: AuthedRequest, res: Response, next: NextFunction) => {
+    // Check for API token in Authorization header first
+    const authHeader = req.headers.authorization
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const apiToken = authHeader.substring(7)
+
+      try {
+        const tokenRow = db.prepare(`
+          SELECT * FROM api_tokens
+          WHERE token = ? AND revoked = 0
+        `).get(apiToken) as ApiTokenRow | undefined
+
+        if (!tokenRow) {
+          return res.status(401).json({ error: 'invalid_api_token' })
+        }
+
+        // Check if token is expired
+        if (tokenRow.expires_at) {
+          const expiresAt = new Date(tokenRow.expires_at)
+          if (expiresAt < new Date()) {
+            return res.status(401).json({ error: 'api_token_expired' })
+          }
+        }
+
+        // Update last_used_at
+        db.prepare('UPDATE api_tokens SET last_used_at = ? WHERE id = ?')
+          .run(new Date().toISOString(), tokenRow.id)
+
+        // Get user info
+        const user = db.prepare('SELECT id, username, role, twofa_enabled FROM users WHERE id = ?')
+          .get(tokenRow.user_id) as UserRow | undefined
+
+        if (!user) {
+          return res.status(401).json({ error: 'user_not_found' })
+        }
+
+        req.user = {
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          twofa_enabled: user.twofa_enabled,
+          twofa_verified: true, // API tokens bypass 2FA requirement
+        }
+
+        logger.info('auth:api_token_used', {
+          token_id: tokenRow.id,
+          user_id: user.id,
+          token_name: tokenRow.name
+        })
+
+        return next()
+      } catch (err) {
+        logger.error('auth:api_token_error', { error: String(err) })
+        return res.status(401).json({ error: 'invalid_api_token' })
+      }
+    }
+
+    // Fall back to JWT cookie authentication
     const token = req.cookies?.token
     if (!token) return res.status(401).json({ error: 'unauthorized' })
     try {

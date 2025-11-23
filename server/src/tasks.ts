@@ -7,7 +7,28 @@ import { isTaskAccessible, requireTaskOwner } from './middleware.js'
 export function tasksRouter() {
   const router = Router()
 
-  // GET /api/tasks → all tasks accessible to current user
+  /**
+   * @swagger
+   * /api/tasks:
+   *   get:
+   *     summary: List all tasks
+   *     description: Returns all tasks accessible to the current user
+   *     tags: [Tasks]
+   *     security:
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: List of tasks
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 items:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/Task'
+   */
   router.get('/', (req: AuthedRequest, res: Response) => {
     const userId = req.user!.id
     // Get all tasks, then filter by accessibility
@@ -32,7 +53,62 @@ export function tasksRouter() {
     return res.json({ items: accessible })
   })
 
-  // POST /api/tasks → create task
+  /**
+   * @swagger
+   * /api/tasks:
+   *   post:
+   *     summary: Create a new task
+   *     description: Creates a new task for the current user
+   *     tags: [Tasks]
+   *     security:
+   *       - cookieAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - title
+   *             properties:
+   *               title:
+   *                 type: string
+   *                 description: Task title
+   *               completed:
+   *                 type: boolean
+   *                 description: Completion status
+   *               workflow:
+   *                 type: string
+   *                 nullable: true
+   *                 description: Workflow name (e.g., Backlog, Kanban)
+   *               workflowStage:
+   *                 type: string
+   *                 nullable: true
+   *                 description: Stage within workflow
+   *               assigneeIds:
+   *                 type: array
+   *                 items:
+   *                   type: integer
+   *                 description: Array of user IDs assigned to this task
+   *               labels:
+   *                 type: string
+   *                 description: JSON string of label IDs
+   *               shared:
+   *                 type: boolean
+   *                 description: Whether task is shared with family workspace
+   *     responses:
+   *       200:
+   *         description: Task created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 item:
+   *                   $ref: '#/components/schemas/Task'
+   *       400:
+   *         description: Missing required fields
+   */
   router.post('/', (req: AuthedRequest, res: Response) => {
     const { title, completed, workflow, workflowStage, assigned_to, assigneeIds, labels, attributes, clientId, shared } = req.body as {
       title: string

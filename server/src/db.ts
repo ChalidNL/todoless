@@ -63,6 +63,20 @@ CREATE TABLE IF NOT EXISTS reset_requests (
   FOREIGN KEY(user_id) REFERENCES users(id),
   FOREIGN KEY(approved_by) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  token TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  created_by INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
+  last_used_at TEXT,
+  expires_at TEXT,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  FOREIGN KEY(user_id) REFERENCES users(id),
+  FOREIGN KEY(created_by) REFERENCES users(id)
+);
 `)
 
 // Lightweight migrations for existing databases
@@ -201,4 +215,16 @@ export type NoteRow = {
   owner_id: number
   created_at: string
   updated_at: string
+}
+
+export type ApiTokenRow = {
+  id: number
+  token: string
+  name: string
+  user_id: number
+  created_by: number
+  created_at: string
+  last_used_at: string | null
+  expires_at: string | null
+  revoked: 0 | 1
 }

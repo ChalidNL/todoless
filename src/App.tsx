@@ -26,6 +26,7 @@ const BacklogServer = lazy(() => import('./pages/serverTasks/Backlog'))
 const KanbanServer = lazy(() => import('./pages/serverTasks/Kanban'))
 const BulkImport = lazy(() => import('./pages/BulkImport'))
 const SecurityCenter = lazy(() => import('./pages/admin/Security'))
+const ApiTokens = lazy(() => import('./pages/ApiTokens'))
 import Sidebar from './components/Sidebar'
 import { FilterProvider } from './contexts/FilterContext'
 import { SortProvider, useSort } from './contexts/SortContext'
@@ -280,7 +281,10 @@ export default function App() {
                         <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setAvatarOpen(false); navigate('/settings') }}>Settings</button>
                         <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setAvatarOpen(false); navigate('/auth/2fa') }}>Two-Factor</button>
                         {user?.role === 'adult' && (
-                          <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setAvatarOpen(false); navigate('/admin/security') }}>Security Center</button>
+                          <>
+                            <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setAvatarOpen(false); navigate('/admin/security') }}>Security Center</button>
+                            <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={() => { setAvatarOpen(false); navigate('/admin/tokens') }}>API Tokens</button>
+                          </>
                         )}
                         <button className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-50" onClick={async () => { setAvatarOpen(false); await logout(); navigate('/auth/login') }}>Log out</button>
                       </div>
@@ -316,7 +320,8 @@ export default function App() {
               <Route path="/logs" element={<AdminRoute><Logs /></AdminRoute>} />
               <Route path="/bulk-import" element={<BulkImport />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/admin/security" element={<SecurityCenter />} />
+              <Route path="/admin/security" element={<AdminRoute><SecurityCenter /></AdminRoute>} />
+              <Route path="/admin/tokens" element={<AdminRoute><ApiTokens /></AdminRoute>} />
               {/* Auth + server-backed task routes */}
               <Route path="/backlog" element={<BacklogServer />} />
               <Route path="/kanban" element={<KanbanServer />} />

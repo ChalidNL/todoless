@@ -5,7 +5,28 @@ import { type AuthedRequest, requireLabelOwner } from './middleware.js'
 export function labelsRouter() {
   const router = Router()
 
-  // GET /api/labels → all labels (filtered by access)
+  /**
+   * @swagger
+   * /api/labels:
+   *   get:
+   *     summary: List all labels
+   *     description: Returns all labels accessible to the current user (owned or shared)
+   *     tags: [Labels]
+   *     security:
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: List of labels
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 items:
+   *                   type: array
+   *                   items:
+   *                     $ref: '#/components/schemas/Label'
+   */
   router.get('/', (req: AuthedRequest, res: Response) => {
     const userId = req.user?.id
     const rows = db.prepare('SELECT * FROM labels ORDER BY id DESC').all() as LabelRow[]
@@ -22,7 +43,48 @@ export function labelsRouter() {
     return res.json({ items: accessible })
   })
 
-  // POST /api/labels → create label (requires auth)
+  /**
+   * @swagger
+   * /api/labels:
+   *   post:
+   *     summary: Create a new label
+   *     description: Creates a new label for the current user
+   *     tags: [Labels]
+   *     security:
+   *       - cookieAuth: []
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/json:
+   *           schema:
+   *             type: object
+   *             required:
+   *               - name
+   *             properties:
+   *               name:
+   *                 type: string
+   *                 description: Label name
+   *               color:
+   *                 type: string
+   *                 description: Label color (hex code)
+   *                 default: '#0ea5e9'
+   *               shared:
+   *                 type: boolean
+   *                 description: Whether label is shared with family workspace
+   *                 default: true
+   *     responses:
+   *       200:
+   *         description: Label created
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 item:
+   *                   $ref: '#/components/schemas/Label'
+   *       400:
+   *         description: Missing required fields
+   */
   router.post('/', (req: AuthedRequest, res: Response) => {
     const { name, color, shared } = req.body
     const userId = req.user?.id

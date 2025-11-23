@@ -18,6 +18,9 @@ import { labelsRouter } from './labels.js'
 import { importRouter } from './import.js'
 import { countersRouter } from './counters.js'
 import { notesRouter } from './notes.js'
+import { apiTokensRouter } from './api-tokens.js'
+import swaggerUi from 'swagger-ui-express'
+import { swaggerSpec } from './swagger.js'
 
 /* TEST-ONLY: Seed admin user in local/test omgeving. Nooit in productie! */
 if (process.env.NODE_ENV !== 'production') {
@@ -70,7 +73,37 @@ app.use(cors((req, callback) => {
   return callback(new Error('Not allowed by CORS'))
 }))
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Health check endpoint
+ *     description: Returns server health status
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ */
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
+// Swagger API documentation - accessible without auth for easy testing
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customSiteTitle: 'TodoLess API Documentation',
+  customCss: '.swagger-ui .topbar { display: none }',
+}))
+
+// Serve raw OpenAPI spec as JSON
+app.get('/api/docs.json', (_req, res) => {
+  res.setHeader('Content-Type', 'application/json')
+  res.send(swaggerSpec)
+})
 
 app.use('/api/auth', authRouter(JWT_SECRET))
 
@@ -79,7 +112,34 @@ app.use('/api/labels', requireAuth(JWT_SECRET), labelsRouter())
 app.use('/api/tasks', requireAuth(JWT_SECRET), require2FA(), tasksRouter())
 app.use('/api/notes', requireAuth(JWT_SECRET), notesRouter())
 
-// Users endpoint - returns all users in the workspace/family
+/**
+ * @swagger
+ * /api/users:
+ *   get:
+ *     summary: List all users
+ *     description: Returns all users in the family workspace
+ *     tags: [Users]
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 items:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get('/api/users', requireAuth(JWT_SECRET), (req: any, res) => {
   try {
     const users = db.prepare('SELECT id, username, email, role FROM users ORDER BY username').all()
@@ -94,7 +154,46 @@ app.get('/api/users', requireAuth(JWT_SECRET), (req: any, res) => {
 app.use('/api/import', requireAuth(JWT_SECRET), require2FA(), importRouter())
 app.use('/api/counters', requireAuth(JWT_SECRET), require2FA(), countersRouter())
 
-// Logs endpoint (admin only)
+// API tokens endpoint (admin only)
+app.use('/api/tokens', requireAuth(JWT_SECRET), apiTokensRouter())
+
+/**
+ * @swagger
+ * /api/logs:
+ *   get:
+ *     summary: Get system logs
+ *     description: Returns recent system logs (admin only)
+ *     tags: [System]
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: count
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 500
+ *           default: 100
+ *         description: Number of log entries to return
+ *     responses:
+ *       200:
+ *         description: Log entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 logs:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         description: Admin only
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
 app.get('/api/logs', requireAuth(JWT_SECRET), (req: any, res) => {
   const user = req.user
   if (user?.role !== 'adult') {
