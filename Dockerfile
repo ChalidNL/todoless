@@ -14,6 +14,8 @@ RUN if [ -f package-lock.json ]; then npm ci; \
 # Copy source and build
 # Copy only necessary sources (reduced context already via .dockerignore)
 COPY . .
+# Increase Node memory for Vite build (avoid OOM in buildx/CI)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 # Build without baking API URL; frontend will use relative /api via nginx
 RUN npm run build
 

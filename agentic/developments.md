@@ -30,6 +30,17 @@
 ---
 
 ## Version: 0.0.55 (Upcoming)
+ 
+---
+
+## Version: 0.0.57 (Upcoming)
+
+### Notes
+- [ ] Open package `0.0.57`: bump `package.json`, `package-lock.json`, `src/config/version.ts`, and `server/src/swagger.ts`. Create annotated tag `0.0.57` and deploy to test for verification before production rollout.
+- [ ] Ensure all API changes include updated OpenAPI/Swagger docs and verify `/api/docs` on test.
+
+---
+
 
 ### Hotfix
 - [x] `@me` filter works on test but fails in production: **RESOLVED v2** - Completely refactored @me filter to use EXACT same structure as regular filters. Now stores filter config as JSON with `selectedAssigneeIds` array (same format as user-created filters). Removed all special-case assignedToMe logic. The @me filter now uses the standard assignee filter code path. Auto-migrates old format filters to new format. Added detailed logging for debugging. **FILES:** dexieClient.ts:658-751, SavedFilter.tsx:96-117, FiltersManagement.tsx:38, Sidebar.tsx:38
@@ -165,9 +176,10 @@
 
 ---
 
-## Version History
+- ## Version History
 
-- **0.0.55** (Current): Hotfix for @me filter v2, complete API ecosystem (tokens, workflows, export/backup, advanced search, **saved filters**), full Swagger/OpenAPI docs, Bulk Import UI integration, Notes sync & persistence, **Saved filters cross-device sync**, UI cleanups. **NEW ENDPOINTS:** /api/workflows (CRUD), /api/export (JSON/CSV/backup/import), /api/search (advanced filters), **/api/saved-filters (CRUD with SSE sync)**. **NEW UI:** BulkImport page with export/import buttons. **NEW PERSISTENCE:** Notes sync with client_id/version tracking, SSE broadcast, Dexie v19 migration. **SAVED FILTERS SYNC:** Server-side saved_filters table, real-time SSE sync (saved-filter.created/updated/deleted), automatic login sync, push on create/update/delete. System filters (@me, all, backlog) remain client-only. Push: `build: version 0.0.55 - @me hotfix v2, complete API suite, Bulk Import UI, Notes & Filters persistence, full OpenAPI docs, cross-device filter sync`
+- **0.0.56** (Current): Release: bumped package and schema updates, notes sync persistence and saved-filters cross-device sync validated on test. Includes server-side export/import endpoints, saved-filters API, and updated OpenAPI docs. Push: `release: 0.0.56 - API docs, notes persistence, saved-filters sync, export/import`.
+- **0.0.55**: Hotfix for @me filter v2, complete API ecosystem (tokens, workflows, export/backup, advanced search, **saved filters**), full Swagger/OpenAPI docs, Bulk Import UI integration, Notes sync & persistence, **Saved filters cross-device sync**, UI cleanups. **NEW ENDPOINTS:** /api/workflows (CRUD), /api/export (JSON/CSV/backup/import), /api/search (advanced filters), **/api/saved-filters (CRUD with SSE sync)**. **NEW UI:** BulkImport page with export/import buttons. **NEW PERSISTENCE:** Notes sync with client_id/version tracking, SSE broadcast, Dexie v19 migration. **SAVED FILTERS SYNC:** Server-side saved_filters table, real-time SSE sync (saved-filter.created/updated/deleted), automatic login sync, push on create/update/delete. System filters (@me, all, backlog) remain client-only. Push: `build: version 0.0.55 - @me hotfix v2, complete API suite, Bulk Import UI, Notes & Filters persistence, full OpenAPI docs, cross-device filter sync`
 - **0.0.54**: Bugfixes (PWA orientation, port conflicts, icons, label counts), sync status move, filter auto-inheritance, repo cleanup.
 - **0.0.53**: Refactor views→filters, multi-select dropdowns, sync improvements, offline mode, stability.
 - **0.0.52**: Version utility, UI/UX improvements, test/prod labeling, sync enhancements.
