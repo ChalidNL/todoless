@@ -33,10 +33,10 @@
  
 ---
 
-## Version: 0.0.57 (Upcoming)
+## Version: 0.0.56 (Upcoming)
 
 ### Notes
-- [ ] Open package `0.0.57`: bump `package.json`, `package-lock.json`, `src/config/version.ts`, and `server/src/swagger.ts`. Create annotated tag `0.0.57` and deploy to test for verification before production rollout.
+- [ ] Open package `0.0.56`: bump `package.json`, `package-lock.json`, `src/config/version.ts`, and `server/src/swagger.ts`. Create annotated tag `0.0.56` and deploy to test for verification before production rollout.
 - [ ] Ensure all API changes include updated OpenAPI/Swagger docs and verify `/api/docs` on test.
 
 ---
