@@ -173,7 +173,7 @@ export function searchRouter() {
     if (dueBefore) {
       const beforeDate = new Date(dueBefore)
       tasks = tasks.filter(t => {
-        const due = (t as any).due_date
+        const due = t.due_date
         if (!due) return false
         const dueDate = new Date(due)
         return dueDate <= beforeDate
@@ -183,7 +183,7 @@ export function searchRouter() {
     if (dueAfter) {
       const afterDate = new Date(dueAfter)
       tasks = tasks.filter(t => {
-        const due = (t as any).due_date
+        const due = t.due_date
         if (!due) return false
         const dueDate = new Date(due)
         return dueDate >= afterDate

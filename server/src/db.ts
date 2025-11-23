@@ -242,6 +242,7 @@ export type TaskRow = {
   labels: string | null
   attributes: string | null
   due_date?: string | null
+  blocked?: 0 | 1
   created_at: string
   client_id: string | null
   shared: 0 | 1
