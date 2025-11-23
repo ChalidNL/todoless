@@ -232,6 +232,7 @@ export type UserRow = {
 export type TaskRow = {
   id: number
   title: string
+  notes?: string | null
   completed: 0 | 1
   workflow: string | null
   workflowStage: string | null
@@ -240,6 +241,7 @@ export type TaskRow = {
   assigneeIds: string | null  // NEW: JSON array of user IDs
   labels: string | null
   attributes: string | null
+  due_date?: string | null
   created_at: string
   client_id: string | null
   shared: 0 | 1

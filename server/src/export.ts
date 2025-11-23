@@ -63,8 +63,8 @@ export function exportRouter() {
       version: '1.0',
       exportedAt: new Date().toISOString(),
       user: {
-        id: req.user.id,
-        username: req.user.username,
+        id: req.user!.id,
+        username: req.user!.username,
       },
       tasks,
       labels,
