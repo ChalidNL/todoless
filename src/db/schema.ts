@@ -56,22 +56,33 @@ export interface Todo {
   shared?: boolean
 }
 
+// v0.0.57: SavedFilter rebuilt to match Label architecture exactly
 export interface SavedFilter {
-  id: string
+  id: number  // Changed from string to number (auto-increment)
   name: string
-  slug: string // URL-friendly version of name
-  icon?: string
-  labelFilterIds?: string[]
-  attributeFilters?: Record<string, any>
-  statusFilter?: string
+  normalizedName: string  // NEW: For deduplication (like labels)
+  queryJson: FilterQuery  // NEW: Filter rules object
+  menuVisible: boolean  // NEW: Toggle for menu visibility (unique to filters)
+  shared: boolean  // Like labels
+  ownerId: number  // Like labels (owner_id)
+  ranking: number  // For custom ordering (0 = default/alphabetical)
+  createdAt: string  // Like labels
+  updatedAt: string  // Like labels
+  version: number  // NEW: For sync conflict resolution
+}
+
+// v0.0.57: FilterQuery interface - defines the structure of queryJson
+export interface FilterQuery {
+  selectedLabelIds?: string[]
+  selectedAssigneeIds?: string[]
+  selectedWorkflowIds?: string[]
+  blockedOnly?: boolean
+  dueStart?: string | null
+  dueEnd?: string | null
+  showCompleted?: boolean
+  showArchived?: boolean
   sortBy?: string
-  viewMode?: 'list' | 'tiles' | 'calendar' | 'kanban'
-  userId: string
-  showInSidebar?: boolean
-  isSystem?: boolean
-  isDefault?: boolean
-  parentId?: string // For subfilters - ID of parent filter
-  order?: number // Display order within parent
+  // Add more filter criteria as needed
 }
 
 export interface List {

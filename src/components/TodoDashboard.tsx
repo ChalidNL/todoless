@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/dexieClient';
-import { bulkImportTodosAndSync } from '../utils/bulkImportTodosAndSync';
+import { bulkImport } from '../utils/bulkImport';
 
 export function TodoDashboard({ userId }) {
   const [syncing, setSyncing] = useState(false);
@@ -20,7 +20,7 @@ export function TodoDashboard({ userId }) {
       <button onClick={async () => {
         // Voorbeelddata importeren
         const todos = [{ title: 'Test', labels: ['Werk'] }];
-        await bulkImportTodosAndSync(todos, userId, setSyncing);
+        await bulkImport(todos, userId, { syncAfterImport: true, setSyncing });
       }}>
         Bulk Import & Sync
       </button>

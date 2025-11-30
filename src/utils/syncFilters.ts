@@ -1,5 +1,6 @@
+// v0.0.57: Completely rebuilt to match Labels sync architecture
 import { SavedFilters, db } from '../db/dexieClient'
-import type { SavedFilter } from '../db/schema'
+import type { SavedFilter, FilterQuery } from '../db/schema'
 import { logger } from './logger'
 
 const API = ''
@@ -10,70 +11,62 @@ async function api(path: string, init?: RequestInit) {
   return res.json()
 }
 
+// v0.0.57: ServerSavedFilter now matches backend SavedFilterRow exactly
 export interface ServerSavedFilter {
-  id: string
+  id: number
   name: string
-  slug: string
-  icon: string | null
-  label_filter_ids: string | null
-  attribute_filters: string | null
-  status_filter: string | null
-  sort_by: string | null
-  view_mode: string | null
-  user_id: number
-  show_in_sidebar: 0 | 1
-  is_system: 0 | 1
-  is_default: 0 | 1
-  parent_id: string | null
-  filter_order: number | null
+  normalized_name: string
+  query_json: string  // JSON string
+  menu_visible: 0 | 1
+  shared: 0 | 1
+  owner_id: number
+  ranking: number
   created_at: string
   updated_at: string
-  client_id: string | null
   version: number
 }
 
+// v0.0.57: Convert server format to local format (like Labels)
 function serverToLocal(sf: ServerSavedFilter): SavedFilter {
+  let queryJson: FilterQuery
+  try {
+    queryJson = JSON.parse(sf.query_json)
+  } catch {
+    queryJson = {} // Fallback for invalid JSON
+  }
+
   return {
     id: sf.id,
     name: sf.name,
-    slug: sf.slug,
-    icon: sf.icon || undefined,
-    labelFilterIds: sf.label_filter_ids ? JSON.parse(sf.label_filter_ids) : undefined,
-    attributeFilters: sf.attribute_filters ? JSON.parse(sf.attribute_filters) : undefined,
-    statusFilter: sf.status_filter || undefined,
-    sortBy: sf.sort_by || undefined,
-    viewMode: (sf.view_mode as any) || undefined,
-    userId: String(sf.user_id),
-    showInSidebar: sf.show_in_sidebar === 1,
-    isSystem: sf.is_system === 1,
-    isDefault: sf.is_default === 1,
-    parentId: sf.parent_id || undefined,
-    order: sf.filter_order || undefined,
+    normalizedName: sf.normalized_name,
+    queryJson,
+    menuVisible: sf.menu_visible === 1,
+    shared: sf.shared === 1,
+    ownerId: sf.owner_id,
+    ranking: sf.ranking,
+    createdAt: sf.created_at,
+    updatedAt: sf.updated_at,
+    version: sf.version,
   }
 }
 
-function localToServer(lf: SavedFilter): Partial<ServerSavedFilter> {
+// v0.0.57: Convert local format to server POST body format
+// Backend expects camelCase in request body, returns snake_case in response
+function localToServer(lf: SavedFilter): any {
   return {
-    id: lf.id,
     name: lf.name,
-    slug: lf.slug,
-    icon: lf.icon || null,
-    label_filter_ids: lf.labelFilterIds ? JSON.stringify(lf.labelFilterIds) : null,
-    attribute_filters: lf.attributeFilters ? JSON.stringify(lf.attributeFilters) : null,
-    status_filter: lf.statusFilter || null,
-    sort_by: lf.sortBy || null,
-    view_mode: lf.viewMode || null,
-    user_id: Number(lf.userId),
-    show_in_sidebar: lf.showInSidebar !== false ? 1 : 0,
-    is_system: lf.isSystem ? 1 : 0,
-    is_default: lf.isDefault ? 1 : 0,
-    parent_id: lf.parentId || null,
-    order: lf.order || null,
+    normalizedName: lf.normalizedName,
+    queryJson: lf.queryJson, // Backend expects object, not stringified
+    menuVisible: lf.menuVisible,
+    shared: lf.shared,
+    ownerId: lf.ownerId,
+    ranking: lf.ranking,
   }
 }
 
 /**
- * Sync saved filters from server to local IndexedDB
+ * v0.0.57: Sync saved filters from server to local IndexedDB (like Labels sync)
+ * Server-first architecture - server is source of truth
  */
 export async function syncFiltersFromServer() {
   try {
@@ -81,39 +74,39 @@ export async function syncFiltersFromServer() {
     const localFilters = await SavedFilters.list()
 
     // Map server filters by ID for quick lookup
-    const serverMap = new Map<string, ServerSavedFilter>()
+    const serverMap = new Map<number, ServerSavedFilter>()
     for (const sf of serverFilters) {
       serverMap.set(sf.id, sf)
     }
 
     // Map local filters by ID
-    const localMap = new Map<string, SavedFilter>()
+    const localMap = new Map<number, SavedFilter>()
     for (const lf of localFilters) {
-      // Skip system filters like @me, all, backlog - they're client-generated
-      if (lf.isSystem) continue
       localMap.set(lf.id, lf)
     }
 
-    // 1. Add/update filters from server
+    // 1. Add/update filters from server (upsert with version check like Labels)
     for (const sf of serverFilters) {
       const local = localMap.get(sf.id)
+      const converted = serverToLocal(sf)
+
       if (!local) {
         // New filter from server, add it
-        const converted = serverToLocal(sf)
         await db.savedFilters.put(converted)
         logger.info('sync:filter:added_from_server', { id: sf.id, name: sf.name })
       } else {
-        // Filter exists locally, check if server is newer (we don't have version tracking on client yet)
-        // For now, server wins (since version field is tracked server-side)
-        const converted = serverToLocal(sf)
-        await db.savedFilters.put(converted)
-        logger.info('sync:filter:updated_from_server', { id: sf.id, name: sf.name })
+        // Filter exists locally, check version (server-first: server wins if newer)
+        if (sf.version > local.version) {
+          await db.savedFilters.put(converted)
+          logger.info('sync:filter:updated_from_server', { id: sf.id, name: sf.name, oldVersion: local.version, newVersion: sf.version })
+        } else {
+          logger.debug('sync:filter:local_newer', { id: sf.id, localVersion: local.version, serverVersion: sf.version })
+        }
       }
     }
 
-    // 2. Delete local filters that don't exist on server (except system filters)
+    // 2. Delete local filters that don't exist on server
     for (const lf of localFilters) {
-      if (lf.isSystem) continue // Skip system filters
       if (!serverMap.has(lf.id)) {
         await SavedFilters.remove(lf.id)
         logger.info('sync:filter:deleted_not_on_server', { id: lf.id, name: lf.name })
@@ -130,36 +123,35 @@ export async function syncFiltersFromServer() {
 }
 
 /**
- * Push local saved filters to server
- * Called when user creates/updates a filter
+ * v0.0.57: Push a new filter to server (like Labels.add)
  */
 export async function pushFilterToServer(filter: SavedFilter) {
   try {
-    // Skip system filters
-    if (filter.isSystem) return
-
     const serverData = localToServer(filter)
-    const payload = {
-      ...serverData,
-      client_id: filter.id, // Use filter ID as client_id for deduplication
-    }
 
-    // Try to create/update on server
-    await api('/api/saved-filters', {
+    const response = await api('/api/saved-filters', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(serverData),
     })
 
-    logger.info('sync:filter:pushed_to_server', { id: filter.id, name: filter.name })
+    // Update local filter with server-assigned ID
+    const serverFilter: ServerSavedFilter = response.item
+    const converted = serverToLocal(serverFilter)
+    await db.savedFilters.put(converted)
+
+    logger.info('sync:filter:pushed_to_server', { localId: filter.id, serverId: serverFilter.id, name: filter.name })
+
+    return serverFilter.id
   } catch (err) {
     logger.error('sync:filter:push_failed', { id: filter.id, error: String(err) })
+    throw err
   }
 }
 
 /**
- * Delete a filter from server
+ * v0.0.57: Delete a filter from server (like Labels.remove)
  */
-export async function deleteFilterFromServer(filterId: string) {
+export async function deleteFilterFromServer(filterId: number) {
   try {
     await api(`/api/saved-filters/${filterId}`, {
       method: 'DELETE',
@@ -167,26 +159,47 @@ export async function deleteFilterFromServer(filterId: string) {
     logger.info('sync:filter:deleted_from_server', { id: filterId })
   } catch (err) {
     logger.error('sync:filter:delete_failed', { id: filterId, error: String(err) })
+    throw err
   }
 }
 
 /**
- * Update a filter on server
+ * v0.0.57: Update a filter on server (like Labels.update)
  */
-export async function updateFilterOnServer(filter: SavedFilter) {
+export async function updateFilterOnServer(filterId: number, updates: Partial<SavedFilter>) {
   try {
-    // Skip system filters
-    if (filter.isSystem) return
+    // Convert updates to server format (camelCase for request body)
+    const serverUpdates: any = {}
+    if (updates.name !== undefined) {
+      serverUpdates.name = updates.name
+      // Backend will compute normalized_name from name
+    }
+    if (updates.queryJson !== undefined) {
+      serverUpdates.queryJson = updates.queryJson
+    }
+    if (updates.menuVisible !== undefined) {
+      serverUpdates.menuVisible = updates.menuVisible
+    }
+    if (updates.shared !== undefined) {
+      serverUpdates.shared = updates.shared
+    }
+    if (updates.ranking !== undefined) {
+      serverUpdates.ranking = updates.ranking
+    }
 
-    const serverData = localToServer(filter)
-
-    await api(`/api/saved-filters/${filter.id}`, {
+    const response = await api(`/api/saved-filters/${filterId}`, {
       method: 'PATCH',
-      body: JSON.stringify(serverData),
+      body: JSON.stringify(serverUpdates),
     })
 
-    logger.info('sync:filter:updated_on_server', { id: filter.id, name: filter.name })
+    // Update local with server response
+    const serverFilter: ServerSavedFilter = response.item
+    const converted = serverToLocal(serverFilter)
+    await db.savedFilters.put(converted)
+
+    logger.info('sync:filter:updated_on_server', { id: filterId, name: converted.name })
   } catch (err) {
-    logger.error('sync:filter:update_failed', { id: filter.id, error: String(err) })
+    logger.error('sync:filter:update_failed', { id: filterId, error: String(err) })
+    throw err
   }
 }

@@ -214,6 +214,18 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
       const labelIds = normalizeLabelIdsArray(st.labels)
       const attributes = st.attributes ? JSON.parse(st.attributes) : {}
 
+      // Parse assigneeIds from server (JSON array → string array for Dexie)
+      let assigneeIds: string[] = []
+      if (st.assigneeIds) {
+        try {
+          const parsed = JSON.parse(st.assigneeIds) as number[]
+          assigneeIds = parsed.map(id => String(id))
+        } catch {}
+      } else if (st.assigned_to) {
+        // Backwards compatibility
+        assigneeIds = [String(st.assigned_to)]
+      }
+
       const todoData: Partial<Todo> = {
         title: st.title,
         completed: !!st.completed,
@@ -221,6 +233,7 @@ export async function syncTasksFromServer(currentUser: ServerUser) {
         workflowId: st.workflow || undefined,
         workflowStage: st.workflowStage || undefined,
         labelIds,
+        assigneeIds,  // HOTFIX: Include assigneeIds in sync!
         attributes,
         order: new Date(st.created_at).getTime(),
         createdAt: st.created_at,
@@ -495,8 +508,8 @@ export function startRealtimeSync(currentUser: ServerUser) {
         try { useRealtime.getState().markEvent() } catch {}
       } catch {}
     })
-    // v0.0.55: Saved filter sync events
-    es.addEventListener('saved-filter.created', async (ev: MessageEvent) => {
+    // v0.0.57: Saved filter sync events (using filter: prefix from backend)
+    es.addEventListener('filter:created', async (ev: MessageEvent) => {
       try {
         // Trigger a full filter sync from server
         const { syncFiltersFromServer } = await import('./syncFilters')
@@ -504,7 +517,7 @@ export function startRealtimeSync(currentUser: ServerUser) {
         try { useRealtime.getState().markEvent() } catch {}
       } catch {}
     })
-    es.addEventListener('saved-filter.updated', async (ev: MessageEvent) => {
+    es.addEventListener('filter:updated', async (ev: MessageEvent) => {
       try {
         // Trigger a full filter sync from server
         const { syncFiltersFromServer } = await import('./syncFilters')
@@ -512,7 +525,7 @@ export function startRealtimeSync(currentUser: ServerUser) {
         try { useRealtime.getState().markEvent() } catch {}
       } catch {}
     })
-    es.addEventListener('saved-filter.deleted', async (ev: MessageEvent) => {
+    es.addEventListener('filter:deleted', async (ev: MessageEvent) => {
       try {
         // Trigger a full filter sync from server
         const { syncFiltersFromServer } = await import('./syncFilters')

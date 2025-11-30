@@ -13,6 +13,7 @@ import { Workflows } from '../db/dexieClient'
 import type { Workflow } from '../db/schema'
 import useLabels from '../hooks/useLabels'
 import { useAuth } from '../store/auth'
+import { evaluateFilterQuery } from '../utils/evaluateFilterQuery'
 
 const VIEW_TITLES: Record<string, string> = {
   all: 'All',
@@ -48,98 +49,36 @@ export default function SavedFilter() {
     let active = true
     ;(async () => {
       if (!filterId) return
-      if (filterId === 'me') {
-        // HOTFIX 0.0.55: Pass authenticated user ID to ensure @me filter is correct
-        try { await SavedFilters.ensureMeFilter?.(authUser?.id) } catch {}
-      }
-      // Try to load a custom saved filter by slug first, then by ID
-      let v = await SavedFilters.getBySlug(filterId)
-      if (!v) {
-        v = await SavedFilters.get(filterId)
-      }
-      if (!active) return
-      if (v) {
-        setSaved(v)
-        setTitle(v.name)
-      } else {
+      // v0.0.57: Load saved filter by numeric ID
+      const filterIdNum = parseInt(filterId, 10)
+      if (isNaN(filterIdNum)) {
+        // Built-in filter (all, today, etc.)
         setSaved(null)
         setTitle(VIEW_TITLES[filterId] ?? filterId)
+      } else {
+        // Numeric ID - load from IndexedDB
+        const v = await SavedFilters.get(filterIdNum)
+        if (!active) return
+        if (v) {
+          setSaved(v)
+          setTitle(v.name)
+        } else {
+          setSaved(null)
+          setTitle('Unknown Filter')
+        }
       }
       // Force re-render and reload todos when filterId changes
       await reloadTodos()
       setForceUpdate(prev => prev + 1)
     })()
     return () => { active = false }
-  }, [filterId, reloadTodos, authUser?.id])
+  }, [filterId, reloadTodos])
 
   let filtered = globalFilteredTodos
-  if (saved) {
-    // Custom saved view: apply additional local filters on top of global
-    try {
-      const raw = saved.attributeFilters?.filters
-      let f: any = raw ? JSON.parse(raw) : {}
-      // Backward/alternate format: flat keys in attributeFilters and labelFilterIds on root
-      if (!raw) {
-        const af = saved.attributeFilters || {}
-        f = {
-          selectedLabelIds: Array.isArray(saved.labelFilterIds) ? saved.labelFilterIds : [],
-          selectedWorkflowIds: (af.workflows ? String(af.workflows).split(',').filter(Boolean) : []),
-          selectedAssigneeIds: (af.assignees ? String(af.assignees).split(',').filter(Boolean) : []),
-          blockedOnly: af.blockedOnly === '1' || af.blockedOnly === 'true',
-          dueStart: af.dueStart || null,
-          dueEnd: af.dueEnd || null,
-          workflowStage: af.workflowStage || null,
-        }
-        console.log('[SavedFilter v0.0.55 HOTFIX] Parsed filters for filter:', saved.name, 'filters:', f)
-      }
-
-      // HOTFIX 0.0.55 v2: Removed special assignedToMe logic
-      // Now @me filter uses standard selectedAssigneeIds array, same as all other filters
-
-      // Apply the same shape as global filters without mutating global state
-      if (Array.isArray(f.selectedLabelIds) && f.selectedLabelIds.length > 0) {
-        filtered = filtered.filter((t: Todo) => f.selectedLabelIds.every((id: string) => t.labelIds.includes(id)))
-      }
-      if (Array.isArray(f.selectedWorkflowIds) && f.selectedWorkflowIds.length > 0) {
-        filtered = filtered.filter((t: Todo) => t.workflowId && f.selectedWorkflowIds.includes(t.workflowId))
-      }
-      if (Array.isArray(f.selectedAssigneeIds) && f.selectedAssigneeIds.length > 0) {
-        console.log('[SavedFilter v0.0.55 HOTFIX] Filtering by assignees:', f.selectedAssigneeIds, 'for filter:', saved.name)
-        const before = filtered.length
-        filtered = filtered.filter((t: Todo) => {
-          const matches = (t.assigneeIds || []).some((id: string) => f.selectedAssigneeIds.includes(id))
-          if (matches && saved.slug === 'me') {
-            console.log('[SavedFilter v0.0.55 HOTFIX @me] Todo matched:', t.title, 'assigneeIds:', t.assigneeIds)
-          }
-          return matches
-        })
-        console.log('[SavedFilter v0.0.55 HOTFIX] Assignee filter result:', filtered.length, 'of', before, 'todos for filter:', saved.name)
-      }
-      if (f.blockedOnly) {
-        filtered = filtered.filter((t: Todo) => t.blocked)
-      }
-      if (f.workflowStage) {
-        filtered = filtered.filter((t: Todo) => t.workflowStage === f.workflowStage)
-      }
-      if (f.dueStart || f.dueEnd) {
-        const startD = f.dueStart ? parseDueToDate(f.dueStart) : null
-        const endD = f.dueEnd ? parseDueToDate(f.dueEnd) : null
-        filtered = filtered.filter((t: Todo) => {
-          const rawDue = (t as any).dueDate || (t as any).attributes?.dueDate
-          const d = rawDue ? parseDueToDate(rawDue) : null
-          if (!d) return false
-          if (startD && d < startD) return false
-          if (endD) {
-            const endCopy = new Date(endD)
-            endCopy.setHours(23, 59, 59, 999)
-            if (d > endCopy) return false
-          }
-          return true
-        })
-      }
-    } catch {
-      // ignore parse errors
-    }
+  if (saved && saved.queryJson) {
+    // v0.0.57: Use evaluateFilterQuery to apply saved filter's queryJson
+    // HOTFIX: Pass currentUserId for dynamic @me filter evaluation
+    filtered = evaluateFilterQuery(globalFilteredTodos, saved.queryJson, currentUserId)
   } else if (filterId) {
     // Built-in filters: use global filters and add specific logic
     filtered = globalFilteredTodos.filter((t: Todo) => {

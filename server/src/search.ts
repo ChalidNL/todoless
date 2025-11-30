@@ -114,93 +114,91 @@ export function searchRouter() {
       offset = 0,
     } = req.body
 
-    // Start with all tasks
-    let tasks = db.prepare('SELECT * FROM tasks ORDER BY created_at DESC').all() as TaskRow[]
+    let joins: string[] = []
+    let joinParams: (string | number)[] = []
+
+    let queryParts: string[] = []
+    let params: (string | number | boolean)[] = []
+
+    // Apply filters
+    if (query && typeof query === 'string') {
+      queryParts.push('(LOWER(title) LIKE ? OR LOWER(notes) LIKE ?)')
+      params.push(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`)
+    }
+
+    if (workflow !== undefined) {
+      queryParts.push('workflow = ?')
+      params.push(workflow)
+    }
+
+    if (workflowStage !== undefined) {
+      queryParts.push('workflowStage = ?')
+      params.push(workflowStage)
+    }
+
+    if (completed !== undefined) {
+      queryParts.push('completed = ?')
+      params.push(completed ? 1 : 0)
+    }
+
+    if (blocked !== undefined) {
+      queryParts.push('blocked = ?')
+      params.push(blocked ? 1 : 0)
+    }
+
+    if (dueBefore) {
+      queryParts.push('due_date <= ?')
+      params.push(dueBefore)
+    }
+
+    if (dueAfter) {
+      queryParts.push('due_date >= ?')
+      params.push(dueAfter)
+    }
+
+    if (shared !== undefined) {
+      queryParts.push('shared = ?')
+      params.push(shared ? 1 : 0)
+    }
+
+    // Zeer efficiënte filtering met JOINs
+    if (Array.isArray(assignees) && assignees.length > 0) {
+      joins.push('INNER JOIN task_assignees ta ON tasks.id = ta.task_id')
+      const placeholders = assignees.map(() => '?').join(',')
+      queryParts.push(`ta.user_id IN (${placeholders})`)
+      joinParams.push(...assignees)
+    }
+
+    if (Array.isArray(labels) && labels.length > 0) {
+      joins.push(`
+        INNER JOIN task_labels tl ON tasks.id = tl.task_id
+      `)
+      const placeholders = labels.map(() => '?').join(',')
+      queryParts.push(`tl.label_id IN (${placeholders})`)
+      joinParams.push(...labels)
+      // Voor AND-logica (alle labels moeten matchen)
+      queryParts.push(`(SELECT COUNT(DISTINCT tl_inner.label_id) FROM task_labels tl_inner WHERE tl_inner.task_id = tasks.id AND tl_inner.label_id IN (${placeholders})) = ?`)
+      joinParams.push(...labels, labels.length)
+    }
+
+    const joinClause = joins.join(' ')
+    const whereClause = queryParts.length > 0 ? `WHERE ${queryParts.join(' AND ')}` : ''
+    const finalParams = [...params, ...joinParams]
+
+    // Get total count with filters
+    const totalStmt = db.prepare(`SELECT COUNT(DISTINCT tasks.id) as count FROM tasks ${joinClause} ${whereClause}`)
+    const totalResult = totalStmt.get(...finalParams) as { count: number }
+    const total = totalResult.count
+
+    // Get paginated tasks
+    const tasksStmt = db.prepare(`SELECT DISTINCT tasks.* FROM tasks ${joinClause} ${whereClause} ORDER BY tasks.created_at DESC LIMIT ? OFFSET ?`)
+    let tasks = tasksStmt.all(...finalParams, limit, offset) as TaskRow[]
 
     // Filter by access
     tasks = tasks.filter(t => isTaskAccessible(t, userId))
 
-    // Apply filters
-    if (query && typeof query === 'string') {
-      const q = query.toLowerCase()
-      tasks = tasks.filter(t => {
-        const title = (t.title || '').toLowerCase()
-        const notes = (t.notes || '').toLowerCase()
-        return title.includes(q) || notes.includes(q)
-      })
-    }
-
-    if (Array.isArray(labels) && labels.length > 0) {
-      tasks = tasks.filter(t => {
-        if (!t.labels) return false
-        try {
-          const taskLabels = JSON.parse(t.labels) as number[]
-          return labels.every(labelId => taskLabels.includes(labelId))
-        } catch {
-          return false
-        }
-      })
-    }
-
-    if (Array.isArray(assignees) && assignees.length > 0) {
-      tasks = tasks.filter(t => {
-        if (!t.assigneeIds) return false
-        try {
-          const taskAssignees = JSON.parse(t.assigneeIds) as number[]
-          return assignees.some(assigneeId => taskAssignees.includes(assigneeId))
-        } catch {
-          return false
-        }
-      })
-    }
-
-    if (workflow !== undefined) {
-      tasks = tasks.filter(t => t.workflow === workflow)
-    }
-
-    if (workflowStage !== undefined) {
-      tasks = tasks.filter(t => t.workflowStage === workflowStage)
-    }
-
-    if (completed !== undefined) {
-      tasks = tasks.filter(t => !!t.completed === completed)
-    }
-
-    if (blocked !== undefined) {
-      tasks = tasks.filter(t => !!t.blocked === blocked)
-    }
-
-    if (dueBefore) {
-      const beforeDate = new Date(dueBefore)
-      tasks = tasks.filter(t => {
-        const due = t.due_date
-        if (!due) return false
-        const dueDate = new Date(due)
-        return dueDate <= beforeDate
-      })
-    }
-
-    if (dueAfter) {
-      const afterDate = new Date(dueAfter)
-      tasks = tasks.filter(t => {
-        const due = t.due_date
-        if (!due) return false
-        const dueDate = new Date(due)
-        return dueDate >= afterDate
-      })
-    }
-
-    if (shared !== undefined) {
-      tasks = tasks.filter(t => !!t.shared === shared)
-    }
-
-    const total = tasks.length
-
-    // Pagination
-    const paginatedTasks = tasks.slice(offset, offset + limit)
-
     return res.json({
-      items: paginatedTasks,
+      items: tasks,
       total,
       limit,
       offset,
@@ -256,6 +254,52 @@ export function searchRouter() {
     const matching = accessible.filter(label => label.name.toLowerCase().includes(q))
 
     return res.json({ items: matching })
+  })
+
+  /**
+   * @swagger
+   * /api/search/counters:
+   *   get:
+   *     summary: Get task counts for system filters
+   *     description: Returns task counts for system filters like 'All' and '@me'. This endpoint ensures counts are server-calculated and accurate.
+   *     tags: [Search, Counters]
+   *     security:
+   *       - cookieAuth: []
+   *     responses:
+   *       200:
+   *         description: System filter counts
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 all:
+   *                   type: integer
+   *                   description: Count for all active, accessible tasks.
+   *                 me:
+   *                   type: integer
+   *                   description: Count for all active tasks assigned to the current user.
+   */
+  router.get('/counters', (req: AuthedRequest, res: Response) => {
+    const userId = req.user?.id
+    if (!userId) return res.status(401).json({ error: 'unauthorized' })
+
+    // Count for 'All': Alle niet-voltooide taken die toegankelijk zijn voor de gebruiker.
+    const allTasks = db.prepare('SELECT * FROM tasks WHERE completed = 0').all() as TaskRow[]
+    const accessibleCount = allTasks.filter(t => isTaskAccessible(t, userId)).length
+
+    // Count for '@me': Alle niet-voltooide taken die specifiek aan de gebruiker zijn toegewezen.
+    // We gebruiken een JOIN voor efficiëntie, zoals eerder besproken.
+    const meStmt = db.prepare(`
+      SELECT COUNT(DISTINCT tasks.id) as count
+      FROM tasks
+      INNER JOIN task_assignees ta ON tasks.id = ta.task_id
+      WHERE tasks.completed = 0 AND ta.user_id = ?
+    `)
+    const meResult = meStmt.get(userId) as { count: number }
+    const meCount = meResult.count
+
+    return res.json({ all: accessibleCount, me: meCount })
   })
 
   return router

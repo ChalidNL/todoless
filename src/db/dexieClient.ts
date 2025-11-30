@@ -51,7 +51,7 @@ class TodolessDB extends Dexie {
   todos!: Table<Todo, string>
   users!: Table<User, string>
   workflows!: Table<Workflow, string>
-  savedFilters!: Table<SavedFilter, string>
+  savedFilters!: Table<SavedFilter, number>  // v0.0.57: Changed from string to number
   lists!: Table<List, string>
   attributes!: Table<AttributeDef, string>
   points!: Table<PointsEntry, string>
@@ -71,22 +71,15 @@ class TodolessDB extends Dexie {
 
     // v2: add lists table and extend todos indexes
     this.version(2).stores({
-      labels: 'id, name, shared, workflowId, userId',
-      todos: 'id, userId, completed, labelIds, listId, assignee, dueDate',
-      users: 'id, name',
-      workflows: 'id, name',
-      savedViews: 'id, name, userId',
+      todos: 'id, userId, completed, labelIds, listId, assignee, dueDate', // Updated index
       lists: 'id, name',
     })
 
     // v3: 1.7 updates - workflows link labels, todos track workflowId/assigneeIds/blocked
     this.version(3).stores({
-      labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, blocked',
       users: 'id, name, email',
       workflows: 'id, name, labelIds',
-      savedViews: 'id, name, userId',
-      lists: 'id, name',
       attributes: 'id, name, type',
     })
 
@@ -94,11 +87,7 @@ class TodolessDB extends Dexie {
     this.version(4).stores({
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, blocked',
-      users: 'id, name, email',
       workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name',
-      attributes: 'id, name, type',
     })
 
     // v5: add 'order' to todos for list reordering
@@ -106,10 +95,6 @@ class TodolessDB extends Dexie {
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, blocked, order, createdAt, priority',
       users: 'id, name, email',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name',
-      attributes: 'id, name, type',
     })
 
     // v6: lists visibility, attributes defaultValue, users extended fields
@@ -117,8 +102,6 @@ class TodolessDB extends Dexie {
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, blocked, order, createdAt, priority',
       users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
       lists: 'id, name, visibility',
       attributes: 'id, name, type, defaultValue',
     })
@@ -127,11 +110,6 @@ class TodolessDB extends Dexie {
     this.version(7).stores({
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, blocked, order, createdAt, priority',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
       points: 'id, userId, todoId, date',
       settings: 'id',
     })
@@ -140,13 +118,6 @@ class TodolessDB extends Dexie {
     this.version(10).stores({
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
     })
 
     // v11: add notes table
@@ -154,12 +125,6 @@ class TodolessDB extends Dexie {
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority',
       users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
       notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
@@ -168,13 +133,6 @@ class TodolessDB extends Dexie {
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority',
       users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     }).upgrade(async (tx) => {
       // Ensure default workflow exists
       const defaultWorkflow = await tx.table('workflows').get('default-kanban')
@@ -207,14 +165,6 @@ class TodolessDB extends Dexie {
     this.version(13).stores({
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     }).upgrade(async (tx) => {
       // Make sure default-kanban exists (defensive)
       const defaultWf = await tx.table('workflows').get('default-kanban')
@@ -254,55 +204,22 @@ class TodolessDB extends Dexie {
     this.version(14).stores({
       labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
     // v15: add clientId index to todos for robust de-duplication with server
     this.version(15).stores({
-      labels: 'id, name, shared, workflowId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
     // v16: add userId index to labels for query and sync
     this.version(16).stores({
       labels: 'id, name, shared, workflowId, userId',
-      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived',
     })
 
     // v17: add ownerId to labels, shared to todos and notes for privacy model
     this.version(17).stores({
       labels: 'id, name, shared, workflowId, userId, ownerId',
       todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedViews: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
       notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared',
     }).upgrade(async (tx) => {
       // Migrate existing data to default shared=true
@@ -330,16 +247,7 @@ class TodolessDB extends Dexie {
 
     // v18: Rename savedViews → savedFilters (terminology refactoring)
     this.version(18).stores({
-      labels: 'id, name, shared, workflowId, userId, ownerId',
-      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
       savedFilters: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
-      notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared',
       savedViews: null, // Delete old table
     }).upgrade(async (tx) => {
       // Migrate data from savedViews to savedFilters
@@ -356,15 +264,6 @@ class TodolessDB extends Dexie {
 
     // v19: v0.0.55 - Add notes sync persistence (serverId, clientId, version)
     this.version(19).stores({
-      labels: 'id, name, shared, workflowId, userId, ownerId',
-      todos: 'id, userId, completed, labelIds, listId, workflowId, assigneeIds, dueDate, dueTime, repeat, blocked, order, createdAt, priority, serverId, clientId, shared',
-      users: 'id, name, email, role, ageGroup',
-      workflows: 'id, name, labelIds, checkboxOnly',
-      savedFilters: 'id, name, userId',
-      lists: 'id, name, visibility',
-      attributes: 'id, name, type, defaultValue',
-      points: 'id, userId, todoId, date',
-      settings: 'id',
       notes: 'id, userId, createdAt, updatedAt, pinned, archived, shared, serverId, clientId, version',
     }).upgrade(async (tx) => {
       // Initialize clientId and version for existing notes
@@ -378,6 +277,31 @@ class TodolessDB extends Dexie {
         }
       }
       logger.info('dexie:migration:v19', { message: `Initialized sync fields for ${notes.length} notes` })
+    })
+
+    // v20: v0.0.57 - Rebuild savedFilters to match Labels architecture EXACTLY
+    // BREAKING CHANGE: This will clear all existing saved filters
+    this.version(20).stores({
+      savedFilters: 'id, name, normalizedName, shared, ownerId, createdAt, updatedAt, version, menuVisible',
+    }).upgrade(async (tx) => {
+      // CLEAR all existing savedFilters - they are incompatible with new schema
+      await tx.table('savedFilters').clear()
+      logger.info('dexie:migration:v20', { message: 'Cleared savedFilters for v0.0.57 schema rebuild' })
+    })
+
+    // v0.0.57: Add ranking field to savedFilters
+    this.version(21).stores({
+      labels: 'id, name, shared, workflowId, userId, ownerId',
+      savedFilters: 'id, name, normalizedName, shared, ownerId, ranking, createdAt, updatedAt, version, menuVisible',
+    }).upgrade(async (tx) => {
+      // Add default ranking = 0 to all existing filters
+      const filters = await tx.table('savedFilters').toArray()
+      for (const filter of filters) {
+        if (filter.ranking === undefined) {
+          await tx.table('savedFilters').update(filter.id, { ranking: 0 })
+        }
+      }
+      logger.info('dexie:migration:v21', { message: 'Added ranking field to savedFilters' })
     })
 
     this.on('populate', async () => {
@@ -639,203 +563,9 @@ export const Settings = {
 }
 
 // Saved Filters helpers
-export const SavedFilters = {
-  list: () => db.savedFilters.toArray(),
-  get: (id: string) => db.savedFilters.get(id),
-  getBySlug: async (slug: string) => {
-    const filters = await db.savedFilters.toArray()
-    return filters.find((f) => f.slug === slug)
-  },
-  update: (id: string, patch: Partial<SavedFilter>) => db.savedFilters.update(id, patch),
-  add: async (input: Omit<SavedFilter, 'id' | 'userId'> & { userId?: string }) => {
-    const id = generateUUID()
-    const filter: SavedFilter = {
-      id,
-      name: input.name,
-      slug: input.slug || input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      labelFilterIds: input.labelFilterIds || [],
-      attributeFilters: input.attributeFilters || {},
-      statusFilter: input.statusFilter,
-      sortBy: input.sortBy,
-      viewMode: input.viewMode,
-      icon: input.icon,
-      showInSidebar: input.showInSidebar,
-      isSystem: input.isSystem,
-      userId: input.userId || 'local-user',
-    }
-    await db.savedFilters.add(filter)
-    return id
-  },
-  remove: (id: string) => db.savedFilters.delete(id),
-  ensureMeFilter: async (authUserId?: string | number) => {
-    try {
-      const me = await db.savedFilters.get('me')
-      // HOTFIX 0.0.55: Prefer authenticated user ID over local DB lookup
-      // This fixes @me filter not working in production when user IDs differ
-      let currentUserId: string
-      if (authUserId !== undefined) {
-        currentUserId = String(authUserId)
-      } else {
-        // Fallback: try local DB (for offline/pre-auth scenarios)
-        const users = await db.users.toArray()
-        currentUserId = users[0]?.id || 'local-user'
-      }
 
-      if (!me) {
-        // HOTFIX 0.0.55 v2: Use EXACT same structure as regular filters
-        // Store filter config as JSON in filters field, just like user-created filters
-        const filterConfig = {
-          selectedLabelIds: [],
-          selectedWorkflowIds: [],
-          selectedAssigneeIds: [currentUserId], // Array format, same as other filters
-          blockedOnly: false,
-          dueStart: null,
-          dueEnd: null,
-        }
-
-        const filter: SavedFilter = {
-          id: 'me',
-          name: '@me',
-          slug: 'me',
-          icon: '🙋',
-          labelFilterIds: [],
-          attributeFilters: {
-            filters: JSON.stringify(filterConfig),
-            sort: 'created',
-          },
-          sortBy: 'created',
-          viewMode: 'list',
-          userId: currentUserId,
-          showInSidebar: true,
-          isSystem: true,
-        }
-        await db.savedFilters.put(filter)
-      } else {
-        // HOTFIX 0.0.55 v2: Always update to use standard filter format
-        const updates: Partial<SavedFilter> = {}
-
-        if (!me.userId || me.userId !== currentUserId) {
-          updates.userId = currentUserId
-        }
-        if (me.isSystem !== true) {
-          updates.isSystem = true
-        }
-        if (!me.slug) {
-          updates.slug = 'me'
-        }
-
-        // Migrate to new format: use filters JSON with selectedAssigneeIds array
-        try {
-          const raw = me.attributeFilters?.filters
-          let needsUpdate = false
-
-          if (!raw) {
-            // Old format detected, migrate to new format
-            needsUpdate = true
-          } else {
-            // Check if current user is in the filter
-            const parsed = JSON.parse(raw)
-            const assignees = parsed.selectedAssigneeIds || []
-            if (!Array.isArray(assignees) || !assignees.includes(currentUserId)) {
-              needsUpdate = true
-            }
-          }
-
-          if (needsUpdate) {
-            const filterConfig = {
-              selectedLabelIds: [],
-              selectedWorkflowIds: [],
-              selectedAssigneeIds: [currentUserId],
-              blockedOnly: false,
-              dueStart: null,
-              dueEnd: null,
-            }
-            updates.attributeFilters = {
-              filters: JSON.stringify(filterConfig),
-              sort: 'created',
-            }
-          }
-        } catch {
-          // Invalid JSON, reset to standard format
-          const filterConfig = {
-            selectedLabelIds: [],
-            selectedWorkflowIds: [],
-            selectedAssigneeIds: [currentUserId],
-            blockedOnly: false,
-            dueStart: null,
-            dueEnd: null,
-          }
-          updates.attributeFilters = {
-            filters: JSON.stringify(filterConfig),
-            sort: 'created',
-          }
-        }
-
-        if (Object.keys(updates).length > 0) {
-          await db.savedFilters.update('me', updates)
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  },
-  ensureDefaultFilters: async () => {
-    try {
-      const users = await db.users.toArray()
-      const currentUserId = users[0]?.id || 'local-user'
-
-      // Default "All" filter (always visible)
-      const allFilter = await db.savedFilters.get('all')
-      if (!allFilter) {
-        await db.savedFilters.put({
-          id: 'all',
-          name: 'All',
-          slug: 'all',
-          icon: '📋',
-          labelFilterIds: [],
-          attributeFilters: {},
-          sortBy: 'created',
-          viewMode: 'list',
-          userId: currentUserId,
-          showInSidebar: true,
-          isSystem: true,
-          isDefault: true,
-        })
-      } else {
-        // Ensure isDefault and slug are set, and update icon for visual consistency
-        if (!allFilter.isDefault || !allFilter.slug || allFilter.icon === '⭐') {
-          await db.savedFilters.update('all', { isDefault: true, icon: '📋', slug: 'all' })
-        }
-      }
-
-      // Default "Backlog" filter (hidden by default)
-      const backlogFilter = await db.savedFilters.get('backlog')
-      if (!backlogFilter) {
-        await db.savedFilters.put({
-          id: 'backlog',
-          name: 'Backlog',
-          slug: 'backlog',
-          icon: '📦',
-          labelFilterIds: [],
-          attributeFilters: { workflowStage: 'Backlog' },
-          sortBy: 'created',
-          viewMode: 'list',
-          userId: currentUserId,
-          showInSidebar: false, // hidden by default
-          isSystem: true,
-          isDefault: true,
-        })
-      } else {
-        // Ensure isDefault and slug are set, and update icon for visual consistency
-        if (!backlogFilter.isDefault || !backlogFilter.slug || backlogFilter.icon === '⭐') {
-          await db.savedFilters.update('backlog', { isDefault: true, icon: '📦', slug: 'backlog' })
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  },
-}
+// v0.0.57: Saved Filters helpers moved to savedFiltersHelpers.ts
+export { SavedFilters } from './savedFiltersHelpers'
 
 export const Notes = {
   list: () => db.notes.toArray(),
@@ -886,7 +616,7 @@ export async function clearLocalData() {
       db.todos.clear(),
       db.users.clear(),
       db.workflows.clear(),
-      db.savedViews.clear(),
+      db.savedFilters.clear(), // v0.0.57: Fixed from savedViews
       db.lists.clear(),
       db.attributes.clear(),
       db.points.clear(),
@@ -932,5 +662,115 @@ export async function ensureDefaults() {
     }
   } catch (e) {
     // ignore
+  }
+}
+
+// v0.0.57: Ensure default saved filters exist (All, @me)
+export async function ensureDefaultFilters(userId: number) {
+  try {
+    const { pushFilterToServer } = await import('../utils/syncFilters')
+    const { SavedFilters } = await import('./savedFiltersHelpers')
+    const filters = await SavedFilters.list()
+
+    // Check if "All" filter exists
+    const allFilter = filters.find(f => f.normalizedName === 'all')
+    if (!allFilter) {
+      const newFilter = {
+        id: 0, // Will be assigned by server
+        name: 'All',
+        normalizedName: 'all',
+        queryJson: {
+          // HOTFIX: Removed showCompleted: false to let completed tasks show at bottom
+          showArchived: false,
+        },
+        menuVisible: true,
+        shared: true,
+        ownerId: userId,
+        ranking: 0, // Default ranking (alphabetical)
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+      }
+      // v0.0.57: Push to server first (server-first architecture)
+      await pushFilterToServer(newFilter)
+      logger.info('filters:default:created', { name: 'All' })
+    } else {
+      // HOTFIX: Migrate existing "All" filters that have showCompleted: false
+      const hasShowCompletedFalse = allFilter.queryJson.showCompleted === false
+
+      if (hasShowCompletedFalse) {
+        logger.info('filters:all:migrating', { showCompleted: allFilter.queryJson.showCompleted })
+        const updatedQueryJson = {
+          ...allFilter.queryJson,
+        }
+        // Remove showCompleted to let completed tasks show at bottom
+        delete updatedQueryJson.showCompleted
+
+        const updatedFilter = {
+          ...allFilter,
+          queryJson: updatedQueryJson,
+          updatedAt: new Date().toISOString(),
+          version: allFilter.version + 1,
+        }
+        await pushFilterToServer(updatedFilter)
+        logger.info('filters:all:migrated', { name: 'All' })
+      }
+    }
+
+    // Check if "@me" filter exists
+    const meFilter = filters.find(f => f.normalizedName === '@me')
+    if (!meFilter) {
+      const newFilter = {
+        id: 0, // Will be assigned by server
+        name: '@me',
+        normalizedName: '@me',
+        queryJson: {
+          // HOTFIX: Use '@me' as special marker instead of static userId
+          // This will be dynamically replaced with currentUserId in evaluateFilterQuery
+          selectedAssigneeIds: ['@me'],
+          // Don't filter completed tasks - let them show at bottom
+          showArchived: false,
+        },
+        menuVisible: true,
+        shared: true,
+        ownerId: userId,
+        ranking: 0, // Default ranking (alphabetical)
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+      }
+      // v0.0.57: Push to server first (server-first architecture)
+      await pushFilterToServer(newFilter)
+      logger.info('filters:default:created', { name: '@me' })
+    } else if (meFilter && meFilter.queryJson?.selectedAssigneeIds) {
+      // HOTFIX: Migrate existing @me filters that have static userId to use '@me' marker
+      const assigneeIds = meFilter.queryJson.selectedAssigneeIds
+      const hasStaticUserId = assigneeIds.length === 1 && assigneeIds[0] !== '@me' && /^\d+$/.test(assigneeIds[0])
+      const hasShowCompletedFalse = meFilter.queryJson.showCompleted === false
+
+      if (hasStaticUserId || hasShowCompletedFalse) {
+        logger.info('filters:@me:migrating', { oldIds: assigneeIds, showCompleted: meFilter.queryJson.showCompleted })
+        const updatedQueryJson = {
+          ...meFilter.queryJson,
+          selectedAssigneeIds: hasStaticUserId ? ['@me'] : assigneeIds,
+        }
+        // Remove showCompleted to let completed tasks show at bottom
+        delete updatedQueryJson.showCompleted
+
+        const updatedFilter = {
+          ...meFilter,
+          queryJson: updatedQueryJson,
+          updatedAt: new Date().toISOString(),
+          version: meFilter.version + 1,
+        }
+        await pushFilterToServer(updatedFilter)
+        logger.info('filters:@me:migrated', { name: '@me' })
+      }
+    }
+
+    // Dispatch refresh event so UI updates
+    window.dispatchEvent(new Event('saved-filters:refresh'))
+  } catch (e) {
+    logger.error('filters:default:failed', { error: String(e) })
   }
 }

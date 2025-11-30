@@ -93,8 +93,12 @@ export const useAuth = create<AuthState>((set: Setter, get: Getter) => ({
       if (user) {
         // Pull down server tasks then push any local-only items
         syncTasksFromServer(user).then(() => pushPendingTodos().catch(() => {})).catch(() => {})
-        // v0.0.55: Sync saved filters from server
-        syncFiltersFromServer().catch(() => {})
+        // v0.0.57: Sync saved filters from server, then ensure default filters exist
+        syncFiltersFromServer().then(() => {
+          import('../db/dexieClient').then(({ ensureDefaultFilters }) => {
+            ensureDefaultFilters(user.id).catch(() => {})
+          }).catch(() => {})
+        }).catch(() => {})
         startRealtimeSync(user)
       } else {
         stopRealtimeSync()

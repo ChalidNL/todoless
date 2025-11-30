@@ -4,7 +4,7 @@ const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
     title: 'TodoLess API',
-    version: '0.0.56',
+    version: '0.0.57',
     description: `Smart todo manager API with labels, workflows, notes, and real-time sync.
 
 **Features:**
@@ -262,74 +262,35 @@ const swaggerDefinition = {
       },
       SavedFilter: {
         type: 'object',
+        description: 'v0.0.57: Rebuilt to match Labels architecture exactly',
         properties: {
           id: {
-            type: 'string',
-            description: 'Saved filter ID (client-generated UUID)',
+            type: 'integer',
+            description: 'Saved filter ID (auto-incremented)',
           },
           name: {
             type: 'string',
             description: 'Filter name',
           },
-          slug: {
+          normalized_name: {
             type: 'string',
-            description: 'URL-friendly slug',
+            description: 'Normalized filter name for deduplication',
           },
-          icon: {
+          query_json: {
             type: 'string',
-            nullable: true,
-            description: 'Filter icon (emoji or icon name)',
+            description: 'JSON string containing filter query rules (labels, assignees, completion, etc.)',
           },
-          label_filter_ids: {
-            type: 'string',
-            nullable: true,
-            description: 'JSON array of label IDs',
+          menu_visible: {
+            type: 'integer',
+            description: 'Whether filter is visible in menu (0 or 1) - unique to filters',
           },
-          attribute_filters: {
-            type: 'string',
-            nullable: true,
-            description: 'JSON object of attribute filters',
+          shared: {
+            type: 'integer',
+            description: 'Whether filter is shared with family workspace (0 or 1)',
           },
-          status_filter: {
-            type: 'string',
-            nullable: true,
-            description: 'Status filter value',
-          },
-          sort_by: {
-            type: 'string',
-            nullable: true,
-            description: 'Sort field',
-          },
-          view_mode: {
-            type: 'string',
-            nullable: true,
-            description: 'View mode (list, tiles, calendar, kanban)',
-          },
-          user_id: {
+          owner_id: {
             type: 'integer',
             description: 'User ID who owns this filter',
-          },
-          show_in_sidebar: {
-            type: 'integer',
-            description: 'Whether to show in sidebar (0 or 1)',
-          },
-          is_system: {
-            type: 'integer',
-            description: 'Whether this is a system filter (0 or 1)',
-          },
-          is_default: {
-            type: 'integer',
-            description: 'Whether this is the default filter (0 or 1)',
-          },
-          parent_id: {
-            type: 'string',
-            nullable: true,
-            description: 'Parent filter ID for nested filters',
-          },
-          filter_order: {
-            type: 'integer',
-            nullable: true,
-            description: 'Display order',
           },
           created_at: {
             type: 'string',
@@ -339,14 +300,9 @@ const swaggerDefinition = {
             type: 'string',
             format: 'date-time',
           },
-          client_id: {
-            type: 'string',
-            nullable: true,
-            description: 'Client-generated ID for deduplication during sync',
-          },
           version: {
             type: 'integer',
-            description: 'Version number for conflict resolution',
+            description: 'Version number for conflict resolution and sync',
           },
         },
       },

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useFilterContext } from '../contexts/FilterContext'
 import { useSort } from '../contexts/SortContext'
-import { SavedFilters } from '../db/dexieClient'
+import { SavedFilters, Labels } from '../db/dexieClient'
 import { pushFilterToServer, updateFilterOnServer } from '../utils/syncFilters'
+import { useAuth } from '../store/auth'
 
 interface Props {
   onRefresh?: () => void
@@ -18,6 +19,7 @@ export default function SaveFilterButton({ onRefresh }: Props) {
     dueEnd,
   } = useFilterContext()
   const { value: sortValue } = useSort()
+  const { user } = useAuth()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,7 +37,20 @@ export default function SaveFilterButton({ onRefresh }: Props) {
 
   const onSave = async () => {
     setError(null)
-    const name = window.prompt('Save current filter as…', 'My filter')?.trim()
+
+    // v0.0.57: Generate filter name suggestion from selected labels
+    let suggestedName = 'My filter'
+    if (selectedLabelIds.length > 0) {
+      try {
+        const labels = await Labels.list()
+        const selectedLabels = labels.filter(l => selectedLabelIds.includes(l.id))
+        if (selectedLabels.length > 0) {
+          suggestedName = selectedLabels.map(l => l.name).join(' + ')
+        }
+      } catch {}
+    }
+
+    const name = window.prompt('Save current filter as…', suggestedName)?.trim()
     if (!name) return
 
     // Check if 'All' is being used
@@ -47,60 +62,53 @@ export default function SaveFilterButton({ onRefresh }: Props) {
 
     setSaving(true)
     try {
+      // v0.0.57: Build queryJson object with current filter state
+      const queryJson = {
+        selectedLabelIds,
+        selectedAssigneeIds,
+        selectedWorkflowIds,
+        blockedOnly,
+        dueStart,
+        dueEnd,
+        sortBy: sortValue,
+      }
+
       const existing = await SavedFilters.list()
-  const duplicate = existing.find((f) => f.name.toLowerCase() === name.toLowerCase())
+      const duplicate = existing.find((f) => f.normalizedName === name.toLowerCase())
+
+      // v0.0.57: Get current user ID from auth context
+      const ownerId = user?.id || 1
 
       if (duplicate) {
-        if (duplicate.isSystem) {
-          setError('Cannot overwrite a system filter')
-          setTimeout(() => setError(null), 3000)
-          setSaving(false)
-          return
-        }
         const overwrite = window.confirm(`Filter "${name}" already exists. Overwrite?`)
         if (!overwrite) {
           setSaving(false)
           return
         }
-        // Update existing filter
-        await SavedFilters.update(duplicate.id, {
-          labelFilterIds: selectedLabelIds,
-          attributeFilters: {
-            sort: sortValue,
-            blockedOnly: blockedOnly ? '1' : '0',
-            assignees: selectedAssigneeIds.join(','),
-            workflows: selectedWorkflowIds.join(','),
-            dueStart: dueStart || '',
-            dueEnd: dueEnd || '',
-          },
-        })
-        // v0.0.55: Push updated filter to server
-        const updatedFilter = await SavedFilters.get(duplicate.id)
-        if (updatedFilter) {
-          updateFilterOnServer(updatedFilter).catch(() => {})
-        }
-      } else {
-        // Create new filter with default filter icon
-        const filterId = await SavedFilters.add({
+        // v0.0.57: Update existing filter on server (server-first)
+        await updateFilterOnServer(duplicate.id, {
           name,
-          icon: '🔍',
-          labelFilterIds: selectedLabelIds,
-          sortBy: sortValue,
-          attributeFilters: {
-            sort: sortValue,
-            blockedOnly: blockedOnly ? '1' : '0',
-            assignees: selectedAssigneeIds.join(','),
-            workflows: selectedWorkflowIds.join(','),
-            dueStart: dueStart || '',
-            dueEnd: dueEnd || '',
-          },
+          queryJson,
         })
-        // v0.0.55: Push new filter to server
-        const newFilter = await SavedFilters.get(filterId)
-        if (newFilter) {
-          pushFilterToServer(newFilter).catch(() => {})
+      } else {
+        // v0.0.57: Create new filter - server-first, no local ID generation
+        const newFilter = {
+          id: 0, // Will be assigned by server
+          name,
+          normalizedName: name.toLowerCase(),
+          queryJson,
+          menuVisible: true,
+          shared: true,
+          ownerId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          version: 1,
         }
+
+        // Push to server (this will update local with server-assigned ID)
+        await pushFilterToServer(newFilter)
       }
+
       window.dispatchEvent(new Event('saved-filters:refresh'))
       // Clear all filters after save
       window.dispatchEvent(new CustomEvent('filters:clear'))

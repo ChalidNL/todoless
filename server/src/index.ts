@@ -44,7 +44,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret'
-const ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173'
+// Default CORS origin: match Vite dev server (5174) used locally
+const ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5174'
 
 // Helmet security headers. For LAN HTTP we disable strict COOP/COEP and CSP to
 // avoid HTTPS upgrades and agent-cluster warnings in browsers. The API is not

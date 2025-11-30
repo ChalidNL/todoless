@@ -232,8 +232,19 @@ export default function GlobalFilters() {
                     )}
                   </summary>
                   <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {/* v0.0.57: EMPTY option to filter tasks with no labels */}
+                    <label className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-200 bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedLabelIds.includes('EMPTY')}
+                        onChange={() => toggleLabel('EMPTY')}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <span className="inline-block h-3 w-3 rounded border border-gray-400 flex-shrink-0 bg-white" />
+                      <span className="flex-1 truncate italic text-gray-600">No labels</span>
+                    </label>
                     {labels.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-gray-400">No labels</div>
+                      <div className="px-3 py-2 text-xs text-gray-400">No labels defined</div>
                     ) : (
                       labels.map((l) => (
                         <label key={l.id} className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm">
@@ -270,6 +281,21 @@ export default function GlobalFilters() {
                     )}
                   </summary>
                   <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto border border-gray-300 rounded-md bg-white shadow-lg">
+                    {/* v0.0.57: EMPTY option to filter tasks with no assignees */}
+                    <label className="flex cursor-pointer items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm border-b border-gray-200 bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedAssigneeIds.includes('EMPTY')}
+                        onChange={(e) => {
+                          const checked = e.target.checked
+                          setSelectedAssigneeIds(
+                            checked ? [...selectedAssigneeIds, 'EMPTY'] : selectedAssigneeIds.filter((x) => x !== 'EMPTY')
+                          )
+                        }}
+                        className="w-4 h-4 rounded border-gray-300"
+                      />
+                      <span className="flex-1 truncate italic text-gray-600">No assignees</span>
+                    </label>
                     {users.length === 0 ? (
                       <div className="px-3 py-2 text-xs text-gray-400">No users</div>
                     ) : (

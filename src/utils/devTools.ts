@@ -95,12 +95,13 @@ export async function flushDatabase() {
   const me: User = { id: 'local-user', name: 'You', themeColor: '#0ea5e9' }
   await db.users.put(me)
   await ensureDefaults()
-  await SavedFilters.ensureDefaultFilters()
-  await SavedFilters.ensureMeFilter()
+  // HOTFIX 0.0.57: Default filters are now created in dexieClient.ts ensureDefaultFilters()
+  // No need to call separate methods here
 
   // Trigger full UI refresh
   window.dispatchEvent(new CustomEvent('todos:refresh'))
   window.dispatchEvent(new CustomEvent('labels:refresh'))
+  window.dispatchEvent(new CustomEvent('saved-filters:refresh'))
 }
 
 /**
@@ -179,9 +180,9 @@ export async function importMockData() {
   await db.notes.update(note0.id, { linkedTodoIds: [todo0.id] })
   await db.todos.update(todo0.id, { linkedNoteIds: [note0.id] })
 
-  // Saved Views (ensure + a custom one)
-  await SavedFilters.ensureDefaultFilters()
-  await SavedFilters.ensureMeFilter()
+  // HOTFIX 0.0.57: Default filters are now created in dexieClient.ts ensureDefaultFilters()
+  // No need to call separate methods here
+
   await db.savedViews.put({
     id: uuid(),
     name: 'High Priority',

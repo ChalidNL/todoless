@@ -179,35 +179,38 @@ try {
   logger.error('db:migration_notes_failed', { error: String(e) })
 }
 
-// v0.0.55: Create saved_filters table for cross-device filter sync
+// v0.0.57: Rebuild saved_filters table identical to labels architecture
+// This is a breaking change - drops old table and creates new one
 try {
+  // Drop old table if exists (breaking change for v0.0.57)
+  db.exec(`DROP TABLE IF EXISTS saved_filters;`)
+
+  // Create new saved_filters table following Labels pattern EXACTLY
   db.exec(`
     CREATE TABLE IF NOT EXISTS saved_filters (
-      id TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      slug TEXT NOT NULL,
-      icon TEXT,
-      label_filter_ids TEXT,
-      attribute_filters TEXT,
-      status_filter TEXT,
-      sort_by TEXT,
-      view_mode TEXT,
-      user_id INTEGER NOT NULL,
-      show_in_sidebar INTEGER DEFAULT 1,
-      is_system INTEGER DEFAULT 0,
-      is_default INTEGER DEFAULT 0,
-      parent_id TEXT,
-      filter_order INTEGER,
+      normalized_name TEXT NOT NULL,
+      query_json TEXT NOT NULL,
+      menu_visible INTEGER NOT NULL DEFAULT 1,
+      shared INTEGER NOT NULL DEFAULT 1,
+      owner_id INTEGER NOT NULL,
+      ranking INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
-      client_id TEXT,
-      version INTEGER DEFAULT 1,
-      FOREIGN KEY(user_id) REFERENCES users(id)
+      version INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY(owner_id) REFERENCES users(id),
+      UNIQUE(normalized_name, owner_id)
     );
   `)
-  logger.info('db:saved_filters_table_created')
+
+  // Create index on normalized_name for fast lookups (like labels)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_saved_filters_normalized_name ON saved_filters(normalized_name);`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_saved_filters_owner ON saved_filters(owner_id);`)
+
+  logger.info('db:saved_filters_v2_table_created')
 } catch (e) {
-  logger.error('db:saved_filters_table_failed', { error: String(e) })
+  logger.error('db:saved_filters_v2_table_failed', { error: String(e) })
 }
 
 // Seed an initial adult user if none exists
@@ -283,24 +286,17 @@ export type ApiTokenRow = {
   revoked: 0 | 1
 }
 
+// v0.0.57: SavedFilterRow now follows Labels pattern exactly
 export type SavedFilterRow = {
-  id: string
+  id: number
   name: string
-  slug: string
-  icon: string | null
-  label_filter_ids: string | null
-  attribute_filters: string | null
-  status_filter: string | null
-  sort_by: string | null
-  view_mode: string | null
-  user_id: number
-  show_in_sidebar: 0 | 1
-  is_system: 0 | 1
-  is_default: 0 | 1
-  parent_id: string | null
-  filter_order: number | null
+  normalized_name: string
+  query_json: string  // JSON string containing filter rules
+  menu_visible: 0 | 1  // Toggle for menu visibility (unique to filters)
+  shared: 0 | 1
+  owner_id: number
+  ranking: number  // For custom ordering in sidebar (0 = default/alphabetical)
   created_at: string
   updated_at: string
-  client_id: string | null
   version: number
 }

@@ -110,18 +110,56 @@ export function useFilters(initial: string[] = []) {
   const makeFilter = (todos: Todo[]) => {
     // Note: This is a pure function. Consumers should memoize results as needed.
     let next = todos
+
+    // v0.0.57: Support EMPTY parameter for labels
     if (selectedLabelIds.length > 0) {
-      next = next.filter((t) => selectedLabelIds.every((id) => t.labelIds.includes(id)))
+      const hasEmpty = selectedLabelIds.includes('EMPTY')
+      const regularIds = selectedLabelIds.filter(id => id !== 'EMPTY')
+
+      if (hasEmpty && regularIds.length === 0) {
+        // Only EMPTY selected: show tasks with no labels
+        next = next.filter((t) => !t.labelIds || t.labelIds.length === 0)
+      } else if (hasEmpty && regularIds.length > 0) {
+        // EMPTY + other labels: show tasks with ALL selected labels OR no labels
+        next = next.filter((t) => {
+          const hasNoLabels = !t.labelIds || t.labelIds.length === 0
+          const hasAllLabels = regularIds.every((id) => t.labelIds.includes(id))
+          return hasNoLabels || hasAllLabels
+        })
+      } else {
+        // Only regular labels: show tasks with ALL selected labels
+        next = next.filter((t) => regularIds.every((id) => t.labelIds.includes(id)))
+      }
     }
+
     if (selectedWorkflowIds.length > 0) {
       next = next.filter((t) => t.workflowId && selectedWorkflowIds.includes(t.workflowId))
     }
+
+    // v0.0.57: Support EMPTY parameter for assignees
     if (selectedAssigneeIds.length > 0) {
-      next = next.filter((t) => {
-        const ids = t.assigneeIds || []
-        return ids.some((id) => selectedAssigneeIds.includes(id))
-      })
+      const hasEmpty = selectedAssigneeIds.includes('EMPTY')
+      const regularIds = selectedAssigneeIds.filter(id => id !== 'EMPTY')
+
+      if (hasEmpty && regularIds.length === 0) {
+        // Only EMPTY selected: show tasks with no assignees
+        next = next.filter((t) => !t.assigneeIds || t.assigneeIds.length === 0)
+      } else if (hasEmpty && regularIds.length > 0) {
+        // EMPTY + other assignees: show tasks with ANY selected assignee OR no assignees
+        next = next.filter((t) => {
+          const hasNoAssignees = !t.assigneeIds || t.assigneeIds.length === 0
+          const hasAnyAssignee = (t.assigneeIds || []).some((id) => regularIds.includes(id))
+          return hasNoAssignees || hasAnyAssignee
+        })
+      } else {
+        // Only regular assignees: show tasks with ANY selected assignee
+        next = next.filter((t) => {
+          const ids = t.assigneeIds || []
+          return ids.some((id) => regularIds.includes(id))
+        })
+      }
     }
+
     if (blockedOnly) {
       next = next.filter((t) => t.blocked)
     }
