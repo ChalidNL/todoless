@@ -5,7 +5,7 @@
  * Update this file to change the version across the entire app.
  */
 
-export const VERSION = '0.0.57';
+export const VERSION = '0.0.59';
 
 /**
  * Detect if running in test/development environment based on runtime URL
