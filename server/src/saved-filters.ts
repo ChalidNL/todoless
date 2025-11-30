@@ -373,7 +373,7 @@ export function savedFiltersRouter() {
       if (query.selectedLabelIds && Array.isArray(query.selectedLabelIds) && query.selectedLabelIds.length > 0) {
         filtered = filtered.filter(task => {
           try {
-            const taskLabels = task.labelIds ? JSON.parse(task.labelIds) : []
+            const taskLabels = task.labels ? JSON.parse(task.labels) : []
             // Check if task has ALL selected labels (AND logic)
             return query.selectedLabelIds.every((labelId: string) =>
               taskLabels.includes(labelId)
@@ -387,7 +387,7 @@ export function savedFiltersRouter() {
       // HOTFIX 0.0.57: Implement workflow filtering
       if (query.selectedWorkflowIds && Array.isArray(query.selectedWorkflowIds) && query.selectedWorkflowIds.length > 0) {
         filtered = filtered.filter(task => {
-          const taskWorkflowId = task.workflowId || task.workflow
+          const taskWorkflowId = task.workflow
           return taskWorkflowId && query.selectedWorkflowIds.includes(String(taskWorkflowId))
         })
       }
