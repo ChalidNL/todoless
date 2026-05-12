@@ -14,9 +14,10 @@ import { Settings } from './components/Settings';
 import { Calendar } from './components/Calendar';
 import { Rewards } from './components/Rewards';
 import { Dashboard } from './components/Dashboard';
+import { ProjectsView } from './components/ProjectsView';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, CheckSquare, ShoppingCart, FileText, Settings as SettingsIcon, CalendarDays, RefreshCw, Star, LayoutDashboard } from 'lucide-react';
+import { Inbox as InboxIcon, CheckSquare, ShoppingCart, FileText, Settings as SettingsIcon, CalendarDays, RefreshCw, FolderOpen } from 'lucide-react';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
@@ -216,15 +217,12 @@ function AppContent() {
     return <Login onLogin={() => { setAppScreen('app'); navigate('/'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
-  const isChild = (user as any)?.role === 'child';
-
-  const navItems: { to: string; label: string; icon: React.ReactNode; childOnly?: boolean }[] = [
+  const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
     { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
     { to: '/calendar', label: 'Calendar', icon: <CalendarDays className="w-5 h-5" /> },
-    { to: '/items', label: 'Items', icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/items', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/notes', label: 'Notes', icon: <FileText className="w-5 h-5" /> },
-    ...(isChild ? [{ to: '/rewards', label: 'Rewards', icon: <Star className="w-5 h-5" /> }] : []),
     { to: '/settings', label: 'Settings', icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
@@ -240,6 +238,7 @@ function AppContent() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/rewards" element={<Rewards />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/projects" element={<ProjectsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
