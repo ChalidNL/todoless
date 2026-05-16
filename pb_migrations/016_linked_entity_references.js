@@ -6,11 +6,13 @@ migrate(
     // tasks.linked_item_ids -> JSON array of item IDs (tasks linked to groceries)
     // tasks.linked_note_ids -> JSON array of note IDs (tasks with supporting notes)
     const tasks = app.findCollectionByNameOrId('tasks');
-    tasks.fields.add(new JsonField({
+    tasks.fields.add(new Field({
+      type: 'json',
       name: 'linked_item_ids',
       required: false,
     }));
-    tasks.fields.add(new JsonField({
+    tasks.fields.add(new Field({
+      type: 'json',
       name: 'linked_note_ids',
       required: false,
     }));
@@ -19,11 +21,13 @@ migrate(
     // items.linked_task_ids -> JSON array of task IDs (groceries linked to tasks)
     // items.linked_note_ids -> JSON array of note IDs (items with supporting notes)
     const items = app.findCollectionByNameOrId('items');
-    items.fields.add(new JsonField({
+    items.fields.add(new Field({
+      type: 'json',
       name: 'linked_task_ids',
       required: false,
     }));
-    items.fields.add(new JsonField({
+    items.fields.add(new Field({
+      type: 'json',
       name: 'linked_note_ids',
       required: false,
     }));
@@ -33,11 +37,13 @@ migrate(
     // notes.linked_item_ids -> JSON array of item IDs (notes about items)
     // notes.project_id -> relation to projects (notes belonging to a project)
     const notes = app.findCollectionByNameOrId('notes');
-    notes.fields.add(new JsonField({
+    notes.fields.add(new Field({
+      type: 'json',
       name: 'linked_task_ids',
       required: false,
     }));
-    notes.fields.add(new JsonField({
+    notes.fields.add(new Field({
+      type: 'json',
       name: 'linked_item_ids',
       required: false,
     }));

@@ -6,7 +6,7 @@ import { Priority, Horizon, TaskStatus } from '../../types';
 
 interface NewGlobalHeaderProps {
   onSearch?: (query: string) => void;
-  onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => void;
+  onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string }) => void;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -27,7 +27,7 @@ export const NewGlobalHeader = ({
 }: NewGlobalHeaderProps) => {
   const [inputValue, setInputValue] = useState('');
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const { users, labels, filters, items, shops, appSettings } = useApp();
+  const { users, labels, filters, items, shops, appSettings, sprints } = useApp();
 
   // Common filter states
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -40,6 +40,9 @@ export const NewGlobalHeader = ({
   const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
   const [hasSprintId, setHasSprintId] = useState<boolean | undefined>(undefined);
   const [blocked, setBlocked] = useState<boolean | undefined>(undefined);
+
+  // Sprint assignment for new tasks
+  const [selectedSprintId, setSelectedSprintId] = useState<string>('');
 
   // Item specific filters
   const [selectedShops, setSelectedShops] = useState<string[]>([]);
@@ -63,7 +66,7 @@ export const NewGlobalHeader = ({
 
   const parseInput = (text: string) => {
     let cleanText = text;
-    const metadata: { assignee?: string; labels?: string[]; dueDate?: number } = {};
+    const metadata: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string } = {};
 
     // Parse @me or @user (assignee)
     const assigneeMatch = text.match(/@(\w+)/);
@@ -220,7 +223,7 @@ export const NewGlobalHeader = ({
     <>
       {/* Header Bar */}
       <div className="bg-white border-b border-neutral-200 sticky top-[49px] z-30">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-lg mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             {/* Filter Icon */}
             {showFilters && (

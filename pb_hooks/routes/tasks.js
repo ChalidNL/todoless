@@ -78,6 +78,11 @@ routerAdd(
       .set('labels', body.get('labels') || [])
       .set('is_private', body.get('is_private') || false)
       .set('archived', body.get('archived') || false)
+      .set('flag', body.get('flag') || false)
+      .set('linked_to', body.get('linked_to') || '')
+      .set('linked_type', body.get('linked_type') || '')
+      .set('linked_item_ids', body.get('linked_item_ids') || [])
+      .set('linked_note_ids', body.get('linked_note_ids') || [])
 
     if (body.get('blocked_comment')) data.set('blocked_comment', body.get('blocked_comment'))
     if (body.get('assigned_to')) data.set('assigned_to', body.get('assigned_to'))
@@ -127,6 +132,11 @@ routerAdd(
     if (body.has('labels')) data.set('labels', body.get('labels'))
     if (body.has('is_private')) data.set('is_private', body.get('is_private'))
     if (body.has('archived')) data.set('archived', body.get('archived'))
+    if (body.has('flag')) data.set('flag', body.get('flag'))
+    if (body.has('linked_to')) data.set('linked_to', body.get('linked_to'))
+    if (body.has('linked_type')) data.set('linked_type', body.get('linked_type'))
+    if (body.has('linked_item_ids')) data.set('linked_item_ids', body.get('linked_item_ids'))
+    if (body.has('linked_note_ids')) data.set('linked_note_ids', body.get('linked_note_ids'))
 
     data.submit()
 

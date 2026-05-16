@@ -8,18 +8,20 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
-import { ItemOverview } from './components/ItemOverview';
+import { GroceriesView } from './components/groceries/GroceriesView';
 import { Notes } from './components/Notes';
 import { Settings } from './components/Settings';
 import { Calendar } from './components/Calendar';
 import { Rewards } from './components/Rewards';
 import { Dashboard } from './components/Dashboard';
 import { ProjectsView } from './components/ProjectsView';
+import { MobileHome } from './components/MobileHome';
 import { TabletDashboard } from './components/TabletDashboard';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, CheckSquare, ShoppingCart, FileText, Settings as SettingsIcon, CalendarDays, RefreshCw, FolderOpen, LayoutDashboard } from 'lucide-react';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
+import { fetchSetupStatus } from './lib/bootstrap-status';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -104,39 +106,17 @@ function AppContent() {
         return;
       }
 
-      // Check if any users exist (unauthenticated, works on fresh install)
-      // and (in parallel) check if current authenticated user has seen onboarding
-      const [hasUsers, hasSeenOnboarding, setupComplete] = await Promise.all([
-        (async () => {
-          try {
-            // users.listRule requires auth — use app_settings.setup_complete as proxy for "has users"
-            const resp = await fetch('/api/collections/app_settings/records?perPage=1&fields=setup_complete');
-            const data = await resp.json();
-            if (resp.ok && data.items?.length > 0) return true;
-            // Fallback: try users endpoint (works when authenticated)
-            const resp2 = await fetch('/api/collections/users/records?perPage=1&fields=id');
-            const data2 = await resp2.json();
-            return !(resp2.ok && data2.totalItems === 0);
-          } catch {
-            return true;
-          }
-        })(),
+      const [setupStatus, hasSeenOnboarding] = await Promise.all([
+        fetchSetupStatus(),
         (async () => {
           if (pb.authStore.isValid && user) {
             return api.hasUserSeenOnboarding();
           }
           return false;
         })(),
-        (async () => {
-          try {
-            const resp = await fetch('/api/collections/app_settings/records?perPage=1&fields=setup_complete');
-            const data = await resp.json();
-            return !!(resp.ok && data.items?.[0]?.setup_complete);
-          } catch {
-            return false;
-          }
-        })(),
       ]);
+
+      const { hasUsers, setupComplete } = setupStatus;
 
       const mode = getOnboardingMode({
         hasUsers,
@@ -218,10 +198,9 @@ function AppContent() {
     return <Login onLogin={() => { setAppScreen('app'); navigate('/'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
-  const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
+  const navItems: { to: string; label: string; icon: React.ReactNode; mobileOnly?: boolean }[] = [
     { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
-    { to: '/projects', label: 'Projects', icon: <FolderOpen className="w-5 h-5" /> },
     { to: '/calendar', label: 'Calendar', icon: <CalendarDays className="w-5 h-5" /> },
     { to: '/items', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/notes', label: 'Notes', icon: <FileText className="w-5 h-5" /> },
@@ -232,9 +211,10 @@ function AppContent() {
     <div className="min-h-screen bg-neutral-50">
       <main>
         <Routes>
+          <Route path="/home" element={<MobileHome />} />
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
-          <Route path="/items" element={<ItemOverview />} />
+          <Route path="/items" element={<GroceriesView />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/settings" element={<Settings />} />
@@ -242,7 +222,7 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tablet" element={<TabletDashboard />} />
           <Route path="/projects" element={<ProjectsView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
 
@@ -254,23 +234,24 @@ function AppContent() {
         </div>
       )}
 
-      <nav className={`fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 safe-area-inset-bottom z-40 ${location.pathname === '/tablet' ? 'hidden' : ''}`}>
-        <div className="max-w-2xl mx-auto flex justify-around">
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-neutral-200 z-40 ${location.pathname === '/tablet' ? 'hidden' : ''}`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
+      >
+        <div className="max-w-lg mx-auto flex justify-around">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              end={item.to === '/'}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-3 px-4 transition-colors rounded-lg ${
+                `flex flex-col items-center justify-center gap-0.5 py-2 px-3 min-h-[48px] transition-all active:scale-95 ${
                   isActive
-                    ? 'bg-black text-white'
+                    ? 'text-neutral-900'
                     : 'text-neutral-400 hover:text-neutral-600'
                 }`
               }
             >
               {item.icon}
-              <span className="text-xs">{item.label}</span>
+              <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           ))}
         </div>

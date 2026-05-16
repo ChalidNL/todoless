@@ -1,5 +1,11 @@
 migrate(
   (app) => {
+    try {
+      app.findCollectionByNameOrId('paperless_sync');
+      return;
+    } catch {}
+
+    const tasksCollection = app.findCollectionByNameOrId('tasks');
     app.save(
       new Collection({
         name: 'paperless_sync',
@@ -13,7 +19,7 @@ migrate(
         fields: [
           { name: 'document_id', type: 'number', required: true },
           { name: 'document_title', type: 'text' },
-          { name: 'task_id', type: 'relation', collectionId: 'tasks', cascadeDelete: false, maxSelect: 1 },
+          { name: 'task_id', type: 'relation', collectionId: tasksCollection.id, cascadeDelete: false, maxSelect: 1 },
           { name: 'status', type: 'select', required: true, values: ['synced', 'skipped', 'error'], maxSelect: 1 },
           { name: 'error_message', type: 'text' },
         ],

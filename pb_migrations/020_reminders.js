@@ -1,5 +1,10 @@
 migrate(
   (app) => {
+    try {
+      app.findCollectionByNameOrId('reminders');
+      return;
+    } catch {}
+
     const baseRules = {
       listRule: 'user = @request.auth.id',
       viewRule: 'user = @request.auth.id',

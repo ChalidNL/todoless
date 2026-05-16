@@ -49,6 +49,11 @@ class SyncEngine {
     };
   }
 
+  /** Set online status directly (used by external code on detection). */
+  goOffline() {
+    this.setOnline(false);
+  }
+
   private setOnline(online: boolean) {
     const newStatus: OnlineStatus = online ? 'online' : 'offline';
     if (newStatus === this.status) return;
@@ -65,7 +70,7 @@ class SyncEngine {
     this.syncing = true;
 
     try {
-      let mutations = await offline.getQueuedMutations();
+      const mutations = await offline.getQueuedMutations();
       // Sort by timestamp (oldest first)
       mutations.sort((a, b) => a.timestamp - b.timestamp);
 
@@ -240,7 +245,7 @@ class SyncEngine {
     return { success: false, queued: true };
   }
 
-  private isNetworkError(error: any): boolean {
+  isNetworkError(error: any): boolean {
     // PocketBase / fetch network errors
     const msg = (error?.message || '').toLowerCase();
     return (

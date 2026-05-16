@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Clock, Tag, User, Flag, AlertCircle, Trash2, Zap, Lock, Unlock, Menu, X, ToggleLeft, ToggleRight, FolderOpen } from 'lucide-react';
+import { Clock, Tag, User, Flag, Trash2, Zap, Lock, Unlock, Menu, X, ToggleLeft, ToggleRight, FolderOpen, Link as LinkIcon, StickyNote, ShoppingCart } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
 import { LabelSelector } from './LabelSelector';
 import { EditableText } from './EditableText';
+import { EntityLinkBadge, EntityLinkPicker } from './EntityLinkBadge';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -12,7 +13,7 @@ interface CompactTaskCardProps {
 }
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, sprints, projects, createLabel, convertTaskToItem } = useApp();
+  const { updateTask, deleteTask, labels, users, sprints, projects, items, notes, createLabel, convertTaskToItem } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -23,6 +24,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [showBlockerInput, setShowBlockerInput] = useState(false);
   const [showSprintSelector, setShowSprintSelector] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [showLinkManager, setShowLinkManager] = useState(false);
   const [labelSearchQuery, setLabelSearchQuery] = useState('');
   const [assigneeSearchQuery, setAssigneeSearchQuery] = useState('');
 
@@ -56,6 +58,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     setShowBlockerInput(false);
     setShowSprintSelector(false);
     setShowProjectSelector(false);
+    setShowLinkManager(false);
   };
 
   const filteredLabels = labels.filter(l => 
@@ -106,6 +109,27 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             />
           </div>
 
+          {/* Owner & Assignee badges */}
+          <div className="flex items-center gap-1 mb-1.5 flex-wrap">
+            {task.createdBy && users.length > 1 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 text-neutral-500">
+                <div className="w-3.5 h-3.5 rounded-full bg-neutral-300 flex items-center justify-center text-[8px] text-white font-medium">
+                  {(users.find(u => u.id === task.createdBy)?.name || '?').charAt(0)}
+                </div>
+                {users.find(u => u.id === task.createdBy)?.name || 'Unknown'}
+              </span>
+            )}
+            {task.assignedTo && task.assignedTo !== task.createdBy && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600">
+                <User className="w-3 h-3" />
+                {users.find(u => u.id === task.assignedTo)?.name || 'Unknown'}
+              </span>
+            )}
+            {task.isPrivate && users.length > 1 && (
+              <Lock className="w-3 h-3 text-purple-400" />
+            )}
+          </div>
+
           {/* Icon toolbar - only visible when menu is open */}
           {showMenu && (
             <div className="flex items-center gap-1 pt-2 border-t border-neutral-100">
@@ -115,7 +139,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   closeAllPanels();
                   setShowDueDatePicker(!showDueDatePicker);
                 }}
-                className={`p-1.5 rounded transition-colors ${showDueDatePicker ? 'bg-black' : 'hover:bg-neutral-100'}`}
+                className={`p-2 rounded transition-colors touch-target ${showDueDatePicker ? 'bg-black' : 'hover:bg-neutral-100'}`}
                 title="Due date / Repeat"
               >
                 <Clock className={`w-4 h-4 ${showDueDatePicker ? 'text-white' : task.dueDate ? 'text-blue-500' : 'text-neutral-400'}`} />
@@ -241,7 +265,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             setShowMenu(!showMenu);
             setIsExpanded(!isExpanded);
           }}
-          className="p-1.5 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
+          className="p-2 hover:bg-neutral-100 rounded transition-colors flex-shrink-0 touch-target"
         >
           {showMenu ? (
             <X className="w-5 h-5 text-neutral-600" />

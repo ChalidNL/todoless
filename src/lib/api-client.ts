@@ -20,7 +20,6 @@ import type {
   Reward,
   Goal,
 } from '../types';
-} from '../types';
 
 // --- Utility ---
 const toISO = (timestamp?: number | string | null): string | null =>
@@ -28,8 +27,8 @@ const toISO = (timestamp?: number | string | null): string | null =>
 
 // --- Normalizers: PocketBase snake_case → Frontend camelCase ---
 const normalizeUser = (r: any): User => ({
-  id: r.id, email: r.email, name: r.name || r.email, username: r.username || '',
-  role: (r.role || 'user') as User['role'], avatar: r.avatar, created: r.created, updated: r.updated,
+  id: r.id, email: r.email, name: r.name || r.email,
+  role: (r.role || 'user') as User['role'], avatarUrl: r.avatar,
 });
 
 const normalizeTask = (r: any): Task => ({
@@ -42,7 +41,7 @@ const normalizeTask = (r: any): Task => ({
   deleteAfter: r.delete_after ? new Date(r.delete_after).getTime() : undefined,
   isPrivate: !!r.is_private, labels: Array.isArray(r.labels) ? r.labels : [],
   linkedTo: r.linked_to, linkedType: r.linked_type, flag: !!r.flag,
-  user: r.user, created: r.created, updated: r.updated,
+  createdAt: r.created ? new Date(r.created).getTime() : Date.now(), createdBy: r.user,
 });
 
 const normalizeItem = (r: any): Item => ({
@@ -50,8 +49,9 @@ const normalizeItem = (r: any): Item => ({
   shopId: r.shop_id, quantity: r.quantity, priority: r.priority,
   assignedTo: r.assigned_to, dueDate: r.due_date ? new Date(r.due_date).getTime() : undefined,
   labels: Array.isArray(r.labels) ? r.labels : [], isPrivate: !!r.is_private,
-  linkedType: r.linked_type, linkedTo: r.linked_to,
-  user: r.user, created: r.created, updated: r.updated,
+  linkedTaskIds: Array.isArray(r.linked_task_ids) ? r.linked_task_ids : [],
+  linkedNoteIds: Array.isArray(r.linked_note_ids) ? r.linked_note_ids : [],
+  createdAt: r.created ? new Date(r.created).getTime() : Date.now(), createdBy: r.user,
 });
 
 const normalizeNote = (r: any): Note => ({
@@ -62,16 +62,16 @@ const normalizeNote = (r: any): Note => ({
   assignedTo: r.assigned_to, dueDate: r.due_date ? new Date(r.due_date).getTime() : undefined,
   repeatInterval: r.repeat_interval, isPrivate: !!r.is_private,
   createdAt: r.created ? new Date(r.created).getTime() : Date.now(),
-  user: r.user, created: r.created, updated: r.updated,
+  createdBy: r.user,
 });
 
 const normalizeLabel = (r: any): Label => ({
   id: r.id, name: r.name, color: r.color, isPrivate: !!r.is_private,
-  created_by: r.user, created: r.created,
+  createdBy: r.user,
 });
 
 const normalizeShop = (r: any): Shop => ({
-  id: r.id, name: r.name, color: r.color, user: r.user, created: r.created,
+  id: r.id, name: r.name, color: r.color,
 });
 
 const normalizeSprint = (r: any): Sprint => ({
@@ -79,27 +79,25 @@ const normalizeSprint = (r: any): Sprint => ({
   startDate: r.start_date ? new Date(r.start_date).getTime() : Date.now(),
   endDate: r.end_date ? new Date(r.end_date).getTime() : Date.now(),
   duration: r.duration || '2weeks', weekNumber: r.week_number || 1,
-  year: r.year || new Date().getFullYear(), user: r.user, created: r.created,
+  year: r.year || new Date().getFullYear(), status: r.status || 'planned', createdBy: r.user,
 });
 
 const normalizeCalendarEvent = (r: any): CalendarEvent => ({
   id: r.id, title: r.title, description: r.description,
   startTime: r.start_time ? new Date(r.start_time).getTime() : Date.now(),
   endTime: r.end_time ? new Date(r.end_time).getTime() : Date.now(),
-  allDay: !!r.all_day, user: r.user, created: r.created,
+  allDay: !!r.all_day, createdAt: r.created ? new Date(r.created).getTime() : Date.now(), createdBy: r.user,
 });
 
 const normalizeSettings = (r: any): AppSettings => ({
-  id: r.id, user: r.user, theme: r.theme || 'light', language: r.language || 'en',
+  theme: r.theme || 'light', language: r.language || 'en',
   archiveRetention: r.archive_retention_days ?? 30, autoCleanup: r.auto_cleanup ?? true,
-  preferences: r.preferences || {}, created: r.created, updated: r.updated,
 });
 
 const normalizeReward = (r: any): Reward => ({
   id: r.id, title: r.title, points: r.points || 0, earnedBy: r.earned_by,
   earnedAt: r.earned_at ? new Date(r.earned_at).getTime() : undefined,
   reason: r.reason, taskId: r.task_id, awardedBy: r.awarded_by,
-  user: r.user, created: r.created, updated: r.updated,
 });
 
 const normalizeGoal = (r: any): Goal => ({
@@ -107,15 +105,21 @@ const normalizeGoal = (r: any): Goal => ({
   pointsRequired: r.points_required || 0, pointsCurrent: r.points_current || 0,
   targetUser: r.target_user, completed: !!r.completed,
   completedAt: r.completed_at ? new Date(r.completed_at).getTime() : undefined,
-  user: r.user, created: r.created, updated: r.updated,
+  createdBy: r.user,
 });
 
 const normalizeReminder = (r: any): Reminder => ({
-  id: r.id, title: r.title, description: r.message,
-  dueDate: r.reminder_time ? new Date(r.reminder_time).getTime() : Date.now(),
-  recurring: r.repeat_interval, linkedType: r.linked_type, linkedTo: r.linked_to,
-  dismissed: !!r.dismissed, fired: !!r.fired,
-  user: r.user, created: r.created, updated: r.updated,
+  id: r.id, title: r.title, description: r.description,
+  dueDate: r.due_date ? new Date(r.due_date).getTime() : Date.now(),
+  endTime: r.end_time ? new Date(r.end_time).getTime() : undefined,
+  recurring: r.recurring, assignee: r.assignee,
+  labels: Array.isArray(r.labels) ? r.labels : [],
+  flagged: !!r.flagged, isPrivate: !!r.is_private,
+  linkedType: r.linked_type, linkedTo: r.linked_to,
+  source: (r.source || 'manual') as Reminder['source'],
+  dismissed: !!r.dismissed, dismissedAt: r.dismissed_at ? new Date(r.dismissed_at).getTime() : undefined,
+  fired: !!r.fired,
+  createdAt: r.created ? new Date(r.created).getTime() : Date.now(), createdBy: r.user,
 });
 
 // --- Auth helper ---
@@ -426,6 +430,47 @@ export const api = {
       });
     },
     async delete(id: string) { await pb.collection('integrations').delete(id); },
+  },
+
+  reminders: {
+    async list(): Promise<Reminder[]> {
+      const userId = requireAuth().id;
+      const list = await pb.collection('reminders').getFullList({
+        filter: `user = "${userId}" && dismissed = false`,
+        sort: 'due_date',
+      });
+      return list.map(normalizeReminder);
+    },
+    async create(data: Partial<Reminder>): Promise<Reminder> {
+      const record = await pb.collection('reminders').create({
+        title: data.title || '', due_date: toISO(data.dueDate),
+        end_time: toISO(data.endTime), description: data.description,
+        recurring: data.recurring, assignee: data.assignee,
+        labels: data.labels || [], flagged: data.flagged || false,
+        is_private: data.isPrivate || false,
+        linked_type: data.linkedType, linked_to: data.linkedTo,
+        source: data.source || 'manual', dismissed: false,
+        user: requireAuth().id,
+      } as any);
+      return normalizeReminder(record);
+    },
+    async update(id: string, data: Partial<Reminder>): Promise<Reminder> {
+      const record = await pb.collection('reminders').update(id, {
+        title: data.title, due_date: toISO(data.dueDate),
+        end_time: toISO(data.endTime), description: data.description,
+        recurring: data.recurring, assignee: data.assignee,
+        labels: data.labels, flagged: data.flagged,
+        is_private: data.isPrivate,
+        linked_type: data.linkedType, linked_to: data.linkedTo,
+        source: data.source, dismissed: data.dismissed,
+        dismissed_at: toISO(data.dismissedAt),
+      } as any);
+      return normalizeReminder(record);
+    },
+    async dismiss(id: string): Promise<Reminder> {
+      return this.update(id, { dismissed: true, dismissedAt: Date.now() });
+    },
+    async delete(id: string) { await pb.collection('reminders').delete(id); },
   },
 };
 

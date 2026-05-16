@@ -64,7 +64,7 @@ export const DueDateNotifications = () => {
   return (
     <div className="fixed top-[49px] left-0 right-0 z-50 md:hidden">
       <div className="bg-amber-500 text-white shadow-lg">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-lg mx-auto">
           {urgentTasks.map((task) => (
             <div key={task.id} className="flex items-center gap-3 px-4 py-2 border-b border-amber-600 last:border-b-0">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />

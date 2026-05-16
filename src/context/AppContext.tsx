@@ -20,6 +20,7 @@ import type {
   Reward,
   Goal,
   Project,
+  Reminder,
 } from '../types';
 
 interface AppContextType {
@@ -105,6 +106,12 @@ interface AppContextType {
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
   refreshProjects: () => Promise<void>;
+  reminders: Reminder[];
+  addReminder: (reminder: Omit<Reminder, 'id' | 'createdAt' | 'dismissed' | 'fired'>) => void;
+  updateReminder: (id: string, updates: Partial<Reminder>) => void;
+  dismissReminder: (id: string) => void;
+  deleteReminder: (id: string) => void;
+  refreshReminders: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -154,6 +161,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [sharedView, setSharedView] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
   const [progressStats, setProgressStats] = useState<ProgressStats>({
@@ -176,6 +184,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const refreshRewards = async () => setRewards(await api.getRewards());
   const refreshGoals = async () => setGoals(await api.getGoals());
   const refreshProjects = async () => setProjects(await api.getProjects());
+  const refreshReminders = async () => setReminders(await api.getReminders());
 
   const refreshSettings = async () => {
     const settings = await api.getSettings();
@@ -202,6 +211,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setRewards([]);
       setGoals([]);
       setProjects([]);
+      setReminders([]);
       setAppSettings(defaultSettings);
       return;
     }
@@ -219,6 +229,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       refreshRewards(),
       refreshGoals(),
       refreshProjects(),
+      refreshReminders(),
       refreshSettings(),
     ]);
   };
@@ -258,6 +269,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         pb.collection('projects').subscribe('*', () => void refreshProjects()),
         pb.collection('rewards').subscribe('*', () => void refreshRewards()),
         pb.collection('goals').subscribe('*', () => void refreshGoals()),
+        pb.collection('reminders').subscribe('*', () => void refreshReminders()),
       ]);
     };
 
@@ -276,6 +288,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       pb.collection('projects').unsubscribe();
       pb.collection('rewards').unsubscribe();
       pb.collection('goals').unsubscribe();
+      pb.collection('reminders').unsubscribe();
     };
   }, [pb.authStore.isValid]);
 
@@ -300,6 +313,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return () => clearTimeout(timer);
     }
   }, [completionMessage]);
+
+  // Auto-detect current active sprint
+  useEffect(() => {
+    const active = sprints.find((s) => s.status === 'active');
+    setCurrentSprint(active ?? null);
+  }, [sprints]);
 
   const addItem = (item: Omit<Item, 'id' | 'createdAt'>) => {
     void (async () => {
@@ -609,7 +628,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const convertItemToTask = (itemId: string) => {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
-    addTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels });
+    addTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
     deleteItem(itemId);
   };
 
@@ -733,6 +752,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  // --- Reminders ---
+  const addReminder = (reminder: Omit<Reminder, 'id' | 'createdAt' | 'dismissed' | 'fired'>) => {
+    void (async () => {
+      await api.createReminder(reminder);
+      await refreshReminders();
+    })();
+  };
+
+  const updateReminderFn = (id: string, updates: Partial<Reminder>) => {
+    void (async () => {
+      await api.updateReminder(id, updates);
+      await refreshReminders();
+    })();
+  };
+
+  const dismissReminder = (id: string) => {
+    void (async () => {
+      await api.dismissReminder(id);
+      await refreshReminders();
+    })();
+  };
+
+  const deleteReminder = (id: string) => {
+    void (async () => {
+      await api.deleteReminder(id);
+      await refreshReminders();
+    })();
+  };
+
   const contextValue = useMemo(
     () => ({
       items,
@@ -817,6 +865,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateProject: updateProjectFn,
       deleteProject,
       refreshProjects,
+      reminders,
+      addReminder,
+      updateReminder: updateReminderFn,
+      dismissReminder,
+      deleteReminder,
+      refreshReminders,
     }),
     [
       items,
@@ -840,6 +894,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       activeLabelFilters,
       completionMessage,
       currentSprint,
+      reminders,
     ],
   );
 

@@ -146,6 +146,7 @@ export interface Filter {
   labelIds: string[];
   showCompleted: boolean;
   type: 'task' | 'item' | 'note';
+  query?: string; // JQL query string
 }
 
 export interface FilterView {
@@ -230,6 +231,7 @@ export interface Reminder {
   source: ReminderSource;
   dismissed: boolean;
   dismissedAt?: number;
+  fired?: boolean;
   createdAt: number;
   createdBy?: string;
 }

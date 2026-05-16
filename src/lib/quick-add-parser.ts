@@ -5,9 +5,11 @@ export interface QuickAddResult {
   quantity?: number;
   assignee?: string;
   dueDate?: string;
+  repeatInterval?: 'week' | 'month' | 'year';
   isPrivate?: boolean;
-  linkedType?: 'task' | 'item';
+  linkedType?: 'task' | 'item' | 'note';
   linkedTo?: string;
+  linkedIds?: string[];
 }
 
 const DAY_MAP: Record<string, number> = {
@@ -58,16 +60,27 @@ export function parseQuickAdd(input: string): QuickAddResult {
   let text = input.trim();
   const result: QuickAddResult = { title: '' };
 
-  // isPrivate
-  if (text.startsWith('!!')) {
+  // isPrivate — !! or !!private anywhere in the text
+  if (/!!(?:private)?/.test(text)) {
     result.isPrivate = true;
-    text = text.slice(2).trim();
+    text = text.replace(/!!(?:private)?/g, '');
   }
 
-  // linked ~task:id or ~item:id
-  text = text.replace(/~(task|item):(\S+)/g, (_, type, id) => {
-    result.linkedType = type as 'task' | 'item';
-    result.linkedTo = id;
+  // linked ~task:id or ~item:id or ~note:id or ~id (generic link)
+  text = text.replace(/~(task|item|note):(\S+)/g, (_, type, id) => {
+    if (!result.linkedType) {
+      result.linkedType = type as 'task' | 'item' | 'note';
+      result.linkedTo = id;
+    } else {
+      if (!result.linkedIds) result.linkedIds = [];
+      result.linkedIds.push(id);
+    }
+    return '';
+  });
+  // Generic link ~id (without type prefix)
+  text = text.replace(/~(\S+)/g, (_, id) => {
+    if (!result.linkedIds) result.linkedIds = [];
+    result.linkedIds.push(id);
     return '';
   });
 
@@ -87,7 +100,12 @@ export function parseQuickAdd(input: string): QuickAddResult {
   // assignee @word
   text = text.replace(/@(\S+)/g, (_, name) => { result.assignee = name; return ''; });
 
-  // due date //date
+  // due date //date or recurring //weekly|//monthly|//yearly
+  text = text.replace(/\/(weekly|monthly|yearly)/g, (_, interval) => {
+    const intervalMap = { weekly: 'week', monthly: 'month', yearly: 'year' } as const;
+    result.repeatInterval = intervalMap[interval as keyof typeof intervalMap];
+    return '';
+  });
   text = text.replace(/\/\/(\S+)/g, (_, date) => { result.dueDate = resolveDate(date); return ''; });
 
   result.title = text.replace(/\s+/g, ' ').trim();

@@ -1,5 +1,10 @@
 migrate(
   (app) => {
+    try {
+      app.findCollectionByNameOrId('ai_settings');
+      return;
+    } catch {}
+
     app.save(
       new Collection({
         name: 'ai_settings',

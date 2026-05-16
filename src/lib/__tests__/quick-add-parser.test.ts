@@ -101,4 +101,71 @@ describe('parseQuickAdd', () => {
     expect(result.labels).toEqual(['label']);
     expect(result.assignee).toBe('Sara');
   });
+
+  // --- Note-specific syntax ---
+
+  it('parses ~note:id for note linking', () => {
+    const result = parseQuickAdd('Related ~note:xyz789');
+    expect(result.title).toBe('Related');
+    expect(result.linkedType).toBe('note');
+    expect(result.linkedTo).toBe('xyz789');
+  });
+
+  it('parses ~id as generic link', () => {
+    const result = parseQuickAdd('See also ~abc123');
+    expect(result.title).toBe('See also');
+    expect(result.linkedIds).toEqual(['abc123']);
+  });
+
+  it('parses multiple generic links', () => {
+    const result = parseQuickAdd('Links ~id1 ~id2');
+    expect(result.title).toBe('Links');
+    expect(result.linkedIds).toEqual(['id1', 'id2']);
+  });
+
+  it('parses //weekly as recurring interval', () => {
+    const result = parseQuickAdd('Water plants /weekly');
+    expect(result.title).toBe('Water plants');
+    expect(result.repeatInterval).toBe('week');
+  });
+
+  it('parses //monthly as recurring interval', () => {
+    const result = parseQuickAdd('Pay rent /monthly');
+    expect(result.title).toBe('Pay rent');
+    expect(result.repeatInterval).toBe('month');
+  });
+
+  it('parses //yearly as recurring interval', () => {
+    const result = parseQuickAdd('Renew insurance /yearly');
+    expect(result.title).toBe('Renew insurance');
+    expect(result.repeatInterval).toBe('year');
+  });
+
+  it('parses combined note syntax', () => {
+    const result = parseQuickAdd(
+      'Meeting notes #work @Alice //morgen !!private ~task:task123'
+    );
+    expect(result.title).toBe('Meeting notes');
+    expect(result.labels).toEqual(['work']);
+    expect(result.assignee).toBe('Alice');
+    expect(result.dueDate).toBeDefined();
+    expect(result.isPrivate).toBe(true);
+    expect(result.linkedType).toBe('task');
+    expect(result.linkedTo).toBe('task123');
+  });
+
+  it('parses full note with all attributes', () => {
+    const result = parseQuickAdd(
+      'Groceries list #home @Mom //2025-06-01 /weekly !!private ~item:item42 ~note:note99'
+    );
+    expect(result.title).toBe('Groceries list');
+    expect(result.labels).toEqual(['home']);
+    expect(result.assignee).toBe('Mom');
+    expect(result.dueDate).toBe('2025-06-01');
+    expect(result.repeatInterval).toBe('week');
+    expect(result.isPrivate).toBe(true);
+    expect(result.linkedType).toBe('item');
+    expect(result.linkedTo).toBe('item42');
+    expect(result.linkedIds).toEqual(['note99']);
+  });
 });

@@ -59,7 +59,10 @@ check('POST sync endpoint', source.includes("'/api/integrations/paperless/sync'"
 
 // Security
 console.log('\nSecurity:');
-check('Webhook secret validation', source.includes('PAPERLESS_WEBHOOK_SECRET'));
+check('Webhook secret required (not optional)', !source.includes('if (secret) {'));
+check('Webhook secret missing returns 503', source.includes('503') && source.includes('Webhook secret not configured'));
+check('Webhook secret is read from headers only', source.includes('X-Paperless-Webhook-Secret') && !source.includes("body.get('secret')"));
+check('Webhook supports Bearer auth header', source.includes('Authorization') && source.includes('Bearer'));
 check('Auth check on poll', source.includes("c.get('authRecord')") && source.includes("'/api/integrations/paperless/poll'"));
 check('Auth check on config', source.includes('requireRecordAuth'));
 

@@ -115,7 +115,7 @@ deploy() {
 from pathlib import Path
 p = Path("$COMPOSE_FILE")
 s = p.read_text()
-old = "    image: ghcr.io/chalidnl/todoless-ngx:latest"
+old = "    image: ghcr.io/chalidnl/todoless-ngx-frontend:latest"
 new = "    image: $FRONTEND_IMAGE_OVERRIDE"
 if old in s:
     p.write_text(s.replace(old, new, 1))

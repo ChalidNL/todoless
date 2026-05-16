@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
+import { useApp } from '../context/AppContext';
 import {
   Inbox, CheckSquare, ShoppingCart, CalendarDays,
   ChevronRight, TrendingUp, Clock, AlertTriangle, Star, FolderKanban,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { CompactTaskCard } from './CompactTaskCard';
+import { CompactTaskCard } from './shared/CompactTaskCard';
 
 /**
  * MobileHome — phone-optimized home screen.

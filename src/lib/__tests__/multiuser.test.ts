@@ -211,17 +211,34 @@ describe('Multi-user: Shared vs private items', () => {
     expect(items).toHaveLength(1);
   });
 
-  it('getItems filters by user.id (not family), so users see only their own items', async () => {
+  it('getItems filters by family_id when user has a family (shared shopping list)', async () => {
     mockItemsCollection.getFullList.mockResolvedValue([
       { id: 'i1', title: "Alice's milk", completed: false, created: '2026-01-01T00:00:00Z', user: 'user-a', labels: [] },
+      { id: 'i2', title: "Bob's bread", completed: false, created: '2026-01-02T00:00:00Z', user: 'user-b', labels: [] },
     ]);
 
     const { api: freshApi } = await import('../pocketbase-client');
     const items = await freshApi.getItems();
 
     expect(mockItemsCollection.getFullList).toHaveBeenCalledWith(
-      expect.objectContaining({ filter: 'user.id = "user-a"' }),
+      expect.objectContaining({ filter: 'user.family_id = "fam-1"' }),
     );
+    expect(items).toHaveLength(2);
+  });
+
+  it('getItems falls back to user.id filter when no family_id is set', async () => {
+    switchUser({ id: 'user-c', email: 'charlie@test.com', name: 'Charlie', role: 'user', family_id: undefined });
+    mockItemsCollection.getFullList.mockResolvedValue([
+      { id: 'i3', title: "Charlie's eggs", completed: false, created: '2026-01-01T00:00:00Z', user: 'user-c', labels: [] },
+    ]);
+
+    const { api: freshApi } = await import('../pocketbase-client');
+    const items = await freshApi.getItems();
+
+    expect(mockItemsCollection.getFullList).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: 'user.id = "user-c"' }),
+    );
+    expect(items).toHaveLength(1);
   });
 
   it('createTask sets is_private flag correctly', async () => {
@@ -659,6 +676,60 @@ describe('Multi-user: getTasks family filter handles missing family_id safely', 
 
     expect(mockTasksCollection.getFullList).toHaveBeenCalledWith(
       expect.objectContaining({ filter: 'user.id = "user-x"' }),
+    );
+  });
+});
+
+describe('Multi-user: Item privacy and assignee', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    switchUser({ id: 'user-a', email: 'alice@test.com', name: 'Alice', role: 'admin', family_id: 'fam-1' });
+  });
+
+  it('createItem sets is_private flag correctly', async () => {
+    mockItemsCollection.create.mockResolvedValue({ id: 'i-private' });
+
+    const { api: freshApi } = await import('../pocketbase-client');
+    await freshApi.createItem({ title: 'Private item', isPrivate: true });
+
+    expect(mockItemsCollection.create).toHaveBeenCalledWith(
+      expect.objectContaining({ is_private: true, user: 'user-a' }),
+    );
+  });
+
+  it('createItem with assignee sets assigned_to', async () => {
+    mockItemsCollection.create.mockResolvedValue({ id: 'i-assigned' });
+
+    const { api: freshApi } = await import('../pocketbase-client');
+    await freshApi.createItem({ title: 'Milk', assignedTo: 'user-b' });
+
+    expect(mockItemsCollection.create).toHaveBeenCalledWith(
+      expect.objectContaining({ assigned_to: 'user-b' }),
+    );
+  });
+
+  it('normalizeItem includes isPrivate field', async () => {
+    mockItemsCollection.getFullList.mockResolvedValue([
+      { id: 'i1', title: 'Public item', completed: false, is_private: false, created: '2026-01-01T00:00:00Z', user: 'user-a', labels: [] },
+      { id: 'i2', title: 'Private item', completed: false, is_private: true, created: '2026-01-02T00:00:00Z', user: 'user-b', labels: [] },
+    ]);
+
+    const { api: freshApi } = await import('../pocketbase-client');
+    const items = await freshApi.getItems();
+
+    expect(items[0].isPrivate).toBe(false);
+    expect(items[1].isPrivate).toBe(true);
+  });
+
+  it('getItems with family_id=null falls back to user.id', async () => {
+    switchUser({ id: 'user-z', email: 'z@test.com', name: 'Z', role: 'user', family_id: null });
+    mockItemsCollection.getFullList.mockResolvedValue([]);
+
+    const { api: freshApi } = await import('../pocketbase-client');
+    await freshApi.getItems();
+
+    expect(mockItemsCollection.getFullList).toHaveBeenCalledWith(
+      expect.objectContaining({ filter: 'user.id = "user-z"' }),
     );
   });
 });

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from './AuthProvider';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Lock, Eye, EyeOff, Upload, Archive, Share2, Copy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Lock, Eye, EyeOff, Upload, Archive, Share2, Copy, Moon, Sun, Globe, Bell, Mail, Smartphone, AlertTriangle, UserX } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
 import { FilterBuilder } from './shared/FilterBuilder';
@@ -12,12 +13,16 @@ import { InviteManager } from './InviteManager';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, filters, deleteFilter, sprints, createNewSprint, currentSprint, deleteSprint, tasks, archiveCompletedSprintTasks, archiveAllDoneTasks, deleteArchivedTasks, showCompletionMessage } = useApp();
+  const { language, setLanguage } = useLanguage();
   const { signOut } = useAuth();
   const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
   const appCommit = import.meta.env.VITE_GIT_COMMIT || 'unknown';
   const [editingPassword, setEditingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showShops, setShowShops] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -233,6 +238,238 @@ export const Settings = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Preferences */}
+        <div className="mb-6 border-b border-neutral-200 pb-6">
+          <button
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Preferences
+            </h2>
+            {showPreferences ? (
+              <ChevronUp className="w-5 h-5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-500" />
+            )}
+          </button>
+
+          {showPreferences && (
+            <div className="space-y-4">
+              {/* Theme */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Theme</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateAppSettings({ theme: 'light' })}
+                    className={`flex-1 px-3 py-2 rounded border text-sm flex items-center justify-center gap-2 ${
+                      appSettings.theme === 'light'
+                        ? 'bg-neutral-900 text-white border-neutral-900'
+                        : 'bg-white border-neutral-200 hover:border-neutral-300'
+                    }`}
+                  >
+                    <Sun className="w-4 h-4" />
+                    Light
+                  </button>
+                  <button
+                    onClick={() => updateAppSettings({ theme: 'dark' })}
+                    className={`flex-1 px-3 py-2 rounded border text-sm flex items-center justify-center gap-2 ${
+                      appSettings.theme === 'dark'
+                        ? 'bg-neutral-900 text-white border-neutral-900'
+                        : 'bg-white border-neutral-200 hover:border-neutral-300'
+                    }`}
+                  >
+                    <Moon className="w-4 h-4" />
+                    Dark
+                  </button>
+                </div>
+              </div>
+
+              {/* Language */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as 'en' | 'fr' | 'nl' | 'de')}
+                  className="w-full px-3 py-2 border border-neutral-200 rounded"
+                >
+                  <option value="en">English</option>
+                  <option value="nl">Nederlands</option>
+                  <option value="fr">Français</option>
+                  <option value="de">Deutsch</option>
+                </select>
+              </div>
+
+              {/* Sprint Duration */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Sprint Duration</label>
+                <select
+                  value={appSettings.sprintDuration || '2weeks'}
+                  onChange={(e) => updateAppSettings({ sprintDuration: e.target.value as '1week' | '2weeks' | '3weeks' | '4weeks' })}
+                  className="w-full px-3 py-2 border border-neutral-200 rounded"
+                >
+                  <option value="1week">1 Week</option>
+                  <option value="2weeks">2 Weeks</option>
+                  <option value="3weeks">3 Weeks</option>
+                  <option value="4weeks">4 Weeks</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Notification Settings */}
+        <div className="mb-6 border-b border-neutral-200 pb-6">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Notifications
+            </h2>
+            {showNotifications ? (
+              <ChevronUp className="w-5 h-5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-500" />
+            )}
+          </button>
+
+          {showNotifications && (
+            <div className="space-y-4">
+              {/* Email Notifications */}
+              <div className="flex items-center justify-between p-3 border border-neutral-200 rounded">
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-neutral-500" />
+                  <div>
+                    <p className="text-sm font-medium">Email Notifications</p>
+                    <p className="text-xs text-neutral-500">Receive task updates via email</p>
+                  </div>
+                </div>
+                <button
+                  aria-label="Toggle email notifications"
+                  onClick={() => updateAppSettings({ notificationEmail: !appSettings.notificationEmail })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    appSettings.notificationEmail ? 'bg-neutral-900' : 'bg-neutral-300'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    appSettings.notificationEmail ? 'translate-x-5' : ''
+                  }`} />
+                </button>
+              </div>
+
+              {/* Push Notifications */}
+              <div className="flex items-center justify-between p-3 border border-neutral-200 rounded">
+                <div className="flex items-center gap-3">
+                  <Smartphone className="w-5 h-5 text-neutral-500" />
+                  <div>
+                    <p className="text-sm font-medium">Push Notifications</p>
+                    <p className="text-xs text-neutral-500">Browser push notifications</p>
+                  </div>
+                </div>
+                <button
+                  aria-label="Toggle push notifications"
+                  onClick={() => updateAppSettings({ notificationPush: !appSettings.notificationPush })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    appSettings.notificationPush ? 'bg-neutral-900' : 'bg-neutral-300'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    appSettings.notificationPush ? 'translate-x-5' : ''
+                  }`} />
+                </button>
+              </div>
+
+              {/* Task Reminders */}
+              <div className="flex items-center justify-between p-3 border border-neutral-200 rounded">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-neutral-500" />
+                  <div>
+                    <p className="text-sm font-medium">Task Reminders</p>
+                    <p className="text-xs text-neutral-500">Get reminded before due dates</p>
+                  </div>
+                </div>
+                <button
+                  aria-label="Toggle task reminders"
+                  onClick={() => updateAppSettings({ taskReminders: !appSettings.taskReminders })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${
+                    appSettings.taskReminders ? 'bg-neutral-900' : 'bg-neutral-300'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                    appSettings.taskReminders ? 'translate-x-5' : ''
+                  }`} />
+                </button>
+              </div>
+
+              {/* Reminder Minutes */}
+              {appSettings.taskReminders && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Reminder Time</label>
+                  <select
+                    value={appSettings.reminderMinutes ?? 15}
+                    onChange={(e) => updateAppSettings({ reminderMinutes: Number(e.target.value) })}
+                    className="w-full px-3 py-2 border border-neutral-200 rounded"
+                  >
+                    <option value={5}>5 minutes before</option>
+                    <option value={15}>15 minutes before</option>
+                    <option value={30}>30 minutes before</option>
+                    <option value={60}>1 hour before</option>
+                    <option value={1440}>1 day before</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Account Management */}
+        <div className="mb-6 border-b border-neutral-200 pb-6">
+          <button
+            onClick={() => setShowAccount(!showAccount)}
+            className="flex items-center justify-between w-full mb-3"
+          >
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              Account
+            </h2>
+            {showAccount ? (
+              <ChevronUp className="w-5 h-5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-neutral-500" />
+            )}
+          </button>
+
+          {showAccount && (
+            <div className="space-y-4">
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-red-900 mb-2">Danger Zone</h3>
+                <p className="text-xs text-red-700 mb-4">
+                  Deleting your account will permanently remove all your data including tasks, items, notes, and settings. This action cannot be undone.
+                </p>
+                <button
+                  onClick={() => {
+                    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                      if (confirm('This is your final confirmation. All your data will be permanently deleted.')) {
+                        // Sign out first, then clear local storage
+                        signOut();
+                        localStorage.clear();
+                        window.location.href = '/';
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 text-sm"
+                >
+                  <UserX className="w-4 h-4" />
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Team Members */}

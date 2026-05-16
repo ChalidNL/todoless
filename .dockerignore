@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build output
+build
+dist
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test/coverage
+coverage
+test-results
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Docs
+*.md
+!README.md
+
+# Local dev
+*.local
+devdata
+pb_data
+
+# CI/CD and automation
+.github
+
+# Config files not needed in builds
+.pre-commit-config.yaml
+.gitleaks.toml
+eslint.config.mjs
+playwright.config.ts
+vitest.config.ts
+tsconfig.typecheck.json
+
+# Dev scripts
+run-local.ps1
+test_tasks_crud.sh
+regression_tests.py
+
+# Docker files (not needed inside the image)
+Dockerfile
+Dockerfile.*
+docker-compose*

@@ -20,13 +20,19 @@ routerAdd(
       return c.json(400, { error: 'Missing document_id' })
     }
 
-    // Validate webhook secret if configured
+    // Validate webhook secret (required)
     const secret = $env.get('PAPERLESS_WEBHOOK_SECRET')
-    if (secret) {
-      const providedSecret = $request.header('Authorization') || body.get('secret') || ''
-      if (providedSecret !== secret) {
-        return c.json(401, { error: 'Invalid webhook secret' })
-      }
+    if (!secret) {
+      return c.json(503, { error: 'Webhook secret not configured' })
+    }
+    const providedSecret = (
+      $request.header('X-Paperless-Webhook-Secret') ||
+      $request.header('X-Webhook-Secret') ||
+      String($request.header('Authorization') || '').replace(/^Bearer\s+/i, '') ||
+      ''
+    ).trim()
+    if (!providedSecret || providedSecret !== secret.trim()) {
+      return c.json(401, { error: 'Invalid webhook secret' })
     }
 
     // Process: check tag, dedup, create task

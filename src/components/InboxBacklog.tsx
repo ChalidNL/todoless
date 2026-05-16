@@ -154,9 +154,9 @@ export const InboxBacklog = () => {
         searchPlaceholder="Search inbox..."
       />
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-6">
+      <div className="max-w-lg mx-auto px-4 pt-4 space-y-6">
         {/* Dashboard Summary */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
             { label: 'Inbox', value: backlogCount, icon: <Inbox className="w-4 h-4 text-blue-500" />, color: 'blue' },
             { label: 'In Sprint', value: todoCount, icon: <Zap className="w-4 h-4 text-green-500" />, color: 'green' },

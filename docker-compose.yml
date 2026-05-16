@@ -14,7 +14,7 @@ services:
         protocol: tcp
     depends_on:
       pocketbase:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/ || exit 1"]
       interval: 15s
@@ -38,18 +38,22 @@ services:
     pull_policy: always
     container_name: todoless-ngx-pocketbase
     restart: unless-stopped
-    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--automigrate"]
+    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:
       TZ: Europe/Amsterdam
-    ports:
-      - target: 8090
-        published: 8090
-        protocol: tcp
+    # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless-ngx/pb_data:/pb_data
       - /DATA/AppData/todoless-ngx/pb_migrations:/pb_migrations
+      - /DATA/AppData/todoless-ngx/pb_hooks:/pb_hooks
     networks:
       - todoless-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8090/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     x-casaos:
       volumes:
         - container: /pb_data
@@ -58,6 +62,9 @@ services:
         - container: /pb_migrations
           description:
             en_US: PocketBase migration scripts
+        - container: /pb_hooks
+          description:
+            en_US: PocketBase server-side hooks
 
 networks:
   todoless-net:

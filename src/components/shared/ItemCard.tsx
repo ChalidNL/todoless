@@ -265,17 +265,22 @@ interface ToolbarButtonProps {
   hasValue?: boolean;
 }
 
-const ToolbarButton = ({ active, onClick, icon, title, hasValue }: ToolbarButtonProps) => (
-  <button
-    onClick={onClick}
-    className={`p-1.5 rounded transition-colors ${active ? 'bg-black text-white' : 'hover:bg-neutral-100'}`}
-    title={title}
-  >
-    {React.cloneElement(icon as React.ReactElement, {
-      className: `w-4 h-4 ${active ? 'text-white' : hasValue ? 'text-blue-500' : 'text-neutral-400'}`,
-    })}
-  </button>
-);
+const ToolbarButton = ({ active, onClick, icon, title, hasValue }: ToolbarButtonProps) => {
+  const iconElement = React.isValidElement(icon) ? icon : null;
+  return (
+    <button
+      onClick={onClick}
+      className={`p-1.5 rounded transition-colors ${active ? 'bg-black text-white' : 'hover:bg-neutral-100'}`}
+      title={title}
+    >
+      {iconElement
+        ? React.cloneElement(iconElement, {
+            className: `w-4 h-4 ${active ? 'text-white' : hasValue ? 'text-blue-500' : 'text-neutral-400'}`,
+          })
+        : icon}
+    </button>
+  );
+};
 
 interface PickerSectionProps {
   title: string;

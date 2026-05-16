@@ -1,20 +1,32 @@
 #!/bin/sh
-# Seed bundled migrations into the volume.
-# Always overwrite — migrations in the image are the source of truth.
-mkdir -p /pb_migrations
+# Seed bundled PocketBase migrations/hooks into runtime volumes.
+# Bundled files in the image are the source of truth for app-managed scripts.
 
-for f in /pb_migrations_bundled/*.js; do
-  base=$(basename "$f")
-  if [ ! -f "/pb_migrations/$base" ]; then
-    echo "[entrypoint] seeding migration: $base"
-    cp "$f" "/pb_migrations/$base"
-  else
-    # Overwrite if the bundled version is newer/different
-    if ! cmp -s "$f" "/pb_migrations/$base"; then
-      echo "[entrypoint] updating migration: $base"
-      cp "$f" "/pb_migrations/$base"
-    fi
+seed_dir() {
+  src_dir="$1"
+  dst_dir="$2"
+  label="$3"
+
+  mkdir -p "$dst_dir"
+  if [ ! -d "$src_dir" ]; then
+    return 0
   fi
-done
+
+  find "$src_dir" -type f | while read -r f; do
+    rel=${f#"$src_dir"/}
+    dst="$dst_dir/$rel"
+    mkdir -p "$(dirname "$dst")"
+    if [ ! -f "$dst" ]; then
+      echo "[entrypoint] seeding $label: $rel"
+      cp "$f" "$dst"
+    elif ! cmp -s "$f" "$dst"; then
+      echo "[entrypoint] updating $label: $rel"
+      cp "$f" "$dst"
+    fi
+  done
+}
+
+seed_dir /pb_migrations_bundled /pb_migrations migration
+seed_dir /pb_hooks_bundled /pb_hooks hook
 
 exec /usr/local/bin/pocketbase "$@"

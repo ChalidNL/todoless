@@ -29,6 +29,10 @@ id_ed25519
 *.db
 *.pid
 *.log
+/devdata/
+/pb_data/
+/test-results/
+/gitleaks-report.sarif
 
 # Node / build artifacts
 node_modules/

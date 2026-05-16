@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item, ItemLinkedType } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { LabelBadge } from './LabelBadge';
+import { LabelBadge } from '../shared/LabelBadge';
 import {
   ShoppingCart,
   Trash2,

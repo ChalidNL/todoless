@@ -140,6 +140,10 @@ describe('NewGlobalHeader', () => {
     });
 
     it('shows filter panel when filter button is clicked', () => {
+      mockUseApp.mockReturnValue({
+        ...defaultMockContext,
+        labels: [{ id: 'label1', name: 'urgent', color: '#ff0000' }],
+      });
       render(<NewGlobalHeader />);
       const buttons = screen.getAllByRole('button');
       const filterButton = buttons[0]; // First button is filter
@@ -205,6 +209,10 @@ describe('NewGlobalHeader', () => {
     });
 
     it('shows item-specific filters when type is item', () => {
+      mockUseApp.mockReturnValue({
+        ...defaultMockContext,
+        items: [{ id: 'item1', name: 'Milk', category: 'Dairy', location: 'Fridge', completed: false, createdAt: Date.now() }],
+      });
       render(<NewGlobalHeader type="item" />);
       const buttons = screen.getAllByRole('button');
       const filterButton = buttons[0];
@@ -214,6 +222,10 @@ describe('NewGlobalHeader', () => {
     });
 
     it('shows calendar-specific filters when type is calendar', () => {
+      mockUseApp.mockReturnValue({
+        ...defaultMockContext,
+        users: [{ id: 'user1', name: 'John', email: 'john@example.com' }],
+      });
       render(<NewGlobalHeader type="calendar" />);
       const buttons = screen.getAllByRole('button');
       const filterButton = buttons[0];

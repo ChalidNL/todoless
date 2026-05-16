@@ -44,6 +44,13 @@ vi.mock('../AuthProvider', () => ({
   }),
 }));
 
+vi.mock('../../context/LanguageContext', () => ({
+  useLanguage: () => ({
+    language: 'en',
+    setLanguage: vi.fn(),
+  }),
+}));
+
 import { Settings } from '../Settings';
 
 describe('Settings app info', () => {

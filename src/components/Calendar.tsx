@@ -382,162 +382,119 @@ export const Calendar = () => {
 
   const renderDayView = () => {
     const dayTasks = getTasksForDate(currentDate);
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    
-    const getTasksForSlot = (hour: number, isHalf: boolean) => {
-      const slotMinute = isHalf ? 30 : 0;
-      return dayTasks.filter(task => {
-        if (!task.dueDate) return false;
-        const d = new Date(task.dueDate);
-        const taskHour = d.getHours();
-        const taskMinute = d.getMinutes();
-        if (isHalf) {
-          return taskHour === hour && taskMinute >= 30;
-        } else {
-          return taskHour === hour && taskMinute < 30;
-        }
-      });
-    };
+    const now = new Date();
+    const isCurrentDay = now.toDateString() === currentDate.toDateString();
 
-    const allDayTasks = dayTasks.filter(task => {
-      if (!task.dueDate) return false;
-      const d = new Date(task.dueDate);
-      return d.getHours() === 0 && d.getMinutes() === 0;
-    });
+    // Unified events with positional data (matches week view density)
+    const dayEvents = dayTasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      startMin: t.dueDate ? new Date(t.dueDate).getHours() * 60 + new Date(t.dueDate).getMinutes() : 0,
+      endMin: t.dueDate ? new Date(t.dueDate).getHours() * 60 + new Date(t.dueDate).getMinutes() + 30 : 0,
+      status: t.status,
+      priority: t.priority,
+      isAllDay: t.dueDate ? (new Date(t.dueDate).getHours() === 0 && new Date(t.dueDate).getMinutes() === 0) : false,
+    }));
 
-    const handleSlotClick = (hour: number, isHalf: boolean) => {
-      const date = new Date(currentDate);
-      date.setHours(hour, isHalf ? 30 : 0, 0, 0);
-      const dateStr = date.toISOString().split('T')[0];
-      const timeStr = `${String(hour).padStart(2, '0')}:${isHalf ? '30' : '00'}`;
-      setNewEventDate(dateStr);
-      setNewEventTime(timeStr);
-      setShowAddModal(true);
-    };
+    const allDayEvents = dayEvents.filter(e => e.isAllDay);
+    const timedEvents = dayEvents.filter(e => !e.isAllDay);
 
-    const nowHour = new Date().getHours();
-    const nowMinute = new Date().getMinutes();
-    const isCurrentDay = new Date().toDateString() === currentDate.toDateString();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     return (
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <h2 className="text-lg mb-4">
-          {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-        </h2>
-
-        {/* All-day section */}
-        {allDayTasks.length > 0 && (
-          <div className="flex border-b border-neutral-200 mb-1">
-            <div className="w-16 shrink-0 py-2 pr-2 text-right text-xs text-neutral-400">
-              All day
+      <div className="flex flex-col h-[calc(100vh-200px)] max-w-2xl mx-auto">
+        {/* Day header */}
+        <div className="flex border-b border-neutral-200 bg-white sticky top-[105px] z-10">
+          <div className="w-12 shrink-0" /> {/* time gutter */}
+          <div className="flex-1 text-center py-2">
+            <div className={`text-[10px] uppercase tracking-wide ${isCurrentDay ? 'text-blue-600' : 'text-neutral-500'}`}>
+              {shortDays[currentDate.getDay()]}
             </div>
-            <div className="flex-1 py-2 pl-3 space-y-1">
-              {allDayTasks.map(task => (
+            <div className={`text-lg font-bold ${isCurrentDay ? 'text-blue-600' : 'text-neutral-900'}`}>
+              {currentDate.getDate()}
+            </div>
+          </div>
+        </div>
+
+        {/* All-day row */}
+        {allDayEvents.length > 0 && (
+          <div className="flex bg-white border-b border-neutral-200" style={{ height: `${Math.max(allDayEvents.length, 1) * 22}px` }}>
+            <div className="w-12 shrink-0 text-[10px] text-neutral-400 flex items-center justify-center">all-day</div>
+            <div className="flex-1 p-0.5 overflow-hidden space-y-px">
+              {allDayEvents.map(ev => (
                 <div
-                  key={task.id}
-                  className={`text-xs px-2 py-1 rounded ${
-                    task.status === 'done'
-                      ? 'bg-neutral-100 text-neutral-500 line-through'
-                      : task.priority === 'urgent'
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                  key={ev.id}
+                  className={`text-[11px] px-1.5 py-0.5 rounded truncate ${
+                    ev.status === 'done'
+                      ? 'bg-neutral-100 text-neutral-400 line-through'
+                      : ev.priority === 'urgent'
+                      ? 'bg-red-50 text-red-700'
+                      : ev.priority === 'low'
+                      ? 'bg-neutral-50 text-neutral-600'
+                      : 'bg-blue-50 text-blue-700'
                   }`}
+                  title={ev.title}
                 >
-                  {task.title}
+                  {ev.title}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Hour timeline */}
-        <div className="border border-neutral-200 rounded-lg bg-white overflow-hidden relative">
-          {/* Current time indicator */}
+        {/* Time grid */}
+        <div className="flex-1 overflow-y-auto bg-white relative">
+          {/* Current time line */}
           {isCurrentDay && (
             <div
-              className="absolute left-16 right-0 z-10 pointer-events-none"
-              style={{ top: `${(nowHour * 80) + (nowMinute / 60) * 80}px` }}
+              className="absolute left-12 right-0 z-10 pointer-events-none"
+              style={{ top: `${(nowMinutes / 60 - HOUR_START) * HOUR_HEIGHT + (allDayEvents.length * 22)}px` }}
             >
               <div className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5" />
+                <div className="w-2 h-2 rounded-full bg-red-500 -ml-1" />
                 <div className="flex-1 h-[2px] bg-red-500" />
               </div>
             </div>
           )}
 
-          {hours.map(hour => {
-            const topHalfTasks = getTasksForSlot(hour, false);
-            const bottomHalfTasks = getTasksForSlot(hour, true);
-            const formattedHour = `${String(hour).padStart(2, '0')}:00`;
+          {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i).map(hour => {
+            const topPx = (hour - HOUR_START) * HOUR_HEIGHT + (allDayEvents.length * 22);
+            const hourEvents = timedEvents.filter(e => e.startMin >= hour * 60 && e.startMin < (hour + 1) * 60);
 
             return (
-              <div key={hour} className="flex" style={{ height: '80px' }}>
-                {/* Hour label */}
-                <div className="w-16 shrink-0 border-r border-neutral-200 flex items-start justify-end pr-2 -mt-2">
-                  <span className="text-xs text-neutral-400">{formattedHour}</span>
+              <div key={hour} className="flex relative" style={{ height: `${HOUR_HEIGHT}px` }}>
+                <div className="w-12 shrink-0 text-[10px] text-neutral-400 text-right pr-2" style={{ marginTop: '-6px' }}>
+                  {String(hour).padStart(2, '0')}:00
                 </div>
-
-                {/* Half-hour slots */}
-                <div className="flex-1 flex flex-col">
-                  {/* First half: :00 - :29 */}
-                  <div
-                    className="flex-1 border-b border-neutral-100 px-2 py-0.5 cursor-pointer hover:bg-blue-50/30 transition-colors group relative"
-                    onClick={() => handleSlotClick(hour, false)}
-                  >
-                    <div className="flex flex-wrap gap-1">
-                      {topHalfTasks.map(task => (
-                        <div
-                          key={task.id}
-                          className={`text-xs px-2 py-1 rounded truncate max-w-xs ${
-                            task.status === 'done'
-                              ? 'bg-neutral-100 text-neutral-500 line-through'
-                              : task.priority === 'urgent'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : task.priority === 'low'
-                              ? 'bg-neutral-50 text-neutral-600 border border-neutral-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                          onClick={(e) => e.stopPropagation()}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus className="w-3.5 h-3.5 text-neutral-400" />
-                    </div>
-                  </div>
-
-                  {/* Second half: :30 - :59 */}
-                  <div
-                    className="flex-1 border-b border-neutral-200 px-2 py-0.5 cursor-pointer hover:bg-blue-50/30 transition-colors group relative"
-                    onClick={() => handleSlotClick(hour, true)}
-                  >
-                    <div className="flex flex-wrap gap-1">
-                      {bottomHalfTasks.map(task => (
-                        <div
-                          key={task.id}
-                          className={`text-xs px-2 py-1 rounded truncate max-w-xs ${
-                            task.status === 'done'
-                              ? 'bg-neutral-100 text-neutral-500 line-through'
-                              : task.priority === 'urgent'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : task.priority === 'low'
-                              ? 'bg-neutral-50 text-neutral-600 border border-neutral-200'
-                              : 'bg-blue-50 text-blue-700 border border-blue-200'
-                          }`}
-                          onClick={(e) => e.stopPropagation()}
-                          title={task.title}
-                        >
-                          {task.title}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus className="w-3.5 h-3.5 text-neutral-400" />
-                    </div>
-                  </div>
+                <div className="flex-1 border-l border-neutral-100 relative">
+                  {/* Half-hour divider */}
+                  <div className="absolute left-0 right-0 top-1/2 border-t border-neutral-50" />
+                  {hourEvents.map(ev => {
+                    const topOffset = ((ev.startMin - hour * 60) / 60) * HOUR_HEIGHT;
+                    const durationMin = Math.max(ev.endMin - ev.startMin, 15);
+                    const heightPx = Math.max((durationMin / 60) * HOUR_HEIGHT, 16);
+                    const isDone = ev.status === 'done';
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`absolute inset-x-0.5 text-[10px] px-1 rounded overflow-hidden truncate leading-tight ${
+                          isDone
+                            ? 'bg-neutral-100 text-neutral-400 line-through'
+                            : ev.priority === 'urgent'
+                            ? 'bg-red-50 text-red-700 border-l-2 border-red-400'
+                            : ev.priority === 'low'
+                            ? 'bg-neutral-50 text-neutral-600 border-l-2 border-neutral-300'
+                            : 'bg-blue-50 text-blue-700 border-l-2 border-blue-400'
+                        }`}
+                        style={{ top: `${topOffset}px`, height: `${heightPx}px` }}
+                        title={ev.title}
+                      >
+                        {ev.title}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

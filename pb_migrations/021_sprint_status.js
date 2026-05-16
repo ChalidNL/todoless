@@ -3,24 +3,28 @@ migrate(
     const collection = app.findCollectionByNameOrId('sprints');
 
     // Add status field: planned, active, completed
-    collection.fields.add(
-      new SelectField({
-        name: 'status',
-        required: true,
-        values: ['planned', 'active', 'completed'],
-        maxSelect: 1,
-        default: 'planned',
-      }),
-    );
+    if (!collection.fields.getByName('status')) {
+      collection.fields.add(
+        new SelectField({
+          name: 'status',
+          required: true,
+          values: ['planned', 'active', 'completed'],
+          maxSelect: 1,
+          default: 'planned',
+        }),
+      );
+    }
 
     // Add goal field for sprint commitment
-    collection.fields.add(
-      new NumberField({
-        name: 'goal',
-        required: false,
-        min: 0,
-      }),
-    );
+    if (!collection.fields.getByName('goal')) {
+      collection.fields.add(
+        new NumberField({
+          name: 'goal',
+          required: false,
+          min: 0,
+        }),
+      );
+    }
 
     app.save(collection);
 

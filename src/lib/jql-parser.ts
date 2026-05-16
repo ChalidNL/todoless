@@ -250,6 +250,21 @@ class JQLParser {
     return this.current().type;
   }
 
+  private combine(kind: 'and' | 'or', left: JQLFilter, right: JQLFilter): JQLFilter {
+    const children: JQLFilter[] = [];
+    if (left.kind === kind) {
+      children.push(...left.children);
+    } else {
+      children.push(left);
+    }
+    if (right.kind === kind) {
+      children.push(...right.children);
+    } else {
+      children.push(right);
+    }
+    return { kind, children };
+  }
+
   // Parse the full query
   parse(): JQLFilter | null {
     const result = this.parseExpression();
@@ -266,8 +281,10 @@ class JQLParser {
     while (this.peek() === 'OR') {
       this.consume('OR');
       const right = this.parseTerm();
-      if (left || right) {
-        left = { kind: 'or', children: [left!, right!].filter(Boolean) };
+      if (left && right) {
+        left = this.combine('or', left, right);
+      } else if (right) {
+        left = right;
       }
     }
 
@@ -290,7 +307,7 @@ class JQLParser {
       // Implicit AND between factors
       const right = this.parseFactor();
       if (left && right) {
-        left = { kind: 'and', children: [left, right] };
+        left = this.combine('and', left, right);
       } else if (right) {
         left = right;
       }
@@ -386,6 +403,7 @@ export type LabelResolver = (name: string) => string | null;
 
 // Task-like interface for evaluation
 export interface EvaluatableTask {
+  id?: string;
   title: string;
   status?: string;
   priority?: string;
@@ -432,12 +450,14 @@ function evaluateFieldFilter(
       break;
     case 'label':
     case 'labels':
+    {
       // Special handling for label field - match against label IDs or names
       if (!task.labels || task.labels.length === 0) return false;
       // If value looks like a label ID (pb style), match directly
       // Otherwise resolve name to ID
       const resolvedId = labelResolver?.(value) || value;
       return task.labels.some(id => id === resolvedId || id === value);
+    }
     case 'due':
     case 'duedate':
       taskValue = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
@@ -473,22 +493,30 @@ function evaluateFieldFilter(
     case '!=':
       return taskStr !== valueStr && !taskStr.includes(valueStr);
     case '>':
+    {
       // Date or numeric comparison
       const taskDate = task.dueDate || task.createdAt || 0;
       const valueDate = new Date(value).getTime();
       return !isNaN(valueDate) ? taskDate > valueDate : false;
+    }
     case '<':
+    {
       const taskDateLt = task.dueDate || task.createdAt || 0;
       const valueDateLt = new Date(value).getTime();
       return !isNaN(valueDateLt) ? taskDateLt < valueDateLt : false;
+    }
     case '>=':
+    {
       const taskDateGte = task.dueDate || task.createdAt || 0;
       const valueDateGte = new Date(value).getTime();
       return !isNaN(valueDateGte) ? taskDateGte >= valueDateGte : false;
+    }
     case '<=':
+    {
       const taskDateLte = task.dueDate || task.createdAt || 0;
       const valueDateLte = new Date(value).getTime();
       return !isNaN(valueDateLte) ? taskDateLte <= valueDateLte : false;
+    }
     case '~':
       // Contains (fuzzy match)
       return taskStr.includes(valueStr);
@@ -514,11 +542,13 @@ export function evaluateJQL(
       return task.title.toLowerCase().includes(ast.text.toLowerCase());
 
     case 'label':
+    {
       // Match label by name (resolve to ID)
       if (!labelResolver) return false;
       const labelId = labelResolver(ast.name);
       if (!labelId) return false;
       return task.labels?.includes(labelId) || false;
+    }
 
     case 'and':
       return ast.children.every(child => evaluateJQL(child, task, labelResolver));

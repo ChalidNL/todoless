@@ -151,7 +151,7 @@ export const Dashboard = () => {
     .slice(0, 5);
 
   return (
-    <div className="max-w-4xl mx-auto pb-24 px-4">
+    <div className="max-w-lg mx-auto pb-24 px-4">
       <div className="pt-6 pb-4">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <LayoutDashboard className="w-6 h-6" />

@@ -79,6 +79,9 @@ const normalizeNote = (record: any): Note => ({
   linkedType: record.linked_type || undefined,
   linkedTo: record.linked_to || undefined,
   linkedIds: Array.isArray(record.linked_ids) ? record.linked_ids : [],
+  linkedTaskIds: Array.isArray(record.linked_task_ids) ? record.linked_task_ids : [],
+  linkedItemIds: Array.isArray(record.linked_item_ids) ? record.linked_item_ids : [],
+  projectId: record.project_id || undefined,
   labels: Array.isArray(record.labels) ? record.labels : [],
   assignedTo: record.assigned_to || undefined,
   dueDate: toTimestamp(record.due_date),
@@ -289,6 +292,7 @@ class PocketBaseClient {
       name,
       username: email.split('@')[0],
       role: isFirstUser ? 'admin' : 'user',
+      invite_code: normalizedInviteCode || undefined,
     });
 
     if (!isFirstUser && invite) {
@@ -348,6 +352,8 @@ class PocketBaseClient {
         completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
         linked_to: task.linkedTo,
         linked_type: task.linkedType,
+        linked_item_ids: task.linkedItemIds || [],
+        linked_note_ids: task.linkedNoteIds || [],
         flag: task.flag || false,
         user: userId,
       });
@@ -361,22 +367,30 @@ class PocketBaseClient {
 
   async updateTask(id: string, updates: Partial<Task>) {
     try {
-      return await pb.collection('tasks').update(id, {
-        ...updates,
-        blocked_comment: updates.blockedComment,
-        sprint_id: updates.sprintId,
-        project_id: updates.projectId,
-        assigned_to: updates.assignedTo,
-        due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
-        repeat_interval: updates.repeatInterval,
-        is_private: updates.isPrivate,
-        archived_at: updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined,
-        delete_after: updates.deleteAfter ? new Date(updates.deleteAfter).toISOString() : undefined,
-        completed_at: updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined,
-        linked_to: updates.linkedTo,
-        linked_type: updates.linkedType,
-        flag: updates.flag,
-      });
+      const payload: Record<string, unknown> = {};
+      const has = (key: keyof Task) => Object.prototype.hasOwnProperty.call(updates, key);
+
+      for (const key of ['title', 'status', 'blocked', 'priority', 'horizon', 'labels', 'archived'] as const) {
+        if (has(key)) payload[key] = updates[key];
+      }
+
+      if (has('blockedComment')) payload.blocked_comment = updates.blockedComment;
+      if (has('sprintId')) payload.sprint_id = updates.sprintId;
+      if (has('projectId')) payload.project_id = updates.projectId;
+      if (has('assignedTo')) payload.assigned_to = updates.assignedTo;
+      if (has('dueDate')) payload.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined;
+      if (has('repeatInterval')) payload.repeat_interval = updates.repeatInterval;
+      if (has('isPrivate')) payload.is_private = updates.isPrivate;
+      if (has('archivedAt')) payload.archived_at = updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined;
+      if (has('deleteAfter')) payload.delete_after = updates.deleteAfter ? new Date(updates.deleteAfter).toISOString() : undefined;
+      if (has('completedAt')) payload.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined;
+      if (has('linkedTo')) payload.linked_to = updates.linkedTo;
+      if (has('linkedType')) payload.linked_type = updates.linkedType;
+      if (has('linkedItemIds')) payload.linked_item_ids = updates.linkedItemIds;
+      if (has('linkedNoteIds')) payload.linked_note_ids = updates.linkedNoteIds;
+      if (has('flag')) payload.flag = updates.flag;
+
+      return await pb.collection('tasks').update(id, payload);
     } catch (error: any) {
       const msg = error?.response?.message || error?.message || 'Failed to update task';
       console.error('updateTask failed:', error);
@@ -410,6 +424,8 @@ class PocketBaseClient {
         due_date: item.dueDate ? new Date(item.dueDate).toISOString() : null,
         labels: item.labels || [],
         is_private: item.isPrivate || false,
+        linked_task_ids: item.linkedTaskIds || [],
+        linked_note_ids: item.linkedNoteIds || [],
         user: pb.authStore.record?.id,
       });
     } catch (error: any) {
@@ -426,6 +442,8 @@ class PocketBaseClient {
       shop_id: updates.shopId,
       assigned_to: updates.assignedTo,
       due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      linked_task_ids: updates.linkedTaskIds,
+      linked_note_ids: updates.linkedNoteIds,
     });
   }
 
@@ -448,6 +466,9 @@ class PocketBaseClient {
       linked_type: note.linkedType,
       linked_to: note.linkedTo,
       linked_ids: note.linkedIds || [],
+      linked_task_ids: note.linkedTaskIds || [],
+      linked_item_ids: note.linkedItemIds || [],
+      project_id: note.projectId,
       labels: note.labels || [],
       assigned_to: note.assignedTo,
       due_date: note.dueDate ? new Date(note.dueDate).toISOString() : null,
@@ -463,6 +484,9 @@ class PocketBaseClient {
       linked_type: updates.linkedType,
       linked_to: updates.linkedTo,
       linked_ids: updates.linkedIds,
+      linked_task_ids: updates.linkedTaskIds,
+      linked_item_ids: updates.linkedItemIds,
+      project_id: updates.projectId,
       assigned_to: updates.assignedTo,
       due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
       repeat_interval: updates.repeatInterval,
