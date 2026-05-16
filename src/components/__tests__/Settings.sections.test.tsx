@@ -92,12 +92,7 @@ describe('Settings Preferences', () => {
     expect(screen.getByText('Nederlands')).toBeInTheDocument();
   });
 
-  it('shows sprint duration selector when Preferences is expanded', () => {
-    render(<Settings />);
-    fireEvent.click(screen.getByText('Preferences'));
-    expect(screen.getByText('1 Week')).toBeInTheDocument();
-    expect(screen.getByText('2 Weeks')).toBeInTheDocument();
-  });
+  // Removed: sprint duration selector test (feature removed from MVP)
 
   it('calls updateAppSettings with dark theme when Dark is clicked', () => {
     render(<Settings />);
@@ -123,15 +118,7 @@ describe('Settings Preferences', () => {
     expect(mockSetLanguage).toHaveBeenCalledWith('nl');
   });
 
-  it('calls updateAppSettings when sprint duration is changed', () => {
-    render(<Settings />);
-    fireEvent.click(screen.getByText('Preferences'));
-    const selects = screen.getAllByRole('combobox');
-    const sprintSelect = selects.find(s => s.closest('div')?.textContent?.includes('Weeks'));
-    expect(sprintSelect).toBeDefined();
-    fireEvent.change(sprintSelect!, { target: { value: '4weeks' } });
-    expect(mockUpdateAppSettings).toHaveBeenCalledWith({ sprintDuration: '4weeks' });
-  });
+  // Removed: sprint duration change test (feature removed from MVP)
 });
 
 describe('Settings Notifications', () => {

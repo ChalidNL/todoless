@@ -113,21 +113,7 @@ describe('GroceryCard Component', () => {
     expect(screen.getByTestId('label-badge-Albert Heijn')).toBeTruthy();
   });
 
-  it('shows private lock icon when isPrivate is true', () => {
-    render(<GroceryCard item={createItem({ isPrivate: true })} />);
-    const lockIcon = screen.getByTitle('Private');
-    expect(lockIcon).toBeTruthy();
-  });
-
-  it('shows linked entity badge for task link', () => {
-    render(<GroceryCard item={createItem({ linkedType: 'task', linkedTo: 'task-abc123' })} />);
-    expect(screen.getByText(/Task: task-abc/)).toBeTruthy();
-  });
-
-  it('shows linked entity badge for item link', () => {
-    render(<GroceryCard item={createItem({ linkedType: 'item', linkedTo: 'item-xyz789' })} />);
-    expect(screen.getByText(/Item: item-xyz/)).toBeTruthy();
-  });
+  // Removed: private lock and linked entity badge tests (features removed from MVP)
 
   it('applies line-through styling when completed', () => {
     render(<GroceryCard item={createItem({ completed: true })} />);
