@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { LabelBadge } from '../shared/LabelBadge';
 import {
   Check,
   Plus,
@@ -8,6 +9,8 @@ import {
   Menu,
   X,
   Trash2,
+  ShoppingCart,
+  User,
 } from 'lucide-react';
 
 interface GroceryCardProps {
@@ -15,14 +18,17 @@ interface GroceryCardProps {
 }
 
 /**
- * Minimal grocery card: checkbox + title + quantity controls + delete menu.
- * No stock status, shop selector, private indicator, or shop badge.
+ * Grocery card: todo-style with checkbox, title, quantity +/-,
+ * and inline shop badge + assignee badges.
  */
 export const GroceryCard = ({ item }: GroceryCardProps) => {
-  const { updateItem, deleteItem } = useApp();
+  const { updateItem, deleteItem, shops, users } = useApp();
   const [showMenu, setShowMenu] = useState(false);
+  const [showShopSelector, setShowShopSelector] = useState(false);
 
   const quantity = item.quantity ?? 0;
+  const currentShop = item.shopId ? shops.find((s) => s.id === item.shopId) : null;
+  const currentAssignee = item.assignedTo ? users.find((u) => u.id === item.assignedTo) : null;
 
   const handleToggle = () => {
     updateItem(item.id, { completed: !item.completed });
@@ -36,15 +42,21 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
     updateItem(item.id, { quantity: Math.max(0, quantity - 1) });
   };
 
+  const handleSelectShop = (shopId: string) => {
+    updateItem(item.id, { shopId: item.shopId === shopId ? undefined : shopId });
+    setShowShopSelector(false);
+  };
+
   return (
     <div
       className={`rounded-lg border-2 transition-all bg-white ${
         item.completed
           ? 'border-neutral-200 opacity-75'
-          : 'border-neutral-200 hover:border-neutral-300 hover:shadow-md'
+          : 'border-neutral-200 hover:border-neutral-300'
       }`}
     >
       <div className="p-3">
+        {/* Top row: checkbox + title + quantity + menu */}
         <div className="flex items-center gap-2">
           {/* Checkbox */}
           <button
@@ -68,7 +80,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
             {item.title}
           </span>
 
-          {/* Quantity */}
+          {/* Quantity controls */}
           {!item.completed && (
             <div className="flex items-center gap-1 bg-neutral-100 rounded-md px-2 py-1">
               <button
@@ -91,11 +103,9 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
             </div>
           )}
 
-          {/* Show quantity text when completed */}
+          {/* Quantity text when completed */}
           {item.completed && quantity > 0 && (
-            <span className="text-xs text-neutral-400 font-medium">
-              x{quantity}
-            </span>
+            <span className="text-xs text-neutral-400 font-medium">x{quantity}</span>
           )}
 
           {/* Menu button */}
@@ -111,15 +121,52 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
           </button>
         </div>
 
-        {/* Expanded menu (delete only) */}
+        {/* Badges row: shop + assignee */}
+        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+          {currentShop && (
+            <LabelBadge label={currentShop} size="sm" />
+          )}
+          {currentAssignee && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600">
+              <User className="w-3 h-3" />
+              {currentAssignee.name}
+            </span>
+          )}
+          {item.labels && item.labels.length > 0 && (
+            <span className="text-[10px] text-neutral-400">
+              {item.labels.length} label{item.labels.length > 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        {/* Expanded menu: shop selector + delete */}
         {showMenu && (
-          <div className="mt-2 pt-2 border-t border-neutral-100">
+          <div className="mt-2 pt-2 border-t border-neutral-100 space-y-2">
+            {/* Shop selector */}
+            <div>
+              <div className="flex items-center gap-1 flex-wrap">
+                {shops.map((shop) => (
+                  <button
+                    key={shop.id}
+                    onClick={() => handleSelectShop(shop.id)}
+                    className={item.shopId === shop.id ? 'ring-2 ring-neutral-900 rounded' : ''}
+                  >
+                    <LabelBadge label={shop} size="sm" />
+                  </button>
+                ))}
+              </div>
+              {shops.length === 0 && (
+                <p className="text-xs text-neutral-400 italic">No shops — add in Settings</p>
+              )}
+            </div>
+
+            {/* Delete */}
             <button
               onClick={() => {
                 deleteItem(item.id);
                 setShowMenu(false);
               }}
-              className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-medium px-1 py-1"
+              className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-medium"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Delete

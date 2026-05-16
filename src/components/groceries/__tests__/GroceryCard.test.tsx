@@ -34,6 +34,8 @@ describe('GroceryCard Component', () => {
     (useApp as any).mockReturnValue({
       updateItem: mockUpdateItem,
       deleteItem: mockDeleteItem,
+      shops: [],
+      users: [],
     });
   });
 
@@ -88,23 +90,17 @@ describe('GroceryCard Component', () => {
 
   it('shows delete action in menu', () => {
     render(<GroceryCard item={createItem()} />);
-    // Open the menu
-    const menuButton = screen.getByLabelText('Mark as bought')
-      .nextElementSibling?.nextElementSibling?.nextElementSibling as HTMLElement;
-    // Actually, let's just find the menu button by its aria-label not being specific...
-    // The menu button is the last button. Let's use getByRole.
+    // All buttons: [checkbox, decrease, increase, menu, ...shops?]
+    // The menu button is the last one that toggles the menu
     const buttons = screen.getAllByRole('button');
-    // Last button should be the menu button (hamburger)
-    const menuBtn = buttons[buttons.length - 1];
-    fireEvent.click(menuBtn);
+    fireEvent.click(buttons[buttons.length - 1]);
     expect(screen.getByText('Delete')).toBeTruthy();
   });
 
   it('calls deleteItem when delete is confirmed', () => {
     render(<GroceryCard item={createItem()} />);
     const buttons = screen.getAllByRole('button');
-    const menuBtn = buttons[buttons.length - 1];
-    fireEvent.click(menuBtn);
+    fireEvent.click(buttons[buttons.length - 1]);
     fireEvent.click(screen.getByText('Delete'));
     expect(mockDeleteItem).toHaveBeenCalledWith('item-1');
   });
