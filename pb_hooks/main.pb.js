@@ -117,8 +117,9 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     }
 
     var existing = $app.findRecordsByFilter('users', '', '-created', 1, 0);
-    if (existing.length === 0) {
-      // FIRST USER — admin, creates family
+    var setupDone = $app.findRecordsByFilter('app_settings', 'setup_complete = true', '-created', 1, 0).length > 0;
+    if (existing.length === 0 || !setupDone) {
+      // BOOTSTRAP WINDOW — no invite required until setup is completed
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
       var uc = $app.findCollectionByNameOrId('users');
