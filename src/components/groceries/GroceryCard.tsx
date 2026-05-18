@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { AttributeChip } from '../shared/AttributeChip';
-import { nextLabelColor } from '../../lib/label-colors';
 import { Check, Menu, X, Trash2, ShoppingCart, Hash, Tag } from 'lucide-react';
 
 interface GroceryCardProps {
@@ -34,7 +33,7 @@ const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCance
 );
 
 export const GroceryCard = ({ item }: GroceryCardProps) => {
-  const { updateItem, deleteItem, labels, shops, addLabel } = useApp();
+  const { updateItem, deleteItem, labels, shops, addLabel, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<GroceryEditor>(null);
   const [labelInput, setLabelInput] = useState('');
@@ -64,14 +63,8 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
   const hasLabels = item.labels && item.labels.length > 0;
   const hasShop = !!item.shopId;
 
-  // Toggle label on item (AT-003: no filter, no x, chip=toggle)
-  const toggleLabel = (labelId: string) => {
-    const cur = item.labels || [];
-    const has = cur.includes(labelId);
-    updateItem(item.id, {
-      labels: has ? cur.filter((id) => id !== labelId) : [...cur, labelId],
-    });
-  };
+  const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
+  const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
 
   return (
     <>
@@ -131,8 +124,14 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                     icon={<Tag className="w-3.5 h-3.5" />}
                     label={label.name}
                     color={label.color}
-                    active
-                    onClick={() => toggleLabel(labelId)}
+                    active={isLabelFiltered(label.id)}
+                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                    onRemove={(e) => {
+                      e.stopPropagation();
+                      updateItem(item.id, {
+                        labels: (item.labels || []).filter((id) => id !== label.id),
+                      });
+                    }}
                   />
                 ) : null;
               })}
@@ -141,8 +140,9 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                   icon={<ShoppingCart className="w-3.5 h-3.5" />}
                   label={currentShop.name}
                   color={currentShop.color || '#10b981'}
-                  active
-                  onClick={() => updateItem(item.id, { shopId: undefined })}
+                  active={isShopFiltered(currentShop.id)}
+                  onClick={() => currentShop ? toggleChipFilter('shop', currentShop.id, currentShop.name, currentShop.color || '#10b981') : undefined}
+                  onRemove={() => updateItem(item.id, { shopId: undefined })}
                 />
               )}
             </div>
@@ -213,7 +213,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                               updateItem(item.id, { labels: [...curLabels, existing.id] });
                             }
                           } else {
-                            addLabel({ name, color: nextLabelColor() });
+                            addLabel({ name, color: '#3b82f6' });
                           }
                           setLabelInput('');
                         }

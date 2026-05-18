@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Task, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft, RotateCcw } from 'lucide-react';
-import { nextLabelColor } from '../../lib/label-colors';
-import { entityColor } from '../../lib/entity-colors';
 import { AttributeChip } from './AttributeChip';
+import { entityColor } from '../../lib/entity-colors';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -36,12 +35,13 @@ const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCance
 );
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, addLabel, convertTaskToItem } = useApp();
+  const { updateTask, deleteTask, labels, users, shops, addLabel, convertTaskToItem, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [labelInput, setLabelInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Allow distinguishing between hover-click and chip-filter click
   const [isDeleteHover, setIsDeleteHover] = useState(false);
 
   const isDone = task.status === 'done';
@@ -54,11 +54,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const repeatLabel = task.repeatInterval
     ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[task.repeatInterval]
     : null;
-
-  // Attribute colors (AT-002)
-  const ASSIGNEE_COLOR = '#10b981'; // green
-  const NEUTRAL_COLOR = '#6b7280';  // gray
-  const FLAG_COLOR = '#ef4444';     // red
 
   const handleToggle = () => {
     if (task.status === 'done') {
@@ -103,13 +98,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
 
-  // Toggle label on task (AT-003)
-  const toggleLabel = (labelId: string) => {
-    const has = task.labels.includes(labelId);
-    updateTask(task.id, {
-      labels: has ? task.labels.filter((id) => id !== labelId) : [...task.labels, labelId],
-    });
-  };
+  // Check which chips are active filters
+  const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
+  const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
+  const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
+  const isRepeatFiltered = (rl: string) => isChipFilterActive('repeat', rl);
 
   return (
     <>
@@ -154,15 +147,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — flag, labels, assignee, date, repeat (AT-003: toggle/no-x) */}
+          {/* Line 2: chips — flag, labels, assignee, date, repeat */}
           {(isFlagged || hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && !isDone && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {isFlagged && (
-                <AttributeChip
-                  icon={<Flag className="w-3.5 h-3.5" />}
-                  label=""
-                  color={FLAG_COLOR}
-                />
+                <span className="inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border border-red-300 bg-red-100 text-red-700">
+                  <Flag className="w-3.5 h-3.5" />
+                  Flagged
+                </span>
               )}
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -172,33 +164,32 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     icon={<Tag className="w-3.5 h-3.5" />}
                     label={label.name}
                     color={label.color}
-                    active
-                    onClick={() => toggleLabel(label.id)}
+                    active={isLabelFiltered(label.id)}
+                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                    onRemove={(e) => {
+                      e.stopPropagation();
+                      updateTask(task.id, {
+                        labels: task.labels.filter((id) => id !== label.id),
+                      });
+                    }}
                   />
                 ) : null;
               })}
               {assignedUser && (
                 <AttributeChip
                   icon={<User className="w-3.5 h-3.5" />}
-                  label={assignedUser.name.split(' ')[0]} // AT-005: first name only
-                  color={ASSIGNEE_COLOR} // AT-002: consistent green
-                  active
-                  onClick={() => updateTask(task.id, { assignedTo: undefined })} // AT-006: toggle off
+                  label={assignedUser.name}
+                  color={entityColor(assignedUser.id)}
+                  active={isAssigneeFiltered(assignedUser.id)}
+                  onClick={() => assignedUser ? toggleChipFilter('assignee', assignedUser.id, assignedUser.name, entityColor(assignedUser.id)) : undefined}
+                  onRemove={() => updateTask(task.id, { assignedTo: undefined })}
                 />
               )}
               {dateStr && !isDone && (
-                <AttributeChip
-                  icon={<CalendarDays className="w-3.5 h-3.5" />}
-                  label={dateStr}
-                  color={NEUTRAL_COLOR}
-                />
+                <AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={dateStr} color="#6b7280" active={isDateFiltered(dateStr)} onClick={() => toggleChipFilter('date', dateStr)} />
               )}
               {repeatLabel && !isDone && (
-                <AttributeChip
-                  icon={<RotateCcw className="w-3.5 h-3.5" />}
-                  label={repeatLabel}
-                  color={NEUTRAL_COLOR}
-                />
+                <AttributeChip icon={<RotateCcw className="w-3.5 h-3.5" />} label={repeatLabel} color="#6b7280" active={isRepeatFiltered(repeatLabel)} onClick={() => toggleChipFilter('repeat', repeatLabel)} />
               )}
             </div>
           )}
@@ -222,6 +213,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </button>
                 <button
                   onClick={() => {
+                    // Clicking assignee icon with assignee set -> clear it
                     if (task.assignedTo) {
                       clearAssignee();
                     } else {
@@ -303,7 +295,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                               updateTask(task.id, { labels: [...task.labels, existing.id] });
                             }
                           } else {
-                            addLabel({ name, color: nextLabelColor() });
+                            addLabel({ name, color: '#3b82f6' });
                           }
                           setLabelInput('');
                         }
@@ -313,7 +305,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       aria-label="Label input"
                     />
                   </div>
-                  {/* Label options */}
+                  {/* Label options — same size as chips */}
                   <div className="flex flex-wrap gap-1">
                     {visibleLabels.map((label) => (
                       <button
@@ -390,7 +382,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                           >
                             {u.name.charAt(0).toUpperCase()}
                           </span>
-                          <span>{u.name.split(' ')[0]}</span>
+                          <span>{u.name}</span>
                           {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
                         </button>
                       ))}
