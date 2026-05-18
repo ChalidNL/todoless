@@ -74,7 +74,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "VITE_GIT_COMMIT=$(git rev-parse --short HEAD) vite build",
+    "build": "VITE_GIT_COMMIT=${VITE_GIT_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo 'local')} vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
