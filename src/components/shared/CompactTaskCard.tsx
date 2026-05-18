@@ -57,6 +57,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           <span className={`text-sm leading-6 ${task.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-900'}`}>
             {task.title}
           </span>
+          {/* Label feed — toon alle labels als badges */}
+          {task.labels.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-0.5">
+              {task.labels.map((labelId) => {
+                const label = labels.find((l) => l.id === labelId);
+                return label ? <LabelBadge key={label.id} label={label} size="sm" /> : null;
+              })}
+            </div>
+          )}
 
           {/* Layer 2 */}
           {showMenu && (
