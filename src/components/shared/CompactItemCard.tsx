@@ -117,7 +117,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   className="chip"
                   style={{ backgroundColor: entityBg(item.createdBy), borderColor: entityBorder(item.createdBy), color: entityColor(item.createdBy) }}
                 >
-                  <User className="w-3 h-3" strokeWidth={2} />
+                  <User className="w-2.5 h-2.5" strokeWidth={2} />
                   {users.find(u => u.id === item.createdBy)?.name || 'Unknown'}
                 </span>
               )}
@@ -126,7 +126,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   className="chip"
                   style={{ backgroundColor: entityBg(item.assignedTo), borderColor: entityBorder(item.assignedTo), color: entityColor(item.assignedTo) }}
                 >
-                  <User className="w-3 h-3" strokeWidth={2} />
+                  <User className="w-2.5 h-2.5" strokeWidth={2} />
                   {users.find(u => u.id === item.assignedTo)?.name || 'Unknown'}
                 </span>
               )}
