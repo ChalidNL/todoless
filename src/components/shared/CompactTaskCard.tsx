@@ -109,10 +109,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             })}
             {assignedUser && (
               <span
-                className="chip border"
-                style={{ backgroundColor: entityBg(assignedUser.id), borderColor: entityColor(assignedUser.id), color: entityColor(assignedUser.id) }}
+                className="chip"
+                style={{ backgroundColor: entityBg(assignedUser.id), color: entityColor(assignedUser.id) }}
               >
-                <User className="w-2.5 h-2.5" strokeWidth={2} />
+                <User className="w-4 h-4" strokeWidth={1.5} />
                 {assignedUser.name}
               </span>
             )}

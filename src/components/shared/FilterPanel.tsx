@@ -217,7 +217,7 @@ export const FilterPanel = ({
                     className="chip cursor-pointer"
                     style={{ backgroundColor: entityBg(user.id), color: entityColor(user.id) }}
                   >
-                    <User className="w-2.5 h-2.5" strokeWidth={2} />
+                    <User className="w-4 h-4" strokeWidth={1.5} />
                     {user.name}
                   </span>
                 ))}

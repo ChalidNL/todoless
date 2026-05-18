@@ -3,7 +3,7 @@ import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
-import { entityColor, entityBg, entityBorder } from '../../lib/entity-colors';
+import { entityColor, entityBg } from '../../lib/entity-colors';
 
 interface CompactItemCardProps {
   item: Item;
@@ -115,18 +115,18 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               {item.createdBy && (
                 <span
                   className="chip"
-                  style={{ backgroundColor: entityBg(item.createdBy), borderColor: entityBorder(item.createdBy), color: entityColor(item.createdBy) }}
+                  style={{ backgroundColor: entityBg(item.createdBy), color: entityColor(item.createdBy) }}
                 >
-                  <User className="w-2.5 h-2.5" strokeWidth={2} />
+                  <User className="w-4 h-4" strokeWidth={1.5} />
                   {users.find(u => u.id === item.createdBy)?.name || 'Unknown'}
                 </span>
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
                 <span
                   className="chip"
-                  style={{ backgroundColor: entityBg(item.assignedTo), borderColor: entityBorder(item.assignedTo), color: entityColor(item.assignedTo) }}
+                  style={{ backgroundColor: entityBg(item.assignedTo), color: entityColor(item.assignedTo) }}
                 >
-                  <User className="w-2.5 h-2.5" strokeWidth={2} />
+                  <User className="w-4 h-4" strokeWidth={1.5} />
                   {users.find(u => u.id === item.assignedTo)?.name || 'Unknown'}
                 </span>
               )}
