@@ -100,7 +100,26 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           </button>
         </div>
 
-        {/* Line 2: attributes behind hamburger */}
+        {/* Line 2: chips — labels + assignee always visible */}
+        {(task.labels.length > 0 || assignedUser) && !isDone && (
+          <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
+            {task.labels.map((labelId) => {
+              const label = labels.find((l) => l.id === labelId);
+              return label ? <LabelBadge key={label.id} label={label} size="sm" /> : null;
+            })}
+            {assignedUser && (
+              <span
+                className="chip font-medium border"
+                style={{ backgroundColor: entityBg(assignedUser.id), borderColor: entityColor(assignedUser.id), color: entityColor(assignedUser.id) }}
+              >
+                <User className="w-3 h-3" strokeWidth={2} />
+                {assignedUser.name}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Line 3: attributes behind hamburger */}
         {showMenu && (
           <div className="mt-2 pt-2 border-t border-neutral-100">
             {/* Attribute buttons */}
