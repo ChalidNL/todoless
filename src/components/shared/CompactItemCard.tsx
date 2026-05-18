@@ -112,7 +112,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {(item.createdBy || item.assignedTo) && (
             <div className="flex items-center gap-1 mb-2 flex-wrap">
               {item.createdBy && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 text-neutral-500">
+                <span className="chip bg-neutral-100 text-neutral-500">
                   <div className="w-3.5 h-3.5 rounded-full bg-neutral-300 flex items-center justify-center text-[8px] text-white font-medium">
                     {(users.find(u => u.id === item.createdBy)?.name || '?').charAt(0)}
                   </div>
@@ -120,7 +120,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 </span>
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600">
+                <span className="chip bg-blue-50 text-blue-600">
                   <User className="w-3 h-3" />
                   {users.find(u => u.id === item.assignedTo)?.name || 'Unknown'}
                 </span>

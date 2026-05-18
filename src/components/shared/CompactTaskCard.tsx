@@ -109,7 +109,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           {/* Assignee chip */}
           {assignedUser && (
             <div className="flex items-center gap-1 mt-0.5">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium border border-blue-200">
+              <span className="chip bg-blue-50 text-blue-700 font-medium border border-blue-200">
                 <User className="w-3 h-3" strokeWidth={2} />
                 {assignedUser.name}
               </span>

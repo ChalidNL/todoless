@@ -10,8 +10,8 @@ interface LabelBadgeProps {
 export const LabelBadge = ({ label, onRemove, size = 'md' }: LabelBadgeProps) => {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full ${
-        size === 'sm' ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-0.5 text-xs'
+      className={`chip ${
+        size === 'sm' ? '' : 'px-2'
       }`}
       style={{
         backgroundColor: `${label.color}15`,
