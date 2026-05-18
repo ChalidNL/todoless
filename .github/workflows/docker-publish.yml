@@ -43,7 +43,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            VITE_GIT_COMMIT_ARG=${{ github.sha }}
+            VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ github.ref_name }}
 
       - name: Build & push pocketbase
