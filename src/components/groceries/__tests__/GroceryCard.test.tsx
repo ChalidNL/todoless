@@ -11,6 +11,7 @@ const { useApp } = await import('../../../context/AppContext');
 
 const mockUpdateItem = vi.fn();
 const mockDeleteItem = vi.fn();
+const mockAddLabel = vi.fn();
 
 const createItem = (overrides = {}) => ({
   id: 'item-1',
@@ -37,12 +38,8 @@ describe('GroceryCard layered attributes', () => {
         { id: 'shop-2', name: 'Jumbo', color: '#10b981' },
       ],
       labels: [],
-      addLabel: vi.fn(),
+      addLabel: mockAddLabel,
       users: [],
-      toggleChipFilter: vi.fn(),
-      isChipFilterActive: vi.fn(() => false),
-      clearChipFilters: vi.fn(),
-      activeChipFilters: [],
     });
   });
 
@@ -92,5 +89,46 @@ describe('GroceryCard layered attributes', () => {
     // Confirmation dialog
     fireEvent.click(screen.getByText('Ja, verwijderen'));
     expect(mockDeleteItem).toHaveBeenCalledWith('item-1');
+  });
+
+  it('toggles label assignment on label chip click (no filter, no x)', () => {
+    const withLabel = createItem({
+      labels: ['l1'],
+      shopId: 'shop-1',
+    });
+    (useApp as any).mockReturnValue({
+      updateItem: mockUpdateItem,
+      deleteItem: mockDeleteItem,
+      shops: [
+        { id: 'shop-1', name: 'AH', color: '#3b82f6' },
+        { id: 'shop-2', name: 'Jumbo', color: '#10b981' },
+      ],
+      labels: [{ id: 'l1', name: 'Dairy', color: '#3b82f6' }],
+      addLabel: mockAddLabel,
+      users: [],
+    });
+
+    render(<GroceryCard item={withLabel as any} />);
+
+    // Label chip "Dairy" visible in line 2
+    expect(screen.getByText('Dairy')).toBeTruthy();
+
+    // Click label chip → removes label (toggle off)
+    fireEvent.click(screen.getByText('Dairy'));
+    expect(mockUpdateItem).toHaveBeenCalledWith('item-1', { labels: [] });
+  });
+
+  it('clears shop on shop chip click (toggle)', () => {
+    const withShop = createItem({
+      shopId: 'shop-1',
+    });
+    render(<GroceryCard item={withShop as any} />);
+
+    // Should show "AH" shop chip in line 2
+    expect(screen.getByText('AH')).toBeTruthy();
+
+    // Click shop chip → clears shop
+    fireEvent.click(screen.getByText('AH'));
+    expect(mockUpdateItem).toHaveBeenCalledWith('item-1', { shopId: undefined });
   });
 });
