@@ -7,6 +7,7 @@ interface AttributeChipProps {
   muted?: boolean;
   active?: boolean;
   onClick?: () => void;
+  onRemove?: (e: React.MouseEvent) => void;
 }
 
 /**
@@ -19,11 +20,10 @@ interface AttributeChipProps {
  * - default: gray border, neutral bg
  * - colored (active=false + color set): tinted bg with color
  * - active=true: full color bg/border/text
- * - onClick: makes chip clickable (cursor-pointer, hover effects)
- *
- * No X/remove button — chip is a toggle. Click to add, click to remove.
+ * - onClick: makes chip clickable (cursor-pointer, hover effects) — used for filter toggle
+ * - onRemove: shows × button for attribute removal
  */
-export const AttributeChip = ({ icon, label, color, muted, active, onClick }: AttributeChipProps) => {
+export const AttributeChip = ({ icon, label, color, muted, active, onClick, onRemove }: AttributeChipProps) => {
   const isActive = active ?? (!muted && !!color);
   const backgroundColor = color && isActive ? `${color}20` : undefined;
   const textColor = color && isActive ? color : undefined;
@@ -42,6 +42,18 @@ export const AttributeChip = ({ icon, label, color, muted, active, onClick }: At
     >
       {icon && <span className="flex-shrink-0 flex items-center">{icon}</span>}
       <span className="truncate max-w-[120px]">{label}</span>
+      {onRemove && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(e);
+          }}
+          className="ml-0.5 hover:opacity-70 leading-none text-current"
+          aria-label={`Remove ${label}`}
+        >
+          ×
+        </button>
+      )}
     </span>
   );
 };

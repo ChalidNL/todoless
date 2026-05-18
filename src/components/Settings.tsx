@@ -11,7 +11,7 @@ import { InviteManager } from './InviteManager';
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
-  const appVersion = import.meta.env.VITE_APP_VERSION || 'mvp';
+  const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
   const appCommitRaw = import.meta.env.VITE_GIT_COMMIT || 'local';
   const appCommit = appCommitRaw === 'local' ? 'local' : appCommitRaw.slice(0, 7);
   const [editingPassword, setEditingPassword] = useState(false);

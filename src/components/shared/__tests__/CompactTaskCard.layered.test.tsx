@@ -11,7 +11,6 @@ const { useApp } = await import('../../../context/AppContext');
 
 const mockUpdateTask = vi.fn();
 const mockDeleteTask = vi.fn();
-const mockAddLabel = vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' }));
 
 const baseTask = {
   id: 'task-1',
@@ -29,10 +28,14 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     (useApp as any).mockReturnValue({
       updateTask: mockUpdateTask,
       deleteTask: mockDeleteTask,
-      addLabel: mockAddLabel,
+      addLabel: vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' })),
       convertTaskToItem: vi.fn(),
       labels: [{ id: 'l1', name: 'home', color: '#3b82f6' }],
-      users: [{ id: 'u1', name: 'Chalid Mekran', role: 'admin' }],
+      users: [{ id: 'u1', name: 'Chalid', role: 'admin' }],
+      toggleChipFilter: vi.fn(),
+      isChipFilterActive: vi.fn(() => false),
+      clearChipFilters: vi.fn(),
+      activeChipFilters: [],
     });
   });
 
@@ -92,56 +95,60 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
     expect(screen.getByText(/jun/i)).toBeTruthy();
   });
 
-  it('shows flag icon (no text) when task is flagged', () => {
-    const flagged = { ...baseTask, flag: true };
-    render(<CompactTaskCard task={flagged as any} />);
+  it('does not show flag chip (chip removed, attribute button has color)', () => {
+    const flagged = { ...baseTask, flag: true, blocked: true };
+    const { container } = render(<CompactTaskCard task={flagged as any} />);
 
-    // Flag chip should render WITHOUT "Flagged" text (AT-001)
-    // The chip exists but has empty label text
+    // No flag chip in line 2
     expect(screen.queryByText('Flagged')).toBeNull();
-    // Card still has red background
-    const { container } = render(
-      <CompactTaskCard task={{ ...baseTask, flag: true, blocked: true } as any} />
-    );
-    expect((container.firstChild as HTMLElement).className.includes('!bg-red-50')).toBeTruthy();
+    // Card gets red tint from flag
+    const root = container.firstChild as HTMLElement;
+    expect(root.className.includes('!bg-red-50')).toBeTruthy();
+    // Flag attribute button shows when hamburger opens
+    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    expect(screen.getByLabelText('Toggle flag')).toBeTruthy();
   });
 
-  it('toggles label assignment on chip click (no filter)', () => {
-    const withLabel = {
-      ...baseTask,
-      labels: ['l1'],
-    };
-    render(<CompactTaskCard task={withLabel as any} />);
+  // When hamburger is CLOSED, clicking chip opens the editor
+  it('opens label editor when label chip is clicked (hamburger closed)', () => {
+    const withLabels = { ...baseTask, labels: ['l1'] };
+    render(<CompactTaskCard task={withLabels as any} />);
 
-    // Label chip "home" should be visible in line 2
-    const homeChip = screen.getByText('home');
-    expect(homeChip).toBeTruthy();
-
-    // Click on label chip → removes label (toggle off)
-    fireEvent.click(homeChip);
-    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { labels: [] });
+    fireEvent.click(screen.getByText('home'));
+    expect(screen.getByLabelText('Label input')).toBeTruthy();
   });
 
-  it('shows first name only for assignee', () => {
-    const withAssignee = {
-      ...baseTask,
-      assignedTo: 'u1',
-    };
-    render(<CompactTaskCard task={withAssignee as any} />);
-
-    // Should show "Chalid" not "Chalid Mekran" (AT-005)
-    expect(screen.getByText('Chalid')).toBeTruthy();
-    expect(screen.queryByText('Chalid Mekran')).toBeNull();
-  });
-
-  it('unassigns on assignee chip click', () => {
-    const withAssignee = {
-      ...baseTask,
-      assignedTo: 'u1',
-    };
+  it('opens assignee editor when assignee chip is clicked', () => {
+    const withAssignee = { ...baseTask, assignedTo: 'u1' };
     render(<CompactTaskCard task={withAssignee as any} />);
 
     fireEvent.click(screen.getByText('Chalid'));
-    expect(mockUpdateTask).toHaveBeenCalledWith('task-1', { assignedTo: undefined });
+    expect(screen.getByLabelText('Search assignee')).toBeTruthy();
+  });
+
+  it('opens schedule editor when date chip is clicked', () => {
+    const withDate = { ...baseTask, dueDate: new Date('2026-06-01').getTime() };
+    render(<CompactTaskCard task={withDate as any} />);
+
+    // Click the date chip (e.g. "jun 1")
+    fireEvent.click(screen.getByText(/jun/i));
+    expect(screen.getByLabelText('Due date')).toBeTruthy();
+  });
+
+  it('opens schedule editor when repeat chip is clicked', () => {
+    const withRepeat = { ...baseTask, repeatInterval: 'week' as const, dueDate: Date.now() };
+    render(<CompactTaskCard task={withRepeat as any} />);
+
+    fireEvent.click(screen.getByText('Weekly'));
+    expect(screen.getByLabelText('Due date')).toBeTruthy();
+  });
+
+  it('shows clear labels button when labels exist', () => {
+    const withLabels = { ...baseTask, labels: ['l1'] };
+    render(<CompactTaskCard task={withLabels as any} />);
+    fireEvent.click(screen.getByLabelText('Open task attributes'));
+    fireEvent.click(screen.getByLabelText('Edit labels'));
+
+    expect(screen.getByLabelText('Clear all labels')).toBeTruthy();
   });
 });

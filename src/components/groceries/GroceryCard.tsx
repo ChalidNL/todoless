@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { AttributeChip } from '../shared/AttributeChip';
-import { nextLabelColor } from '../../lib/label-colors';
 import { Check, Menu, X, Trash2, ShoppingCart, Hash, Tag } from 'lucide-react';
 
 interface GroceryCardProps {
@@ -34,7 +33,7 @@ const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCance
 );
 
 export const GroceryCard = ({ item }: GroceryCardProps) => {
-  const { updateItem, deleteItem, labels, shops, addLabel } = useApp();
+  const { updateItem, deleteItem, labels, shops, addLabel, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<GroceryEditor>(null);
   const [labelInput, setLabelInput] = useState('');
@@ -64,14 +63,8 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
   const hasLabels = item.labels && item.labels.length > 0;
   const hasShop = !!item.shopId;
 
-  // Toggle label on item (AT-003: no filter, no x, chip=toggle)
-  const toggleLabel = (labelId: string) => {
-    const cur = item.labels || [];
-    const has = cur.includes(labelId);
-    updateItem(item.id, {
-      labels: has ? cur.filter((id) => id !== labelId) : [...cur, labelId],
-    });
-  };
+  const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
+  const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
 
   return (
     <>
@@ -130,9 +123,15 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                     key={label.id}
                     icon={<Tag className="w-3.5 h-3.5" />}
                     label={label.name}
-                    color={label.color}
-                    active
-                    onClick={() => toggleLabel(labelId)}
+                    color="#3b82f6"
+                    active={isLabelFiltered(label.id)}
+                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                    onRemove={(e) => {
+                      e.stopPropagation();
+                      updateItem(item.id, {
+                        labels: (item.labels || []).filter((id) => id !== label.id),
+                      });
+                    }}
                   />
                 ) : null;
               })}
@@ -140,9 +139,10 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                 <AttributeChip
                   icon={<ShoppingCart className="w-3.5 h-3.5" />}
                   label={currentShop.name}
-                  color={currentShop.color || '#10b981'}
-                  active
-                  onClick={() => updateItem(item.id, { shopId: undefined })}
+                  color="#10b981"
+                  active={isShopFiltered(currentShop.id)}
+                  onClick={() => currentShop ? toggleChipFilter('shop', currentShop.id, currentShop.name, '#10b981') : undefined}
+                  onRemove={() => updateItem(item.id, { shopId: null })}
                 />
               )}
             </div>
@@ -156,41 +156,41 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${
                     hasLabels || activeEditor === 'labels'
-                      ? 'bg-neutral-900 text-white'
+                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="#label"
                   aria-label="Edit labels"
                 >
-                  <Tag className="w-4 h-4" />
+                  <Tag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'shop' ? null : 'shop')}
                   className={`p-1.5 rounded transition-colors ${
                     hasShop || activeEditor === 'shop'
-                      ? 'bg-neutral-900 text-white'
+                      ? 'bg-green-100 text-green-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="$shop"
                   aria-label="Edit shop"
                 >
-                  <ShoppingCart className="w-4 h-4" />
+                  <ShoppingCart className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'quantity' ? null : 'quantity')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'quantity' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-1.5 rounded transition-colors ${activeEditor === 'quantity' ? 'bg-neutral-100 text-neutral-700 ring-1 ring-neutral-300' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title="*quantity"
                   aria-label="Edit quantity"
                 >
-                  <Hash className="w-4 h-4" />
+                  <Hash className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 rounded transition-colors text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="p-1.5 rounded transition-colors text-red-600 hover:bg-red-50"
                   title="delete"
                   aria-label="Delete item"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               </div>
 
@@ -213,7 +213,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                               updateItem(item.id, { labels: [...curLabels, existing.id] });
                             }
                           } else {
-                            addLabel({ name, color: nextLabelColor() });
+                            addLabel({ name, color: '#3b82f6' });
                           }
                           setLabelInput('');
                         }
@@ -264,7 +264,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                     {shops.map((shop) => (
                       <button
                         key={shop.id}
-                        onClick={() => updateItem(item.id, { shopId: item.shopId === shop.id ? undefined : shop.id })}
+                        onClick={() => updateItem(item.id, { shopId: item.shopId === shop.id ? null : shop.id })}
                       >
                         <span
                           className={`inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border ${
@@ -287,7 +287,7 @@ export const GroceryCard = ({ item }: GroceryCardProps) => {
                   </div>
                   {hasShop && currentShop && (
                     <button
-                      onClick={() => updateItem(item.id, { shopId: undefined })}
+                      onClick={() => updateItem(item.id, { shopId: null })}
                       className="mt-2 text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded flex items-center gap-1"
                       aria-label="Clear shop"
                     >

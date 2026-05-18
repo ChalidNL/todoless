@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { Task, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft, RotateCcw } from 'lucide-react';
-import { nextLabelColor } from '../../lib/label-colors';
-import { entityColor } from '../../lib/entity-colors';
 import { AttributeChip } from './AttributeChip';
+import { entityColor } from '../../lib/entity-colors';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -35,13 +34,36 @@ const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCance
   </div>
 );
 
+const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: string; confirmLabel?: string; onConfirm: () => void; onCancel: () => void }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+    <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
+      <p className="text-sm font-medium text-neutral-900 mb-4">{title}</p>
+      <div className="flex gap-2 justify-end">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
+        >
+          Annuleren
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+        >
+          {confirmLabel || 'Bevestigen'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, addLabel, convertTaskToItem } = useApp();
+  const { updateTask, deleteTask, labels, users, shops, addLabel, convertTaskToItem, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [labelInput, setLabelInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [isDeleteHover, setIsDeleteHover] = useState(false);
 
   const isDone = task.status === 'done';
@@ -54,11 +76,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const repeatLabel = task.repeatInterval
     ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[task.repeatInterval]
     : null;
-
-  // Attribute colors (AT-002)
-  const ASSIGNEE_COLOR = '#10b981'; // green
-  const NEUTRAL_COLOR = '#6b7280';  // gray
-  const FLAG_COLOR = '#ef4444';     // red
 
   const handleToggle = () => {
     if (task.status === 'done') {
@@ -73,14 +90,32 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     setActiveEditor(null);
   };
 
+  // --- Clear functions — all use explicit null / [] (PB ignores undefined) ---
   const clearAssignee = () => {
-    updateTask(task.id, { assignedTo: undefined });
+    updateTask(task.id, { assignedTo: null });
     setAssigneeSearch('');
     setActiveEditor(null);
   };
 
   const clearAllSchedule = () => {
-    updateTask(task.id, { dueDate: undefined, repeatInterval: undefined });
+    updateTask(task.id, { dueDate: null, repeatInterval: null });
+  };
+
+  const clearAllLabels = () => {
+    updateTask(task.id, { labels: [] });
+  };
+
+  const removeLabel = (labelId: string) => {
+    updateTask(task.id, {
+      labels: task.labels.filter((id) => id !== labelId),
+    });
+  };
+
+  const handleConvertConfirm = () => {
+    setShowConvertConfirm(false);
+    convertTaskToItem(task.id);
+    setShowMenu(false);
+    setActiveEditor(null);
   };
 
   const handleDelete = () => {
@@ -103,12 +138,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
 
-  // Toggle label on task (AT-003)
-  const toggleLabel = (labelId: string) => {
-    const has = task.labels.includes(labelId);
-    updateTask(task.id, {
-      labels: has ? task.labels.filter((id) => id !== labelId) : [...task.labels, labelId],
-    });
+  const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
+  const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
+  const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
+  const isRepeatFiltered = (rl: string) => isChipFilterActive('repeat', rl);
+
+  const openEditor = (editor: TaskEditor) => {
+    setShowMenu(true);
+    setActiveEditor(editor);
   };
 
   return (
@@ -154,16 +191,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — flag, labels, assignee, date, repeat (AT-003: toggle/no-x) */}
-          {(isFlagged || hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && !isDone && (
+          {/* Line 2: chips — labels, assignee, date, repeat (no X on chips) */}
+          {(hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && !isDone && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
-              {isFlagged && (
-                <AttributeChip
-                  icon={<Flag className="w-3.5 h-3.5" />}
-                  label=""
-                  color={FLAG_COLOR}
-                />
-              )}
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
                 return label ? (
@@ -171,33 +201,37 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     key={label.id}
                     icon={<Tag className="w-3.5 h-3.5" />}
                     label={label.name}
-                    color={label.color}
-                    active
-                    onClick={() => toggleLabel(label.id)}
+                    color="#3b82f6"
+                    active={isLabelFiltered(label.id)}
+                    onClick={showMenu ? () => removeLabel(label.id) : () => openEditor('labels')}
                   />
                 ) : null;
               })}
               {assignedUser && (
                 <AttributeChip
                   icon={<User className="w-3.5 h-3.5" />}
-                  label={assignedUser.name.split(' ')[0]} // AT-005: first name only
-                  color={ASSIGNEE_COLOR} // AT-002: consistent green
-                  active
-                  onClick={() => updateTask(task.id, { assignedTo: undefined })} // AT-006: toggle off
+                  label={assignedUser.name}
+                  color="#10b981"
+                  active={isAssigneeFiltered(assignedUser.id)}
+                  onClick={showMenu ? clearAssignee : () => openEditor('assignee')}
                 />
               )}
               {dateStr && !isDone && (
                 <AttributeChip
                   icon={<CalendarDays className="w-3.5 h-3.5" />}
                   label={dateStr}
-                  color={NEUTRAL_COLOR}
+                  color="#d97706"
+                  active={isDateFiltered(dateStr)}
+                  onClick={showMenu ? clearAllSchedule : () => openEditor('schedule')}
                 />
               )}
               {repeatLabel && !isDone && (
                 <AttributeChip
                   icon={<RotateCcw className="w-3.5 h-3.5" />}
                   label={repeatLabel}
-                  color={NEUTRAL_COLOR}
+                  color="#7c3aed"
+                  active={isRepeatFiltered(repeatLabel)}
+                  onClick={showMenu ? clearAllSchedule : () => openEditor('schedule')}
                 />
               )}
             </div>
@@ -212,7 +246,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${
                     hasLabels || activeEditor === 'labels'
-                      ? 'bg-neutral-900 text-white'
+                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="#label"
@@ -222,17 +256,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </button>
                 <button
                   onClick={() => {
-                    if (task.assignedTo) {
-                      clearAssignee();
-                    } else {
-                      const next = activeEditor === 'assignee' ? null : 'assignee';
-                      setActiveEditor(next);
-                      if (next) setAssigneeSearch('');
-                    }
+                    const next = activeEditor === 'assignee' ? null : 'assignee';
+                    setActiveEditor(next);
+                    if (next) setAssigneeSearch('');
                   }}
                   className={`p-1.5 rounded transition-colors ${
                     hasAssignee || activeEditor === 'assignee'
-                      ? 'bg-neutral-900 text-white'
+                      ? 'bg-green-100 text-green-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="@assignee"
@@ -244,7 +274,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
                   className={`p-1.5 rounded transition-colors ${
                     hasSchedule || activeEditor === 'schedule'
-                      ? 'bg-neutral-900 text-white'
+                      ? 'bg-orange-100 text-orange-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title="//schedule"
@@ -254,18 +284,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
-                  className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-200 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title="flag"
                   aria-label="Toggle flag"
                 >
                   <Flag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => {
-                    convertTaskToItem(task.id);
-                    setShowMenu(false);
-                    setActiveEditor(null);
-                  }}
+                  onClick={() => setShowConvertConfirm(true)}
                   className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
                   title="convert to grocery"
                   aria-label="Convert to grocery item"
@@ -303,7 +329,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                               updateTask(task.id, { labels: [...task.labels, existing.id] });
                             }
                           } else {
-                            addLabel({ name, color: nextLabelColor() });
+                            addLabel({ name, color: '#3b82f6' });
                           }
                           setLabelInput('');
                         }
@@ -312,8 +338,17 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label="Label input"
                     />
+                    {hasLabels && (
+                      <button
+                        onClick={clearAllLabels}
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
+                        aria-label="Clear all labels"
+                        title="Clear all labels"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  {/* Label options */}
                   <div className="flex flex-wrap gap-1">
                     {visibleLabels.map((label) => (
                       <button
@@ -345,7 +380,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </div>
               )}
 
-              {/* Assignee editor */}
+              {/* Assignee editor — X uses clearAssignee (null, same pattern as label) */}
               {activeEditor === 'assignee' && (
                 <div className="mt-2 relative">
                   <div className="flex items-center gap-2">
@@ -363,7 +398,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label="Search assignee"
                     />
-                    {task.assignedTo && (
+                    {hasAssignee && (
                       <button
                         onClick={clearAssignee}
                         className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
@@ -379,7 +414,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       {filteredUsers.map((u) => (
                         <button
                           key={u.id}
-                          onClick={() => commitAssignee(task.assignedTo === u.id ? undefined : u.id)}
+                          onClick={() => {
+                            const val = task.assignedTo === u.id ? null : u.id;
+                            commitAssignee(val);
+                          }}
                           className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 flex items-center gap-2 ${
                             task.assignedTo === u.id ? 'bg-neutral-50 font-medium' : ''
                           }`}
@@ -390,7 +428,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                           >
                             {u.name.charAt(0).toUpperCase()}
                           </span>
-                          <span>{u.name.split(' ')[0]}</span>
+                          <span>{u.name}</span>
                           {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
                         </button>
                       ))}
@@ -399,7 +437,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 </div>
               )}
 
-              {/* Schedule editor */}
+              {/* Schedule editor — X uses clearAllSchedule (null, same pattern as label) */}
               {activeEditor === 'schedule' && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2">
@@ -408,7 +446,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       value={dateValue}
                       onChange={(e) => {
                         if (!e.target.value) {
-                          updateTask(task.id, { dueDate: undefined });
+                          updateTask(task.id, { dueDate: null });
                           return;
                         }
                         const t = timeValue || '00:00';
@@ -429,7 +467,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     />
                     <select
                       value={task.repeatInterval || ''}
-                      onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || undefined) as RepeatInterval | undefined })}
+                      onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || null) as RepeatInterval | null })}
                       className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label="Recurring interval"
                     >
@@ -439,16 +477,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       <option value="month">Monthly</option>
                       <option value="year">Yearly</option>
                     </select>
-                    {hasSchedule && (
-                      <button
-                        onClick={clearAllSchedule}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded flex-shrink-0"
-                        aria-label="Clear schedule"
-                        title="Clear date and repeat"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
@@ -461,6 +489,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
         <DeleteConfirm
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {showConvertConfirm && (
+        <ConfirmDialog
+          title="Taak omzetten naar boodschap?"
+          confirmLabel="Ja, omzetten"
+          onConfirm={handleConvertConfirm}
+          onCancel={() => setShowConvertConfirm(false)}
         />
       )}
     </>

@@ -372,7 +372,7 @@ class PocketBaseClient {
       if (has('sprintId')) payload.sprint_id = updates.sprintId;
       if (has('projectId')) payload.project_id = updates.projectId;
       if (has('assignedTo')) payload.assigned_to = updates.assignedTo;
-      if (has('dueDate')) payload.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined;
+      if (has('dueDate')) payload.due_date = updates.dueDate != null ? new Date(updates.dueDate).toISOString() : null;
       if (has('repeatInterval')) payload.repeat_interval = updates.repeatInterval;
       if (has('isPrivate')) payload.is_private = updates.isPrivate;
       if (has('archivedAt')) payload.archived_at = updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined;

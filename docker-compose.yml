@@ -2,8 +2,8 @@ name: todoless-ngx
 
 services:
   todoless-ngx:
-    image: ghcr.io/chalidnl/todoless-ngx-frontend:latest
-    #pull_policy: always
+    image: todoless-ngx-frontend:dev
+    pull_policy: never
     container_name: todoless-ngx
     restart: unless-stopped
     environment:
@@ -35,7 +35,7 @@ services:
 
   pocketbase:
     image: ghcr.io/chalidnl/todoless-ngx-pocketbase:latest
-    #pull_policy: always
+    pull_policy: never
     container_name: todoless-ngx-pocketbase
     restart: unless-stopped
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
