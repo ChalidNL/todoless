@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, Hash } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
+import { AttributeChip } from './AttributeChip';
 import { entityColor, entityBg } from '../../lib/entity-colors';
 
 interface UnifiedCardProps {
@@ -13,10 +14,11 @@ interface UnifiedCardProps {
 type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
-  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel } = useApp();
+  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel, addShop, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<UnifiedEditor>(null);
   const [titleDraft, setTitleDraft] = useState('');
+  const [shopInput, setShopInput] = useState('');
 
   const isTask = type === 'task';
   const task = isTask ? (entity as Task) : null;
@@ -49,6 +51,18 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const handleToggleFlag = () => {
     if (isTask) updateTask(entity.id, { flag: !task!.flag, blocked: !task!.flag });
   };
+
+  const setQuantity = (next: number) => {
+    if (item) updateItem(item.id, { quantity: Math.max(0, next) });
+  };
+
+  const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
+
+  const hasLabels = entity.labels.length > 0;
+  const hasAssignee = !!entity.assignedTo;
+  const hasShop = !!currentShop;
+
+  const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
 
   return (
     <div className={`rounded-lg border bg-white transition-colors ${
@@ -117,11 +131,27 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             </span>
           )}
 
-          {/* Quantity badge (items) */}
+          {/* Quantity [+][-] controls (items) — replaces static badge */}
           {!isTask && !isDone && (
-            <span className="text-xs font-medium text-neutral-600 border border-neutral-200 rounded px-2 py-0.5 flex-shrink-0">
-              {quantity}
-            </span>
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={() => setQuantity(quantity - 1)}
+                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                aria-label="Decrease quantity"
+              >
+                -
+              </button>
+              <span className="text-xs font-medium text-neutral-600 border border-neutral-200 rounded px-2 py-0.5 min-w-[28px] text-center">
+                {quantity}
+              </span>
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                aria-label="Increase quantity"
+              >
+                +
+              </button>
+            </div>
           )}
 
           {/* Hamburger */}
@@ -138,8 +168,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </button>
         </div>
 
-        {/* Chip row — labels + assignee inline */}
-        {(entity.labels.length > 0 || assignedUser) && !showMenu && (
+        {/* Chip row — labels + assignee + shop */}
+        {(hasLabels || assignedUser || hasShop) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-7">
             {entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
@@ -150,6 +180,15 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <User className="w-3 h-3" strokeWidth={2} />
                 {userDisplayName(assignedUser)}
               </span>
+            )}
+            {currentShop && (
+              <AttributeChip
+                icon={<ShoppingCart className="w-3.5 h-3.5" />}
+                label={currentShop.name}
+                color="#10b981"
+                active={isShopFiltered(currentShop.id)}
+                onClick={showMenu ? () => setValue({ shopId: null }) : () => setActiveEditor('shop')}
+              />
             )}
           </div>
         )}
@@ -195,8 +234,12 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               )}
               {!isTask && (
                 <button
-                  onClick={() => setActiveEditor(activeEditor === 'shop' ? null : 'shop')}
-                  className={`p-1.5 rounded transition-colors ${activeEditor === 'shop' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  onClick={() => {
+                    const next = activeEditor === 'shop' ? null : 'shop';
+                    setActiveEditor(next);
+                    if (next) setShopInput('');
+                  }}
+                  className={`p-1.5 rounded transition-colors ${hasShop || activeEditor === 'shop' ? 'bg-green-100 text-green-700 ring-1 ring-green-300' : 'hover:bg-neutral-100 text-neutral-500'}`}
                   title="$shop"
                   aria-label="Edit shop"
                 >
@@ -237,10 +280,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   aria-label="Label input"
                 />
                 <div className="flex flex-wrap gap-1">
-                  {labels.filter(l => l.name.toLowerCase().includes(
-                    /* quick filter via displayed list — no search state needed */
-                    ''
-                  )).map(label => (
+                  {labels.map(label => (
                     <button
                       key={label.id}
                       onClick={() => {
@@ -262,18 +302,21 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <input
                   type="date"
                   value={entity.dueDate ? new Date(entity.dueDate).toISOString().slice(0, 10) : ''}
-                  onChange={(e) => setValue({ dueDate: e.target.value ? new Date(e.target.value).getTime() : undefined })}
+                  onChange={(e) => setValue({ dueDate: e.target.value ? new Date(e.target.value).getTime() : null })}
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded flex-1"
                   aria-label="Due date"
                 />
-                {entity.assignedTo && (
-                  <button
-                    onClick={() => setValue({ assignedTo: undefined })}
-                    className="text-xs text-neutral-400 hover:text-red-500"
-                  >
-                    Clear
-                  </button>
-                )}
+                <input
+                  type="time"
+                  value={entity.dueDate ? new Date(entity.dueDate).toTimeString().slice(0, 5) : ''}
+                  onChange={(e) => {
+                    const dateVal = entity.dueDate ? new Date(entity.dueDate).toISOString().slice(0, 10) : '';
+                    if (!dateVal) return;
+                    setValue({ dueDate: new Date(`${dateVal}T${e.target.value || '00:00'}:00`).getTime() });
+                  }}
+                  className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                  aria-label="Due time"
+                />
               </div>
             )}
 
@@ -290,7 +333,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       setActiveEditor(null);
                     }
                     if (!e.target.value) {
-                      setValue({ assignedTo: undefined });
+                      setValue({ assignedTo: null });
                     }
                   }}
                   placeholder="Search team..."
@@ -300,18 +343,67 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               </div>
             )}
 
-            {/* Shop editor (items only) */}
+            {/* Shop editor (items only) — text-input-first like GroceryCard */}
             {activeEditor === 'shop' && !isTask && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {shops.map(shop => (
-                  <button
-                    key={shop.id}
-                    onClick={() => setValue({ shopId: item!.shopId === shop.id ? undefined : shop.id })}
-                    className={item!.shopId === shop.id ? 'ring-2 ring-neutral-900 rounded' : ''}
-                  >
-                    <LabelBadge label={shop} size="sm" />
-                  </button>
-                ))}
+              <div className="mt-2 space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={shopInput}
+                    onChange={(e) => setShopInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const name = shopInput.trim();
+                        if (!name) return;
+                        const existing = shops.find((s) => s.name.toLowerCase() === name.toLowerCase());
+                        if (existing) {
+                          setValue({ shopId: existing.id });
+                        } else {
+                          addShop({ name, color: '#10b981' });
+                        }
+                        setShopInput('');
+                      }
+                    }}
+                    placeholder="Type shop + Enter..."
+                    className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                    aria-label="Shop input"
+                  />
+                  {hasShop && (
+                    <button
+                      onClick={() => setValue({ shopId: null })}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
+                      aria-label="Clear shop"
+                      title="Clear shop"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {visibleShops.map((shop) => (
+                    <button
+                      key={shop.id}
+                      onClick={() => setValue({ shopId: item!.shopId === shop.id ? null : shop.id })}
+                    >
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border ${
+                          item!.shopId === shop.id ? 'ring-2 ring-neutral-900' : 'hover:border-neutral-400'
+                        }`}
+                        style={{
+                          backgroundColor: item!.shopId === shop.id ? `${shop.color || '#10b981'}20` : undefined,
+                          color: item!.shopId === shop.id ? shop.color || '#10b981' : undefined,
+                          borderColor: item!.shopId === shop.id ? `${shop.color || '#10b981'}40` : '#e5e7eb',
+                        }}
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                        {shop.name}
+                      </span>
+                    </button>
+                  ))}
+                  {visibleShops.length === 0 && (
+                    <p className="text-xs text-neutral-400 italic">No shops found</p>
+                  )}
+                </div>
               </div>
             )}
           </div>

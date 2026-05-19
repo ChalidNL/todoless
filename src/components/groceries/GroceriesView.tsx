@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { GroceryCard } from './GroceryCard';
+import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save } from 'lucide-react';
@@ -120,7 +120,7 @@ export const GroceriesView = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {activeItems.map((item) => (
-              <GroceryCard key={item.id} item={item} />
+              <UnifiedCard key={item.id} entity={item} type="item" />
             ))}
           </div>
         )}
@@ -154,7 +154,7 @@ export const GroceriesView = () => {
             {showBought && (
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {boughtItems.map((item) => (
-                  <GroceryCard key={item.id} item={item} />
+                  <UnifiedCard key={item.id} entity={item} type="item" />
                 ))}
               </div>
             )}
