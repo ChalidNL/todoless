@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName } from '../types';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { LabelBadge } from './shared/LabelBadge';
 import { TopBar } from './shared/TopBar';
@@ -16,8 +16,12 @@ export const Settings = () => {
   const appCommitRaw = import.meta.env.VITE_GIT_COMMIT || 'local';
   const appCommit = appCommitRaw === 'local' ? 'local' : appCommitRaw.slice(0, 7);
   const [editingPassword, setEditingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [profileError, setProfileError] = useState('');
   const [showAccount, setShowAccount] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
   const [showShops, setShowShops] = useState(false);
@@ -50,12 +54,46 @@ export const Settings = () => {
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
 
-  const handlePasswordChange = () => {
-    if (!currentUser || !newPassword) return;
-    updateUser(currentUser.id, { password: newPassword } as Partial<User>);
-    setNewPassword('');
-    setEditingPassword(false);
-    setShowPassword(false);
+  const handlePasswordChange = async () => {
+    setPasswordError('');
+    if (!currentUser || !currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New password and confirmation do not match');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPasswordError('New password must be different from current password');
+      return;
+    }
+    // Verify current password by attempting to re-authenticate
+    try {
+      await api.login(currentUser.email, currentPassword);
+    } catch {
+      setPasswordError('Current password is incorrect');
+      return;
+    }
+    // Update password via SDK
+    const success = await updateUser(currentUser.id, {
+      password: newPassword,
+      passwordConfirm: newPassword,
+    } as Partial<User>);
+    if (success) {
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setEditingPassword(false);
+      setShowPassword(false);
+      showCompletionMessage('Password updated successfully');
+    } else {
+      setPasswordError('Failed to update password');
+    }
   };
 
   const handleProfileEdit = () => {
@@ -68,17 +106,24 @@ export const Settings = () => {
 
   const handleProfileSave = async () => {
     if (!currentUser) return;
+    setProfileError('');
+    if (!editFirstName.trim() && !editLastName.trim() && !editDisplayName.trim()) {
+      setProfileError('At least one field is required');
+      return;
+    }
     const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(' ');
-    await updateUser(currentUser.id, {
+    const success = await updateUser(currentUser.id, {
       name: fullName || currentUser.name,
       firstName: editFirstName.trim() || undefined,
       lastName: editLastName.trim() || undefined,
       displayName: editDisplayName.trim() || undefined,
     } as Partial<User>);
-    setEditingProfile(false);
-    showCompletionMessage('Profiel opgeslagen');
-    // Force refresh to show updated data
-    window.location.reload();
+    if (success) {
+      setEditingProfile(false);
+      showCompletionMessage('Profiel opgeslagen');
+    } else {
+      setProfileError('Failed to save profile');
+    }
   };
 
   const handleCancelProfileEdit = () => {
@@ -274,88 +319,201 @@ export const Settings = () => {
         <div className="bg-white rounded-lg border border-neutral-200 p-6">
           <h2 className="text-lg font-semibold mb-4">Your Profile</h2>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold">
-                {currentUser.name.charAt(0)}
+          {profileError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              {profileError}
+            </div>
+          )}
+
+          {!editingProfile ? (
+            <div className="space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold truncate">{currentUser.name}</p>
+                    <button
+                      onClick={handleProfileEdit}
+                      className="p-1.5 hover:bg-neutral-100 rounded transition-colors shrink-0"
+                      title="Edit profile"
+                    >
+                      <Edit2 className="w-4 h-4 text-neutral-500" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-neutral-500">{currentUser.firstName || currentUser.lastName
+                    ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ')
+                    : 'No display name'}</p>
+                  <p className="text-sm text-neutral-600 truncate">{currentUser.email}</p>
+                  <p className="text-xs text-neutral-500 capitalize mt-1">
+                    Role: {currentUser.role || 'user'}
+                  </p>
+                </div>
               </div>
+
+              {/* Email (read-only) */}
+              <div className="p-3 bg-neutral-50 border border-neutral-200 rounded">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-neutral-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-neutral-500 mb-0.5">Email (read-only)</p>
+                    <p className="text-sm text-neutral-700 truncate">{currentUser.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role Display */}
               <div>
-                <p className="font-semibold">{currentUser.name}</p>
-                <p className="text-sm text-neutral-600">{currentUser.email}</p>
-                <p className="text-xs text-neutral-500 capitalize mt-1">
-                  Role: {currentUser.role || 'user'}
-                </p>
+                <label className="block text-sm text-neutral-600 mb-2">Role</label>
+                {currentUser.role === 'admin' ? (
+                  <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
+                    Admin
+                  </div>
+                ) : currentUser.role === 'assistant' ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+                    Assistant
+                  </div>
+                ) : (
+                  <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
+                    User
+                  </div>
+                )}
+              </div>
+
+              {/* Password Change */}
+              <div>
+                <label className="block text-sm text-neutral-600 mb-2">Password</label>
+                {passwordError && (
+                  <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                    {passwordError}
+                  </div>
+                )}
+                {!editingPassword ? (
+                  <button
+                    onClick={() => { setEditingPassword(true); setPasswordError(''); }}
+                    className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-2"
+                  >
+                    Change password
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Current password"
+                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
+                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="New password"
+                        className="w-full px-3 py-2 pr-10 border border-neutral-200 rounded text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
+                    />
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setEditingPassword(false);
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setShowPassword(false);
+                          setPasswordError('');
+                        }}
+                        className="px-3 py-1.5 border border-neutral-200 rounded text-sm flex-1"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handlePasswordChange}
+                        className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm flex-1"
+                      >
+                        Update
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+          ) : (
+            /* Profile Edit Form */
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
+                  {currentUser.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm text-neutral-500">{currentUser.email}</p>
+                </div>
+              </div>
 
-            {/* Role Display */}
-            <div>
-              <label className="block text-sm text-neutral-600 mb-2">Role</label>
-              {currentUser.role === 'admin' ? (
-                <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
-                  Admin
-                </div>
-              ) : currentUser.role === 'assistant' ? (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                  Assistant
-                </div>
-              ) : (
-                <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
-                  User
-                </div>
-              )}
-            </div>
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">First name</label>
+                <input
+                  type="text"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
+                  placeholder="First name"
+                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
+                />
+              </div>
 
-            {/* Password Change */}
-            <div>
-              <label className="block text-sm text-neutral-600 mb-2">Password</label>
-              {!editingPassword ? (
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">Last name</label>
+                <input
+                  type="text"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
+                  placeholder="Last name"
+                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">Display name</label>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Display name"
+                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
                 <button
-                  onClick={() => setEditingPassword(true)}
-                  className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-2"
+                  onClick={handleCancelProfileEdit}
+                  className="flex-1 px-4 py-2 border border-neutral-200 rounded text-sm"
                 >
-                  Change password
+                  Cancel
                 </button>
-              ) : (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="New password"
-                      className="w-full px-3 py-2 pr-10 border border-neutral-200 rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handlePasswordChange}
-                      className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingPassword(false);
-                        setNewPassword('');
-                        setShowPassword(false);
-                      }}
-                      className="px-3 py-1.5 border border-neutral-200 rounded text-sm"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+                <button
+                  onClick={handleProfileSave}
+                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded text-sm"
+                >
+                  Save
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Team Members */}
