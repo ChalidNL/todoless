@@ -8,6 +8,54 @@
 
 routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 
+routerAdd('GET', '/api/todoless/openapi.json', (c) => {
+  var spec = {
+    openapi: '3.0.3',
+    info: {
+      title: 'TodoLess API',
+      version: '1.0.0',
+      description: 'Public and authenticated endpoints for TodoLess agentic integrations.'
+    },
+    servers: [{ url: '/' }],
+    tags: [
+      { name: 'public', description: 'No auth required' },
+      { name: 'auth', description: 'Bearer token required' },
+      { name: 'admin', description: 'Admin role required for specific actions' }
+    ],
+    paths: {
+      '/api/todoless/hook-health': { get: { tags:['public'], summary:'Hook health', responses:{ '200': { description:'OK' } } } },
+      '/api/todoless/setup-status': { get: { tags:['public'], summary:'Setup bootstrap status', responses:{ '200': { description:'Status payload' } } } },
+      '/api/todoless/validate-invite': { get: { tags:['public'], summary:'Validate invite code', parameters:[{name:'code',in:'query',required:true,schema:{type:'string'}}], responses:{ '200': { description:'Invite valid' }, '400': {description:'Invite invalid'} } } },
+      '/api/todoless/register': { post: { tags:['public'], summary:'Register user', requestBody:{ required:true, content:{ 'application/json': { schema:{ type:'object', properties:{ email:{type:'string'}, password:{type:'string'}, passwordConfirm:{type:'string'}, name:{type:'string'}, invite_code:{type:'string'}, user_type:{type:'string', enum:['family_member','family_assistant']} }, required:['email','password','passwordConfirm','name'] } } } }, responses:{ '201':{description:'User created'}, '400':{description:'Validation error'} } } },
+      '/api/todoless/auth-with-password': { post: { tags:['public'], summary:'Authenticate with email/password', requestBody:{ required:true, content:{ 'application/json': { schema:{ type:'object', properties:{ email:{type:'string'}, password:{type:'string'} }, required:['email','password'] } } } }, responses:{ '200':{description:'Token + user'}, '400':{description:'Auth failed'} } } },
+      '/api/todoless/invites/create': { post: { tags:['auth','admin'], summary:'Create invite code', security:[{ bearerAuth: [] }], responses:{ '200':{description:'Invite created'}, '401':{description:'Unauthorized'}, '403':{description:'Admin only'} } } },
+      '/api/todoless/entries': { get: { tags:['auth'], summary:'Unified entries feed', security:[{ bearerAuth: [] }], responses:{ '200':{description:'Entries list'}, '401':{description:'Unauthorized'} } } },
+      '/api/todoless/api': {
+        post: {
+          tags:['auth'],
+          summary:'Unified action dispatcher',
+          description:'Write actions require Bearer auth. Admin-only actions: set_role, set_user_block, delete_user.',
+          security:[{ bearerAuth: [] }],
+          requestBody:{ required:true, content:{ 'application/json': { schema:{ type:'object', properties:{ action:{type:'string'}, data:{type:'object'} }, required:['action'] } } } },
+          responses:{ '200':{description:'Action result'}, '201':{description:'Created'}, '400':{description:'Invalid request'}, '401':{description:'Unauthorized'}, '403':{description:'Forbidden'} }
+        }
+      }
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: { type:'http', scheme:'bearer', bearerFormat:'JWT' }
+      }
+    }
+  };
+  return c.json(200, spec);
+});
+
+routerAdd('GET', '/api/todoless/swagger', (c) => {
+  var html = "<!doctype html><html><head><meta charset='utf-8'><title>TodoLess API Docs</title><link rel='stylesheet' href='https://unpkg.com/swagger-ui-dist@5/swagger-ui.css'></head><body><div id='swagger-ui'></div><script src='https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js'></script><script>window.ui = SwaggerUIBundle({url:'/api/todoless/openapi.json',dom_id:'#swagger-ui'});</script></body></html>";
+  c.response.header().set('Content-Type', 'text/html; charset=utf-8');
+  return c.html(200, html);
+});
+
 // ── Create invite code (server-side, bypasses PB API rules) ──
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
   try {
