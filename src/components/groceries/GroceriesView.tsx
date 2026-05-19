@@ -13,15 +13,23 @@ export const GroceriesView = () => {
   const filteredItems = useMemo(() => {
     let result = items;
 
-    // Chip filters (labels, shop)
+    // Chip filters (shop, assignee, date)
     for (const f of activeChipFilters) {
       switch (f.type) {
-        case 'label':
-          result = result.filter((item) => (item.labels || []).includes(f.id));
-          break;
         case 'shop':
           result = result.filter((item) => item.shopId === f.id);
           break;
+        case 'assignee':
+          result = result.filter((item) => item.assignedTo === f.id);
+          break;
+        case 'date': {
+          result = result.filter((item) => {
+            if (!item.dueDate) return false;
+            const ds = new Date(item.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' });
+            return ds === f.id;
+          });
+          break;
+        }
       }
     }
 

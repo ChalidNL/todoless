@@ -55,12 +55,12 @@ describe('GroceryCard layered attributes', () => {
     render(<GroceryCard item={createItem()} />);
     fireEvent.click(screen.getByLabelText('Open item attributes'));
 
+    expect(screen.getByLabelText('Edit assignee')).toBeTruthy();
+    expect(screen.getByLabelText('Edit schedule')).toBeTruthy();
     expect(screen.getByLabelText('Edit shop')).toBeTruthy();
     expect(screen.getByLabelText('Edit quantity')).toBeTruthy();
     expect(screen.getByLabelText('Delete item')).toBeTruthy();
 
-    expect(screen.queryByLabelText('Edit assignee')).toBeNull();
-    expect(screen.queryByLabelText('Edit due date and recurring')).toBeNull();
     expect(screen.queryByLabelText('Toggle flag')).toBeNull();
   });
 
