@@ -51,9 +51,9 @@ export const Settings = () => {
     updateUser(currentUser.id, { role });
   };
 
-  const handleToggleMemberActive = (user: User) => {
+  const handleToggleMemberActive = async (user: User) => {
     if (!currentUser || currentUser.role !== 'admin') return;
-    updateUser(user.id, { active: !(user.active ?? true) } as Partial<User>);
+    await updateUser(user.id, { active: !(user.active ?? true) } as Partial<User>);
   };
 
   const handleDeleteMember = async (user: User) => {

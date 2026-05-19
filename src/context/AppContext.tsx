@@ -118,7 +118,7 @@ interface AppContextType {
   updateShop: (id: string, updates: Partial<Shop>) => void;
   updateCalendarEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
+  updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
   deleteItem: (id: string) => void;
   deleteTask: (id: string) => void;
@@ -562,11 +562,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     void api.updateSettings(settings);
   };
 
-  const updateUser = (id: string, updates: Partial<User>) => {
-    void (async () => {
+  const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {
+    try {
       await api.updateUser(id, updates);
       await refreshUsers();
-    })();
+      if (typeof updates.active !== 'undefined') {
+        showCompletionMessage(updates.active ? 'Member unblocked' : 'Member blocked');
+      } else if (typeof updates.role !== 'undefined') {
+        showCompletionMessage('Role updated');
+      }
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update member';
+      showCompletionMessage(message);
+      return false;
+    }
   };
 
   const deleteUser = async (id: string): Promise<boolean> => {
