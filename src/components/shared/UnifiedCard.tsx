@@ -182,7 +182,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {assignedUser && (
               <span className="chip" style={{ backgroundColor: entityBg(assignedUser.id), color: entityColor(assignedUser.id) }}>
                 <User className="w-3 h-3" strokeWidth={2} />
-                {userDisplayName(assignedUser)}
+                {assignedUser.firstName || ''}
               </span>
             )}
             {currentShop && (

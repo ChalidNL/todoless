@@ -242,7 +242,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
               {assignedUser && (
                   <AttributeChip
                     icon={<User className="w-3.5 h-3.5" />}
-                    label={userDisplayName(assignedUser)}
+                    label={assignedUser.firstName || ''}
                   color="#10b981"
                   active={isAssigneeFiltered(assignedUser.id)}
                   onClick={showMenu ? clearAssignee : () => openEditor('assignee')}

@@ -114,10 +114,10 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.createdBy)) || 'Unknown'} color={entityColor(item.createdBy)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || 'Unknown'} color={entityColor(item.createdBy)} />
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={userDisplayName(users.find(u => u.id === item.assignedTo)) || 'Unknown'} color={entityColor(item.assignedTo)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || 'Unknown'} color={entityColor(item.assignedTo)} />
               )}
               {currentShop && (
                 <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} />
