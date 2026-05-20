@@ -2,6 +2,47 @@ import React, { createContext, useContext, useEffect, useMemo, useState, type Re
 import { getISOWeek } from '../utils/dateUtils';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
+
+const FILTER_PARAM_KEY = 'filters';
+
+interface ChipFilter { type: string; id: string; label?: string; color?: string; }
+
+// Read filters from URL search params
+function readFiltersFromUrl(): { labelFilters: string[]; chipFilters: ChipFilter[] } {
+  const params = new URLSearchParams(window.location.search);
+  const filtersParam = params.get(FILTER_PARAM_KEY);
+  if (!filtersParam) return { labelFilters: [], chipFilters: [] };
+
+  const labelFilters: string[] = [];
+  const chipFilters: ChipFilter[] = [];
+
+  for (const part of filtersParam.split(',')) {
+    const [type, ...idParts] = part.split(':');
+    const id = idParts.join(':');
+    if (!type || !id) continue;
+    if (type === 'label') {
+      labelFilters.push(id);
+    } else {
+      chipFilters.push({ type, id });
+    }
+  }
+
+  return { labelFilters, chipFilters };
+}
+
+// Write filters to URL search params
+function writeFiltersToUrl(labelFilters: string[], chipFilters: ChipFilter[]) {
+  const parts: string[] = [];
+  for (const lid of labelFilters) parts.push(`label:${lid}`);
+  for (const f of chipFilters) parts.push(`${f.type}:${f.id}`);
+  const url = new URL(window.location.href);
+  if (parts.length > 0) {
+    url.searchParams.set(FILTER_PARAM_KEY, parts.join(','));
+  } else {
+    url.searchParams.delete(FILTER_PARAM_KEY);
+  }
+  window.history.replaceState({}, '', url.toString());
+}
 import type {
   Item,
   Task,
@@ -228,8 +269,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     tasksCompletedThisWeek: 0,
     lastWeekReset: getWeekStart(),
   });
-  const [activeLabelFilters, setActiveLabelFilters] = useState<string[]>([]);
-  const [activeChipFilters, setActiveChipFilters] = useState<{type: string; id: string; label?: string; color?: string}[]>([]);
+  const [activeLabelFilters, setActiveLabelFilters] = useState<string[]>(() => readFiltersFromUrl().labelFilters);
+  const [activeChipFilters, setActiveChipFilters] = useState<ChipFilter[]>(() => readFiltersFromUrl().chipFilters);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
 
@@ -726,20 +767,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const toggleLabelFilter = (labelId: string) => {
-    setActiveLabelFilters((prev) => (prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]));
+    setActiveLabelFilters((prev) => {
+      const next = prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId];
+      writeFiltersToUrl(next, activeChipFilters);
+      return next;
+    });
   };
 
-  const clearLabelFilters = () => setActiveLabelFilters([]);
+  const clearLabelFilters = () => {
+    setActiveLabelFilters([]);
+    writeFiltersToUrl([], activeChipFilters);
+  };
 
   const toggleChipFilter = (type: string, id: string, label?: string, color?: string) => {
     setActiveChipFilters((prev) => {
       const exists = prev.find((f) => f.type === type && f.id === id);
-      if (exists) return prev.filter((f) => f !== exists);
-      return [...prev, { type, id, label, color }];
+      const next = exists ? prev.filter((f) => f !== exists) : [...prev, { type, id, label, color }];
+      writeFiltersToUrl(activeLabelFilters, next);
+      return next;
     });
   };
 
-  const clearChipFilters = () => setActiveChipFilters([]);
+  const clearChipFilters = () => {
+    setActiveChipFilters([]);
+    writeFiltersToUrl(activeLabelFilters, []);
+  };
 
   const isChipFilterActive = (type: string, id: string) =>
     activeChipFilters.some((f) => f.type === type && f.id === id);
