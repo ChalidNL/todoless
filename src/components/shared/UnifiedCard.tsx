@@ -128,13 +128,6 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             <Flag className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
           )}
 
-          {/* Due date badge */}
-          {dateStr && !isDone && (
-            <span className="text-[11px] text-neutral-500 border border-neutral-200 rounded px-1.5 py-0.5 flex-shrink-0">
-              {dateStr}
-            </span>
-          )}
-
           {/* Quantity [+][-] controls (items) — replaces static badge */}
           {!isTask && !isDone && (
             <div className="flex items-center gap-0.5 flex-shrink-0">
@@ -172,9 +165,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </button>
         </div>
 
-        {/* Chip row — labels + assignee + shop */}
-        {(hasLabels || assignedUser || hasShop) && (
-          <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-7">
+        {/* Chip row — labels + assignee + shop + date (only when not done) */}
+        {!isDone && (hasLabels || assignedUser || hasShop || dateStr) && (
+          <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
               return label ? <LabelBadge key={label.id} label={label} size="sm" /> : null;
@@ -184,6 +177,13 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <User className="w-3 h-3" strokeWidth={2} />
                 {assignedUser.firstName || ''}
               </span>
+            )}
+            {dateStr && (
+              <AttributeChip
+                icon={<CalendarDays className="w-3.5 h-3.5" />}
+                label={dateStr}
+                color="#ea580c"
+              />
             )}
             {currentShop && (
               <AttributeChip
