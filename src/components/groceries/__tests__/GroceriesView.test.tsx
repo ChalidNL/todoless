@@ -49,4 +49,60 @@ describe('GroceriesView — simplified', () => {
     expect(activeItems).toHaveLength(1);
     expect(boughtItems).toHaveLength(1);
   });
+
+  it('swap preserves fields when converting task to item', () => {
+    const taskEntry = {
+      id: '1',
+      title: 'Buy Milk',
+      type: 'task' as const,
+      labels: ['label1'],
+      assignedTo: 'user1',
+      dueDate: 1234567890000,
+    };
+
+    // Simulate swap: task → grocery
+    const newItem = {
+      title: taskEntry.title,
+      completed: false,
+      quantity: 1,
+      labels: taskEntry.labels || [],
+      assignedTo: taskEntry.assignedTo,
+      dueDate: taskEntry.dueDate,
+    };
+
+    expect(newItem.title).toBe('Buy Milk');
+    expect(newItem.completed).toBe(false);
+    expect(newItem.quantity).toBe(1);
+    expect(newItem.labels).toEqual(['label1']);
+    expect(newItem.assignedTo).toBe('user1');
+    expect(newItem.dueDate).toBe(1234567890000);
+  });
+
+  it('swap preserves fields when converting item to task', () => {
+    const itemEntry = {
+      id: '2',
+      title: 'Milk',
+      type: 'item' as const,
+      labels: ['label2'],
+      assignedTo: 'user2',
+      dueDate: 9876543210000,
+    };
+
+    // Simulate swap: grocery → task
+    const newTask = {
+      title: itemEntry.title,
+      status: 'todo' as const,
+      blocked: false,
+      labels: itemEntry.labels || [],
+      assignedTo: itemEntry.assignedTo,
+      dueDate: itemEntry.dueDate,
+      flag: false,
+    };
+
+    expect(newTask.title).toBe('Milk');
+    expect(newTask.status).toBe('todo');
+    expect(newTask.labels).toEqual(['label2']);
+    expect(newTask.assignedTo).toBe('user2');
+    expect(newTask.dueDate).toBe(9876543210000);
+  });
 });

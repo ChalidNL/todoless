@@ -148,6 +148,7 @@ interface AppContextType {
   createNewSprint: () => void;
   convertTaskToItem: (taskId: string) => void;
   convertItemToTask: (itemId: string) => void;
+  swapEntity: (id: string) => void;
   generateInviteCode: () => Promise<InviteCode | null>;
   deleteInviteCode: (id: string) => void;
   uncheckAllDoneTasks: () => void;
@@ -794,6 +795,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     deleteItem(itemId);
   };
 
+  const swapEntity = (id: string) => {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    if (entry.type === 'task') {
+      // Task → Grocery: preserve title, labels, assignedTo, dueDate, quantity
+      addItem({
+        title: entry.title,
+        completed: false,
+        quantity: 1,
+        labels: entry.labels || [],
+        assignedTo: entry.assignedTo,
+        dueDate: entry.dueDate,
+      });
+      deleteTask(id);
+    } else {
+      // Grocery → Task: preserve title, labels, assignedTo, dueDate
+      addTask({
+        title: entry.title,
+        status: 'todo',
+        blocked: false,
+        labels: entry.labels || [],
+        assignedTo: entry.assignedTo,
+        dueDate: entry.dueDate,
+        flag: false,
+      });
+      deleteItem(id);
+    }
+  };
+
   const generateInviteCode = async (): Promise<InviteCode | null> => {
     try {
       const result = await api.createInvite({ code: '', expiresAt: 0 });
@@ -1011,6 +1041,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       createNewSprint,
       convertTaskToItem,
       convertItemToTask,
+      swapEntity,
       generateInviteCode,
       deleteInviteCode,
       uncheckAllDoneTasks,

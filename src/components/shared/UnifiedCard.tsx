@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight } from 'lucide-react';
 import { LabelBadge } from './LabelBadge';
 import { AttributeChip } from './AttributeChip';
 import { entityColor, entityBg } from '../../lib/entity-colors';
@@ -14,7 +14,7 @@ interface UnifiedCardProps {
 type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
-  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel, addShop, isChipFilterActive } = useApp();
+  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel, addShop, isChipFilterActive, swapEntity } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<UnifiedEditor>(null);
   const [titleDraft, setTitleDraft] = useState('');
@@ -250,6 +250,15 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   <ShoppingCart className="w-4 h-4" strokeWidth={1.75} />
                 </button>
               )}
+              {/* Swap button */}
+              <button
+                onClick={() => swapEntity(entity.id)}
+                className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
+                title="Swap to grocery/task"
+                aria-label="Swap type"
+              >
+                <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
+              </button>
               <div className="flex-1" />
               <button
                 onClick={handleDelete}
