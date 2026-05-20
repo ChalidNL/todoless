@@ -234,7 +234,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder={familyName || 'Jansen'}
+                  placeholder="Jansen"
                 />
                 <p className="text-xs text-neutral-500 mt-1">Vooraf ingevuld met je familienaam, maar je kunt het aanpassen</p>
               </div>
