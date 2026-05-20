@@ -458,7 +458,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                             className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
                             style={{ backgroundColor: entityColor(u.id) }}
                           >
-                            {u.name.charAt(0).toUpperCase()}
+                            {userDisplayName(u).charAt(0).toUpperCase()}
                           </span>
                           <span>{userDisplayName(u)}</span>
                           {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
