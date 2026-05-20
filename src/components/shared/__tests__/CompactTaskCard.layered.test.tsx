@@ -31,7 +31,7 @@ describe('CompactTaskCard compact layout (GroceryCard style)', () => {
       addLabel: vi.fn(() => ({ id: 'new-label', name: 'new', color: '#3b82f6' })),
       convertTaskToItem: vi.fn(),
       labels: [{ id: 'l1', name: 'home', color: '#3b82f6' }],
-      users: [{ id: 'u1', name: 'Chalid', role: 'admin' }],
+      users: [{ id: 'u1', firstName: 'Chalid', role: 'admin' }],
       toggleChipFilter: vi.fn(),
       isChipFilterActive: vi.fn(() => false),
       clearChipFilters: vi.fn(),

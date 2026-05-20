@@ -54,9 +54,9 @@ describe('Onboarding admin flow', () => {
     // Try to submit with empty fields
     fireEvent.click(screen.getByText('Account aanmaken'));
 
-    // Should show "Vul je volledige naam in" first (name is checked first)
+    // Should show "Vul je voornaam in" first (name is checked first)
     await waitFor(() => {
-      expect(screen.getByText('Vul je volledige naam in')).toBeTruthy();
+      expect(screen.getByText('Vul je voornaam in')).toBeTruthy();
     });
     expect(registerAdminMock).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
@@ -76,8 +76,11 @@ describe('Onboarding admin flow', () => {
     fireEvent.click(screen.getByText('Volgende'));
 
     // Fill only name
-    fireEvent.change(screen.getByPlaceholderText('Jan Jansen'), {
-      target: { value: 'Admin User' },
+    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+      target: { value: 'Admin' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+      target: { value: 'User' },
     });
     fireEvent.click(screen.getByText('Account aanmaken'));
 
@@ -99,8 +102,11 @@ describe('Onboarding admin flow', () => {
     });
     fireEvent.click(screen.getByText('Volgende'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan Jansen'), {
-      target: { value: 'Admin User' },
+    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+      target: { value: 'Admin' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+      target: { value: 'User' },
     });
     fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
       target: { value: 'admin@example.com' },
@@ -135,8 +141,11 @@ describe('Onboarding admin flow', () => {
     fireEvent.click(screen.getByText('Volgende'));
 
     // Admin account stap
-    fireEvent.change(screen.getByPlaceholderText('Jan Jansen'), {
-      target: { value: 'Admin User' },
+    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+      target: { value: 'Admin' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+      target: { value: 'User' },
     });
     fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
       target: { value: 'admin@example.com' },
@@ -175,8 +184,11 @@ describe('Onboarding admin flow', () => {
     });
     fireEvent.click(screen.getByText('Volgende'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan Jansen'), {
-      target: { value: 'Admin User' },
+    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+      target: { value: 'Admin' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+      target: { value: 'User' },
     });
     fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
       target: { value: 'admin@example.com' },
@@ -213,8 +225,11 @@ describe('Onboarding admin flow', () => {
     });
     fireEvent.click(screen.getByText('Volgende'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan Jansen'), {
-      target: { value: 'Admin User' },
+    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+      target: { value: 'Admin' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+      target: { value: 'User' },
     });
     fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
       target: { value: 'admin@example.com' },
