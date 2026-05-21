@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft, RotateCcw, ListChecks, ChevronUp } from 'lucide-react';
+import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, ListChecks, ChevronUp } from 'lucide-react';
 import { AttributeChip } from './AttributeChip';
 import { entityColor } from '../../lib/entity-colors';
 
@@ -58,14 +58,13 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
 );
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, convertTaskToItem, toggleChipFilter, isChipFilterActive } = useApp();
+  const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [labelInput, setLabelInput] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
   const [isDeleteHover, setIsDeleteHover] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtasksExpanded, setSubtasksExpanded] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
@@ -139,13 +138,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     updateTask(task.id, {
       labels: task.labels.filter((id) => id !== labelId),
     });
-  };
-
-  const handleConvertConfirm = () => {
-    setShowConvertConfirm(false);
-    convertTaskToItem(task.id);
-    setShowMenu(false);
-    setActiveEditor(null);
   };
 
   const handleDelete = () => {
@@ -257,8 +249,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (no X on chips) */}
-          {(hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && !isDone && (
+          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (only visible when hamburger is open) */}
+          {showMenu && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && !isDone && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -466,12 +458,12 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   <Flag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
-                  onClick={() => setShowConvertConfirm(true)}
+                  onClick={() => swapEntity(task.id)}
                   className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
-                  title="convert to grocery"
-                  aria-label="Convert to grocery item"
+                  title="swap to grocery"
+                  aria-label="Swap to grocery item"
                 >
-                  <ToggleLeft className="w-4 h-4" strokeWidth={1.75} />
+                  <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <div className="flex-1" />
                 <button
@@ -664,15 +656,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
         <DeleteConfirm
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
-        />
-      )}
-
-      {showConvertConfirm && (
-        <ConfirmDialog
-          title="Taak omzetten naar boodschap?"
-          confirmLabel="Ja, omzetten"
-          onConfirm={handleConvertConfirm}
-          onCancel={() => setShowConvertConfirm(false)}
         />
       )}
     </>
