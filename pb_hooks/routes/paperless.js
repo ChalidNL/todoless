@@ -2,7 +2,7 @@
 // Paperless-ngx integration: webhook handler and task auto-creation
 //
 // Flow: Paperless scans doc -> webhook hits Todoless -> checks configured tag
-// (default 'todoist') + inbox exclusion -> creates task (simple or parent+subtasks).
+// (default 'todoless') + inbox exclusion -> creates task (simple or parent+subtasks).
 // Supports both webhook push (instant) and polling (fallback).
 
 // ---------------------------------------------------------------------------
@@ -145,7 +145,7 @@ routerAdd(
     const body = $request.body()
     const api_url = body.get('api_url') || ''
     const api_key = body.get('api_key') || ''
-    const todoTag = body.get('todo_tag') || 'todoist'
+    const todoTag = body.get('todo_tag') || 'todoless'
     const enabled = body.get('enabled') !== 'false' && body.get('enabled') !== false
 
     if (!api_url || !api_key) {
@@ -237,7 +237,7 @@ function getPaperlessConfig(userId) {
     record: rec,
     api_url: rec.get('api_url') || '',
     api_key: rec.get('api_key') || '',
-    todoTag: configData.todo_tag || 'todoist',
+    todoTag: configData.todo_tag || 'todoless',
     enabled: rec.get('enabled') === true,
   }
 }
@@ -249,7 +249,7 @@ function paperlessConfigToJSON(rec) {
 
   return {
     api_url: rec.get('api_url'),
-    todo_tag: configData.todo_tag || 'todoist',
+    todo_tag: configData.todo_tag || 'todoless',
     enabled: rec.get('enabled'),
     last_sync: rec.get('last_sync'),
   }
@@ -379,7 +379,7 @@ function processPaperlessDocument(docId) {
   var config = {
     api_url: configRec.get('api_url'),
     api_key: configRec.get('api_key'),
-    todoTag: configData.todo_tag || 'todoist',
+    todoTag: configData.todo_tag || 'todoless',
     userId: configRec.get('user'),
   }
 
@@ -433,8 +433,8 @@ function processPaperlessDocument(docId) {
     return { skipped: true, document_id: docId, title: docTitle, reason: 'No ' + config.todoTag + ' tag found' }
   }
 
-  // When using 'todoist' tag, also ensure document doesn't have 'inbox' tag
-  if (config.todoTag.toLowerCase() === 'todoist') {
+  // When using 'todoless' tag, also ensure document doesn't have 'inbox' tag
+  if (config.todoTag.toLowerCase() === 'todoless') {
     var hasInboxTag = resolvedTagNames.indexOf('inbox') !== -1
     if (hasInboxTag) {
       recordProcessed(docId, docTitle, null, 'skipped', 'Has inbox tag', config.userId)
@@ -447,8 +447,8 @@ function processPaperlessDocument(docId) {
   var taskRecord = new Record(taskCollection)
   var taskForm = new RecordUpsertAction($app, taskRecord)
 
-  if (config.todoTag.toLowerCase() === 'todoist') {
-    // 'todoist' mode: create parent task with 3 subtasks
+  if (config.todoTag.toLowerCase() === 'todoless') {
+    // 'todoless' mode: create parent task with 3 subtasks
     var parentTitle = 'Document: ' + docTitle
 
     taskForm.set('title', parentTitle)
