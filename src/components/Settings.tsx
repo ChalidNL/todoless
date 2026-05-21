@@ -35,7 +35,7 @@ export const Settings = () => {
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
   const [showAddTokenModal, setShowAddTokenModal] = useState(false);
   const [newTokenName, setNewTokenName] = useState('');
-  const [newTokenPermissions, setNewTokenPermissions] = useState<string[]>([]);
+  const [newTokenPermissions, setNewTokenPermissions] = useState<string[]>(['*']);
   const [newTokenExpiry, setNewTokenExpiry] = useState('');
   const [showAdvancedTokenOptions, setShowAdvancedTokenOptions] = useState(false);
   const [createdToken, setCreatedToken] = useState<string | null>(null);
@@ -517,36 +517,7 @@ export const Settings = () => {
                     Role: {currentUser.role || 'user'}
                   </p>
                 </div>
-              </div>
 
-              {/* Email (read-only) */}
-              <div className="p-3 bg-neutral-50 border border-neutral-200 rounded">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-neutral-400" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-neutral-500 mb-0.5">Email (read-only)</p>
-                    <p className="text-sm text-neutral-700 truncate">{currentUser.email}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Role Display */}
-              <div>
-                <label className="block text-sm text-neutral-600 mb-2">Role</label>
-                {currentUser.role === 'admin' ? (
-                  <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
-                    Admin
-                  </div>
-                ) : currentUser.role === 'assistant' ? (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
-                    Assistant
-                  </div>
-                ) : (
-                  <div className="p-3 bg-neutral-100 border border-neutral-200 rounded text-sm text-neutral-600">
-                    User
-                  </div>
-                )}
-              </div>
 
               {/* Password Change */}
               <div>
