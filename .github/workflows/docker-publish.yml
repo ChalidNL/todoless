@@ -36,10 +36,12 @@ jobs:
           context: .
           file: Dockerfile.frontend
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ghcr.io/chalidnl/todoless-ngx-frontend:latest
             ghcr.io/chalidnl/todoless-ngx-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ github.ref_name }}
