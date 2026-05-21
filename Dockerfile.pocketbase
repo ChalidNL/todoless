@@ -1,4 +1,4 @@
-FROM ghcr.io/muchobien/pocketbase:0.34.2
+FROM ghcr.io/muchobien/pocketbase:0.35.1
 
 # Copy migration and hook files into the image so they are always present,
 # even on a fresh install with empty runtime volumes.

@@ -25,7 +25,7 @@ onRecordUpdate('tasks', (e) => {
     }
   } catch(err) { /* ignore */ }
 });
-// Note: onRecordView not available in this PB version — subtask_ids default
+// Note: onRecordEnrich used — subtask_ids default rendering uses GET with ?expand=subtask_ids&subtasks=1
 // rendering uses GET with ?expand=subtask_ids&subtasks=1
 
 
@@ -138,18 +138,20 @@ routerAdd('GET', '/api/todoless/validate-invite', (c) => {
 routerAdd('POST', '/api/todoless/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
   var createUser = function(col, data) {
-    // PB 0.34.2 bug: $app.save() / unsafeWithoutHooks().save() triggers ReferenceError
-    // Workaround: direct SQL insert via $app.dao().db()
-    var now = new Date().toISOString();
-    var id = $security.randomString(15);
-    var tokenKey = $security.randomString(30);
-    var hashedPw = $security.hashPassword(data.password);
-    var sql = 'INSERT INTO users (id, created, updated, tokenKey, email, passwordHash, passwordResetToken, verificationToken, verified, name, emailVisibility, role, family_id)';
-    sql += ' VALUES ({:id}, {:now}, {:now}, {:tk}, {:email}, {:pw}, \'\', \'\', false, {:name}, true, {:role}, {:fid})';
-    $app.dao().db().newQuery(sql)
-      .bind({ id: id, now: now, tk: tokenKey, email: data.email, pw: hashedPw, name: data.name, role: data.role, fid: data.family_id || '' })
-      .execute();
-    return $app.dao().findRecordById('users', id);
+    var u = $app.unsafeWithoutHooks();
+    var rec = new Record(col);
+    rec.set('id', $security.randomString(15));
+    rec.set('tokenKey', $security.randomString(30));
+    rec.set('verified', false);
+    rec.set('email', data.email);
+    rec.set('password', data.password);
+    rec.set('passwordConfirm', data.passwordConfirm || data.password);
+    rec.set('name', data.name || '');
+    rec.set('emailVisibility', true);
+    rec.set('role', data.role || 'user');
+    rec.set('family_id', data.family_id || '');
+    u.save(rec);
+    return rec;
   };
 
   var createFamily = function(name, createdBy) {
