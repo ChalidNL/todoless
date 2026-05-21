@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ToggleLeft, RotateCcw, ListChecks } from 'lucide-react';
@@ -67,6 +67,25 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [isDeleteHover, setIsDeleteHover] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
   const [subtasksExpanded, setSubtasksExpanded] = useState(false);
+
+  // Edit mode inactivity timeout (60s)
+  const lastInteractionRef = useRef(Date.now());
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const interval = setInterval(() => {
+      if (Date.now() - lastInteractionRef.current > 60_000) {
+        setShowMenu(false);
+        setActiveEditor(null);
+      }
+    }, 1_000);
+    return () => clearInterval(interval);
+  }, [showMenu]);
+
+  const trackInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
 
   const isDone = task.status === 'done';
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
@@ -159,11 +178,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
 
   return (
     <>
-      <div className={`rounded-lg border transition-colors ${
+      <div
+        ref={cardRef}
+        onClick={trackInteraction}
+        className={`rounded-lg border transition-colors ${
         isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
       } ${
         isFlagged ? 'border-red-300 !bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
-      }`}>
+      } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
         <div className="p-2.5">
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
@@ -245,7 +267,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     label={label.name}
                     color="#3b82f6"
                     active={isLabelFiltered(label.id)}
-                    onClick={showMenu ? () => removeLabel(label.id) : () => openEditor('labels')}
+                    onClick={showMenu ? () => removeLabel(label.id) : undefined}
                   />
                 ) : null;
               })}
@@ -255,7 +277,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     label={assignedUser.firstName || ''}
                   color="#10b981"
                   active={isAssigneeFiltered(assignedUser.id)}
-                  onClick={showMenu ? clearAssignee : () => openEditor('assignee')}
+                  onClick={showMenu ? clearAssignee : undefined}
                 />
               )}
               {dateStr && !isDone && (
@@ -264,7 +286,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   label={dateStr}
                   color="#ea580c"
                   active={isDateFiltered(dateStr)}
-                  onClick={showMenu ? clearAllSchedule : () => openEditor('schedule')}
+                  onClick={showMenu ? clearAllSchedule : undefined}
                 />
               )}
               {repeatLabel && !isDone && (
@@ -273,7 +295,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   label={repeatLabel}
                   color="#ea580c"
                   active={isRepeatFiltered(repeatLabel)}
-                  onClick={showMenu ? clearAllSchedule : () => openEditor('schedule')}
+                  onClick={showMenu ? clearAllSchedule : undefined}
                 />
               )}
               {subtaskCount > 0 && (

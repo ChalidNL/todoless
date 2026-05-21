@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight } from 'lucide-react';
@@ -14,11 +14,30 @@ interface UnifiedCardProps {
 type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
-  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel, addShop, isChipFilterActive, swapEntity } = useApp();
+  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<UnifiedEditor>(null);
   const [titleDraft, setTitleDraft] = useState('');
   const [shopInput, setShopInput] = useState('');
+
+  // Edit mode inactivity timeout (60s)
+  const lastInteractionRef = useRef(Date.now());
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const interval = setInterval(() => {
+      if (Date.now() - lastInteractionRef.current > 60_000) {
+        setShowMenu(false);
+        setActiveEditor(null);
+      }
+    }, 1_000);
+    return () => clearInterval(interval);
+  }, [showMenu]);
+
+  const trackInteraction = useCallback(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
 
   const isTask = type === 'task';
   const task = isTask ? (entity as Task) : null;
@@ -67,11 +86,14 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
 
   return (
-    <div className={`rounded-lg border transition-colors ${""}
+    <div
+      ref={cardRef}
+      onClick={trackInteraction}
+      className={`rounded-lg border transition-colors ${""}
       isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
     } ${""}
       isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
-    }`}>
+    } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
       <div className="p-2.5">
         {/* Line 1: checkbox + title + badge(s) + hamburger */}
         <div className="flex items-center gap-2">
@@ -170,13 +192,25 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);
-              return label ? <LabelBadge key={label.id} label={label} size="sm" /> : null;
+              return label ? (
+                <AttributeChip
+                  key={label.id}
+                  icon={<Tag className="w-3.5 h-3.5" />}
+                  label={label.name}
+                  color={label.color}
+                  active={isChipFilterActive('label', label.id)}
+                  onClick={!showMenu ? () => toggleChipFilter('label', label.id, label.name, label.color) : undefined}
+                />
+              ) : null;
             })}
             {isTask && assignedUser && (
-              <span className="chip" style={{ backgroundColor: entityBg(assignedUser.id), color: entityColor(assignedUser.id) }}>
-                <User className="w-3 h-3" strokeWidth={2} />
-                {assignedUser.firstName || ''}
-              </span>
+              <AttributeChip
+                icon={<User className="w-3.5 h-3.5" />}
+                label={assignedUser.firstName || ''}
+                color="#10b981"
+                active={isChipFilterActive('assignee', assignedUser.id)}
+                onClick={!showMenu ? () => toggleChipFilter('assignee', assignedUser.id, assignedUser.firstName || '', '#10b981') : undefined}
+              />
             )}
             {isTask && dateStr && (
               <AttributeChip
@@ -191,7 +225,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 label={currentShop.name}
                 color="#10b981"
                 active={isShopFiltered(currentShop.id)}
-                onClick={showMenu ? () => setValue({ shopId: null }) : () => setActiveEditor('shop')}
+                onClick={showMenu ? () => setValue({ shopId: null }) : undefined}
               />
             )}
           </div>
