@@ -27,9 +27,51 @@ onRecordUpdate('tasks', (e) => {
 
 // Note: onRecordView not available in this PB version — subtask_ids default
 // is handled client-side with .filter(Boolean) fallback.
-// To re-enable: upgrade to PB 0.22+ which supports onModelAfterViewRequest.
 
 routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
+
+routerAdd('GET', '/api/todoless/openapi.json', (c) => {
+  var spec = {
+    openapi: "3.0.3",
+    info: {
+      title: "Todoless API",
+      version: "1.0.0",
+      description: "Todoless — self-hosted multi-user task and grocery manager.",
+    },
+    servers: [{ url: "/api", description: "Nginx proxy (port 7070)" }],
+    paths: {
+      "/todoless/hook-health": {
+        get: { tags: ["System"], summary: "Health check", operationId: "hookHealth", responses: { "200": { description: "OK" } } },
+      },
+      "/todoless/openapi.json": {
+        get: { tags: ["System"], summary: "OpenAPI spec", operationId: "getOpenApiSpec", responses: { "200": { description: "OpenAPI spec" } } },
+      },
+      "/todoless/docs": {
+        get: { tags: ["System"], summary: "Swagger UI", operationId: "getSwaggerUi", responses: { "200": { description: "Swagger UI" } } },
+      },
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+      },
+    },
+  };
+  return c.json(200, spec);
+});
+
+routerAdd('GET', '/api/todoless/docs', (c) => {
+  var html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    + '<title>Todoless API - Swagger UI</title>'
+    + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"/>'
+    + '<style>body{margin:0;background:#fafafa}.topbar{display:none}</style>'
+    + '</head><body>'
+    + '<div id="swagger-ui"></div>'
+    + '<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>'
+    + '<script>SwaggerUIBundle({url:"/api/todoless/openapi.json",dom_id:"#swagger-ui",deepLinking:true,presets:[SwaggerUIBundle.presets.apis,SwaggerUIBundle.SwaggerUIStandalonePreset],layout:"StandaloneLayout",docExpansion:"list",tryItOutEnabled:true});</script>'
+    + '</body></html>';
+  return c.html(200, html);
+});
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
@@ -97,7 +139,6 @@ routerAdd('GET', '/api/todoless/validate-invite', (c) => {
     } else if (expiresAt && typeof expiresAt.getTime === 'function') {
       expiryTime = expiresAt.getTime();
     } else if (expiresAt) {
-      // Goja/PB 0.34: try converting to string first
       expiryTime = new Date(String(expiresAt)).getTime();
     }
     var isExpired = expiryTime > 0 && expiryTime < now;
@@ -105,7 +146,6 @@ routerAdd('GET', '/api/todoless/validate-invite', (c) => {
     if (used) return c.json(200, { status: 'used', message: 'Invite code has already been used' });
     if (isExpired) return c.json(200, { status: 'expired', message: 'Invite code has expired' });
 
-    // Get inviter info
     var inviterId = String(inv.get('user') || '');
     var inviter = null;
     try {
@@ -134,16 +174,13 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     var info = c.requestInfo();
     var d = info.data || info.body || {};
     var userType = String(d.user_type || 'family_member').trim();
-    // Validate user_type
     if (['family_member', 'family_assistant'].indexOf(userType) === -1) {
       return c.json(400, { error: 'Invalid user_type. Must be family_member or family_assistant.' });
     }
 
     var existing = $app.findRecordsByFilter('users', '', '-created', 1, 0);
-    // BOOTSTRAP WINDOW: no invite required until setup_complete
     var setupDone = $app.findRecordsByFilter('app_settings', 'setup_complete = true', '-created', 1, 0).length > 0;
     if (existing.length === 0 || !setupDone) {
-      // FIRST USER OR BOOTSTRAP WINDOW — no invite required
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
       var uc = $app.findCollectionByNameOrId('users');
@@ -163,7 +200,6 @@ routerAdd('POST', '/api/todoless/register', (c) => {
       });
     }
 
-    // SUBSEQUENT USER — require valid invite
     var ic = String(d.invite_code || '').trim().toUpperCase();
     if (!ic) throw new BadRequestError('Invite code required for registration.', {});
     var now = new Date().toISOString();
@@ -179,16 +215,10 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     rec.set('passwordConfirm', d.passwordConfirm);
     rec.set('name', d.name || d.email.split('@')[0]);
 
-    // Set role based on user_type
     var role = userType === 'family_assistant' ? 'assistant' : 'user';
     rec.set('role', role);
     rec.set('family_id', fid); rec.set('emailVisibility', true);
     $app.save(rec);
-
-    // Mark invite as used — disabled for now: same invite can be shared
-    // var inv = invites[0];
-    // inv.set('used', true); inv.set('used_at', new Date().toISOString()); inv.set('used_by', rec.id);
-    // $app.save(inv);
 
     return c.json(201, {
       user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
@@ -197,7 +227,6 @@ routerAdd('POST', '/api/todoless/register', (c) => {
 });
 
 // ── Agent Registration: POST /api/todoless/agent/register ──
-// Agents register with pending status, admin must approve before API access
 routerAdd('POST', '/api/todoless/agent/register', (c) => {
   try {
     var info = c.requestInfo();
@@ -208,23 +237,19 @@ routerAdd('POST', '/api/todoless/agent/register', (c) => {
     var name = String(d.name || email.split('@')[0]);
     var agentKey = String(d.agent_key || '').trim();
 
-    // Validate required fields
     if (!email || !password || password.length < 8) {
       return c.json(400, { error: 'Email and password (min 8) required' });
     }
     if (password !== passwordConfirm) {
       return c.json(400, { error: 'Passwords do not match' });
     }
-    // Validate email format
     if (email.indexOf('@') === -1) {
       return c.json(400, { error: 'Invalid email format' });
     }
-    // Check existing user
     var existing = $app.findRecordsByFilter('users', 'email="' + email + '"', '-created', 1, 0);
     if (existing.length > 0) {
       return c.json(400, { error: 'Email already registered' });
     }
-    // Validate agent_key if provided (optional shared key for agent identification)
     if (agentKey) {
       var validKey = $app.findRecordsByFilter('agent_keys', 'active=true&&key_hash="' + agentKey + '"', '-created', 1, 0);
       if (validKey.length === 0) {
@@ -232,7 +257,6 @@ routerAdd('POST', '/api/todoless/agent/register', (c) => {
       }
     }
 
-    // Create user with agent_status = pending
     var uc = $app.findCollectionByNameOrId('users');
     var rec = new Record(uc);
     rec.set('email', email);
@@ -287,15 +311,12 @@ routerAdd('POST', '/api/todoless/agent/approve/:id', (c) => {
       return c.json(400, { error: 'Agent is not pending' });
     }
 
-    // Approve the agent
     agent.set('agent_status', 'approved');
     $app.save(agent);
 
-    // Generate a simple token (in production this would be a proper JWT/secret)
     var token = require('crypto').randomUUID ? require('crypto').randomUUID() : String(Date.now() + Math.random());
-    var tokenHash = token; // In production: hash this properly
+    var tokenHash = token;
 
-    // Create api_token for the approved agent
     var tc = $app.findCollectionByNameOrId('api_tokens');
     var tk = new Record(tc);
     tk.set('name', 'Agent Token - ' + String(agent.get('name')||agentId));
@@ -379,14 +400,12 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     if (!action) return c.json(400, { error: 'action required' });
     var auth = null;
 
-    // Auth check — use info.auth (PB 0.34: c.auth is null without middleware)
     var needsAuth = ['create','update','complete','assign','delete','list','filters'];
     if (needsAuth.indexOf(action) >= 0) {
       auth = info.auth;
       if (!auth) return c.json(401, { error: 'Unauthorized' });
     }
 
-    // Helper for safe field access (must be inside callback for PB 0.34 scope)
     var gv = function(o,k,f) { if(f===undefined)f='';if(!o)return f;if(Object.prototype.hasOwnProperty.call(o,k)){var v=o[k];return(v===undefined||v===null)?f:v;}return f; };
 
     if (action === 'list') {
@@ -503,36 +522,3 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
-
-// ── Load route files from pb_hooks/routes/ ──
-// PB 0.34 only auto-loads *.pb.js from pb_hooks/ root.
-// Subdirectory route files must be explicitly required.
-// Note: require() in PB 0.34 Goja uses relative paths from pb_hooks/ dir.
-require('./routes/openapi.js');
-require('./routes/docs.js');
-require('./routes/api-tokens.js');
-require('./routes/agent.js');
-require('./routes/agents.js');
-require('./routes/agent-tasks.js');
-require('./routes/tasks.js');
-require('./routes/task-actions.js');
-require('./routes/items.js');
-require('./routes/labels.js');
-require('./routes/shops.js');
-require('./routes/users.js');
-require('./routes/invites.js');
-require('./routes/invite-registration.js');
-require('./routes/families.js');
-require('./routes/notes.js');
-require('./routes/calendar.js');
-require('./routes/projects.js');
-require('./routes/sprints.js');
-require('./routes/goals.js');
-require('./routes/rewards.js');
-require('./routes/reminders.js');
-require('./routes/settings.js');
-require('./routes/shared.js');
-require('./routes/ai.js');
-require('./routes/external-references.js');
-require('./routes/paperless.js');
-require('./routes/briefing.js');
