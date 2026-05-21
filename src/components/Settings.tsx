@@ -856,106 +856,6 @@ export const Settings = () => {
           )}
         </div>
 
-        {/* API Tokens Section */}
-        {currentUser?.role === 'admin' && (
-          <div className="mb-6 border-b border-neutral-200 pb-6">
-            <button
-              onClick={toggleApiTokenSection}
-              className="flex items-center justify-between w-full mb-3"
-            >
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                API Tokens
-              </h2>
-              {showApiTokens ? (
-                <ChevronUp className="w-5 h-5 text-neutral-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-500" />
-              )}
-            </button>
-
-            {showApiTokens && (
-              <>
-                <button
-                  onClick={() => setShowAddTokenModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-                >
-                  <Plus className="w-4 h-4" />
-                  Create API Token
-                </button>
-
-                {/* Created token display */}
-                {createdToken && (
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm font-semibold text-blue-800 mb-2">
-                      Token created — copy it now. It will not be shown again.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-white border border-blue-200 rounded p-2 break-all select-all">
-                        {createdToken}
-                      </code>
-                      <button
-                        onClick={() => handleCopyToken(createdToken!)}
-                        className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 shrink-0"
-                        title="Copy token"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => setCreatedToken(null)}
-                      className="mt-2 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-
-                {apiTokens.length === 0 ? (
-                  <p className="text-sm text-neutral-600">No API tokens yet.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {apiTokens.map(token => (
-                      <div key={token.id} className="p-3 border border-neutral-200 rounded">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{token.name}</p>
-                            <p className="text-xs text-neutral-500 mt-0.5">
-                              {token.permissions?.join(', ') || 'No permissions'}
-                            </p>
-                            {token.expires_at && (
-                              <p className="text-xs text-neutral-400 mt-0.5">
-                                Expires: {new Date(token.expires_at).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              onClick={() => handleToggleToken(token.id, !token.enabled)}
-                              className={`text-xs px-2 py-1 rounded ${
-                                token.enabled
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-neutral-100 text-neutral-500'
-                              }`}
-                            >
-                              {token.enabled ? 'Enabled' : 'Disabled'}
-                            </button>
-                            <button
-                              onClick={() => handleDeleteToken(token.id)}
-                              className="p-1 hover:bg-red-50 rounded text-red-500"
-                              title="Revoke token"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
         {/* Integrations Section - Admin only */}
         {currentUser?.role === 'admin' && (
@@ -965,7 +865,6 @@ export const Settings = () => {
               className="flex items-center justify-between w-full mb-3"
             >
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Plug className="w-5 h-5" />
                 Integrations
               </h2>
               {showIntegrations ? (
@@ -1031,203 +930,243 @@ export const Settings = () => {
                     Create API token →
                   </button>
                 </div>
+
+                {/* API Tokens */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">API Tokens</h3>
+                  <button
+                    onClick={() => setShowAddTokenModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create API Token
+                  </button>
+
+                  {/* Created token display */}
+                  {createdToken && (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-800 mb-2">
+                        Token created — copy it now. It will not be shown again.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs bg-white border border-blue-200 rounded p-2 break-all select-all">
+                          {createdToken}
+                        </code>
+                        <button
+                          onClick={() => handleCopyToken(createdToken!)}
+                          className="p-2 bg-blue-600 text-white rounded hover:bg-blue-700 shrink-0"
+                          title="Copy token"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setCreatedToken(null)}
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
+                  {apiTokens.length === 0 ? (
+                    <p className="text-sm text-neutral-600">No API tokens yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {apiTokens.map(token => (
+                        <div key={token.id} className="p-3 border border-neutral-200 rounded">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium text-sm truncate">{token.name}</p>
+                              <p className="text-xs text-neutral-500 mt-0.5">
+                                {token.permissions?.join(', ') || 'No permissions'}
+                              </p>
+                              {token.expires_at && (
+                                <p className="text-xs text-neutral-400 mt-0.5">
+                                  Expires: {new Date(token.expires_at).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => handleToggleToken(token.id, !token.enabled)}
+                                className={`text-xs px-2 py-1 rounded ${
+                                  token.enabled
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-neutral-100 text-neutral-500'
+                                }`}
+                              >
+                                {token.enabled ? 'Enabled' : 'Disabled'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteToken(token.id)}
+                                className="p-1 hover:bg-red-50 rounded text-red-500"
+                                title="Revoke token"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Agent Approval */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Agent Approval</h3>
+                  {loadingAgents ? (
+                    <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
+                  ) : pendingAgents.length === 0 ? (
+                    <p className="text-sm text-neutral-600 py-4 text-center">No pending agents.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingAgents.map(agent => (
+                        <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
+                              {agent.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
+                              <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
+                              <p className="text-xs text-neutral-400 mt-0.5">
+                                Requested: {new Date(agent.created).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex gap-2">
+                            <button
+                              onClick={() => handleApproveAgent(agent.id)}
+                              disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                              className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            >
+                              {approvingAgentId === agent.id ? (
+                                <span>Approving...</span>
+                              ) : (
+                                <>
+                                  <Check className="w-4 h-4" />
+                                  Approve
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleRejectAgent(agent.id)}
+                              disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
+                              className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            >
+                              {rejectingAgentId === agent.id ? (
+                                <span>Rejecting...</span>
+                              ) : (
+                                <>
+                                  <X className="w-4 h-4" />
+                                  Reject
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Approved token display - shown once after approval */}
+                  {approvedToken && (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm font-semibold text-green-800 mb-2">
+                        Agent approved — copy the token now. It will not be shown again.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 text-xs bg-white border border-green-200 rounded p-2 break-all select-all">
+                          {approvedToken.token}
+                        </code>
+                        <button
+                          onClick={() => handleCopyAgentToken(approvedToken.token)}
+                          className="p-2 bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
+                          title="Copy token"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => setApprovedToken(null)}
+                        className="mt-2 text-xs text-green-600 hover:text-green-800"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Agents */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Agents</h3>
+                  {loadingAllAgents ? (
+                    <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
+                  ) : allAgents.length === 0 ? (
+                    <p className="text-sm text-neutral-600 py-4 text-center">No registered agents.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {allAgents.map(agent => (
+                        <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${
+                              agent.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {agent.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
+                                <span className={`text-xs px-2 py-0.5 rounded ${
+                                  agent.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                  agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-red-100 text-red-700'
+                                }`}>
+                                  {agent.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
+                              <p className="text-xs text-neutral-400 mt-0.5">
+                                Created: {new Date(agent.created).toLocaleDateString()}
+                                {agent.updated && ` • Updated: ${new Date(agent.updated).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                          </div>
+
+                          {agent.status === 'approved' && (
+                            <div className="mt-3 flex gap-2">
+                              <button
+                                onClick={() => handleRevokeAgent(agent.id)}
+                                disabled={revokingAgentId === agent.id}
+                                className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                              >
+                                {revokingAgentId === agent.id ? (
+                                  <span>Revoking...</span>
+                                ) : (
+                                  <>
+                                    <Trash2 className="w-4 h-4" />
+                                    Revoke Token
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Agent Approval Section - Admin only */}
-        {currentUser?.role === 'admin' && (
-          <div className="mb-6 border-b border-neutral-200 pb-6">
-            <button
-              onClick={toggleAgentApprovalSection}
-              className="flex items-center justify-between w-full mb-3"
-            >
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                Agent Approval
-                {pendingAgents.length > 0 && (
-                  <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">
-                    {pendingAgents.length}
-                  </span>
-                )}
-              </h2>
-              {showAgentApproval ? (
-                <ChevronUp className="w-5 h-5 text-neutral-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-500" />
-              )}
-            </button>
 
-            {showAgentApproval && (
-              <>
-                {loadingAgents ? (
-                  <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
-                ) : pendingAgents.length === 0 ? (
-                  <p className="text-sm text-neutral-600 py-4 text-center">No pending agents.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {pendingAgents.map(agent => (
-                      <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
-                            {agent.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
-                            <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
-                            <p className="text-xs text-neutral-400 mt-0.5">
-                              Requested: {new Date(agent.created).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            onClick={() => handleApproveAgent(agent.id)}
-                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
-                            className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                          >
-                            {approvingAgentId === agent.id ? (
-                              <span>Approving...</span>
-                            ) : (
-                              <>
-                                <Check className="w-4 h-4" />
-                                Approve
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleRejectAgent(agent.id)}
-                            disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
-                            className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                          >
-                            {rejectingAgentId === agent.id ? (
-                              <span>Rejecting...</span>
-                            ) : (
-                              <>
-                                <X className="w-4 h-4" />
-                                Reject
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Approved token display - shown once after approval */}
-                {approvedToken && (
-                  <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm font-semibold text-green-800 mb-2">
-                      Agent approved — copy the token now. It will not be shown again.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 text-xs bg-white border border-green-200 rounded p-2 break-all select-all">
-                        {approvedToken.token}
-                      </code>
-                      <button
-                        onClick={() => handleCopyApprovedToken(approvedToken.token)}
-                        className="p-2 bg-green-600 text-white rounded hover:bg-green-700 shrink-0"
-                        title="Copy token"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => setApprovedToken(null)}
-                      className="mt-2 text-xs text-green-600 hover:text-green-800"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Full Agents Section - Admin only */}
-        {currentUser?.role === 'admin' && (
-          <div className="mb-6 border-b border-neutral-200 pb-6">
-            <button
-              onClick={toggleAgentsSection}
-              className="flex items-center justify-between w-full mb-3"
-            >
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Bot className="w-5 h-5" />
-                Agents
-              </h2>
-              {showAgents ? (
-                <ChevronUp className="w-5 h-5 text-neutral-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-500" />
-              )}
-            </button>
-
-            {showAgents && (
-              <>
-                {loadingAllAgents ? (
-                  <p className="text-sm text-neutral-600 py-4 text-center">Loading...</p>
-                ) : allAgents.length === 0 ? (
-                  <p className="text-sm text-neutral-600 py-4 text-center">No registered agents.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {allAgents.map(agent => (
-                      <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${
-                            agent.status === 'approved' ? 'bg-green-100 text-green-700' :
-                            agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {agent.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-sm truncate">{agent.name || 'Unnamed'}</p>
-                              <span className={`text-xs px-2 py-0.5 rounded ${
-                                agent.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {agent.status}
-                              </span>
-                            </div>
-                            <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
-                            <p className="text-xs text-neutral-400 mt-0.5">
-                              Created: {new Date(agent.created).toLocaleDateString()}
-                              {agent.updated && ` • Updated: ${new Date(agent.updated).toLocaleDateString()}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        {agent.status === 'approved' && (
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              onClick={() => handleRevokeAgent(agent.id)}
-                              disabled={revokingAgentId === agent.id}
-                              className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                            >
-                              {revokingAgentId === agent.id ? (
-                                <span>Revoking...</span>
-                              ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4" />
-                                  Revoke Token
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
 
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">

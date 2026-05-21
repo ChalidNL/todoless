@@ -10,9 +10,10 @@ import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
+import ApiDocs from './components/ApiDocs';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, CheckSquare, ShoppingCart, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
+import { Inbox as InboxIcon, CheckSquare, ShoppingCart, Settings as SettingsIcon, RefreshCw, FileJson } from 'lucide-react';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
 
@@ -206,6 +207,7 @@ function AppContent() {
     { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
     { to: '/groceries', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/api-docs', label: 'API Docs', icon: <FileJson className="w-5 h-5" /> },
     { to: '/settings', label: 'Settings', icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
@@ -217,6 +219,7 @@ function AppContent() {
           <Route path="/tasks" element={<TasksView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -249,8 +249,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (only visible when hamburger is open) */}
-          {showMenu && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && !isDone && (
+          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (always visible, filter on click when menu closed) */}
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -404,10 +404,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </div>
           )}
 
-          {/* Line 3: attributes behind hamburger — smooth expand/collapse animation */}
-          <div style={{ display: 'grid', gridTemplateRows: showMenu ? '1fr' : '0fr' }} className="mt-2 pt-2 border-t border-neutral-100 overflow-hidden transition-all duration-300 ease-out">
-            <div>
-              {/* Attribute buttons */}
+          {/* Line 3: attributes behind hamburger — only when showMenu */}
+          {showMenu && (
+            <div className="mt-2 pt-2 border-t border-neutral-100">
+              <div>
+                {/* Attribute buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
@@ -649,6 +650,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
               )}
             </div>
           </div>
+          )}
         </div>
       </div>
 
