@@ -783,14 +783,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setActiveChipFilters((prev) => {
       const exists = prev.find((f) => f.type === type && f.id === id);
       const next = exists ? prev.filter((f) => f !== exists) : [...prev, { type, id, label, color }];
-      writeFiltersToUrl(activeLabelFilters, next);
+      const currentLabelFilters = activeLabelFilters;
+      writeFiltersToUrl(currentLabelFilters, next);
       return next;
     });
   };
 
   const clearChipFilters = () => {
     setActiveChipFilters([]);
-    writeFiltersToUrl(activeLabelFilters, []);
+    const currentLabelFilters = activeLabelFilters;
+    writeFiltersToUrl(currentLabelFilters, []);
   };
 
   const isChipFilterActive = (type: string, id: string) =>
