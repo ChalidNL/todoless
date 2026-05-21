@@ -30,9 +30,6 @@ seed_dir /pb_migrations_bundled /pb_migrations migration
 seed_dir /pb_hooks_bundled /pb_hooks hook
 
 # Remove duplicate migration prefixes that collide with newer files.
-# Bundled image has 019_fix_security_p10.js + 033_add_firstname_lastname.js
-# which conflict with 019_paperless_sync.js and 033_api_tokens.js.
-# Runtime has renamed versions (018, 032_5) — remove the old duplicates.
 for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do
   if [ -f "/pb_migrations/$old" ]; then
     echo "[entrypoint] removing duplicate migration: $old"
@@ -40,10 +37,20 @@ for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do
   fi
 done
 
-# HACK: ensure main.pb.js uses PB 0.35 compatible API (onRecordEnrich)
-# The bundled image may be outdated — fix after seed
+# HACK: PB 0.35 fixes for main.pb.js
 if [ -f /pb_hooks/main.pb.js ]; then
+  # 1. onRecordView is PB 0.34 syntax - use onRecordEnrich for PB 0.35
   sed -i 's/onRecordView/onRecordEnrich/g' /pb_hooks/main.pb.js
+
+  # 2. $app.unsafeWithoutHooks() bypass breaks auth in PB 0.35 — use $app directly
+  sed -i 's/\$app\.unsafeWithoutHooks()/$app/g' /pb_hooks/main.pb.js
+
+  # 3. PB 0.35.1 bug: 3rd param in hook registrations causes ReferenceError on save
+  sed -i "s/, 'users');/);/g" /pb_hooks/main.pb.js
+
+  # 4. ID format: $security.randomString(15) generates mixed case, but PB 0.35
+  # expects lowercase [a-z0-9]{15} for the id field pattern
+  sed -i 's/\$security\.randomString(15)/\$security.randomString(15).toLowerCase()/g' /pb_hooks/main.pb.js
 fi
 
 exec /usr/local/bin/pocketbase "$@"
