@@ -2,7 +2,13 @@
 // Agent Task & Reminder endpoints - API-005
 // Agents can list tasks assigned to them, update task status, create/list reminders
 
-// ─── Helpers (reused from agents.js pattern) ─────────────────────────────────
+// ─── Helpers (globalThis for PB 0.34 callback scope) ─────────────────────────
+
+globalThis.authFromApiKey = authFromApiKey;
+globalThis.hasScope = hasScope;
+globalThis.getAgentUserFamily = getAgentUserFamily;
+globalThis.gv = gv;
+globalThis.requireAgentAuth = requireAgentAuth;
 
 function authFromApiKey(c) {
   var authHeader = c.request().header.get('Authorization') || '';

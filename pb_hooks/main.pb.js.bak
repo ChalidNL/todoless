@@ -3,9 +3,8 @@
 // PB 0.34 JS hooks: 
 // - function/var declarations don't hoist into callbacks — inline helpers per handler
 // - c.requestInfo() call ONCE per request
-// - use info.body NOT info.data (PB 0.34 compat)
-// - $app.save(rec) for users throws "ReferenceError: tasks" (PB 0.34.2 bug)
-//   FIX: use var u = $app.unsafeWithoutHooks(); u.save(rec); with manual id/tokenKey
+// - use info.auth NOT info.authRecord
+// - path params via routerAdd(':param') don't work — use body/query for IDs
 
 // ── Record Hooks: task subtask_ids ──
 onRecordCreate('tasks', (e) => {
@@ -14,8 +13,8 @@ onRecordCreate('tasks', (e) => {
     if (data && data.subtask_ids !== undefined) {
       e.record.set('subtask_ids', data.subtask_ids);
     }
-  } catch(err) { /* ignore - e.requestInfo may not exist in all contexts */ }
-});
+  } catch (err) { /* subtask_ids optional */ }
+}, 'users');
 
 onRecordUpdate('tasks', (e) => {
   try {
@@ -23,36 +22,55 @@ onRecordUpdate('tasks', (e) => {
     if (data && data.subtask_ids !== undefined) {
       e.record.set('subtask_ids', data.subtask_ids);
     }
-  } catch(err) { /* ignore */ }
-});
+  } catch (err) { /* subtask_ids optional */ }
+}, 'users');
+
 // Note: onRecordView not available in this PB version — subtask_ids default
-// rendering uses GET with ?expand=subtask_ids&subtasks=1
-
-
-// ─── Public API endpoints ────────────────────────────────────────────────
+// is handled client-side with .filter(Boolean) fallback.
 
 routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 
 routerAdd('GET', '/api/todoless/openapi.json', (c) => {
-  try {
-    var data = $app.findRecordsByFilter('api_docs', 'type = "openapi"', '-created', 1, 0);
-    if (data.length > 0) {
-      var spec = data[0].get('spec');
-      if (spec) { return c.json(200, spec); }
-    }
-    return c.json(404, { error: 'OpenAPI spec not found' });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  var spec = {
+    openapi: "3.0.3",
+    info: {
+      title: "Todoless API",
+      version: "1.0.0",
+      description: "Todoless — self-hosted multi-user task and grocery manager.",
+    },
+    servers: [{ url: "/api", description: "Nginx proxy (port 7070)" }],
+    paths: {
+      "/todoless/hook-health": {
+        get: { tags: ["System"], summary: "Health check", operationId: "hookHealth", responses: { "200": { description: "OK" } } },
+      },
+      "/todoless/openapi.json": {
+        get: { tags: ["System"], summary: "OpenAPI spec", operationId: "getOpenApiSpec", responses: { "200": { description: "OpenAPI spec" } } },
+      },
+      "/todoless/docs": {
+        get: { tags: ["System"], summary: "Swagger UI", operationId: "getSwaggerUi", responses: { "200": { description: "Swagger UI" } } },
+      },
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" },
+      },
+    },
+  };
+  return c.json(200, spec);
 });
 
 routerAdd('GET', '/api/todoless/docs', (c) => {
-  try {
-    var docs = $app.findRecordsByFilter('api_docs', 'type = "guide"', '-created', 0, 0);
-    var result = [];
-    for (var i = 0; i < docs.length; i++) {
-      result.push({ id: docs[i].id, title: docs[i].get('title'), content: docs[i].get('content') });
-    }
-    return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  var html = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>'
+    + '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
+    + '<title>Todoless API - Swagger UI</title>'
+    + '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css"/>'
+    + '<style>body{margin:0;background:#fafafa}.topbar{display:none}</style>'
+    + '</head><body>'
+    + '<div id="swagger-ui"></div>'
+    + '<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>'
+    + '<script>SwaggerUIBundle({url:"/api/todoless/openapi.json",dom_id:"#swagger-ui",deepLinking:true,presets:[SwaggerUIBundle.presets.apis,SwaggerUIBundle.SwaggerUIStandalonePreset],layout:"StandaloneLayout",docExpansion:"list",tryItOutEnabled:true});</script>'
+    + '</body></html>';
+  return c.html(200, html);
 });
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
@@ -107,65 +125,54 @@ routerAdd('GET', '/api/todoless/validate-invite', (c) => {
     var code = String(q.code || '').trim().toUpperCase();
     if (!code) return c.json(400, { status: 'error', message: 'code required' });
 
-    var now = new Date().toISOString();
-    var invites = $app.findRecordsByFilter('invite_codes', 'code = "' + code + '" && used = false && expires_at > "' + now + '"', '-created', 1, 0);
+    var now = new Date().getTime();
+    var invites = $app.findRecordsByFilter('invite_codes', 'code="' + code + '"', '-created', 1, 0);
 
-    if (invites.length === 0) {
-      return c.json(200, { valid: false, status: 'invalid_or_expired' });
+    if (invites.length === 0) return c.json(200, { status: 'not_found', message: 'Invite code not found' });
+
+    var inv = invites[0];
+    var used = inv.get('used') || false;
+    var expiresAt = inv.get('expires_at');
+    var expiryTime = 0;
+    if (typeof expiresAt === 'string') {
+      expiryTime = new Date(expiresAt).getTime();
+    } else if (expiresAt && typeof expiresAt.getTime === 'function') {
+      expiryTime = expiresAt.getTime();
+    } else if (expiresAt) {
+      expiryTime = new Date(String(expiresAt)).getTime();
     }
+    var isExpired = expiryTime > 0 && expiryTime < now;
 
-    var inviter = $app.findRecordById('users', String(invites[0].get('user') || ''));
-    var familyName = '';
-    if (inviter) {
-      var fid = String(inviter.get('family_id') || '');
-      if (fid) {
-        var family = $app.findRecordById('families', fid);
-        if (family) familyName = String(family.get('name') || '');
+    if (used) return c.json(200, { status: 'used', message: 'Invite code has already been used' });
+    if (isExpired) return c.json(200, { status: 'expired', message: 'Invite code has expired' });
+
+    var inviterId = String(inv.get('user') || '');
+    var inviter = null;
+    try {
+      if (inviterId) {
+        var r = $app.findRecordById('users', inviterId);
+        inviter = { id: r.id, name: r.get('name') || String(r.get('email')||'') };
       }
-    }
+    } catch(e) {}
 
     return c.json(200, {
-      valid: true,
       status: 'valid',
-      family_id: inviter ? String(inviter.get('family_id') || '') : '',
-      family_name: familyName,
-      invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
+      message: 'Invite code is valid',
+      invite: {
+        id: inv.id,
+        code: inv.get('code'),
+        created_by: inviterId,
+        inviter: inviter,
+      }
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return c.json(500, { status: 'error', message: String(e) }); }
 });
 
 // ── User registration (no auth required) ──
 routerAdd('POST', '/api/todoless/register', (c) => {
-  // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
-  var createUser = function(col, data) {
-    var u = $app.unsafeWithoutHooks();
-    var rec = new Record(col);
-    rec.set('id', $security.randomString(15));
-    rec.set('tokenKey', $security.randomString(30));
-    rec.set('verified', false);
-    rec.set('email', data.email);
-    rec.set('password', data.password);
-    rec.set('passwordConfirm', data.passwordConfirm || data.password);
-    rec.set('name', data.name || '');
-    rec.set('emailVisibility', true);
-    rec.set('role', data.role || 'user');
-    rec.set('family_id', data.family_id || '');
-    u.save(rec);
-    return rec;
-  };
-
-  var createFamily = function(name, createdBy) {
-    var fc = $app.findCollectionByNameOrId('families');
-    var fam = new Record(fc);
-    fam.set('name', name || 'My Family');
-    fam.set('created_by', createdBy);
-    $app.save(fam);
-    return fam;
-  };
-
   try {
     var info = c.requestInfo();
-    var d = info.body || {};
+    var d = info.data || info.body || {};
     var userType = String(d.user_type || 'family_member').trim();
     if (['family_member', 'family_assistant'].indexOf(userType) === -1) {
       return c.json(400, { error: 'Invalid user_type. Must be family_member or family_assistant.' });
@@ -174,33 +181,25 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     var existing = $app.findRecordsByFilter('users', '', '-created', 1, 0);
     var setupDone = $app.findRecordsByFilter('app_settings', 'setup_complete = true', '-created', 1, 0).length > 0;
     if (existing.length === 0 || !setupDone) {
-      // ── First user / setup flow ──
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
-
       var uc = $app.findCollectionByNameOrId('users');
-      var rec = createUser(uc, {
-        email: d.email,
-        password: d.password,
-        passwordConfirm: d.passwordConfirm,
-        name: d.name || d.email.split('@')[0],
-        role: 'admin',
-        family_id: ''
-      });
-
-      var fam = createFamily(d.family_name || 'My Family', rec.id);
-
-      // Update user with family_id
-      rec.set('family_id', fam.id);
-      var u = $app.unsafeWithoutHooks();
-      u.save(rec);
-
+      var rec = new Record(uc);
+      rec.set('email', d.email); rec.set('password', d.password);
+      rec.set('passwordConfirm', d.passwordConfirm);
+      rec.set('name', d.name || d.email.split('@')[0]);
+      rec.set('role', 'admin'); rec.set('family_id', ''); rec.set('emailVisibility', true);
+      $app.save(rec);
+      var fc = $app.findCollectionByNameOrId('families');
+      var fam = new Record(fc);
+      fam.set('name', d.family_name || 'My Family');
+      fam.set('created_by', rec.id); $app.save(fam);
+      rec.set('family_id', fam.id); $app.save(rec);
       return c.json(201, {
         user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: 'admin', family_id: fam.id }
       });
     }
 
-    // ── Invite-based registration ──
     var ic = String(d.invite_code || '').trim().toUpperCase();
     if (!ic) throw new BadRequestError('Invite code required for registration.', {});
     var now = new Date().toISOString();
@@ -210,23 +209,16 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     var fid = inviter ? String(inviter.get('family_id') || '') : '';
     if (!fid) throw new BadRequestError('Inviter has no family — ask admin to create one.', {});
 
-    var role = userType === 'family_assistant' ? 'assistant' : 'user';
     var uc = $app.findCollectionByNameOrId('users');
-    var rec = createUser(uc, {
-      email: d.email,
-      password: d.password,
-      passwordConfirm: d.passwordConfirm,
-      name: d.name || d.email.split('@')[0],
-      role: role,
-      family_id: fid
-    });
+    var rec = new Record(uc);
+    rec.set('email', d.email); rec.set('password', d.password);
+    rec.set('passwordConfirm', d.passwordConfirm);
+    rec.set('name', d.name || d.email.split('@')[0]);
 
-    // Mark invite as used
-    var inviteRec = invites[0];
-    inviteRec.set('used', true);
-    inviteRec.set('used_at', now);
-    inviteRec.set('used_by', rec.id);
-    $app.save(inviteRec);
+    var role = userType === 'family_assistant' ? 'assistant' : 'user';
+    rec.set('role', role);
+    rec.set('family_id', fid); rec.set('emailVisibility', true);
+    $app.save(rec);
 
     return c.json(201, {
       user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
@@ -238,44 +230,48 @@ routerAdd('POST', '/api/todoless/register', (c) => {
 routerAdd('POST', '/api/todoless/agent/register', (c) => {
   try {
     var info = c.requestInfo();
-    var d = info.body || {};
-    var email = String(d.email || '').trim();
+    var d = info.data || info.body || {};
+    var email = String(d.email || '').trim().toLowerCase();
+    var password = String(d.password || '');
+    var passwordConfirm = String(d.passwordConfirm || '');
+    var name = String(d.name || email.split('@')[0]);
     var agentKey = String(d.agent_key || '').trim();
 
-    if (!email) return c.json(400, { error: 'Email required' });
-    if (!agentKey) return c.json(400, { error: 'Agent key required' });
-
-    // Check if agent already registered
+    if (!email || !password || password.length < 8) {
+      return c.json(400, { error: 'Email and password (min 8) required' });
+    }
+    if (password !== passwordConfirm) {
+      return c.json(400, { error: 'Passwords do not match' });
+    }
+    if (email.indexOf('@') === -1) {
+      return c.json(400, { error: 'Invalid email format' });
+    }
     var existing = $app.findRecordsByFilter('users', 'email="' + email + '"', '-created', 1, 0);
     if (existing.length > 0) {
-      return c.json(409, { error: 'Agent with this email already registered' });
+      return c.json(400, { error: 'Email already registered' });
+    }
+    if (agentKey) {
+      var validKey = $app.findRecordsByFilter('agent_keys', 'active=true&&key_hash="' + agentKey + '"', '-created', 1, 0);
+      if (validKey.length === 0) {
+        return c.json(400, { error: 'Invalid agent key' });
+      }
     }
 
-    // Validate agent key
-    var validKey = $app.findRecordsByFilter('agent_keys', 'active=true&&key_hash="' + agentKey + '"', '-created', 1, 0);
-    if (validKey.length === 0) {
-      return c.json(403, { error: 'Invalid agent key' });
-    }
-
-    var role = 'assistant';
-
-    // Inline: create user with hooks bypass
-    var u = $app.unsafeWithoutHooks();
     var uc = $app.findCollectionByNameOrId('users');
     var rec = new Record(uc);
-    rec.set('id', $security.randomString(15));
-    rec.set('tokenKey', $security.randomString(30));
-    rec.set('verified', false);
     rec.set('email', email);
-    rec.set('password', $security.randomString(20));
-    rec.set('name', email.split('@')[0]);
-    rec.set('emailVisibility', true);
-    rec.set('role', role);
-    rec.set('family_id', '');
-    u.save(rec);
+    rec.set('password', password);
+    rec.set('passwordConfirm', passwordConfirm);
+    rec.set('name', name);
+    rec.set('role', 'assistant');
+    rec.set('agent_status', 'pending');
+    rec.set('emailVisibility', false);
+    $app.save(rec);
 
     return c.json(201, {
-      user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: '' }
+      status: 'pending',
+      message: 'Registration submitted. Awaiting admin approval.',
+      user: { id: rec.id, email: email, name: String(rec.get('name')||'') }
     });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
@@ -286,15 +282,15 @@ routerAdd('GET', '/api/todoless/agent/pending', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var role = String(auth.get('role') || '');
+    if (role !== 'admin') return c.json(403, { error: 'Admin only' });
 
     var pending = $app.findRecordsByFilter('users', 'agent_status="pending"', '-created', 0, 0);
-    var result = [];
-    for (var i = 0; i < pending.length; i++) {
-      var u = pending[i];
-      result.push({ id: u.id, email: String(u.get('email')||''), name: String(u.get('name')||''), created: u.get('created') });
-    }
-    return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
+    var result = pending.map(function(r) {
+      return { id: r.id, email: String(r.get('email')||''), name: String(r.get('name')||''), created: r.get('created') };
+    });
+    return c.json(200, { agents: result, count: result.length });
+  } catch(e) { return c.json(400, { error: String(e) }); }
 });
 
 // ── Agent: APPROVE an agent (admin only) ──
@@ -303,29 +299,40 @@ routerAdd('POST', '/api/todoless/agent/approve/:id', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var role = String(auth.get('role') || '');
+    if (role !== 'admin') return c.json(403, { error: 'Admin only' });
 
-    var agentId = c.pathParam('id');
+    var agentId = String(c.pathParam('id') || '').trim();
     if (!agentId) return c.json(400, { error: 'Agent ID required' });
 
     var agent = $app.findRecordById('users', agentId);
     if (!agent) return c.json(404, { error: 'Agent not found' });
+    if (String(agent.get('agent_status') || '') !== 'pending') {
+      return c.json(400, { error: 'Agent is not pending' });
+    }
 
-    agent.set('agent_status', 'active');
-    var u = $app.unsafeWithoutHooks();
-    u.save(agent);
+    agent.set('agent_status', 'approved');
+    $app.save(agent);
 
-    // Generate API token
-    var token = $security.randomString(32);
+    var token = require('crypto').randomUUID ? require('crypto').randomUUID() : String(Date.now() + Math.random());
+    var tokenHash = token;
+
     var tc = $app.findCollectionByNameOrId('api_tokens');
     var tk = new Record(tc);
-    tk.set('name', 'Agent: ' + String(agent.get('name') || agent.get('email') || ''));
-    tk.set('token_hash', token);
-    tk.set('user', agent.id);
-    tk.set('scopes', ['entries:read', 'entries:write', 'users:read']);
+    tk.set('name', 'Agent Token - ' + String(agent.get('name')||agentId));
+    tk.set('token_hash', tokenHash);
+    tk.set('permissions', JSON.stringify(['read', 'write']));
+    tk.set('enabled', true);
+    tk.set('user', agentId);
     $app.save(tk);
 
-    return c.json(200, { approved: true, agent_id: agentId, token: token });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+    return c.json(200, {
+      status: 'approved',
+      agent: { id: agent.id, email: String(agent.get('email')||''), name: String(agent.get('name')||'') },
+      token: token,
+      message: 'Agent approved. Token generated.'
+    });
+  } catch(e) { return c.json(400, { error: String(e) }); }
 });
 
 // ── Agent: REJECT an agent (admin only) ──
@@ -334,19 +341,26 @@ routerAdd('POST', '/api/todoless/agent/reject/:id', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var role = String(auth.get('role') || '');
+    if (role !== 'admin') return c.json(403, { error: 'Admin only' });
 
-    var agentId = c.pathParam('id');
+    var agentId = String(c.pathParam('id') || '').trim();
     if (!agentId) return c.json(400, { error: 'Agent ID required' });
 
     var agent = $app.findRecordById('users', agentId);
     if (!agent) return c.json(404, { error: 'Agent not found' });
+    if (String(agent.get('agent_status') || '') !== 'pending') {
+      return c.json(400, { error: 'Agent is not pending' });
+    }
 
     agent.set('agent_status', 'rejected');
-    var u = $app.unsafeWithoutHooks();
-    u.save(agent);
+    $app.save(agent);
 
-    return c.json(200, { rejected: true, agent_id: agentId });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+    return c.json(200, {
+      status: 'rejected',
+      agent: { id: agent.id, email: String(agent.get('email')||'') }
+    });
+  } catch(e) { return c.json(400, { error: String(e) }); }
 });
 
 // ── Entries: LIST (GET) ──
@@ -380,7 +394,7 @@ routerAdd('GET', '/api/todoless/entries', (c) => {
 routerAdd('POST', '/api/todoless/api', (c) => {
   try {
     var info = c.requestInfo();
-    var body = info.body || {};
+    var body = info.data || info.body || {};
     var d = body;
     var action = (d.action || '').trim();
     if (!action) return c.json(400, { error: 'action required' });
@@ -405,67 +419,72 @@ routerAdd('POST', '/api/todoless/api', (c) => {
         return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
       var all = tasks.concat(items);
-      var t = (q.type||'').trim(), s = (q.status||'').trim(), a2 = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
+      var t=(q.type||'').trim(),s=(q.status||'').trim(),a=(q.assignee_id||'').trim(),l=(q.label||'').trim(),sh=(q.shop_id||'').trim();
       var res = [];
       for (var i=0;i<all.length;i++) { var e=all[i];
-        if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a2 && e.assignee_id!==a2) continue;
-        if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
+        if(t&&e.type!==t)continue;if(s&&e.status!==s)continue;if(a&&e.assignee_id!==a)continue;
+        if(l&&(!Array.isArray(e.labels)||e.labels.indexOf(l)===-1))continue;if(sh&&e.shop_id!==sh)continue;
         res.push(e);
       }
       return c.json(200, res);
     }
 
     if (action === 'create') {
+      var type = String(gv(d,'type','')).trim();
       var title = String(gv(d,'title','')).trim();
-      var type = String(gv(d,'type','task')).trim();
+      if (!type || (type!=='task'&&type!=='grocery')) return c.json(400, { error: 'type must be task or grocery' });
       if (!title) return c.json(400, { error: 'title required' });
-      var fid = String(auth.get('family_id') || '').trim();
-
-      if (type === 'task') {
+      if (type==='task') {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
-        rec.set('title', title);
-        rec.set('user', auth.id);
-        if (fid) rec.set('family_id', fid);
-        var s2 = String(gv(d,'status','todo')).trim();
-        if (s2) rec.set('status', s2);
-        var desc = String(gv(d,'description','')).trim();
-        if (desc) rec.set('blocked_comment', desc);
-        var assign = String(gv(d,'assignee_id','')).trim();
-        if (assign) rec.set('assigned_to', assign);
-        var labs = d.labels;
-        if (Array.isArray(labs) && labs.length > 0) rec.set('labels', labs);
-        rec.set('flag',false);
-        $app.save(rec);
-        return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+        var rs = String(gv(d,'status','todo')||'todo');
+        var st = ['backlog','todo','in_progress','done'].indexOf(rs)>=0?rs:'todo';
+        if (st==='in_progress') st='todo';
+        rec.set('user',auth.id);rec.set('title',title);rec.set('status',st);
+        rec.set('blocked_comment',String(gv(d,'description','')||''));
+        rec.set('assigned_to',gv(d,'assignee_id',''));rec.set('labels',gv(d,'labels',[]));
+        rec.set('is_private',false);rec.set('completed_at',st==='done'?new Date().toISOString():null);
+        rec.set('flag',false);$app.save(rec);
+        return c.json(201,{id:rec.id,type:'task',title:rec.get('title')||'',description:rec.get('blocked_comment')||'',status:rec.get('status')||'todo',assignee_id:rec.get('assigned_to')||'',labels:rec.get('labels')||[],shop_id:'',quantity:null,created_by:rec.get('user')||'',completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
       }
+      rec = new Record($app.findCollectionByNameOrId('items'));
+      rec.set('user',auth.id);rec.set('title',title);rec.set('completed',String(gv(d,'status','todo')||'todo')==='done');
+      rec.set('assigned_to',gv(d,'assignee_id',''));rec.set('labels',gv(d,'labels',[]));
+      rec.set('shop_id',gv(d,'shop_id',''));rec.set('quantity',gv(d,'quantity',1));rec.set('is_private',false);
+      $app.save(rec);
+      return c.json(201,{id:rec.id,type:'grocery',title:rec.get('title')||'',description:'',status:rec.get('completed')?'done':'todo',assignee_id:rec.get('assigned_to')||'',labels:rec.get('labels')||[],shop_id:rec.get('shop_id')||'',quantity:rec.get('quantity')||1,created_by:rec.get('user')||'',completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    }
 
-      if (type === 'grocery') {
-        rec = new Record($app.findCollectionByNameOrId('items'));
-        rec.set('title', title);
-        rec.set('user', auth.id);
-        if (fid) rec.set('family_id', fid);
-        var qty = Number(gv(d,'quantity','1'));
-        if (!isNaN(qty) && qty > 0) rec.set('quantity', qty);
-        var shop = String(gv(d,'shop_id','')).trim();
-        if (shop) rec.set('shop_id', shop);
-        var assign2 = String(gv(d,'assignee_id','')).trim();
-        if (assign2) rec.set('assigned_to', assign2);
-        rec.set('completed', false);
-        $app.save(rec);
-        return c.json(201, {id:rec.id,type:'grocery',title:rec.get('title'),description:'',status:rec.get('completed')?'done':'todo',assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:rec.get('shop_id'),quantity:rec.get('quantity'),created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+    if (action === 'update') {
+      var id = String(gv(d,'id','')).trim();
+      var type = String(gv(d,'type','')).trim();
+      if (!id) return c.json(400, { error: 'id required' });
+      if (!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
+      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      if (!rec) return c.json(404,{error:'Entry not found'});
+      if(Object.prototype.hasOwnProperty.call(d,'title')) rec.set('title',gv(d,'title',''));
+      if(Object.prototype.hasOwnProperty.call(d,'assignee_id')) rec.set('assigned_to',gv(d,'assignee_id',''));
+      if(Object.prototype.hasOwnProperty.call(d,'labels')) rec.set('labels',gv(d,'labels',[]));
+      if(type==='task') {
+        if(Object.prototype.hasOwnProperty.call(d,'description')) rec.set('blocked_comment',gv(d,'description',''));
+        if(Object.prototype.hasOwnProperty.call(d,'status')){var sr=String(gv(d,'status','todo'));if(sr==='in_progress')sr='todo';rec.set('status',sr);rec.set('completed_at',sr==='done'?new Date().toISOString():null);}
+        $app.save(rec);return c.json(200,{id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:rec.get('user'),completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
       }
-
-      return c.json(400, { error: 'Invalid type: ' + type });
+      if(Object.prototype.hasOwnProperty.call(d,'status')) rec.set('completed',String(gv(d,'status','todo'))==='done');
+      if(Object.prototype.hasOwnProperty.call(d,'shop_id')) rec.set('shop_id',gv(d,'shop_id',''));
+      if(Object.prototype.hasOwnProperty.call(d,'quantity')) rec.set('quantity',gv(d,'quantity',1));
+      $app.save(rec);return c.json(200,{id:rec.id,type:'grocery',title:rec.get('title'),description:'',status:rec.get('completed')?'done':'todo',assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:rec.get('shop_id'),quantity:rec.get('quantity'),created_by:rec.get('user'),completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
     }
 
     if (action === 'complete') {
       var id = String(gv(d,'id','')).trim();
       var type = String(gv(d,'type','')).trim();
-      if(!id) return c.json(400,{error:'id required'});
+      var complete = String(gv(d,'complete','true'))!=='false';
+      if (!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
+      if(type==='task'){rec.set('status',complete?'done':'todo');rec.set('completed_at',complete?new Date().toISOString():null);}
+      else{rec.set('completed',complete);}
       $app.save(rec);return c.json(200,{completed:true});
     }
 
