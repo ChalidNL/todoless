@@ -46,6 +46,7 @@ services:
       - /DATA/AppData/todoless-ngx/pb_data:/pb_data
       - /DATA/AppData/todoless-ngx/pb_migrations:/pb_migrations
       - /DATA/AppData/todoless-ngx/pb_hooks:/pb_hooks
+      - /DATA/AppData/hermes/projects/todoless-ngx/pocketbase-entrypoint.sh:/entrypoint.sh:ro
     networks:
       - todoless-net
     healthcheck:
