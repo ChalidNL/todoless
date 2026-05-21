@@ -88,7 +88,7 @@ routerAdd(
     if (body.has('family_id')) data.set('family_id', body.get('family_id'))
     if (body.has('firstName') || body.has('first_name')) data.set('first_name', body.get('firstName') || body.get('first_name'))
     if (body.has('lastName') || body.has('last_name')) data.set('last_name', body.get('lastName') || body.get('last_name'))
-    if (body.has('displayName')) data.set('displayName', body.get('displayName'))
+    if (body.has('displayName') || body.has('display_name')) data.set('display_name', body.get('displayName') || body.get('display_name'))
 
     // Only admins can change roles
     if (body.has('role') && authRecord.get('role') === 'admin') {

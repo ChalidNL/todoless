@@ -24,7 +24,7 @@ const normalizeUser = (record: any): User => ({
   name: record.name || record.email,
   firstName: record.first_name || undefined,
   lastName: record.last_name || undefined,
-  displayName: record.displayName || undefined,
+  displayName: record.display_name || undefined,
   avatarUrl: record.avatar,
   role: (record.role || 'user') as User['role'],
   family_id: record.family_id || undefined,
@@ -796,9 +796,9 @@ class PocketBaseClient {
     // Self profile/password updates still use SDK directly.
     return pb.collection('users').update(id, {
       name: updates.name,
-      firstName: updates.firstName,
-      lastName: updates.lastName,
-      displayName: updates.displayName,
+      first_name: updates.firstName,
+      last_name: updates.lastName,
+      display_name: updates.displayName,
       password: updates.password,
       passwordConfirm: updates.password,
     });
