@@ -512,6 +512,23 @@ routerAdd('POST', '/api/todoless/api', (c) => {
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
+    if (action === 'add_subtask') {
+      if (!auth) return c.json(401, { error: 'Unauthorized' });
+      var taskId = String(gv(d, 'task_id', '')).trim();
+      var subtaskId = String(gv(d, 'subtask_id', '')).trim();
+      if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
+      var parent = $app.findRecordById('tasks', taskId);
+      if (!parent) return c.json(404, { error: 'Parent task not found' });
+      var existing = parent.get('subtask_ids') || [];
+      if (!Array.isArray(existing)) existing = [];
+      if (existing.indexOf(subtaskId) === -1) {
+        existing.push(subtaskId);
+        parent.set('subtask_ids', existing);
+        $app.save(parent);
+      }
+      return c.json(200, { success: true });
+    }
+
     if (action === 'filters') {
       var fid = String(auth.get('family_id')||'').trim();
       var f = fid?'user.family_id = "'+fid+'"':'user = "'+auth.id+'"';
