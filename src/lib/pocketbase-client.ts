@@ -373,6 +373,29 @@ class PocketBaseClient {
     }
   }
 
+  // Create a subtask via v2 API (hooks handle linked_to + update parent subtask_ids)
+  async createSubtask(title: string, parentId: string): Promise<{ id: string }> {
+    const response = await fetch('/api/todoless/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+      },
+      body: JSON.stringify({
+        action: 'create',
+        type: 'task',
+        title,
+        status: 'todo',
+        linked_to: parentId,
+        linked_type: 'task',
+        labels: [],
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to create subtask');
+    return data;
+  }
+
   async updateTask(id: string, updates: Partial<Task>) {
     try {
       const payload: Record<string, unknown> = {};

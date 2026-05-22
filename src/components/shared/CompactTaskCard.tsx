@@ -66,7 +66,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
 );
 
 export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive } = useApp();
+  const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
@@ -113,6 +113,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     .map(id => tasks.find(t => t.id === id))
     .filter(Boolean) as Task[];
   const subtaskCount = subtasks.length;
+  const completedSubtaskCount = subtasks.filter(s => s.status === 'done').length;
 
   const handleToggle = () => {
     if (task.status === 'done') {
@@ -300,6 +301,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onClick={showMenu ? clearAllSchedule : undefined}
                 />
               )}
+              {subtaskCount > 0 && (
+                <AttributeChip
+                  icon={<SubtaskIcon className="w-3.5 h-3.5" />}
+                  label={`${completedSubtaskCount}/${subtaskCount}`}
+                  color="#8b5cf6"
+                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
+                />
+              )}
             </div>
           )}
 
@@ -350,23 +359,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     if (e.key === 'Enter') {
                       const title = subtaskTitle.trim();
                       if (!title) return;
-                      const t = task;
                       try {
-                        const created = await api.createTask({
-                          title,
-                          status: 'todo',
-                          blocked: false,
-                          labels: [],
-                          linkedTo: t.id,
-                          linkedType: 'task',
-                          flag: false,
-                        });
-                        const newId = created.id;
-                        updateTask(t.id, { subtaskIds: [...(t.subtaskIds || []), newId] });
-                      } catch (err) {
-                        console.error('Failed to create subtask:', err);
+                        await api.createSubtask(title, task.id);
+                        setSubtaskTitle('');
+                        await refreshEntries();
+                        showCompletionMessage('Subtask added');
+                      } catch (err: any) {
+                        showCompletionMessage(err.message || 'Failed to create subtask');
                       }
-                      setSubtaskTitle('');
                     }
                   }}
                   placeholder="Add subtask..."
@@ -377,23 +377,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onClick={async () => {
                     const title = subtaskTitle.trim();
                     if (!title) return;
-                    const t = task;
                     try {
-                      const created = await api.createTask({
-                        title,
-                        status: 'todo',
-                        blocked: false,
-                        labels: [],
-                        linkedTo: t.id,
-                        linkedType: 'task',
-                        flag: false,
-                      });
-                      const newId = created.id;
-                      updateTask(t.id, { subtaskIds: [...(t.subtaskIds || []), newId] });
-                    } catch (err) {
-                      console.error('Failed to create subtask:', err);
+                      await api.createSubtask(title, task.id);
+                      setSubtaskTitle('');
+                      await refreshEntries();
+                      showCompletionMessage('Subtask added');
+                    } catch (err: any) {
+                      showCompletionMessage(err.message || 'Failed to create subtask');
                     }
-                    setSubtaskTitle('');
                   }}
                   className="px-2 py-1.5 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
                   aria-label="Add subtask"

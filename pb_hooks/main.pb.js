@@ -438,8 +438,26 @@ routerAdd('POST', '/api/todoless/api', (c) => {
         if (assign) rec.set('assigned_to', assign);
         var labs = d.labels;
         if (Array.isArray(labs) && labs.length > 0) rec.set('labels', labs);
+        var linkedTo = String(gv(d,'linked_to','')).trim();
+        if (linkedTo) rec.set('linked_to', linkedTo);
+        var linkedType = String(gv(d,'linked_type','')).trim();
+        if (linkedType) rec.set('linked_type', linkedType);
         rec.set('flag',false);
         $app.save(rec);
+
+        // If this is a subtask (has linked_to), update parent's subtask_ids
+        if (linkedTo) {
+          var parent = $app.findRecordById('tasks', linkedTo);
+          if (parent) {
+            var existing = parent.get('subtask_ids') || [];
+            if (Array.isArray(existing) && existing.indexOf(rec.id) === -1) {
+              existing.push(rec.id);
+              parent.set('subtask_ids', existing);
+              $app.save(parent);
+            }
+          }
+        }
+
         return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
       }
 
