@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, ChevronUp } from 'lucide-react';
+import { api } from '../../lib/pocketbase-client';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X } from 'lucide-react';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -22,12 +23,12 @@ interface UnifiedCardProps {
 type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
-  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, tasks, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity } = useApp();
+  const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, tasks, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity, refreshEntries, showCompletionMessage } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<UnifiedEditor>(null);
   const [titleDraft, setTitleDraft] = useState('');
   const [shopInput, setShopInput] = useState('');
-  const [subtasksExpanded, setSubtasksExpanded] = useState(false);
+  const [subtaskTitle, setSubtaskTitle] = useState('');
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -99,6 +100,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
     ? (task as Task).subtaskIds!.map(id => tasks.find(t => t.id === id)).filter(Boolean) as Task[]
     : [];
   const subtaskCount = subtasks.length;
+  const completedSubtaskCount = subtasks.filter(s => s.status === 'done').length;
 
   return (
     <div
@@ -188,17 +190,17 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             </div>
           )}
 
-          {/* Hamburger */}
+          {/* Expander */}
           <button
             onClick={() => {
               setShowMenu(!showMenu);
-              setActiveEditor(!showMenu ? activeEditor : null);
+              setActiveEditor(null);
               if (!showMenu) setTitleDraft(entity.title);
             }}
             className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
-            aria-label="Open attributes"
+            aria-label={showMenu ? 'Close editor' : 'Open editor'}
           >
-            {showMenu ? <X className="w-4 h-4 text-neutral-600" /> : <Menu className="w-4 h-4 text-neutral-400" />}
+            {showMenu ? <ChevronUp className="w-4 h-4 text-neutral-600" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
           </button>
         </div>
 
@@ -248,26 +250,18 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {isTask && subtaskCount > 0 && (
               <AttributeChip
                 icon={<SubtaskIcon className="w-3.5 h-3.5" />}
-                label={`${subtaskCount}`}
+                label={`${completedSubtaskCount}/${subtaskCount}`}
                 color="#8b5cf6"
-                onClick={() => setSubtasksExpanded(!subtasksExpanded)}
               />
             )}
           </div>
         )}
 
-        {/* Expanded subtasks (tasks only) */}
-        {isTask && subtasksExpanded && (
+        {/* Subtasks section + add input (tasks only) — visible in edit mode */}
+        {isTask && showMenu && (
           <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
-            <div className="flex items-center justify-between px-1">
+            <div className="px-1">
               <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
-              <button
-                onClick={() => setSubtasksExpanded(false)}
-                className="p-0.5 hover:bg-neutral-100 rounded"
-                aria-label="Collapse subtasks"
-              >
-                <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
-              </button>
             </div>
             {subtasks.map((subtask) => (
               <div key={subtask.id} className="flex items-center gap-2 pl-2 py-1 bg-neutral-50 rounded border border-neutral-100">
@@ -293,6 +287,49 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 </span>
               </div>
             ))}
+            {/* Add subtask input */}
+            <div className="flex items-center gap-1.5 pl-2">
+              <input
+                type="text"
+                value={subtaskTitle}
+                onChange={(e) => setSubtaskTitle(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    const title = subtaskTitle.trim();
+                    if (!title) return;
+                    try {
+                      await api.createSubtask(title, task!.id);
+                      setSubtaskTitle('');
+                      await refreshEntries();
+                      showCompletionMessage('Subtask added');
+                    } catch (err: any) {
+                      showCompletionMessage(err.message || 'Failed to create subtask');
+                    }
+                  }
+                }}
+                placeholder="Add subtask..."
+                className="flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
+                aria-label="New subtask title"
+              />
+              <button
+                onClick={async () => {
+                  const title = subtaskTitle.trim();
+                  if (!title) return;
+                  try {
+                    await api.createSubtask(title, task!.id);
+                    setSubtaskTitle('');
+                    await refreshEntries();
+                    showCompletionMessage('Subtask added');
+                  } catch (err: any) {
+                    showCompletionMessage(err.message || 'Failed to create subtask');
+                  }
+                }}
+                className="px-2 py-1.5 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
+                aria-label="Add subtask"
+              >
+                Add
+              </button>
+            </div>
           </div>
         )}
 

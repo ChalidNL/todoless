@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, Menu, X, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X } from 'lucide-react';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -74,7 +74,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
   const [isDeleteHover, setIsDeleteHover] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
-  const [subtasksExpanded, setSubtasksExpanded] = useState(false);
   const [subtaskTitle, setSubtaskTitle] = useState('');
 
   // Edit mode inactivity timeout (60s)
@@ -240,20 +239,20 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </span>
             )}
 
-            {/* Hamburger */}
+            {/* Expander */}
             <button
               onClick={() => {
                 const next = !showMenu;
                 setShowMenu(next);
-                setActiveEditor(next ? activeEditor : null);
+                setActiveEditor(null);
                 if (next) setTitleDraft(task.title);
               }}
               className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
-              aria-label="Open task attributes"
+              aria-label={showMenu ? 'Close task editor' : 'Open task editor'}
             >
               {showMenu 
-                ? <X className="w-4 h-4 text-neutral-600 transition-transform duration-200" /> 
-                : <Menu className="w-4 h-4 text-neutral-400 transition-transform duration-200" />
+                ? <ChevronUp className="w-4 h-4 text-neutral-600 transition-transform duration-200" /> 
+                : <ChevronDown className="w-4 h-4 text-neutral-400 transition-transform duration-200" />
               }
             </button>
           </div>
@@ -306,24 +305,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   icon={<SubtaskIcon className="w-3.5 h-3.5" />}
                   label={`${completedSubtaskCount}/${subtaskCount}`}
                   color="#8b5cf6"
-                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
                 />
               )}
             </div>
           )}
 
-          {/* Expanded subtasks */}
-          {subtasksExpanded && (
+          {/* Subtasks section + add input — visible in edit mode */}
+          {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
-              <div className="flex items-center justify-between px-1">
+              <div className="px-1">
                 <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
-                <button
-                  onClick={() => setSubtasksExpanded(false)}
-                  className="p-0.5 hover:bg-neutral-100 rounded"
-                  aria-label="Collapse subtasks"
-                >
-                  <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
-                </button>
               </div>
               {subtasks.map((subtask) => (
                 <div key={subtask.id} className="flex items-center gap-2 pl-2 py-1 bg-neutral-50 rounded border border-neutral-100">
@@ -440,18 +431,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   aria-label="Edit schedule"
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
-                  className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0 || subtasksExpanded
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title="subtasks"
-                  aria-label="Toggle subtasks"
-                >
-                  <SubtaskIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
