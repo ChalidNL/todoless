@@ -476,7 +476,7 @@ export const Settings = () => {
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto bg-neutral-50">
+    <>
       
       {/* Header */}
       <div className="sticky top-0 z-40">
@@ -1443,6 +1443,6 @@ export const Settings = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };

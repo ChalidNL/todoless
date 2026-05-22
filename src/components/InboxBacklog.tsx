@@ -141,7 +141,7 @@ export const InboxBacklog = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto bg-neutral-50">
+    <>
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
@@ -323,6 +323,6 @@ export const InboxBacklog = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
