@@ -27,7 +27,7 @@ seed_dir() {
 }
 
 seed_dir /pb_migrations_bundled /pb_migrations migration
-seed_dir /pb_hooks_bundled /pb_hooks hook
+# seed_dir /pb_hooks_bundled /pb_hooks hook  # disabled — volume mount has latest
 
 # Remove duplicate migration prefixes that collide with newer files.
 for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do
@@ -52,5 +52,8 @@ if [ -f /pb_hooks/main.pb.js ]; then
   # expects lowercase [a-z0-9]{15} for the id field pattern
   sed -i 's/\$security\.randomString(15)/\$security.randomString(15).toLowerCase()/g' /pb_hooks/main.pb.js
 fi
+# 5. PB 0.35.1: strip $apis.requireRecordAuth() — sed replaces python3
+sed -i 's/,\s*\$apis\.requireRecordAuth([^)]*)/)/g' /pb_hooks/*.pb.js /pb_hooks/routes/*.js 2>/dev/null || true
+sed -i '/\$apis\.requireRecordAuth/d' /pb_hooks/*.pb.js /pb_hooks/routes/*.js 2>/dev/null || true
 
 exec /usr/local/bin/pocketbase "$@"
