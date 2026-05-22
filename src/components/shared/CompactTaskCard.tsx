@@ -257,8 +257,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
             </button>
           </div>
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtasks (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || true) && (
+          {/* Line 2: chips — labels, assignee, date, repeat (always visible) */}
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone)) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -298,14 +298,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   color="#ea580c"
                   active={isRepeatFiltered(repeatLabel)}
                   onClick={showMenu ? clearAllSchedule : undefined}
-                />
-              )}
-              {true && ( // subtask chip always visible
-                <AttributeChip
-                  icon={<SubtaskIcon className="w-3.5 h-3.5" />}
-                  label={`${subtaskCount}`}
-                  color="#8b5cf6"
-                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
                 />
               )}
             </div>
@@ -457,6 +449,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   aria-label="Edit schedule"
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+                <button
+                  onClick={() => setSubtasksExpanded(!subtasksExpanded)}
+                  className={`p-1.5 rounded transition-colors ${
+                    subtaskCount > 0 || subtasksExpanded
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title="subtasks"
+                  aria-label="Toggle subtasks"
+                >
+                  <SubtaskIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
