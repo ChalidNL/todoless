@@ -210,8 +210,8 @@ function AppContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <main>
+    <div className="h-dvh bg-neutral-50 flex flex-col overflow-hidden">
+      <main className="flex-1 overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+64px)]">
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
