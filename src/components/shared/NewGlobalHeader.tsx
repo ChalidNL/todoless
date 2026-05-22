@@ -6,7 +6,7 @@ import { Priority, Horizon, TaskStatus } from '../../types';
 
 interface NewGlobalHeaderProps {
   onSearch?: (query: string) => void;
-  onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string }) => void;
+  onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -66,7 +66,7 @@ export const NewGlobalHeader = ({
 
   const parseInput = (text: string) => {
     let cleanText = text;
-    const metadata: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string } = {};
+    const metadata: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string } = {};
 
     // Parse @me or @user (assignee)
     const assigneeMatch = text.match(/@(\w+)/);
@@ -97,6 +97,17 @@ export const NewGlobalHeader = ({
     }
     if (labelIds.length > 0) {
       metadata.labels = labelIds;
+    }
+
+    // Parse $shopname (groceries only)
+    const shopMatch = text.match(/\$(\w+)/);
+    if (shopMatch) {
+      const shopName = shopMatch[1];
+      const shop = shops.find(s => s.name.toLowerCase() === shopName.toLowerCase());
+      if (shop) {
+        metadata.shopId = shop.id;
+        cleanText = cleanText.replace(shopMatch[0], '').trim();
+      }
     }
 
     // Parse //date (due date)

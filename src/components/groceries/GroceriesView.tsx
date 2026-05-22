@@ -42,12 +42,13 @@ export const GroceriesView = () => {
     );
   }, [filteredItems]);
 
-  const handleAddItem = (value: string) => {
+  const handleAddItem = (value: string, metadata?: { shopId?: string }) => {
     addItem({
       title: value,
       completed: false,
       quantity: 1,
       labels: [],
+      shopId: metadata?.shopId,
     });
   };
 
