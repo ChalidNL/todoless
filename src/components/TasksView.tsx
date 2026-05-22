@@ -87,7 +87,7 @@ export const TasksView = () => {
   const hasAnyFilter = activeChipFilters.length > 0;
 
   return (
-    <div className="min-h-screen pb-[calc(env(safe-area-inset-bottom,0px)+80px)]">
+    <div className="flex-1 min-h-0 flex flex-col">
       <div className="flex-shrink-0">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
