@@ -68,13 +68,44 @@ export const InviteManager = () => {
     }
   };
 
-  const handleWhatsAppShare = () => {
-    let message = `Hey! You got a human invite to todoless-ngx!\n\nCode: ${currentInviteCode}\n\nClick here to join: ${currentInviteUrl}`;
-    if (currentInviteType === 'agent' && currentToken) {
-      message += `\n\nAPI Token: ${currentToken}\n\nSave this token — it will not be shown again.`;
+  const handleShare = async () => {
+    const shareData: ShareData = {
+      title: 'Invite to todoless-ngx',
+      text: currentInviteType === 'agent'
+        ? `Agent invite to todoless-ngx\n\nCode: ${currentInviteCode}\n\n${currentInviteUrl}${currentToken ? `\n\nAPI Token: ${currentToken}\n\nSave this token — it will not be shown again.` : ''}`
+        : `Human invite to todoless-ngx\n\nCode: ${currentInviteCode}\n\n${currentInviteUrl}`,
+      url: currentInviteUrl,
+    };
+
+    if (navigator.share && window.isSecureContext) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: any) {
+        if (err.name === 'AbortError') return; // user cancelled
+      }
     }
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+
+    // Fallback: copy invite URL + token info to clipboard
+    const fallbackText = `${currentInviteUrl}\n\nCode: ${currentInviteCode}${currentInviteType === 'agent' && currentToken ? `\n\nAPI Token: ${currentToken}\n\nSave this token — it will not be shown again.` : ''}`;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(fallbackText);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = fallbackText;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      showCompletionMessage('Copied to clipboard');
+    } catch {
+      showCompletionMessage('Share failed');
+    }
   };
 
   return (
@@ -265,11 +296,11 @@ export const InviteManager = () => {
               {/* Share Buttons */}
               <div className="space-y-2">
                 <button
-                  onClick={handleWhatsAppShare}
-                  className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
+                  onClick={handleShare}
+                  className="w-full px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-5 h-5" />
-                  Delen via WhatsApp
+                  {navigator.share ? 'Share' : 'Copy to clipboard'}
                 </button>
               </div>
 
