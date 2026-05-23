@@ -15,7 +15,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
       var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','-created',1,0);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -43,7 +43,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
     var coll = $app.findCollectionByNameOrId('api_tokens');
-    var allRecords = $app.findRecordsByFilter('api_tokens', '', '-created', 0, 0);
+    var allRecords = $app.findRecordsByFilter('api_tokens', '', '', 0, 0);
     var result = [];
     for (var i = 0; i < allRecords.length; i++) {
       var r = allRecords[i];
@@ -73,7 +73,7 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
       var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','-created',1,0);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -163,7 +163,7 @@ routerAdd('DELETE', '/api/v1/api-tokens/:id', (c) => {
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
       var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','-created',1,0);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -212,7 +212,7 @@ routerAdd('PATCH', '/api/v1/api-tokens/:id/toggle', (c) => {
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
       var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','-created',1,0);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
