@@ -116,8 +116,11 @@ function bearerAuthMiddleware(c) {
     var isBlocked = (rawActive === false || rawActive === 0 || rawActive === 'false');
     if (isBlocked) return c.json(403, { 'error': 'Token owner account is blocked' });
 
-    // Parse permissions (stored as scopes in collection)
-    var rawPerms = tokRec.get('scopes');
+    // Parse permissions (stored as 'permissions' in collection, fallback to 'scopes')
+    var rawPerms = tokRec.get('permissions');
+    if (!rawPerms || (Array.isArray(rawPerms) && rawPerms.length === 0)) {
+      rawPerms = tokRec.get('scopes');
+    }
     var perms = [];
     if (Array.isArray(rawPerms)) {
       perms = rawPerms;

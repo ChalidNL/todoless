@@ -38,62 +38,12 @@ routerAdd('GET', '/api/todoless/hook-health', (c) => c.json(200, { ok: true }));
 // Note: routes/docs.js registers GET /api/todoless/docs + /api/todoless/swagger (Swagger UI HTML)
 // Note: routes/api-tokens.js registers CRUD for API tokens
 
-// ── Debug: test token generation (no auth required) ──
-routerAdd('GET', '/api/todoless/debug-token', (c) => {
-  try {
-    function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return 'tl_'+r; }
-    function _ht(tok) { try { return $security.SHA256(tok); } catch(e){ var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return 'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
-    var t = _gt(48);
-    var h = _ht(t);
-    return c.json(200, { token: t.substring(0,12) + '...', hash: h, ok: true });
-  } catch(e) {
-    return c.json(500, { error: String(e) });
-  }
-});
-
-// ── Debug: test agent invite (no auth, fixed user ID) ──
-routerAdd('POST', '/api/todoless/debug-agent-invite', (c) => {
-  try {
-    function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return 'tl_'+r; }
-    function _ht(tok) { try { return $security.SHA256(tok); } catch(e){ var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return 'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
-    
-    var code = '';
-    var digits = '0123456789';
-    for (var i = 0; i < 6; i++) { code += digits.charAt(Math.floor(Math.random() * digits.length)); }
-    var now = new Date();
-    var expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    var coll = $app.findCollectionByNameOrId('invite_codes');
-    var rec = new Record(coll);
-    rec.set('code', code);
-    rec.set('expires_at', expiresAt.toISOString());
-    rec.set('used', false);
-    rec.set('user', 'zqjmvcm0g5wznm7');
-    rec.set('type', 'agent');
-    var rawToken = _gt(48);
-    var hashed = _ht(rawToken);
-    var tokenColl = $app.findCollectionByNameOrId('api_tokens');
-    var tokenRec = new Record(tokenColl);
-    tokenRec.set('name', 'Agent: ' + code);
-    tokenRec.set('token_hash', hashed);
-    tokenRec.set('permissions', ['*']);
-    tokenRec.set('enabled', false);
-    tokenRec.set('user', 'zqjmvcm0g5wznm7');
-    $app.save(tokenRec);
-    rec.set('token_id', tokenRec.id);
-    $app.save(rec);
-    return c.json(201, { id: rec.id, code: code, token: rawToken, token_id: tokenRec.id, type: 'agent', expires_at: expiresAt.toISOString() });
-  } catch(e) {
-    return c.json(500, { error: String(e), stack: String(e.stack||'') });
-  }
-});
-
 // ── Create invite code (server-side, bypasses PB API rules) ──
 // Supports type: 'user' (default) or 'agent'
 // If type='agent': also generates an API token (enabled=false), stored hashed, returned once.
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
   try {
     var info = c.requestInfo();
-    console.log('INVITE_CREATE: type=' + String((info.body||{}).type) + ' body=' + JSON.stringify(info.body||{}));
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
@@ -125,17 +75,14 @@ routerAdd('POST', '/api/todoless/invites/create', (c) => {
     var tokenId = null;
 
     if (type === 'agent') {
-      // Inline helpers (PB 0.34: function decls don't hoist into callbacks)
-      function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return 'tl_'+r; }
-      function _ht(tok) { try { return $security.SHA256(tok); } catch(e){ var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return 'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
-      rawToken = _gt(48);
-      var hashed = _ht(rawToken);
+      rawToken = generateToken(48);
+      var hashed = hashToken(rawToken);
 
       var tokenColl = $app.findCollectionByNameOrId('api_tokens');
       var tokenRec = new Record(tokenColl);
       tokenRec.set('name', 'Agent: ' + code);
       tokenRec.set('token_hash', hashed);
-      tokenRec.set('permissions', ['*']);
+      tokenRec.set('scopes', ['*']);
       tokenRec.set('enabled', false);
       tokenRec.set('user', auth.id);
       $app.save(tokenRec);
