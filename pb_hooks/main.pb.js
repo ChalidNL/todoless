@@ -110,7 +110,7 @@ routerAdd('POST', '/api/todoless/invites/create', (c) => {
     }
 
     var now = new Date();
-    var expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    var expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     var coll = $app.findCollectionByNameOrId('invite_codes');
     var rec = new Record(coll);
@@ -337,7 +337,10 @@ routerAdd('GET', '/api/todoless/entries', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       var rawActive = user.get('active');
+      var rawMemberStatus = user.get('member_status');
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -397,7 +400,10 @@ routerAdd('POST', '/api/todoless/api', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       var rawActive = user.get('active');
+      var rawMemberStatus = user.get('member_status');
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -416,9 +422,9 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     if (!action) return c.json(400, { error: 'action required' });
     var auth = null;
 
-    var needsAuth = ['create','update','complete','assign','delete','list','filters'];
+    var needsAuth = ['create','update','complete','assign','delete','list','filters','add_subtask'];
     if (needsAuth.indexOf(action) >= 0) {
-      auth = info.auth;
+      auth = info.auth || c.get('authRecord');
       if (!auth) return c.json(401, { error: 'Unauthorized' });
     }
 
