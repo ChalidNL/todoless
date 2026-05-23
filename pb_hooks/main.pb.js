@@ -453,4 +453,7 @@ routerAdd('POST', '/api/todoless/api', (c) => {
 });
 
 // ── Load additional route files ──────────────────────────────────────
+try { require('./routes/openapi.js'); } catch(e) { console.log('WARN: openapi.js:', String(e)); }
+try { require('./routes/docs.js'); } catch(e) { console.log('WARN: docs.js:', String(e)); }
+try { require('./routes/api-tokens.js'); } catch(e) { console.log('WARN: api-tokens.js:', String(e)); }
 try { require('./routes/users.js'); } catch(e) { console.log('WARN: users.js:', String(e)); }
