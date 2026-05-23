@@ -4,6 +4,7 @@ import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight } from 'lucide-react';
+import { t } from '../../i18n/translations';
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
@@ -74,7 +75,7 @@ export const GroceriesView = () => {
         <NewGlobalHeader
           onSearch={setSearchQuery}
           onAdd={handleAddItem}
-          searchPlaceholder="Search groceries..."
+          searchPlaceholder={t('common.searchDot')}
           type="item"
         />
       </div>
@@ -84,8 +85,8 @@ export const GroceriesView = () => {
           <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
             <span className="text-xs font-semibold text-neutral-600">
               {sortedActiveItems.length > 0
-                ? `Groceries (${sortedActiveItems.length + sortedBoughtItems.length})`
-                : 'No results'}
+                ? `${t('items.title')} (${sortedActiveItems.length + sortedBoughtItems.length})`
+                : t('inbox.noResults')}
             </span>
             <div className="flex gap-1 flex-1 flex-wrap">
               {activeChipFilters.map((f) => (
@@ -108,7 +109,7 @@ export const GroceriesView = () => {
             <button
               onClick={clearChipFilters}
               className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title="Clear all filters"
+              title={t('common.clearAllTooltip')}
             >
               <XIcon className="w-3.5 h-3.5" />
             </button>
@@ -116,8 +117,8 @@ export const GroceriesView = () => {
               <button
                 onClick={() => setShowSavedFilters(!showSavedFilters)}
                 className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title="Saved filters"
-                aria-label="Saved filters"
+                title={t('common.filters')}
+                aria-label={t('common.filters')}
               >
                 <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showSavedFilters ? 'rotate-90' : ''}`} />
               </button>
@@ -134,7 +135,7 @@ export const GroceriesView = () => {
                       <button
                         onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
                         className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
-                        title="Delete filter"
+                        title={t('common.delete')}
                       >
                         <XIcon className="w-3 h-3" />
                       </button>
@@ -146,9 +147,9 @@ export const GroceriesView = () => {
             <button
               onClick={() => {
                 try {
-                  const name = window.prompt('Filter name:', '');
+                  const name = window.prompt(t('settings.filterName'), '');
                   if (!name || !name.trim()) return;
-                  const typeRaw = window.prompt('Filter type: shop of task?', 'item');
+                  const typeRaw = window.prompt(t('items.title') + ' of shop?', 'item');
                   const ftype = (typeRaw || 'item').trim().toLowerCase();
                   const validType = ftype === 'task' ? 'task' : 'item';
                   addFilter({
@@ -164,8 +165,8 @@ export const GroceriesView = () => {
                 }
               }}
               className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title="Save current filter"
-              aria-label="Save filter"
+              title={t('common.save')}
+              aria-label={t('common.save')}
             >
               <Save className="w-3.5 h-3.5" />
             </button>
@@ -177,13 +178,13 @@ export const GroceriesView = () => {
       <div className="max-w-6xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-            Groceries ({sortedActiveItems.length})
+            {t('items.title')} ({sortedActiveItems.length})
           </h2>
         </div>
         {sortedActiveItems.length === 0 ? (
           <div className="text-center py-16">
             <ShoppingCart className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-            <p className="text-neutral-400 text-sm">No grocery items</p>
+            <p className="text-neutral-400 text-sm">{t('common.noData')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -202,19 +203,19 @@ export const GroceriesView = () => {
                 className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900"
               >
                 {showBought ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                In stock ({sortedBoughtItems.length})
+                {t('common.completed')} ({sortedBoughtItems.length})
               </button>
               {sortedBoughtItems.length > 0 && (
                 <button
                   onClick={() => {
                     uncheckAllDoneItems();
-                    showCompletionMessage('All groceries reset to in stock');
+                    showCompletionMessage(t('common.completed') + ' reset');
                   }}
                   className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
-                  title="Uncheck all"
+                  title={t('common.refresh')}
                 >
                   <RotateCcw className="w-3 h-3" />
-                  Uncheck All
+                  {t('common.refresh')}
                 </button>
               )}
             </div>

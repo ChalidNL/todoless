@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft, Lock, Unlock, User, CalendarDays } from 'lucide-react';
+import { t } from '../../i18n/translations';
 import { AttributeChip } from './AttributeChip';
 import { LabelBadge } from './LabelBadge';
 import { entityColor } from '../../lib/entity-colors';
@@ -94,6 +95,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 <button
                   onClick={decreaseQuantity}
                   className="hover:bg-neutral-200 rounded p-0.5"
+                  aria-label={t('items.decreaseQuantity')}
                 >
                   <Minus className="w-3 h-3 text-neutral-600" />
                 </button>
@@ -103,6 +105,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 <button
                   onClick={increaseQuantity}
                   className="hover:bg-neutral-200 rounded p-0.5"
+                  aria-label={t('items.increaseQuantity')}
                 >
                   <Plus className="w-3 h-3 text-neutral-600" />
                 </button>
@@ -114,10 +117,10 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {(item.createdBy || (item.assignedTo && item.assignedTo !== item.createdBy) || currentShop || item.dueDate) && (
             <div className="flex flex-wrap items-center gap-1 mb-2">
               {item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || 'Unknown'} color={entityColor(item.createdBy)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.createdBy)?.firstName || t('common.unknown')} color={entityColor(item.createdBy)} />
               )}
               {item.assignedTo && item.assignedTo !== item.createdBy && (
-                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || 'Unknown'} color={entityColor(item.assignedTo)} onClick={() => toggleChipFilter('assignee', item.assignedTo!, users.find(u => u.id === item.assignedTo)?.firstName || '', entityColor(item.assignedTo!))} active={isChipFilterActive('assignee', item.assignedTo!)} />
+                <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={users.find(u => u.id === item.assignedTo)?.firstName || t('common.unknown')} color={entityColor(item.assignedTo)} onClick={() => toggleChipFilter('assignee', item.assignedTo!, users.find(u => u.id === item.assignedTo)?.firstName || '', entityColor(item.assignedTo!))} active={isChipFilterActive('assignee', item.assignedTo!)} />
               )}
               {currentShop && (
                 <AttributeChip icon={<ShoppingCart className="w-3.5 h-3.5" />} label={currentShop.name} color={currentShop.color} onClick={() => toggleChipFilter('shop', currentShop.id, currentShop.name, currentShop.color)} active={isChipFilterActive('shop', currentShop.id)} />
@@ -141,7 +144,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   setShowShopSelector(!showShopSelector);
                 }}
                 className={`p-1.5 rounded transition-colors ${showShopSelector ? 'bg-blue-100' : 'hover:bg-neutral-100'}`}
-                title="Select Shop"
+                title={t('items.selectShopTooltip')}
               >
                 <ShoppingCart className={`w-4 h-4 ${currentShop ? 'text-blue-500' : 'text-neutral-400'}`} />
               </button>
@@ -153,7 +156,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   setShowAssigneeSelector(!showAssigneeSelector);
                 }}
                 className={`p-1.5 rounded transition-colors ${showAssigneeSelector ? 'bg-black' : 'hover:bg-neutral-100'}`}
-                title="Assignee"
+                title={t('items.assigneeTooltip')}
               >
                 <User className={`w-4 h-4 ${showAssigneeSelector ? 'text-white' : item.assignedTo ? 'text-blue-500' : 'text-neutral-400'}`} />
               </button>
@@ -162,7 +165,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               <button
                 onClick={() => convertItemToTask(item.id)}
                 className="p-1.5 rounded transition-colors hover:bg-neutral-100"
-                title="Convert to Task"
+                title={t('items.convertToTaskTooltip')}
               >
                 <ToggleLeft className="w-4 h-4 text-neutral-400" />
               </button>
@@ -171,7 +174,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               <button
                 onClick={() => updateItem(item.id, { isPrivate: !item.isPrivate })}
                 className="p-1.5 rounded transition-colors hover:bg-neutral-100"
-                title={item.isPrivate ? 'Private (only you)' : 'Shared with family'}
+                title={item.isPrivate ? t('items.privateTooltip') : t('items.sharedTooltip')}
               >
                 {item.isPrivate ? (
                   <Lock className="w-4 h-4 text-purple-500" />
@@ -185,7 +188,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 <button
                   onClick={handleRestock}
                   className="p-1.5 rounded transition-colors hover:bg-neutral-100"
-                  title="Restock (add back to shopping list)"
+                  title={t('items.restockTooltip')}
                 >
                   <RotateCcw className="w-4 h-4 text-green-500" />
                 </button>
@@ -196,7 +199,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               <button
                 onClick={() => setShowActions(!showActions)}
                 className="p-1.5 hover:bg-neutral-100 rounded transition-colors"
-                title="Delete"
+                title={t('common.delete')}
               >
                 <Trash2 className="w-4 h-4 text-neutral-400" />
               </button>
@@ -206,7 +209,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {/* Shop selector with search/create */}
           {showShopSelector && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              <div className="text-xs text-neutral-600 mb-2">Shop</div>
+              <div className="text-xs text-neutral-600 mb-2">{t('items.shopSelectorLabel')}</div>
               <input
                 type="text"
                 value={shopSearchQuery}
@@ -216,7 +219,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                     handleCreateShop();
                   }
                 }}
-                placeholder="Search or create shop..."
+                placeholder={t('items.searchOrCreateShopPlaceholder')}
                 className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded mb-2"
                 autoFocus
               />
@@ -236,7 +239,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   onClick={handleCreateShop}
                   className="w-full mt-2 px-2 py-1.5 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                  Create "{shopSearchQuery}"
+                  {t('items.createShopButton')} &quot;{shopSearchQuery}&quot;
                 </button>
               )}
             </div>
@@ -245,12 +248,12 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
           {/* Assignee selector with search */}
           {showAssigneeSelector && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              <div className="text-xs text-neutral-600 mb-2">Assign to</div>
+              <div className="text-xs text-neutral-600 mb-2">{t('items.assignToLabel')}</div>
               <input
                 type="text"
                 value={assigneeSearchQuery}
                 onChange={(e) => setAssigneeSearchQuery(e.target.value)}
-                placeholder="Search users..."
+                placeholder={t('items.searchUsersPlaceholder')}
                 className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded mb-2"
                 autoFocus
               />
@@ -286,7 +289,7 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                 }}
                 className="text-xs text-red-600 hover:text-red-700"
               >
-                Confirm delete
+                {t('items.confirmDelete')}
               </button>
             </div>
           )}

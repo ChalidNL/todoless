@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { Inbox, Clock, AlertTriangle, X as XIcon, Save, Check, ArrowRight } from 'lucide-react';
+import { t } from '../i18n/translations';
 
 export const InboxBacklog = () => {
   const { tasks, updateTask, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
@@ -96,10 +97,10 @@ export const InboxBacklog = () => {
 
   const displayedTasks = getFilteredTasks();
   const statusSections = [
-    { key: 'backlog', label: 'Inbox', value: backlogCount, icon: <Inbox className="w-4 h-4 text-blue-500" /> },
-    { key: 'todo', label: 'Todo', value: todoCount, icon: <Clock className="w-4 h-4 text-green-500" /> },
-    { key: 'done-today', label: 'Done Today', value: doneToday, icon: <Clock className="w-4 h-4 text-emerald-500" /> },
-    { key: 'blocked', label: 'Blocked', value: blockedCount, icon: <AlertTriangle className="w-4 h-4 text-red-500" /> },
+    { key: 'backlog', label: t('inbox.title'), value: backlogCount, icon: <Inbox className="w-4 h-4 text-blue-500" /> },
+    { key: 'todo', label: t('inbox.todo'), value: todoCount, icon: <Clock className="w-4 h-4 text-green-500" /> },
+    { key: 'done-today', label: t('inbox.doneToday'), value: doneToday, icon: <Clock className="w-4 h-4 text-emerald-500" /> },
+    { key: 'blocked', label: t('inbox.blocked'), value: blockedCount, icon: <AlertTriangle className="w-4 h-4 text-red-500" /> },
   ];
 
   const hasAnyFilter = activeStatusFilter || activeChipFilters.some((f) => f.type !== 'status');
@@ -146,7 +147,7 @@ export const InboxBacklog = () => {
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
-          searchPlaceholder="Search inbox..."
+          searchPlaceholder={t('inbox.searchPlaceholder')}
         />
       </div>
 
@@ -156,8 +157,8 @@ export const InboxBacklog = () => {
             <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
               <span className="text-xs font-semibold text-neutral-600">
                 {displayedTasks.length > 0
-                  ? `Tasks (${displayedTasks.length})`
-                  : 'No results'}
+                  ? `${t('common.tasks')} (${displayedTasks.length})`
+                  : t('inbox.noResults')}
               </span>
               <div className="flex gap-1 flex-1 flex-wrap">
                 {activeChipFilters.map((f) => (
@@ -183,15 +184,15 @@ export const InboxBacklog = () => {
               <button
                 onClick={clearChipFilters}
                 className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title="Clear all filters"
+                title={t('common.clearAllTooltip')}
               >
                 <XIcon className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => showCompletionMessage('Filter saved (not yet implemented)')}
                 className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title="Save filter"
-                aria-label="Save filter"
+                title={t('common.save')}
+                aria-label={t('common.save')}
               >
                 <Save className="w-3.5 h-3.5" />
               </button>
@@ -233,13 +234,13 @@ export const InboxBacklog = () => {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-                    {statusSections.find((s) => s.key === activeStatusFilter)?.label || 'Tasks'} ({displayedTasks.length})
+                    {statusSections.find((s) => s.key === activeStatusFilter)?.label || t('common.tasks')} ({displayedTasks.length})
                   </h2>
                 </div>
                 {displayedTasks.length === 0 ? (
                   <div className="text-center py-16">
                     <Inbox className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-                    <p className="text-neutral-400 text-sm">No tasks in this section</p>
+                    <p className="text-neutral-400 text-sm">{t('inbox.noTasksFound')}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -253,7 +254,7 @@ export const InboxBacklog = () => {
               <>
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-                    Inbox ({displayedTasks.length})
+                    {t('inbox.title')} ({displayedTasks.length})
                   </h2>
                   <div className="flex items-center gap-1">
                     {displayedTasks.length > 0 && !isSelecting && (
@@ -261,7 +262,7 @@ export const InboxBacklog = () => {
                         onClick={enterSelectMode}
                         className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
                       >
-                        Select
+                        {t('inbox.selectAll')}
                       </button>
                     )}
                     {isSelecting && (
@@ -276,13 +277,13 @@ export const InboxBacklog = () => {
                           }}
                           className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
                         >
-                          {selectedIds.size === displayedTasks.length ? 'Deselect all' : 'Select all'}
+                          {selectedIds.size === displayedTasks.length ? t('inbox.deselectAll') : t('inbox.selectAll')}
                         </button>
                         <button
                           onClick={exitSelectMode}
                           className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
                         >
-                          Cancel
+                          {t('common.cancel')}
                         </button>
                       </>
                     )}
@@ -291,7 +292,7 @@ export const InboxBacklog = () => {
                 {displayedTasks.length === 0 ? (
                   <div className="text-center py-16">
                     <Inbox className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-                    <p className="text-neutral-400 text-sm">Inbox is empty</p>
+                    <p className="text-neutral-400 text-sm">{t('inbox.inboxIsEmpty')}</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -305,7 +306,7 @@ export const InboxBacklog = () => {
                                 ? 'bg-neutral-900 border-neutral-900 text-white'
                                 : 'border-neutral-300 hover:border-neutral-500'
                             }`}
-                            aria-label={selectedIds.has(task.id) ? 'Deselect' : 'Select'}
+                            aria-label={selectedIds.has(task.id) ? t('inbox.deselectAll') : t('inbox.selectAll')}
                           >
                             {selectedIds.has(task.id) && <Check className="w-3 h-3" />}
                           </button>
@@ -327,14 +328,14 @@ export const InboxBacklog = () => {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 shadow-lg pb-[env(safe-area-inset-bottom,0px)]">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium text-neutral-600">
-              {selectedIds.size} selected
+              {selectedIds.size} {t('inbox.selectAll').toLowerCase()}
             </span>
             <button
               onClick={pushSelected}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors active:scale-95"
             >
               <ArrowRight className="w-4 h-4" />
-              Push
+              {t('inbox.pushSelected')}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Filter, X, Check, Circle, AlertCircle, Flag, User, Tag, Zap, ShoppingCart, MapPin, CalendarDays, Repeat, CheckSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { t } from '../../i18n/translations';
 import { LabelBadge } from './LabelBadge';
 import { Priority, Horizon, TaskStatus } from '../../types';
 
@@ -19,7 +20,7 @@ export const NewGlobalHeader = ({
   onSearch, 
   onAdd, 
   onFilter,
-  searchPlaceholder = "Search...",
+  searchPlaceholder = t('common.searchDot'),
   type = 'task',
   showFilters = true,
   showSearch = true,
@@ -248,7 +249,7 @@ export const NewGlobalHeader = ({
                 className={`p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 ${
                   showFilterPanel ? 'bg-neutral-800' : ''
                 }`}
-                title="Filters"
+                title={t('common.filtersTooltip')}
               >
                 <Filter className="w-4 h-4" />
               </button>
@@ -273,7 +274,7 @@ export const NewGlobalHeader = ({
               <button
                 onClick={handleAdd}
                 className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
-                title="Add"
+                title={t('common.addTooltip')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -291,7 +292,7 @@ export const NewGlobalHeader = ({
               <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Tag className="w-3.5 h-3.5 text-neutral-600" />
-                  <span className="text-xs font-medium text-neutral-700">Labels</span>
+                  <span className="text-xs font-medium text-neutral-700">{t('tasks.labels')}</span>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {labels.map(label => (
@@ -316,7 +317,7 @@ export const NewGlobalHeader = ({
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Circle className="w-3.5 h-3.5 text-neutral-600" />
-                    <span className="text-xs font-medium text-neutral-700">Status</span>
+                    <span className="text-xs font-medium text-neutral-700">{t('tasks.status')}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(['backlog', 'todo', 'done'] as TaskStatus[]).map(status => (
@@ -330,7 +331,7 @@ export const NewGlobalHeader = ({
                         }`}
                       >
                         {getStatusIcon(status)}
-                        {status}
+                        {status === 'backlog' ? t('tasks.statusBacklog') : status === 'todo' ? t('tasks.statusTodo') : t('tasks.statusDone')}
                       </button>
                     ))}
                   </div>
@@ -340,7 +341,7 @@ export const NewGlobalHeader = ({
                 <div>
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Flag className="w-3.5 h-3.5 text-neutral-600" />
-                    <span className="text-xs font-medium text-neutral-700">Priority</span>
+                    <span className="text-xs font-medium text-neutral-700">{t('tasks.priority')}</span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {(['urgent', 'normal', 'low'] as Priority[]).map(priority => (
@@ -354,7 +355,7 @@ export const NewGlobalHeader = ({
                         }`}
                       >
                         {getPriorityIcon(priority)}
-                        {priority}
+                        {priority === 'urgent' ? t('tasks.priorityUrgent') : priority === 'normal' ? t('tasks.priorityNormal') : t('tasks.priorityLow')}
                       </button>
                     ))}
                   </div>
@@ -365,7 +366,7 @@ export const NewGlobalHeader = ({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <User className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">Assigned</span>
+                      <span className="text-xs font-medium text-neutral-700">{t('tasks.assignedFilterHeader')}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {/* @me filter */}
@@ -379,7 +380,7 @@ export const NewGlobalHeader = ({
                           }`}
                         >
                           <User className="w-3 h-3" />
-                          @me
+                          {t('tasks.assignedToMe')}
                         </button>
                       )}
                       {users.map(user => (
@@ -411,7 +412,7 @@ export const NewGlobalHeader = ({
                     }`}
                   >
                     <Zap className="w-3 h-3" />
-                    Sprint
+                    {t('tasks.sprintFilter')}
                   </button>
                   <button
                     onClick={() => setBlocked(blocked === true ? undefined : true)}
@@ -422,7 +423,7 @@ export const NewGlobalHeader = ({
                     }`}
                   >
                     <AlertCircle className="w-3 h-3" />
-                    Blocked
+                    {t('tasks.blockedFilter')}
                   </button>
                 </div>
               </>
@@ -436,7 +437,7 @@ export const NewGlobalHeader = ({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <ShoppingCart className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">Shops</span>
+                      <span className="text-xs font-medium text-neutral-700">{t('items.shopsFilterHeader')}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {shops.map(shop => (
@@ -459,7 +460,7 @@ export const NewGlobalHeader = ({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <MapPin className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">Location</span>
+                      <span className="text-xs font-medium text-neutral-700">{t('items.locationFilterHeader')}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {getUniqueLocations().map(location => (
@@ -489,7 +490,7 @@ export const NewGlobalHeader = ({
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <User className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">Assigned</span>
+                      <span className="text-xs font-medium text-neutral-700">{t('calendar.assignedFilterHeader')}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {appSettings.currentUserId && (
@@ -502,7 +503,7 @@ export const NewGlobalHeader = ({
                           }`}
                         >
                           <User className="w-3 h-3" />
-                          @me
+                          {t('calendar.assignedToMe')}
                         </button>
                       )}
                       {users.map(user => (
@@ -532,7 +533,7 @@ export const NewGlobalHeader = ({
                   }`}
                 >
                   <Repeat className="w-3 h-3" />
-                  Recurring
+                  {t('calendar.recurringFilter')}
                 </button>
               </>
             )}
@@ -548,7 +549,7 @@ export const NewGlobalHeader = ({
                 }`}
               >
                 <Check className="w-3 h-3" />
-                Completed
+                {t('common.completed')}
               </button>
             </div>
 
@@ -558,7 +559,7 @@ export const NewGlobalHeader = ({
               className="w-full px-3 py-1.5 bg-white border border-neutral-200 rounded text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50"
             >
               <X className="w-3.5 h-3.5" />
-              Clear All
+              {t('common.clearAllTooltip')}
             </button>
           </div>
         </div>

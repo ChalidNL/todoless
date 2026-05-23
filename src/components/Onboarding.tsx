@@ -5,6 +5,7 @@ import { useAuth } from './AuthProvider';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { AppLogo } from './shared/AppLogo';
+import { useLanguage } from '../context/LanguageContext';
 
 interface OnboardingProps {
   mode: 'admin' | 'user' | 'info';
@@ -13,6 +14,7 @@ interface OnboardingProps {
 
 export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const { updateAppSettings } = useApp();
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,13 +31,13 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const infoSteps = [
     {
       icon: <Sparkles className="w-16 h-16 text-neutral-900" />,
-      title: 'Welcome to todoless-ngx',
-      description: 'Your daily assistant for quick, simple productivity without overwhelm.',
+      title: t('onboarding.welcome'),
+      description: t('onboarding.step1Desc'),
     },
     {
       icon: <ShoppingCart className="w-16 h-16 text-neutral-900" />,
-      title: 'Simple Groceries',
-      description: 'Track groceries with quantities and stores. Keep your shopping list simple and organized.',
+      title: t('onboarding.step2Title'),
+      description: t('onboarding.step2Desc'),
     },
   ];
 
@@ -43,13 +45,13 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     ...infoSteps,
     {
       icon: <Users className="w-16 h-16 text-neutral-900" />,
-      title: 'Name Your Workspace',
-      description: 'Give your household a name. This is the main entity all members share.',
+      title: t('onboarding.step3Title'),
+      description: t('onboarding.step3Desc'),
     },
     {
       icon: <UserPlus className="w-16 h-16 text-neutral-900" />,
-      title: 'Create Admin Account',
-      description: 'Set up your administrator account to get started.',
+      title: t('onboarding.step4Title'),
+      description: t('onboarding.step4Desc'),
     },
   ];
 
@@ -57,8 +59,8 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     ...infoSteps,
     {
       icon: <Check className="w-16 h-16 text-neutral-900" />,
-      title: "Let's Start",
-      description: 'Ready to unload your mind and get organized?',
+      title: t('onboarding.stepUserTitle'),
+      description: t('onboarding.stepUserDesc'),
     },
   ];
 
@@ -72,7 +74,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const handleNext = () => {
     if (showFamilyForm) {
       if (!familyName.trim()) {
-        setError('Please enter a workspace name');
+        setError(t('onboarding.pleaseEnterWorkspaceName'));
         return;
       }
       setError('');
@@ -98,31 +100,31 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const handleCreateAdmin = async () => {
     // Validate all fields upfront with clear messages
     if (!firstName.trim()) {
-      setError('Please enter your first name');
+      setError(t('onboarding.pleaseEnterFirstName'));
       return;
     }
     if (!email.trim()) {
-      setError('Please enter your email');
+      setError(t('onboarding.pleaseEnterEmail'));
       return;
     }
     if (!password) {
-      setError('Please enter a password');
+      setError(t('onboarding.pleaseEnterPassword'));
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('onboarding.passwordMinLength'));
       return;
     }
     if (!passwordConfirm) {
-      setError('Please confirm your password');
+      setError(t('onboarding.pleaseConfirmPassword'));
       return;
     }
     if (password !== passwordConfirm) {
-      setError('Passwords do not match');
+      setError(t('onboarding.passwordsDoNotMatch'));
       return;
     }
     if (!familyName.trim()) {
-      setError('Workspace name is missing — go back and enter it');
+      setError(t('onboarding.workspaceNameMissing'));
       return;
     }
 
@@ -138,11 +140,11 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     } catch (e: any) {
       const msg = e?.message || '';
       if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('already')) {
-        setError('This email is already in use. Try logging in.');
+        setError(t('onboarding.emailAlreadyInUse'));
       } else if (msg.toLowerCase().includes('password')) {
-        setError('Password does not meet requirements: minimum 8 characters');
+        setError(t('onboarding.passwordDoesNotMeetRequirements'));
       } else {
-        setError(msg || 'Account creation failed. Please try again.');
+        setError(msg || t('onboarding.accountCreationFailed'));
       }
     } finally {
       setIsSubmitting(false);
@@ -173,7 +175,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
           onClick={handleSkip}
           className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
         >
-          {isInfo ? 'Go to login' : 'Skip'}
+          {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
         </button>
       </div>
 
@@ -196,7 +198,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
             <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">First name *</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.firstName')}</label>
                 <input
                   type="text"
                   value={firstName}
@@ -208,7 +210,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Last name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.lastName')}</label>
                 <input
                   type="text"
                   value={lastName}
@@ -216,11 +218,11 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
                   placeholder="Doe"
                 />
-                <p className="text-xs text-neutral-500 mt-1">Pre-filled with your workspace name, you can change it</p>
+                <p className="text-xs text-neutral-500 mt-1">{t('onboarding.prefilledWithWorkspace')}</p>
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Email</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.email')}</label>
                 <input
                   type="email"
                   value={email}
@@ -231,7 +233,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
               </div>
 
               <div className="relative">
-                <label className="block text-sm text-neutral-600 mb-1">Password</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.password')}</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -249,7 +251,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Confirm password</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.confirmPassword')}</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={passwordConfirm}
@@ -268,11 +270,11 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                 disabled={isSubmitting}
                 className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Creating account…' : 'Create account'}
+                {isSubmitting ? t('onboarding.creatingAccount') : t('onboarding.createAccount')}
               </button>
 
               <p className="text-xs text-neutral-500 text-center">
-                This is the only account that can invite new users.
+                {t('onboarding.thisIsTheOnlyAccount')}
               </p>
             </div>
           </div>
@@ -293,7 +295,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
             <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Workspace name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.workspaceName')}</label>
                 <input
                   type="text"
                   value={familyName}
@@ -312,7 +314,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                 onClick={handleNext}
                 className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
               >
-                Next
+                {t('onboarding.next')}
               </button>
             </div>
           </div>
@@ -350,9 +352,9 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
             >
               {isLastStep
                 ? isInfo
-                  ? 'Go to login'
-                  : 'Get started'
-                : 'Next'}
+                  ? t('onboarding.goToLogin')
+                  : t('onboarding.getStarted')
+                : t('onboarding.next')}
             </button>
           </>
         )}

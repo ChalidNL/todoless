@@ -287,7 +287,7 @@ export const InviteManager = () => {
                     <button
                       onClick={() => handleCopyToken(currentToken)}
                       className="p-2 bg-amber-600 text-white rounded hover:bg-amber-700 shrink-0"
-                      title="Copy token"
+                      title={t('invite.copyToken')}
                     >
                       <Copy className="w-4 h-4" />
                     </button>

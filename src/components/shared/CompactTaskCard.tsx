@@ -3,6 +3,7 @@ import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X } from 'lucide-react';
+import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -24,19 +25,19 @@ type TaskEditor = 'labels' | 'assignee' | 'schedule' | null;
 const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
     <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
-      <p className="text-sm font-medium text-neutral-900 mb-4">Weet je het zeker?</p>
+      <p className="text-sm font-medium text-neutral-900 mb-4">{t('common.confirmDeleteTitle')}</p>
       <div className="flex gap-2 justify-end">
         <button
           onClick={onCancel}
           className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
         >
-          Nee
+          {t('common.no')}
         </button>
         <button
           onClick={onConfirm}
           className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
         >
-          Ja, verwijderen
+          {t('common.confirm')}
         </button>
       </div>
     </div>
@@ -52,13 +53,13 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
           onClick={onCancel}
           className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
         >
-          Annuleren
+          {t('common.cancel')}
         </button>
         <button
           onClick={onConfirm}
           className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
         >
-          {confirmLabel || 'Bevestigen'}
+          {confirmLabel || t('common.confirm')}
         </button>
       </div>
     </div>
@@ -104,7 +105,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
     : null;
 
   const repeatLabel = task.repeatInterval
-    ? { day: 'Daily', week: 'Weekly', month: 'Monthly', year: 'Yearly' }[task.repeatInterval]
+    ? { day: t('common.repeatDaily'), week: t('common.repeatWeekly'), month: t('common.repeatMonthly'), year: t('common.repeatYearly') }[task.repeatInterval]
     : null;
 
   // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
@@ -199,7 +200,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                     ? 'bg-neutral-900 border-neutral-900 text-white'
                     : 'border-neutral-300 hover:border-neutral-500'
                 }`}
-                aria-label={isDone ? 'Mark as not done' : 'Mark as done'}
+                aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
               >
                 {isDone && <Check className="w-3 h-3" />}
               </button>
@@ -229,7 +230,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 className={`text-sm font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
                   isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
                 }`}
-                aria-label="Edit task title"
+                aria-label={t('tasks.editTaskTitle')}
               />
             ) : (
             <span className={`text-sm font-medium flex-1 truncate ${
@@ -248,7 +249,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 if (next) setTitleDraft(task.title);
               }}
               className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
-              aria-label={showMenu ? 'Close task editor' : 'Open task editor'}
+              aria-label={showMenu ? t('common.closeEditor') : t('common.openEditor')}
             >
               {showMenu 
                 ? <ChevronUp className="w-4 h-4 text-neutral-600 transition-transform duration-200" /> 
@@ -313,7 +314,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           {/* Subtasks list — visible when card is expanded */}{showMenu && subtaskCount > 0 && (
             <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
               <div className="px-1">
-                <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
+                <span className="text-xs font-medium text-neutral-500">{t('tasks.subtasks')} ({subtaskCount})</span>
               </div>
               {subtasks.map((subtask) => (
                 <div key={subtask.id} className="flex items-center gap-2 pl-2 py-1 bg-neutral-50 rounded border border-neutral-100">
@@ -330,7 +331,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                         ? 'bg-neutral-900 border-neutral-900 text-white'
                         : 'border-neutral-300 hover:border-neutral-500'
                     }`}
-                    aria-label={subtask.status === 'done' ? 'Mark subtask as not done' : 'Mark subtask as done'}
+                    aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
                   >
                     {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
                   </button>
@@ -357,15 +358,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                         await api.createSubtask(title, task.id);
                         setSubtaskTitle('');
                         await refreshEntries();
-                        showCompletionMessage('Subtask added');
+                        showCompletionMessage(t('tasks.subtaskAdded'));
                       } catch (err: any) {
-                        showCompletionMessage(err.message || 'Failed to create subtask');
+                        showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
                       }
                     }
                   }}
-                  placeholder="Add subtask..."
+                  placeholder={t('tasks.addSubtaskPlaceholder')}
                   className="flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
-                  aria-label="New subtask title"
+                  aria-label={t('tasks.newSubtaskTitle')}
                 />
                 <button
                   onClick={async () => {
@@ -375,15 +376,15 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       await api.createSubtask(title, task.id);
                       setSubtaskTitle('');
                       await refreshEntries();
-                      showCompletionMessage('Subtask added');
+                      showCompletionMessage(t('tasks.subtaskAdded'));
                     } catch (err: any) {
-                      showCompletionMessage(err.message || 'Failed to create subtask');
+                      showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
                     }
                   }}
                   className="px-2 py-1.5 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
-                  aria-label="Add subtask"
+                  aria-label={t('tasks.addSubtask')}
                 >
-                  Add
+                  {t('common.add')}
                 </button>
               </div>
             </div>
@@ -402,8 +403,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="#label"
-                  aria-label="Edit labels"
+                  title={t('tasks.labelTooltip')}
+                  aria-label={t('tasks.editLabels')}
                 >
                   <Tag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -418,8 +419,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       ? 'bg-green-100 text-green-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="@assignee"
-                  aria-label="Edit assignee"
+                  title={t('tasks.assigneeTooltip')}
+                  aria-label={t('tasks.editAssignee')}
                 >
                   <User className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -430,8 +431,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       ? 'bg-orange-100 text-orange-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="//schedule"
-                  aria-label="Edit schedule"
+                  title={t('tasks.scheduleTooltip')}
+                  aria-label={t('tasks.editSchedule')}
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -442,24 +443,24 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                       ? 'bg-purple-100 text-purple-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="subtasks"
-                  aria-label="View subtasks"
+                  title={t('tasks.subtasksTooltip')}
+                  aria-label={t('tasks.viewSubtasks')}
                 >
                   <SubtaskIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
                   className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="flag"
-                  aria-label="Toggle flag"
+                  title={t('tasks.flagTooltip')}
+                  aria-label={t('tasks.toggleFlag')}
                 >
                   <Flag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => swapEntity(task.id)}
                   className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
-                  title="swap to grocery"
-                  aria-label="Swap to grocery item"
+                  title={t('tasks.swapToGroceryTooltip')}
+                  aria-label={t('tasks.swapToGroceryItem')}
                 >
                   <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -469,8 +470,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   onMouseEnter={() => setIsDeleteHover(true)}
                   onMouseLeave={() => setIsDeleteHover(false)}
                   className={`p-1.5 rounded transition-colors ${isDeleteHover ? 'bg-red-100 text-red-700' : 'text-red-600 hover:bg-red-50'}`}
-                  title="delete"
-                  aria-label="Delete task"
+                  title={t('common.delete')}
+                  aria-label={t('tasks.deleteTask')}
                 >
                   <Trash2 className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -499,16 +500,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                           setLabelInput('');
                         }
                       }}
-                      placeholder="Type + Enter..."
+                      placeholder={t('tasks.labelInputPlaceholder')}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label="Label input"
+                      aria-label={t('tasks.labelInputAria')}
                     />
                     {hasLabels && (
                       <button
                         onClick={clearAllLabels}
                         className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label="Clear all labels"
-                        title="Clear all labels"
+                        aria-label={t('tasks.clearAllLabels')}
+                        title={t('common.clearAllTooltip')}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -559,16 +560,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                         }
                         if (e.key === 'Escape') setActiveEditor(null);
                       }}
-                      placeholder="Search team..."
+                      placeholder={t('tasks.searchAssigneePlaceholder')}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label="Search assignee"
+                      aria-label={t('tasks.searchAssigneeAria')}
                     />
                     {hasAssignee && (
                       <button
                         onClick={clearAssignee}
                         className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label="Clear assignee"
-                        title="Remove assignee"
+                        aria-label={t('tasks.clearAssigneeAria')}
+                        title={t('tasks.removeAssignee')}
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -618,7 +619,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                         updateTask(task.id, { dueDate: new Date(`${e.target.value}T${t}:00`).getTime() });
                       }}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label="Due date"
+                      aria-label={t('tasks.dueDateAria')}
                     />
                     <input
                       type="time"
@@ -628,19 +629,19 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                         updateTask(task.id, { dueDate: new Date(`${dateValue}T${e.target.value || '00:00'}:00`).getTime() });
                       }}
                       className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label="Due time"
+                      aria-label={t('tasks.dueTimeAria')}
                     />
                     <select
                       value={task.repeatInterval || ''}
                       onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || null) as RepeatInterval | null })}
                       className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label="Recurring interval"
+                      aria-label={t('tasks.recurringIntervalAria')}
                     >
-                      <option value="">No repeat</option>
-                      <option value="day">Daily</option>
-                      <option value="week">Weekly</option>
-                      <option value="month">Monthly</option>
-                      <option value="year">Yearly</option>
+                      <option value="">{t('common.noRepeat')}</option>
+                      <option value="day">{t('common.repeatDaily')}</option>
+                      <option value="week">{t('common.repeatWeekly')}</option>
+                      <option value="month">{t('common.repeatMonthly')}</option>
+                      <option value="year">{t('common.repeatYearly')}</option>
                     </select>
                   </div>
                 </div>

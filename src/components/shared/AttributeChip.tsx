@@ -1,4 +1,5 @@
 import React from 'react';
+import { t } from '../../i18n/translations';
 
 interface AttributeChipProps {
   icon?: React.ReactNode;
@@ -49,7 +50,7 @@ export const AttributeChip = ({ icon, label, color, muted, active, onClick, onRe
             onRemove(e);
           }}
           className="ml-0.5 hover:opacity-70 leading-none text-current"
-          aria-label={`Remove ${label}`}
+          aria-label={`${t('common.remove')} ${label}`}
         >
           ×
         </button>

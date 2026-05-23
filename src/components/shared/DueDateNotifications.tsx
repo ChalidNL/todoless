@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { t } from '../../i18n/translations';
 import { AlertCircle, X, Clock } from 'lucide-react';
 
 export const DueDateNotifications = () => {
@@ -52,13 +53,13 @@ export const DueDateNotifications = () => {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours < 0) {
-      return 'Overdue';
+      return t('common.overdue');
     } else if (hours === 0) {
-      return `${minutes}m left`;
+      return t('common.minutesLeft').replace('{n}', String(minutes));
     } else if (hours < 24) {
-      return `${hours}h left`;
+      return t('common.hoursLeft').replace('{n}', String(hours));
     }
-    return 'Due soon';
+    return t('common.dueSoon');
   };
 
   return (
@@ -69,7 +70,7 @@ export const DueDateNotifications = () => {
             <div key={task.id} className="flex items-center gap-3 px-4 py-2 border-b border-amber-600 last:border-b-0">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{task.title || 'Untitled task'}</p>
+                <p className="text-sm font-medium truncate">{task.title || t('tasks.untitledTask')}</p>
                 <div className="flex items-center gap-1 mt-0.5">
                   <Clock className="w-3 h-3" />
                   <span className="text-xs">{formatTimeUntilDue(task.dueDate!)}</span>

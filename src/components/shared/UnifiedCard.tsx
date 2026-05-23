@@ -3,6 +3,7 @@ import { Task, Item, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X } from 'lucide-react';
+import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -106,11 +107,11 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
     <div
       ref={cardRef}
       onClick={trackInteraction}
-      className={`rounded-lg border transition-colors ${""}
-      isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
-    } ${""}
-      isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
-    } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
+      className={`rounded-lg border transition-colors ${
+        isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
+      } ${
+        isTaskFlagged ? '!bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
+      } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
       <div className="p-2.5">
         {/* Line 1: checkbox + title + badge(s) + hamburger */}
         <div className="flex items-center gap-2">
@@ -122,7 +123,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 ? 'bg-neutral-900 border-neutral-900 text-white'
                 : 'border-neutral-300 hover:border-neutral-500'
             }`}
-            aria-label={isDone ? 'Mark as not done' : 'Mark as done'}
+            aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
           >
             {isDone && <Check className="w-3 h-3" />}
           </button>
@@ -152,7 +153,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               className={`text-sm font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
                 isDone ? 'line-through text-neutral-400' : 'text-neutral-900'
               }`}
-              aria-label="Edit title"
+              aria-label={t('common.editTitle')}
             />
           ) : (
           <span className={`text-sm font-medium flex-1 truncate ${
@@ -173,7 +174,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <button
                 onClick={() => setQuantity(quantity - 1)}
                 className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
-                aria-label="Decrease quantity"
+                aria-label={t('items.decreaseQuantity')}
               >
                 -
               </button>
@@ -183,7 +184,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <button
                 onClick={() => setQuantity(quantity + 1)}
                 className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
-                aria-label="Increase quantity"
+                aria-label={t('items.increaseQuantity')}
               >
                 +
               </button>
@@ -198,7 +199,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               if (!showMenu) setTitleDraft(entity.title);
             }}
             className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
-            aria-label={showMenu ? 'Close editor' : 'Open editor'}
+            aria-label={showMenu ? t('common.closeEditor') : t('common.openEditor')}
           >
             {showMenu ? <ChevronUp className="w-4 h-4 text-neutral-600" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
           </button>
@@ -260,7 +261,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Subtasks list (tasks only) — visible when card is expanded */}{isTask && showMenu && subtaskCount > 0 && (
           <div className="mt-2 pt-2 border-t border-neutral-100 space-y-1.5">
             <div className="px-1">
-              <span className="text-xs font-medium text-neutral-500">Subtasks ({subtaskCount})</span>
+              <span className="text-xs font-medium text-neutral-500">{t('tasks.subtasks')} ({subtaskCount})</span>
             </div>
             {subtasks.map((subtask) => (
               <div key={subtask.id} className="flex items-center gap-2 pl-2 py-1 bg-neutral-50 rounded border border-neutral-100">
@@ -277,7 +278,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       ? 'bg-neutral-900 border-neutral-900 text-white'
                       : 'border-neutral-300 hover:border-neutral-500'
                   }`}
-                  aria-label={subtask.status === 'done' ? 'Mark subtask as not done' : 'Mark subtask as done'}
+                  aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
                 >
                   {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
                 </button>
@@ -304,15 +305,15 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       await api.createSubtask(title, task!.id);
                       setSubtaskTitle('');
                       await refreshEntries();
-                      showCompletionMessage('Subtask added');
+                      showCompletionMessage(t('tasks.subtaskAdded'));
                     } catch (err: any) {
-                      showCompletionMessage(err.message || 'Failed to create subtask');
+                      showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
                     }
                   }
                 }}
-                placeholder="Add subtask..."
+                placeholder={t('tasks.addSubtaskPlaceholder')}
                 className="flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
-                aria-label="New subtask title"
+                aria-label={t('tasks.newSubtaskTitle')}
               />
               <button
                 onClick={async () => {
@@ -322,15 +323,15 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     await api.createSubtask(title, task!.id);
                     setSubtaskTitle('');
                     await refreshEntries();
-                    showCompletionMessage('Subtask added');
+                    showCompletionMessage(t('tasks.subtaskAdded'));
                   } catch (err: any) {
-                    showCompletionMessage(err.message || 'Failed to create subtask');
+                    showCompletionMessage(err.message || t('tasks.failedToCreateSubtask'));
                   }
                 }}
                 className="px-2 py-1.5 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
-                aria-label="Add subtask"
+                aria-label={t('tasks.addSubtask')}
               >
-                Add
+                {t('common.add')}
               </button>
             </div>
           </div>
@@ -345,8 +346,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'labels' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="#label"
-                  aria-label="Edit labels"
+                  title={t('tasks.labelTooltip')}
+                  aria-label={t('tasks.editLabels')}
                 >
                   <Tag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -355,8 +356,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'assignee' ? null : 'assignee')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'assignee' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="@assignee"
-                  aria-label="Edit assignee"
+                  title={t('tasks.assigneeTooltip')}
+                  aria-label={t('tasks.editAssignee')}
                 >
                   <User className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -365,8 +366,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
                   className={`p-1.5 rounded transition-colors ${activeEditor === 'schedule' ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="//schedule"
-                  aria-label="Edit schedule"
+                  title={t('tasks.scheduleTooltip')}
+                  aria-label={t('tasks.editSchedule')}
                 >
                   <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -379,8 +380,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       ? 'bg-purple-100 text-purple-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="subtasks"
-                  aria-label="View subtasks"
+                  title={t('tasks.subtasksTooltip')}
+                  aria-label={t('tasks.viewSubtasks')}
                 >
                   <SubtaskIcon className="w-4 h-4" />
                 </button>
@@ -389,8 +390,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={handleToggleFlag}
                   className={`p-1.5 rounded transition-colors ${task!.flag ? 'bg-red-200 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="flag"
-                  aria-label="Toggle flag"
+                  title={t('tasks.flagTooltip')}
+                  aria-label={t('tasks.toggleFlag')}
                 >
                   <Flag className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -403,8 +404,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     if (next) setShopInput('');
                   }}
                   className={`p-1.5 rounded transition-colors ${hasShop || activeEditor === 'shop' ? 'bg-green-100 text-green-700 ring-1 ring-green-300' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="$shop"
-                  aria-label="Edit shop"
+                  title={t('items.selectShopTooltip')}
+                  aria-label={t('tasks.editSchedule')}
                 >
                   <ShoppingCart className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -413,8 +414,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <button
                 onClick={() => swapEntity(entity.id)}
                 className="p-1.5 rounded transition-colors hover:bg-neutral-100 text-neutral-400"
-                title="Swap to grocery/task"
-                aria-label="Swap type"
+                title={t('common.swapType')}
+                aria-label={t('common.swapType')}
               >
                 <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
               </button>
@@ -422,8 +423,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <button
                 onClick={handleDelete}
                 className="p-1.5 rounded text-red-600 hover:bg-red-50"
-                title="delete"
-                aria-label="Delete"
+                title={t('common.delete')}
+                aria-label={t('common.delete')}
               >
                 <Trash2 className="w-4 h-4" strokeWidth={1.75} />
               </button>
@@ -447,9 +448,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     }
                     e.target.value = '';
                   }}
-                  placeholder="Type label + Enter..."
+                  placeholder={t('tasks.labelInputPlaceholder')}
                   className="w-full text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                  aria-label="Label input"
+                  aria-label={t('tasks.labelInputAria')}
                 />
                 <div className="flex flex-wrap gap-1">
                   {labels.map(label => (
@@ -476,7 +477,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   value={entity.dueDate ? new Date(entity.dueDate).toISOString().slice(0, 10) : ''}
                   onChange={(e) => setValue({ dueDate: e.target.value ? new Date(e.target.value).getTime() : null })}
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded flex-1"
-                  aria-label="Due date"
+                  aria-label={t('tasks.dueDateAria')}
                 />
                 <input
                   type="time"
@@ -487,7 +488,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     setValue({ dueDate: new Date(`${dateVal}T${e.target.value || '00:00'}:00`).getTime() });
                   }}
                   className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                  aria-label="Due time"
+                  aria-label={t('tasks.dueTimeAria')}
                 />
               </div>
             )}
@@ -508,9 +509,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       setValue({ assignedTo: null });
                     }
                   }}
-                  placeholder="Search team..."
+                  placeholder={t('tasks.searchAssigneePlaceholder')}
                   className="w-full text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                  aria-label="Search assignee"
+                  aria-label={t('tasks.searchAssigneeAria')}
                 />
               </div>
             )}
@@ -536,16 +537,16 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                         setShopInput('');
                       }
                     }}
-                    placeholder="Type shop + Enter..."
+                    placeholder={t('items.shopInputPlaceholder')}
                     className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                    aria-label="Shop input"
+                    aria-label={t('items.shopInputAria')}
                   />
                   {hasShop && (
                     <button
                       onClick={() => setValue({ shopId: null })}
                       className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                      aria-label="Clear shop"
-                      title="Clear shop"
+                      aria-label={t('items.clearShop')}
+                      title={t('common.clearAllTooltip')}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -573,7 +574,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     </button>
                   ))}
                   {visibleShops.length === 0 && (
-                    <p className="text-xs text-neutral-400 italic">No shops found</p>
+                    <p className="text-xs text-neutral-400 italic">{t('items.noShopsFound')}</p>
                   )}
                 </div>
               </div>

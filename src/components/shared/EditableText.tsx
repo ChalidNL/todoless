@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { t } from '../../i18n/translations';
 
 interface EditableTextProps {
   value: string;
@@ -14,7 +15,7 @@ export const EditableText = ({
   value,
   onChange,
   onDelete,
-  placeholder = 'Type...',
+  placeholder = t('common.typeHere'),
   className = '',
   multiline = false,
   completed = false,

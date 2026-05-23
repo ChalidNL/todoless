@@ -15,6 +15,7 @@ import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, CheckSquare, ShoppingCart, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
+import { t } from './i18n/translations';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -203,10 +204,10 @@ function AppContent() {
   }
 
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
-    { to: '/', label: 'Inbox', icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: 'Tasks', icon: <CheckSquare className="w-5 h-5" /> },
-    { to: '/groceries', label: 'Groceries', icon: <ShoppingCart className="w-5 h-5" /> },
-    { to: '/settings', label: 'Settings', icon: <SettingsIcon className="w-5 h-5" /> },
+    { to: '/', label: t('common.inbox'), icon: <InboxIcon className="w-5 h-5" /> },
+    { to: '/tasks', label: t('common.tasks'), icon: <CheckSquare className="w-5 h-5" /> },
+    { to: '/groceries', label: t('common.items'), icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/settings', label: t('common.settings'), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
   return (
