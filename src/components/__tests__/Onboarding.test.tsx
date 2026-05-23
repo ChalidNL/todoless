@@ -40,23 +40,23 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    // Navigate to admin form (step 8 of admin flow)
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    // Navigate to workspace step (step 2 of admin flow — 2 info slides, then workspace)
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    // Family step
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    // Workspace step
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
     // Try to submit with empty fields
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
-    // Should show "Vul je voornaam in" first (name is checked first)
+    // Should show "Please enter your first name" first (name is checked first)
     await waitFor(() => {
-      expect(screen.getByText('Vul je voornaam in')).toBeTruthy();
+      expect(screen.getByText('Please enter your first name')).toBeTruthy();
     });
     expect(registerAdminMock).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
@@ -66,26 +66,26 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
     // Fill only name
-    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+    fireEvent.change(screen.getByPlaceholderText('John'), {
       target: { value: 'Admin' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+    fireEvent.change(screen.getByPlaceholderText('Doe'), {
       target: { value: 'User' },
     });
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
     await waitFor(() => {
-      expect(screen.getByText('Vul je e-mailadres in')).toBeTruthy();
+      expect(screen.getByText('Please enter your email')).toBeTruthy();
     });
   });
 
@@ -93,22 +93,22 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+    fireEvent.change(screen.getByPlaceholderText('John'), {
       target: { value: 'Admin' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+    fireEvent.change(screen.getByPlaceholderText('Doe'), {
       target: { value: 'User' },
     });
-    fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
+    fireEvent.change(screen.getByPlaceholderText('admin@example.com'), {
       target: { value: 'admin@example.com' },
     });
 
@@ -116,10 +116,10 @@ describe('Onboarding admin flow', () => {
     fireEvent.change(passwordInputs[0], { target: { value: 'password123' } });
     fireEvent.change(passwordInputs[1], { target: { value: 'differentpass' } });
 
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
     await waitFor(() => {
-      expect(screen.getByText('Wachtwoorden komen niet overeen')).toBeTruthy();
+      expect(screen.getByText('Passwords do not match')).toBeTruthy();
     });
   });
 
@@ -129,25 +129,25 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    // Door info slides heen
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    // Navigate through info slides
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    // Family stap
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    // Workspace step
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
-    // Admin account stap
-    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+    // Admin account step
+    fireEvent.change(screen.getByPlaceholderText('John'), {
       target: { value: 'Admin' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+    fireEvent.change(screen.getByPlaceholderText('Doe'), {
       target: { value: 'User' },
     });
-    fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
+    fireEvent.change(screen.getByPlaceholderText('admin@example.com'), {
       target: { value: 'admin@example.com' },
     });
 
@@ -155,7 +155,7 @@ describe('Onboarding admin flow', () => {
     fireEvent.change(passwordInputs[0], { target: { value: 'password123' } });
     fireEvent.change(passwordInputs[1], { target: { value: 'password123' } });
 
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
     await waitFor(
       () => {
@@ -175,22 +175,22 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+    fireEvent.change(screen.getByPlaceholderText('John'), {
       target: { value: 'Admin' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+    fireEvent.change(screen.getByPlaceholderText('Doe'), {
       target: { value: 'User' },
     });
-    fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
+    fireEvent.change(screen.getByPlaceholderText('admin@example.com'), {
       target: { value: 'admin@example.com' },
     });
 
@@ -198,10 +198,10 @@ describe('Onboarding admin flow', () => {
     fireEvent.change(passwordInputs[0], { target: { value: 'password123' } });
     fireEvent.change(passwordInputs[1], { target: { value: 'password123' } });
 
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
     await waitFor(() => {
-      expect(screen.getByText('Dit e-mailadres is al in gebruik. Probeer in te loggen.')).toBeTruthy();
+      expect(screen.getByText('This email is already in use. Try logging in.')).toBeTruthy();
     });
 
     expect(markOnboardingSeenMock).not.toHaveBeenCalled();
@@ -216,22 +216,22 @@ describe('Onboarding admin flow', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    for (let i = 0; i < 6; i++) {
-      fireEvent.click(screen.getByText('Volgende'));
+    for (let i = 0; i < 2; i++) {
+      fireEvent.click(screen.getByText('Next'));
     }
 
-    fireEvent.change(screen.getByPlaceholderText('Familie Jansen'), {
-      target: { value: 'Familie Test' },
+    fireEvent.change(screen.getByPlaceholderText('Smith Family'), {
+      target: { value: 'My Family' },
     });
-    fireEvent.click(screen.getByText('Volgende'));
+    fireEvent.click(screen.getByText('Next'));
 
-    fireEvent.change(screen.getByPlaceholderText('Jan'), {
+    fireEvent.change(screen.getByPlaceholderText('John'), {
       target: { value: 'Admin' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Jansen'), {
+    fireEvent.change(screen.getByPlaceholderText('Doe'), {
       target: { value: 'User' },
     });
-    fireEvent.change(screen.getByPlaceholderText('admin@voorbeeld.nl'), {
+    fireEvent.change(screen.getByPlaceholderText('admin@example.com'), {
       target: { value: 'admin@example.com' },
     });
 
@@ -239,11 +239,11 @@ describe('Onboarding admin flow', () => {
     fireEvent.change(passwordInputs[0], { target: { value: 'password123' } });
     fireEvent.change(passwordInputs[1], { target: { value: 'password123' } });
 
-    fireEvent.click(screen.getByText('Account aanmaken'));
+    fireEvent.click(screen.getByText('Create account'));
 
     // Button should be disabled immediately after click
     await waitFor(() => {
-      const btn = screen.getByRole('button', { name: /Bezig met aanmaken/ });
+      const btn = screen.getByRole('button', { name: /Creating account/ });
       expect(btn).toBeTruthy();
     });
   });

@@ -32,7 +32,7 @@ describe('Onboarding skip', () => {
     const onComplete = vi.fn();
     render(<Onboarding mode="admin" onComplete={onComplete} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Overslaan' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 });

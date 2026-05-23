@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Brain, Inbox, Calendar, Check, Eye, EyeOff, ShoppingCart, StickyNote, UserPlus, Sparkles, Users } from 'lucide-react';
+import { Sparkles, ShoppingCart, Check, Eye, EyeOff, UserPlus, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { api } from '../lib/pocketbase-client';
@@ -33,29 +33,9 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
       description: 'Your daily assistant for quick, simple productivity without overwhelm.',
     },
     {
-      icon: <Inbox className="w-16 h-16 text-neutral-900" />,
-      title: 'Brain Dump & Inbox',
-      description: 'Capture everything in Inbox. Quick brain dumps convert to Tasks, Items or Notes with one click.',
-    },
-    {
-      icon: <Calendar className="w-16 h-16 text-neutral-900" />,
-      title: 'Tasks & Sprint Planning',
-      description: 'Organize tasks with labels, due dates, priority and assignments. Create sprints to focus on what matters now.',
-    },
-    {
-      icon: <Check className="w-16 h-16 text-neutral-900" />,
-      title: 'Checked Out System',
-      description: 'Completed items and tasks automatically move to "Checked Out" sections. Check them back in or use "Check In All" to restore.',
-    },
-    {
       icon: <ShoppingCart className="w-16 h-16 text-neutral-900" />,
-      title: 'Items & Shopping',
-      description: 'Track groceries with quantities and stores. Convert tasks to items instantly when needed.',
-    },
-    {
-      icon: <StickyNote className="w-16 h-16 text-neutral-900" />,
-      title: 'Notes & Knowledge',
-      description: 'Create standalone notes or pin important notes at the top. Link notes to tasks for context.',
+      title: 'Simple Groceries',
+      description: 'Track groceries with quantities and stores. Keep your shopping list simple and organized.',
     },
   ];
 
@@ -63,7 +43,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     ...infoSteps,
     {
       icon: <Users className="w-16 h-16 text-neutral-900" />,
-      title: 'Name Your Family',
+      title: 'Name Your Workspace',
       description: 'Give your household a name. This is the main entity all members share.',
     },
     {
@@ -92,11 +72,11 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const handleNext = () => {
     if (showFamilyForm) {
       if (!familyName.trim()) {
-        setError('Vul een familienaam in');
+        setError('Please enter a workspace name');
         return;
       }
       setError('');
-      // Pre-fill lastName with family name when proceeding to admin form
+      // Pre-fill lastName with workspace name when proceeding to admin form
       if (!lastName.trim()) {
         setLastName(familyName.trim());
       }
@@ -118,31 +98,31 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const handleCreateAdmin = async () => {
     // Validate all fields upfront with clear messages
     if (!firstName.trim()) {
-      setError('Vul je voornaam in');
+      setError('Please enter your first name');
       return;
     }
     if (!email.trim()) {
-      setError('Vul je e-mailadres in');
+      setError('Please enter your email');
       return;
     }
     if (!password) {
-      setError('Vul een wachtwoord in');
+      setError('Please enter a password');
       return;
     }
     if (password.length < 8) {
-      setError('Wachtwoord moet minimaal 8 tekens zijn');
+      setError('Password must be at least 8 characters');
       return;
     }
     if (!passwordConfirm) {
-      setError('Vul het wachtwoord opnieuw in ter bevestiging');
+      setError('Please confirm your password');
       return;
     }
     if (password !== passwordConfirm) {
-      setError('Wachtwoorden komen niet overeen');
+      setError('Passwords do not match');
       return;
     }
     if (!familyName.trim()) {
-      setError('Familienaam ontbreekt — ga terug en vul hem in');
+      setError('Workspace name is missing — go back and enter it');
       return;
     }
 
@@ -158,11 +138,11 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     } catch (e: any) {
       const msg = e?.message || '';
       if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('already')) {
-        setError('Dit e-mailadres is al in gebruik. Probeer in te loggen.');
+        setError('This email is already in use. Try logging in.');
       } else if (msg.toLowerCase().includes('password')) {
-        setError('Wachtwoord voldoet niet aan de eisen: min 8 tekens');
+        setError('Password does not meet requirements: minimum 8 characters');
       } else {
-        setError(msg || 'Account aanmaken mislukt. Probeer het opnieuw.');
+        setError(msg || 'Account creation failed. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
@@ -193,14 +173,14 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
           onClick={handleSkip}
           className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
         >
-          {isInfo ? 'Ga naar inloggen' : 'Overslaan'}
+          {isInfo ? 'Go to login' : 'Skip'}
         </button>
       </div>
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
         {showAdminForm ? (
-          // Admin account aanmaken
+          // Admin account creation
           <div className="w-full max-w-md">
             <div className="flex items-center justify-center mb-8">
               <AppLogo size="lg" showText={true} variant="dark" />
@@ -216,42 +196,42 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
             <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Voornaam *</label>
+                <label className="block text-sm text-neutral-600 mb-1">First name *</label>
                 <input
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Jan"
+                  placeholder="John"
                   autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Achternaam</label>
+                <label className="block text-sm text-neutral-600 mb-1">Last name</label>
                 <input
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Jansen"
+                  placeholder="Doe"
                 />
-                <p className="text-xs text-neutral-500 mt-1">Vooraf ingevuld met je familienaam, maar je kunt het aanpassen</p>
+                <p className="text-xs text-neutral-500 mt-1">Pre-filled with your workspace name, you can change it</p>
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">E-mailadres</label>
+                <label className="block text-sm text-neutral-600 mb-1">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="admin@voorbeeld.nl"
+                  placeholder="admin@example.com"
                 />
               </div>
 
               <div className="relative">
-                <label className="block text-sm text-neutral-600 mb-1">Wachtwoord</label>
+                <label className="block text-sm text-neutral-600 mb-1">Password</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -269,7 +249,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Wachtwoord bevestigen</label>
+                <label className="block text-sm text-neutral-600 mb-1">Confirm password</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={passwordConfirm}
@@ -288,16 +268,16 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                 disabled={isSubmitting}
                 className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Bezig met aanmaken…' : 'Account aanmaken'}
+                {isSubmitting ? 'Creating account…' : 'Create account'}
               </button>
 
               <p className="text-xs text-neutral-500 text-center">
-                Dit is het enige account met rechten om nieuwe gebruikers uit te nodigen.
+                This is the only account that can invite new users.
               </p>
             </div>
           </div>
         ) : showFamilyForm ? (
-          // Familie naam stap
+          // Workspace name step
           <div className="w-full max-w-md">
             <div className="flex items-center justify-center mb-8">
               {step.icon}
@@ -313,13 +293,13 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
 
             <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Familienaam</label>
+                <label className="block text-sm text-neutral-600 mb-1">Workspace name</label>
                 <input
                   type="text"
                   value={familyName}
                   onChange={(e) => { setFamilyName(e.target.value); setError(''); }}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Familie Jansen"
+                  placeholder="Smith Family"
                   autoFocus
                 />
               </div>
@@ -332,12 +312,12 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                 onClick={handleNext}
                 className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
               >
-                Volgende
+                Next
               </button>
             </div>
           </div>
         ) : (
-          // Reguliere onboarding slides
+          // Regular onboarding slides
           <>
             <div className="mb-8">
               {step.icon}
@@ -351,7 +331,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
               {step.description}
             </p>
 
-            {/* Progress dots — only for info slides (not family/admin form steps) */}
+            {/* Progress dots — only for info slides (not workspace/admin form steps) */}
             <div className="flex gap-2 mb-12">
               {infoSteps.map((_, index) => (
                 <div
@@ -370,9 +350,9 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
             >
               {isLastStep
                 ? isInfo
-                  ? 'Ga naar inloggen'
-                  : 'Aan de slag'
-                : 'Volgende'}
+                  ? 'Go to login'
+                  : 'Get started'
+                : 'Next'}
             </button>
           </>
         )}
