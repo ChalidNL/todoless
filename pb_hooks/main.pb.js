@@ -32,6 +32,33 @@ onRecordUpdate('tasks', (e) => {
 
 routerAdd('GET', '/api/hook-health', (c) => c.json(200, { ok: true }));
 
+// ── One-shot: open all collection rules (run once after deploy) ──
+routerAdd('POST', '/api/open-rules', function(c) {
+  try {
+    var collections = ['tasks', 'items', 'subtasks', 'labels', 'shops', 'families', 'users', 'invite_codes', 'api_tokens', 'app_settings'];
+    var result = [];
+    for (var i = 0; i < collections.length; i++) {
+      try {
+        var col = $app.findCollectionByNameOrId(collections[i]);
+        if (col) {
+          col.listRule = '';
+          col.viewRule = '';
+          col.createRule = '';
+          col.updateRule = '';
+          col.deleteRule = '';
+          $app.save(col);
+          result.push(collections[i] + ': OK');
+        }
+      } catch(err) {
+        result.push(collections[i] + ': ' + String(err));
+      }
+    }
+    return c.json(200, { result: result });
+  } catch(e) {
+    return c.json(500, { error: String(e) });
+  }
+});
+
 // ─── Routes loaded from pb_hooks/routes/ ──
 // Note: routes/openapi.js registers GET /api/openapi.json (inline spec)
 // Note: routes/docs.js registers GET /api/docs + /api/swagger (Swagger UI HTML)
