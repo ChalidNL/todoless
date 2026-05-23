@@ -3,12 +3,26 @@ import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
 import { TopBar } from '../shared/TopBar';
-import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight } from 'lucide-react';
 
 export const GroceriesView = () => {
-  const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters } = useApp();
+  const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
+  const [showSavedFilters, setShowSavedFilters] = useState(false);
+
+  const itemFilters = useMemo(() => filters.filter(f => f.type === 'item' || f.type === 'both'), [filters]);
+
+  const applySavedFilter = (f: typeof filters[0]) => {
+    clearChipFilters();
+    if (f.chipFilters) {
+      for (const cf of f.chipFilters) {
+        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
+      }
+    }
+    setShowSavedFilters(false);
+    showCompletionMessage(`Filter: ${f.name}`);
+  };
 
   const filteredItems = useMemo(() => {
     let result = items;
@@ -98,10 +112,59 @@ export const GroceriesView = () => {
             >
               <XIcon className="w-3.5 h-3.5" />
             </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowSavedFilters(!showSavedFilters)}
+                className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
+                title="Saved filters"
+                aria-label="Saved filters"
+              >
+                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showSavedFilters ? 'rotate-90' : ''}`} />
+              </button>
+              {showSavedFilters && itemFilters.length > 0 && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                  {itemFilters.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-50">
+                      <button
+                        onClick={() => applySavedFilter(f)}
+                        className="text-xs text-neutral-700 text-left flex-1 truncate"
+                      >
+                        {f.name}
+                      </button>
+                      <button
+                        onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
+                        className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
+                        title="Delete filter"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
-              onClick={() => showCompletionMessage('Filter saved (not yet implemented)')}
+              onClick={() => {
+                try {
+                  const name = window.prompt('Filter name:', '');
+                  if (!name || !name.trim()) return;
+                  const typeRaw = window.prompt('Type: task, item, or both', 'item');
+                  const ftype = (typeRaw || 'item').trim().toLowerCase();
+                  const validType = ftype === 'task' || ftype === 'item' ? ftype : 'both';
+                  addFilter({
+                    name: name.trim(),
+                    labelIds: [],
+                    chipFilters: activeChipFilters.length > 0 ? activeChipFilters.map(c => ({...c})) : undefined,
+                    showCompleted: true,
+                    type: validType,
+                  });
+                  showCompletionMessage('Filter saved');
+                } catch(e) {
+                  showCompletionMessage('Failed to save filter');
+                }
+              }}
               className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title="Save filter"
+              title="Save current filter"
               aria-label="Save filter"
             >
               <Save className="w-3.5 h-3.5" />
