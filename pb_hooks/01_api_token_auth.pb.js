@@ -18,7 +18,7 @@ function hashToken(token) {
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
-    return 'dev_' + Math.abs(hash).toString(16).padStart(8, '0');
+    return 'd_' + Math.abs(hash).toString(16).padStart(8, '0');
   }
 }
 
@@ -37,7 +37,7 @@ function generateToken(length) {
 // After success: c.get('apiTokenInfo') contains { token_record, permissions, user_id, name }
 function bearerAuthMiddleware(c) {
   try {
-    var authHeader = c.request().header.get('Authorization');
+    var authHeader = c.requestInfo().headers['authorization'];
     if (!authHeader) return null;
 
     var parts = String(authHeader).split(' ');
@@ -53,7 +53,7 @@ function bearerAuthMiddleware(c) {
     var tokens = $app.findRecordsByFilter(
       'api_tokens',
       'token_hash = "' + hashed + '"',
-      '-created',
+      '',
       1,
       0
     );
