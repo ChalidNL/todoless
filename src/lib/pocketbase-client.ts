@@ -26,7 +26,7 @@ const normalizeUser = (record: any): User => ({
   lastName: record.last_name || undefined,
   displayName: record.display_name || undefined,
   avatarUrl: record.avatar,
-  role: (record.role || 'user') as User['role'],
+  role: (record.role || 'member') as User['role'],
   family_id: record.family_id || undefined,
   active: typeof record.active === 'boolean' ? record.active : true,
 });
@@ -769,7 +769,7 @@ class PocketBaseClient {
         'Content-Type': 'application/json',
         'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
       },
-      body: JSON.stringify({ type: data.type || 'user' }),
+      body: JSON.stringify({ type: data.type || 'human' }),
     });
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: 'Failed to create invite' }));

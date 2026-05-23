@@ -35,7 +35,7 @@ export interface User {
   email: string;
   name: string;
   username: string;
-  role: 'admin' | 'user' | 'child';
+  role: 'owner' | 'admin' | 'member' | 'agent';
   avatar?: string;
   created: string;
   updated: string;

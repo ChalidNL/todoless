@@ -87,7 +87,7 @@ routerAdd('POST', '/api/todoless/debug-agent-invite', (c) => {
 });
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
-// Supports type: 'user' (default) or 'agent'
+// Supports type: 'human' (default) or 'agent'
 // If type='agent': also generates an API token (enabled=false), stored hashed, returned once.
 routerAdd('POST', '/api/todoless/invites/create', (c) => {
   try {
@@ -97,9 +97,9 @@ routerAdd('POST', '/api/todoless/invites/create', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
     var body = info.body || {};
-    var type = String(body.type || 'user').trim();
-    if (type !== 'user' && type !== 'agent') {
-      return c.json(400, { error: 'type must be \"user\" or \"agent\"' });
+    var type = String(body.type || 'human').trim();
+    if (type !== 'human' && type !== 'agent') {
+      return c.json(400, { error: 'type must be \"human\" or \"agent\"' });
     }
 
     // Generate 6-digit code
@@ -137,6 +137,7 @@ routerAdd('POST', '/api/todoless/invites/create', (c) => {
       tokenRec.set('permissions', ['*']);
       tokenRec.set('enabled', false);
       tokenRec.set('user', auth.id);
+      try { tokenRec.set('token_type', 'agent_api_token'); } catch(e) {}
       $app.save(tokenRec);
 
       tokenId = tokenRec.id;
@@ -287,7 +288,7 @@ routerAdd('POST', '/api/todoless/register', (c) => {
     var fid = inviter ? String(inviter.get('family_id') || '') : '';
     if (!fid) throw new BadRequestError('Inviter has no family — ask admin to create one.', {});
 
-    var role = userType === 'family_assistant' ? 'assistant' : 'user';
+    var role = 'member';
     var uc = $app.findCollectionByNameOrId('users');
     var rec = createUser(uc, {
       email: d.email,
@@ -567,11 +568,11 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     // ── Admin: set_role (max 1 admin) ──
     if (action === 'set_role') {
       if (!auth) return c.json(401, { error: 'Unauthorized' });
-      if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+      if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
       var targetId = String(gv(d, 'user_id', '')).trim();
       var newRole = String(gv(d, 'role', '')).trim();
       if (!targetId || !newRole) return c.json(400, { error: 'user_id and role required' });
-      if (['admin','user','child','assistant'].indexOf(newRole) === -1) return c.json(400, { error: 'Invalid role' });
+      if (['owner','admin','member','agent'].indexOf(newRole) === -1) return c.json(400, { error: 'Invalid role' });
 
       // Max 1 admin: demote current admin before promoting another
       if (newRole === 'admin') {
@@ -620,7 +621,7 @@ routerAdd('GET', '/api/todoless/agent/counts', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     // Get family members to scope tokens
     var fid = String(auth.get('family_id') || '');
@@ -649,7 +650,7 @@ routerAdd('GET', '/api/todoless/agent/pending', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
     var userIds = [];
@@ -682,7 +683,7 @@ routerAdd('POST', '/api/todoless/agent/approve', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var d = info.body || {};
     var tokenId = String(d.id || '').trim();
@@ -717,7 +718,7 @@ routerAdd('POST', '/api/todoless/agent/reject', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var d = info.body || {};
     var tokenId = String(d.id || '').trim();
@@ -743,7 +744,7 @@ routerAdd('GET', '/api/todoless/agent/list', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
     var userIds = [];
@@ -779,7 +780,7 @@ routerAdd('DELETE', '/api/todoless/agent/:id', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var tokenId = c.pathParam('id');
     if (!tokenId) return c.json(400, { error: 'id required' });

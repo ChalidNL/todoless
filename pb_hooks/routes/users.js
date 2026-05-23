@@ -71,7 +71,7 @@ routerAdd(
 
     // Only admins or the user themselves can update
     const id = c.pathParam('id')
-    if (id !== authRecord.id && authRecord.get('role') !== 'admin') {
+    if (id !== authRecord.id && authRecord.get('role') !== 'admin' && authRecord.get('role') !== 'owner') {
       return c.json(403, { 'error': 'Forbidden' })
     }
 
@@ -91,7 +91,7 @@ routerAdd(
     if (body.has('displayName') || body.has('display_name')) data.set('display_name', body.get('displayName') || body.get('display_name'))
 
     // Only admins can change roles
-    if (body.has('role') && authRecord.get('role') === 'admin') {
+    if (body.has('role') && (authRecord.get('role') === 'admin' || authRecord.get('role') === 'owner')) {
       data.set('role', body.get('role'))
     }
 

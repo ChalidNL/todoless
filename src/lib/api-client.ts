@@ -28,7 +28,7 @@ const toISO = (timestamp?: number | string | null): string | null =>
 // --- Normalizers: PocketBase snake_case → Frontend camelCase ---
 const normalizeUser = (r: any): User => ({
   id: r.id, email: r.email, name: r.name || r.email,
-  role: (r.role || 'user') as User['role'], avatarUrl: r.avatar,
+  role: (r.role || 'member') as User['role'], avatarUrl: r.avatar,
 });
 
 const normalizeTask = (r: any): Task => ({
@@ -138,7 +138,7 @@ export const api = {
     async register(email: string, password: string, name: string, inviteCode?: string) {
       await pb.collection('users').create({
         email, password, passwordConfirm: password, name,
-        username: email.split('@')[0], role: 'user',
+        username: email.split('@')[0], role: 'member',
       });
       if (inviteCode) {
         const invites = await pb.collection('invite_codes').getFullList({

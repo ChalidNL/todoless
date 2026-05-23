@@ -140,12 +140,13 @@ routerAdd('POST', '/api/todoless/api-tokens', (c) => {
     rec.set('permissions', rawPerms);
     rec.set('user', auth.id);
     try { rec.set('enabled', true); } catch(e) {}
+    try { rec.set('token_type', 'personal_api_token'); } catch(e) {}
     if (body.expires_at) { try { rec.set('expires_at', body.expires_at); } catch(e) {} }
     $app.save(rec);
 
     return c.json(201, {
       id: rec.id, name: name, token: rawToken,
-      permissions: rawPerms, enabled: true,
+      permissions: rawPerms, enabled: true, token_type: 'personal_api_token',
       expires_at: body.expires_at || null, user: auth.id,
       created: new Date().toISOString(),
       message: 'Save this token — it will not be shown again.',

@@ -138,7 +138,7 @@ export const Settings = () => {
     setEditingProfile(false);
   };
 
-  const handleRoleChange = (role: 'admin' | 'user' | 'child') => {
+  const handleRoleChange = (role: 'owner' | 'admin' | 'member' | 'agent') => {
     if (!currentUser) return;
     updateUser(currentUser.id, { role });
   };
@@ -450,7 +450,7 @@ export const Settings = () => {
                     : 'No display name'}</p>
                   <p className="text-sm text-neutral-600 truncate">{currentUser.email}</p>
                   <p className="text-xs text-neutral-500 capitalize mt-1">
-                    Role: {currentUser.role || 'user'}
+                    Role: {currentUser.role || 'member'}
                   </p>
                 </div>
               </div>
@@ -645,9 +645,9 @@ export const Settings = () => {
 
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className={`text-xs px-2 py-1 rounded capitalize ${
-                        user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'assistant' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100'
+                        user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'agent' ? 'bg-blue-100 text-blue-700' : user.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100'
                       }`}>
-                        {user.role || 'user'}
+                        {user.role === 'owner' ? 'Owner' : user.role === 'admin' ? 'Admin' : user.role === 'agent' ? 'Agent' : 'Member'}
                       </span>
                       {(user.active ?? true) ? (
                         <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">active</span>
@@ -677,15 +677,15 @@ export const Settings = () => {
                         <button
                           onClick={async () => {
                             try {
-                              await updateUser(user.id, { role: 'user' });
-                              showCompletionMessage(`${user.name} gedemote naar user`);
+                              await updateUser(user.id, { role: 'member' });
+                              showCompletionMessage(`${user.name} gedemote naar member`);
                             } catch (e: any) {
                               showCompletionMessage(String(e.message || e));
                             }
                           }}
                           className="text-xs px-2 py-1 rounded border border-orange-200 text-orange-600 hover:bg-orange-50"
                         >
-                          Demote to user
+                          Demote to member
                         </button>
                       </div>
                     )}

@@ -7,9 +7,9 @@ export const InviteManager = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentInviteUrl, setCurrentInviteUrl] = useState('');
   const [currentInviteCode, setCurrentInviteCode] = useState('');
-  const [currentInviteType, setCurrentInviteType] = useState<'user' | 'agent'>('user');
+  const [currentInviteType, setCurrentInviteType] = useState<'human' | 'agent'>('human');
   const [currentToken, setCurrentToken] = useState<string | null>(null);
-  const [inviteType, setInviteType] = useState<'user' | 'agent'>('user');
+  const [inviteType, setInviteType] = useState<'human' | 'agent'>('human');
   const [generating, setGenerating] = useState(false);
 
   const handleGenerateInvite = async () => {
@@ -25,10 +25,10 @@ export const InviteManager = () => {
     const inviteUrl = `${baseUrl}/register?invite=${invite.code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(invite.code);
-    setCurrentInviteType(invite.type || 'user');
+    setCurrentInviteType(invite.type || 'human');
     setCurrentToken(invite.token || null);
     setShowShareModal(true);
-    const label = invite.type === 'agent' ? 'Agent invite' : 'Invite code';
+    const label = invite.type === 'agent' ? 'Agent invite' : 'Human invite';
     showCompletionMessage(`${label} generated`);
   };
 
@@ -37,7 +37,7 @@ export const InviteManager = () => {
     const inviteUrl = `${baseUrl}/register?invite=${code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(code);
-    setCurrentInviteType((type as 'user' | 'agent') || 'user');
+    setCurrentInviteType((type as 'human' | 'agent') || 'human');
     setCurrentToken(null);
     setShowShareModal(true);
   };
@@ -69,7 +69,7 @@ export const InviteManager = () => {
   };
 
   const handleWhatsAppShare = () => {
-    let message = `Hey! You got an invite to todoless-ngx!\n\nCode: ${currentInviteCode}\n\nClick here to join: ${currentInviteUrl}`;
+    let message = `Hey! You got a human invite to todoless-ngx!\n\nCode: ${currentInviteCode}\n\nClick here to join: ${currentInviteUrl}`;
     if (currentInviteType === 'agent' && currentToken) {
       message += `\n\nAPI Token: ${currentToken}\n\nSave this token — it will not be shown again.`;
     }
@@ -82,15 +82,15 @@ export const InviteManager = () => {
       {/* Invite Type Selector */}
       <div className="flex gap-2 mb-4">
         <button
-          onClick={() => setInviteType('user')}
+          onClick={() => setInviteType('human')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            inviteType === 'user'
+            inviteType === 'human'
               ? 'bg-neutral-900 text-white'
               : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
           }`}
         >
           <User className="w-4 h-4" />
-          User
+          Human
         </button>
         <button
           onClick={() => setInviteType('agent')}
@@ -111,7 +111,7 @@ export const InviteManager = () => {
         className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4 disabled:opacity-50"
       >
         <Plus className="w-4 h-4" />
-        {generating ? 'Generating...' : inviteType === 'agent' ? 'Generate Agent Invite' : 'Generate Invite Code'}
+        {generating ? 'Generating...' : inviteType === 'agent' ? 'Generate Agent Invite' : 'Generate Human Invite'}
       </button>
 
       {inviteType === 'agent' && (
@@ -148,7 +148,7 @@ export const InviteManager = () => {
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${
                       invite.type === 'agent' ? 'bg-blue-100 text-blue-700' : 'bg-neutral-100 text-neutral-600'
                     }`}>
-                      {invite.type || 'user'}
+                      {invite.type === 'agent' ? 'Agent' : 'Human'}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-500 mt-0.5">
@@ -193,7 +193,7 @@ export const InviteManager = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
-              {currentInviteType === 'agent' ? 'Agent Invite' : 'Deel Invite'}
+              {currentInviteType === 'agent' ? 'Agent Invite' : 'Share Human Invite'}
             </h3>
             
             <div className="space-y-4">
@@ -205,7 +205,7 @@ export const InviteManager = () => {
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-xs font-semibold">
-                    <User className="w-3.5 h-3.5" /> User
+                    <User className="w-3.5 h-3.5" /> Human
                   </span>
                 )}
               </div>
@@ -242,7 +242,7 @@ export const InviteManager = () => {
               {currentInviteType === 'agent' && currentToken && (
                 <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
-                    🔑 API Token
+                    🔑 Agent API Token
                   </p>
                   <p className="text-xs text-amber-700 mb-3">
                     Save this token now — it will not be shown again. The agent will be pending until you approve it.

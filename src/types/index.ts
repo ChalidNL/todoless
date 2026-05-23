@@ -28,7 +28,9 @@ export type SprintStatus = 'planned' | 'active' | 'completed';
 export type RepeatInterval = 'day' | 'week' | 'month' | 'year';
 export type ReminderRepeatInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
 
-export type UserRole = 'admin' | 'user' | 'assistant' | 'child';
+export type UserRole = 'owner' | 'admin' | 'member' | 'agent';
+export type MemberType = 'human' | 'agent';
+export type MemberStatus = 'pending_approval' | 'active' | 'blocked';
 
 export interface User {
   id: string;
@@ -39,6 +41,8 @@ export interface User {
   displayName?: string;
   avatarUrl?: string;
   role?: UserRole;
+  member_type?: MemberType;
+  member_status?: MemberStatus;
   family_id?: string;
   active?: boolean;
 }
@@ -58,7 +62,7 @@ export interface InviteCode {
   used?: boolean;
   usedBy?: string;
   usedAt?: number;
-  type?: 'user' | 'agent';
+  type?: 'human' | 'agent';
   token?: string; // Only present on creation for agent invites
 }
 
