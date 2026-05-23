@@ -1143,6 +1143,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       appSettings,
       progressStats,
       activeLabelFilters,
+      activeChipFilters,
       completionMessage,
       currentSprint,
       reminders,
