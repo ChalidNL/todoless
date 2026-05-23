@@ -160,6 +160,7 @@ export interface Filter {
   id: string;
   name: string;
   labelIds: string[];
+  chipFilters?: {type: string; id: string; label?: string; color?: string}[];
   showCompleted: boolean;
   type: 'task' | 'item' | 'note';
   query?: string; // JQL query string

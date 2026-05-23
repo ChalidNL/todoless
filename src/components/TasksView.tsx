@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, RotateCcw, CheckSquare, X as XIcon, Save, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle } from 'lucide-react';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
 
 export const TasksView = () => {
-  const { tasks, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, uncheckAllDoneTasks, showCompletionMessage } = useApp();
+  const { tasks, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCheckedOut, setShowCheckedOut] = useState(false);
+  const [showSavedFilters, setShowSavedFilters] = useState(false);
+
+  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
 
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
     addTask({
@@ -23,10 +26,21 @@ export const TasksView = () => {
     });
   };
 
+  const applySavedFilter = (f: typeof filters[0]) => {
+    clearChipFilters();
+    if (f.chipFilters) {
+      for (const cf of f.chipFilters) {
+        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
+      }
+    }
+    setShowSavedFilters(false);
+    showCompletionMessage(`Filter: ${f.name}`);
+  };
+
   const getFilteredTasks = () => {
     let filtered = tasks;
 
-    // Hide subtask tasks from main list (they render inline in parent's expandable section)
+    // Hide subtask tasks from main list
     filtered = filtered.filter(task => !(task.linkedType === 'task' && task.linkedTo));
 
     // Label filters (existing)
@@ -85,6 +99,7 @@ export const TasksView = () => {
   });
 
   const hasAnyFilter = activeChipFilters.length > 0;
+  const hasSavedFilters = taskFilters.length > 0;
 
   return (
     <>
@@ -96,7 +111,7 @@ export const TasksView = () => {
         />
       </div>
               {/* Filter bar */}
-        {hasAnyFilter && (
+        {(hasAnyFilter || hasSavedFilters) && (
           <div className="bg-white border-b border-neutral-200 shadow-sm">
             <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
             <span className="text-xs font-semibold text-neutral-600">
@@ -129,12 +144,52 @@ export const TasksView = () => {
             >
               <XIcon className="w-3.5 h-3.5" />
             </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowSavedFilters(!showSavedFilters)}
+                className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
+                title="Saved filters"
+                aria-label="Saved filters"
+              >
+                <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showSavedFilters ? 'rotate-90' : ''}`} />
+              </button>
+              {showSavedFilters && hasSavedFilters && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
+                  {taskFilters.map((f) => (
+                    <div key={f.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-50">
+                      <button
+                        onClick={() => applySavedFilter(f)}
+                        className="text-xs text-neutral-700 text-left flex-1 truncate"
+                      >
+                        {f.name}
+                      </button>
+                      <button
+                        onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
+                        className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
+                        title="Delete filter"
+                      >
+                        <XIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               onClick={() => {
-                showCompletionMessage('Filter saved (not yet implemented)');
+                const name = window.prompt('Filter name:', '');
+                if (!name || !name.trim()) return;
+                addFilter({
+                  name: name.trim(),
+                  labelIds: activeLabelFilters,
+                  chipFilters: activeChipFilters.length > 0 ? activeChipFilters : undefined,
+                  showCompleted: true,
+                  type: 'task',
+                });
+                showCompletionMessage('Filter saved');
               }}
               className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-              title="Save filter"
+              title="Save current filter"
               aria-label="Save filter"
             >
               <Save className="w-3.5 h-3.5" />
@@ -144,7 +199,7 @@ export const TasksView = () => {
       )}
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        {/* Active Tasks — blocked items sorted to top */}
+        {/* Active Tasks */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
