@@ -27,6 +27,7 @@ interface TranslationStructure {
     filters: string;
     filtersTooltip: string;
     hoursLeft: string;
+    groceries: string;
     import: string;
     info: string;
     inbox: string;
@@ -355,6 +356,7 @@ export const translations: Record<Language, TranslationStructure> = {
       filters: 'Filters',
       filtersTooltip: 'Filters',
       hoursLeft: '{n} hours left',
+      groceries: 'Groceries',
       import: 'Import',
       info: 'Info',
       inbox: 'Inbox',
@@ -681,6 +683,7 @@ export const translations: Record<Language, TranslationStructure> = {
       filters: 'Filtres',
       filtersTooltip: 'Filtres',
       hoursLeft: '{n} heures restantes',
+      groceries: 'Courses',
       import: 'Importer',
       info: 'Infos',
       inbox: 'Boîte de réception',
@@ -1007,6 +1010,7 @@ export const translations: Record<Language, TranslationStructure> = {
       filters: 'Filters',
       filtersTooltip: 'Filters',
       hoursLeft: '{n} uur over',
+      groceries: 'Boodschappen',
       import: 'Importeren',
       info: 'Info',
       inbox: 'Inbox',
@@ -1333,6 +1337,7 @@ export const translations: Record<Language, TranslationStructure> = {
       filters: 'Filter',
       filtersTooltip: 'Filter',
       hoursLeft: '{n} Stunden übrig',
+      groceries: 'Einkäufe',
       import: 'Importieren',
       info: 'Info',
       inbox: 'Posteingang',

@@ -206,7 +206,7 @@ function AppContent() {
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
     { to: '/', label: t('common.inbox'), icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: t('common.tasks'), icon: <CheckSquare className="w-5 h-5" /> },
-    { to: '/items', label: t('common.items'), icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/groceries', label: t('common.groceries'), icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/settings', label: t('common.settings'), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
@@ -216,7 +216,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
-          <Route path="/items" element={<GroceriesView />} />
+          <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
