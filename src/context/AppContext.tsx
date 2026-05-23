@@ -544,7 +544,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addFilter = (filter: Omit<Filter, 'id'>) => {
-    setFilters((prev) => [...prev, { ...filter, id: crypto.randomUUID() }]);
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+    setFilters((prev) => [...prev, { ...filter, id }]);
   };
 
   const addSprint = (sprint: Omit<Sprint, 'id'>) => {

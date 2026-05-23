@@ -12,7 +12,7 @@ export const TasksView = () => {
   const [showCheckedOut, setShowCheckedOut] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
 
-  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
+  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task' || f.type === 'both'), [filters]);
 
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
     addTask({
@@ -177,16 +177,23 @@ export const TasksView = () => {
             </div>
             <button
               onClick={() => {
-                const name = window.prompt('Filter name:', '');
-                if (!name || !name.trim()) return;
-                addFilter({
-                  name: name.trim(),
-                  labelIds: activeLabelFilters,
-                  chipFilters: activeChipFilters.length > 0 ? activeChipFilters : undefined,
-                  showCompleted: true,
-                  type: 'task',
-                });
-                showCompletionMessage('Filter saved');
+                try {
+                  const name = window.prompt('Filter name:', '');
+                  if (!name || !name.trim()) return;
+                  const typeRaw = window.prompt('Type: task, item, or both', 'both');
+                  const ftype = (typeRaw || 'both').trim().toLowerCase();
+                  const validType = ftype === 'task' || ftype === 'item' ? ftype : 'both';
+                  addFilter({
+                    name: name.trim(),
+                    labelIds: activeLabelFilters,
+                    chipFilters: activeChipFilters.length > 0 ? activeChipFilters.map(c => ({...c})) : undefined,
+                    showCompleted: true,
+                    type: validType,
+                  });
+                  showCompletionMessage('Filter saved');
+                } catch(e) {
+                  showCompletionMessage('Failed to save filter');
+                }
               }}
               className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
               title="Save current filter"

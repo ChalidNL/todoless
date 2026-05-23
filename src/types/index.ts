@@ -162,8 +162,8 @@ export interface Filter {
   labelIds: string[];
   chipFilters?: {type: string; id: string; label?: string; color?: string}[];
   showCompleted: boolean;
-  type: 'task' | 'item' | 'note';
-  query?: string; // JQL query string
+  type: 'task' | 'item' | 'both';
+  query?: string;
 }
 
 export interface AppSettings {
