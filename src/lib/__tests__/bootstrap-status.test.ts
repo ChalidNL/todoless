@@ -28,7 +28,7 @@ describe('fetchSetupStatus', () => {
       hasUsers: false,
       setupComplete: false,
     });
-    expect(fetcher).toHaveBeenCalledWith('/api/v1/setup-status');
+    expect(fetcher).toHaveBeenCalledWith('/api/setup-status');
   });
 
   it('falls back to existing-user mode on endpoint errors', async () => {

@@ -73,7 +73,7 @@ describe('PocketBaseClient', () => {
       const result = await api.register('admin@test.com', 'pass', 'Admin');
 
       expect(fetch).toHaveBeenCalledWith(
-        '/api/v1/register',
+        '/api/register',
         expect.objectContaining({ method: 'POST' }),
       );
       expect(result).toHaveProperty('token');

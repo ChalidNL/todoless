@@ -263,7 +263,7 @@ export const Settings = () => {
   const loadPendingAgents = async () => {
     setLoadingAgents(true);
     try {
-      const response = await fetch('/api/v1/agent/pending', {
+      const response = await fetch('/api/agent/pending', {
         headers: { Authorization: `Bearer ${pb.authStore.token}` },
       });
       if (response.ok) {
@@ -288,7 +288,7 @@ export const Settings = () => {
   const handleApproveAgent = async (agentId: string) => {
     setApprovingAgentId(agentId);
     try {
-      const response = await fetch(`/api/v1/agent/approve`, {
+      const response = await fetch(`/api/agent/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
         body: JSON.stringify({ id: agentId }),
@@ -311,7 +311,7 @@ export const Settings = () => {
     if (!window.confirm(t('settings.rejectAgentConfirm'))) return;
     setRejectingAgentId(agentId);
     try {
-      const response = await fetch(`/api/v1/agent/reject`, {
+      const response = await fetch(`/api/agent/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
         body: JSON.stringify({ id: agentId }),
@@ -332,7 +332,7 @@ export const Settings = () => {
 
   const loadAgentCounts = async () => {
     try {
-      const response = await fetch('/api/v1/agent/counts', {
+      const response = await fetch('/api/agent/counts', {
         headers: { Authorization: `Bearer ${pb.authStore.token}` },
       });
       if (response.ok) {
@@ -357,7 +357,7 @@ export const Settings = () => {
   const loadAllAgents = async () => {
     setLoadingAllAgents(true);
     try {
-      const response = await fetch('/api/v1/agent/list', {
+      const response = await fetch('/api/agent/list', {
         headers: { Authorization: `Bearer ${pb.authStore.token}` },
       });
       if (response.ok) {
@@ -385,7 +385,7 @@ export const Settings = () => {
     if (!window.confirm(t('agent.revokeConfirm'))) return;
     setRevokingAgentId(agentId);
     try {
-      const response = await fetch(`/api/v1/agent/${agentId}`, {
+      const response = await fetch(`/api/agent/${agentId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${pb.authStore.token}` },
       });
@@ -895,7 +895,7 @@ export const Settings = () => {
                 <div>
                   <h3 className="text-sm font-semibold mb-2">{t('settings.apiDocumentation')}</h3>
                   <a
-                    href="/api/v1/swagger"
+                    href="/api/swagger"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm"

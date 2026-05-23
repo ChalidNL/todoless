@@ -1,8 +1,8 @@
 // Agent Task & Reminder endpoints - API-005 (PB 0.35 compatible)
 // All helpers inline due to Goja module scope isolation.
 
-// GET /api/v1/agent/tasks
-routerAdd('GET', '/api/v1/agent/tasks', function(c) {
+// GET /api/agent/tasks
+routerAdd('GET', '/api/agent/tasks', function(c) {
   function apiKey() {
     var info = c.requestInfo();
     var h = info.headers ? info.headers.Authorization : '';
@@ -42,8 +42,8 @@ routerAdd('GET', '/api/v1/agent/tasks', function(c) {
   } catch(e) { return c.json(500, {error: String(e)}); }
 });
 
-// PATCH /api/v1/agent/tasks/:id
-routerAdd('PATCH', '/api/v1/agent/tasks/:id', function(c) {
+// PATCH /api/agent/tasks/:id
+routerAdd('PATCH', '/api/agent/tasks/:id', function(c) {
   function apiKey() {
     var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
     var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
@@ -79,8 +79,8 @@ routerAdd('PATCH', '/api/v1/agent/tasks/:id', function(c) {
   } catch(e) { return c.json(500, {error: String(e)}); }
 });
 
-// POST /api/v1/agent/reminders
-routerAdd('POST', '/api/v1/agent/reminders', function(c) {
+// POST /api/agent/reminders
+routerAdd('POST', '/api/agent/reminders', function(c) {
   function apiKey() {
     var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
     var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
@@ -114,8 +114,8 @@ routerAdd('POST', '/api/v1/agent/reminders', function(c) {
   } catch(e) { return c.json(500, {error: String(e)}); }
 });
 
-// GET /api/v1/agent/reminders
-routerAdd('GET', '/api/v1/agent/reminders', function(c) {
+// GET /api/agent/reminders
+routerAdd('GET', '/api/agent/reminders', function(c) {
   function apiKey() {
     var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
     var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;

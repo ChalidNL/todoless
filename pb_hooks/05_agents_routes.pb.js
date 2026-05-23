@@ -72,8 +72,8 @@ function getAgentUserFamily(agentKey) {
 
 // ─── API Key Management (admin-only routes) ────────────────────────────────
 
-// Create a new API key: POST /api/v1/agent/keys
-routerAdd('POST', '/api/v1/agent/keys', function(c) {
+// Create a new API key: POST /api/agent/keys
+routerAdd('POST', '/api/agent/keys', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -158,8 +158,8 @@ routerAdd('POST', '/api/v1/agent/keys', function(c) {
   }
 });
 
-// List API keys: GET /api/v1/agent/keys
-routerAdd('GET', '/api/v1/agent/keys', function(c) {
+// List API keys: GET /api/agent/keys
+routerAdd('GET', '/api/agent/keys', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -227,8 +227,8 @@ routerAdd('GET', '/api/v1/agent/keys', function(c) {
   }
 });
 
-// Revoke an API key: POST /api/v1/agent/keys/:id/revoke
-routerAdd('POST', '/api/v1/agent/keys/:id/revoke', function(c) {
+// Revoke an API key: POST /api/agent/keys/:id/revoke
+routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -287,12 +287,12 @@ routerAdd('POST', '/api/v1/agent/keys/:id/revoke', function(c) {
   }
 });
 
-// ─── Agent Dispatch: POST /api/v1/agent/dispatch ──────────────────────
+// ─── Agent Dispatch: POST /api/agent/dispatch ──────────────────────
 // Authenticated by agent API key in Authorization header
 // Body: { action, type, ...data }
 // Actions: create, update, delete, complete, assign, set_labels, set_due_date, read
 
-routerAdd('POST', '/api/v1/agent/dispatch', function(c) {
+routerAdd('POST', '/api/agent/dispatch', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -665,7 +665,7 @@ routerAdd('POST', '/api/v1/agent/dispatch', function(c) {
 });
 
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
-routerAdd('GET', '/api/v1/agent/dispatch', function(c) {
+routerAdd('GET', '/api/agent/dispatch', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -763,8 +763,8 @@ routerAdd('GET', '/api/v1/agent/dispatch', function(c) {
   }
 });
 
-// ─── Auth test endpoint: GET /api/v1/agent/auth-test ──────────────────
-routerAdd('GET', '/api/v1/agent/auth-test', function(c) {
+// ─── Auth test endpoint: GET /api/agent/auth-test ──────────────────
+routerAdd('GET', '/api/agent/auth-test', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');
@@ -813,8 +813,8 @@ routerAdd('GET', '/api/v1/agent/auth-test', function(c) {
   }
 });
 
-// ─── Agent audit log: GET /api/v1/agent/audit-log ────────────────────
-routerAdd('GET', '/api/v1/agent/audit-log', function(c) {
+// ─── Agent audit log: GET /api/agent/audit-log ────────────────────
+routerAdd('GET', '/api/agent/audit-log', function(c) {
   function authFromApiKey(c) {
     var authHeader = c.requestInfo().headers.Authorization || '';
     var parts = authHeader.split(' ');

@@ -1,9 +1,9 @@
 /// <reference path="../../pb_data/types.d.ts" />
 
 // OpenAPI 3.0.3 specification for the Todoless API
-// Served at: GET /api/v1/openapi.json
+// Served at: GET /api/openapi.json
 
-routerAdd('GET', '/api/v1/openapi.json', (c) => {
+routerAdd('GET', '/api/openapi.json', (c) => {
   
   // ── Helper: reusable field definitions ──
   

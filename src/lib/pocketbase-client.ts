@@ -233,7 +233,7 @@ class PocketBaseClient {
 
   async validateInviteCode(inviteCode: string): Promise<{ id: string; code: string; status: string; message: string }> {
     const normalizedCode = inviteCode.trim().toUpperCase();
-    const response = await fetch(`/api/v1/validate-invite?code=${encodeURIComponent(normalizedCode)}`);
+    const response = await fetch(`/api/validate-invite?code=${encodeURIComponent(normalizedCode)}`);
 
     if (!response.ok) {
       throw new Error('Failed to validate invite code');
@@ -254,7 +254,7 @@ class PocketBaseClient {
   async registerAdmin(email: string, password: string, name: string, familyName?: string) {
     const firstName = name.trim().split(' ')[0];
     const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : familyName || '';
-    const response = await fetch('/api/v1/register', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -299,7 +299,7 @@ class PocketBaseClient {
       body.invite_code = normalizedInviteCode;
     }
 
-    const response = await fetch('/api/v1/register', {
+    const response = await fetch('/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -764,7 +764,7 @@ class PocketBaseClient {
   }
 
   async createInvite(data: { code: string; expiresAt: number; type?: string }) {
-    const response = await fetch('/api/v1/invites/create', {
+    const response = await fetch('/api/invites/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1061,7 +1061,7 @@ class PocketBaseClient {
 
   // ─── API Tokens ───────────────────────────────────────────────────────
   async getApiTokens(): Promise<any[]> {
-    const response = await fetch('/api/v1/api-tokens', {
+    const response = await fetch('/api/api-tokens', {
       headers: { Authorization: `Bearer ${pb.authStore.token}` },
     });
     if (!response.ok) return [];
@@ -1069,7 +1069,7 @@ class PocketBaseClient {
   }
 
   async createApiToken(name: string, permissions: string[], expiresAt?: string): Promise<any> {
-    const response = await fetch('/api/v1/api-tokens', {
+    const response = await fetch('/api/api-tokens', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1083,7 +1083,7 @@ class PocketBaseClient {
   }
 
   async deleteApiToken(tokenId: string): Promise<void> {
-    const response = await fetch(`/api/v1/api-tokens/${tokenId}`, {
+    const response = await fetch(`/api/api-tokens/${tokenId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${pb.authStore.token}`,
@@ -1096,7 +1096,7 @@ class PocketBaseClient {
   }
 
   async toggleApiToken(tokenId: string, enabled: boolean): Promise<void> {
-    const response = await fetch(`/api/v1/api-tokens/${tokenId}/toggle`, {
+    const response = await fetch(`/api/api-tokens/${tokenId}/toggle`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -1112,7 +1112,7 @@ class PocketBaseClient {
 
   // ─── Daily Briefing ─────────────────────────────────────────────────────
   async getBriefing(): Promise<any> {
-    const response = await fetch('/api/v1/briefing', {
+    const response = await fetch('/api/briefing', {
       headers: { Authorization: `Bearer ${pb.authStore.token}` },
     });
     if (!response.ok) {
@@ -1124,7 +1124,7 @@ class PocketBaseClient {
   }
 
   async generateBriefing(): Promise<any> {
-    const response = await fetch('/api/v1/briefing/generate', {
+    const response = await fetch('/api/briefing/generate', {
       method: 'POST',
       headers: { Authorization: `Bearer ${pb.authStore.token}` },
     });

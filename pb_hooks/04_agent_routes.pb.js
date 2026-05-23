@@ -2,13 +2,13 @@
 // Agent API Token & Permission Model
 // API-004
 //
-// POST /api/v1/agent/token    - Create scoped API token for an agent
-// GET  /api/v1/agent/permissions - Returns available permission scopes
+// POST /api/agent/token    - Create scoped API token for an agent
+// GET  /api/agent/permissions - Returns available permission scopes
 
 // ─── Available permission scopes ──────────────────────────────────────────
 
 
-// ─── POST /api/v1/agent/token ───────────────────────────────────────
+// ─── POST /api/agent/token ───────────────────────────────────────
 // Creates a scoped API token for an agent.
 // Auth: PB session auth (user must be authenticated).
 // Body: { name, permissions, expires_at, agent_id }
@@ -19,7 +19,7 @@
 //
 // When agent_id is provided, the token is linked to that agent user.
 // Default role for new agent tokens: 'assistant'.
-routerAdd('POST', '/api/v1/agent/token', function(c) {
+routerAdd('POST', '/api/agent/token', function(c) {
   var AVAILABLE_PERMISSIONS = ["entries:read","entries:write","reminders:read","reminders:write","goals:read","goals:write","family:read","family:write"];
   function validatePermission(perm) {
     if (!perm) return false;
@@ -125,10 +125,10 @@ routerAdd('POST', '/api/v1/agent/token', function(c) {
   }
 });
 
-// ─── GET /api/v1/agent/permissions ───────────────────────────────────
+// ─── GET /api/agent/permissions ───────────────────────────────────
 // Returns the list of available permission scopes for agents.
 // No auth required (public information).
-routerAdd('GET', '/api/v1/agent/permissions', function(c) {
+routerAdd('GET', '/api/agent/permissions', function(c) {
   var AVAILABLE_PERMISSIONS = ["entries:read","entries:write","reminders:read","reminders:write","goals:read","goals:write","family:read","family:write"];
   try {
     var categories = {

@@ -302,7 +302,7 @@ describe('Multi-user: Invite flow', () => {
     const result = await freshApi.register('admin@test.com', 'pass', 'Admin');
 
     expect(result.user.role).toBe('admin');
-    expect(fetch).toHaveBeenCalledWith('/api/v1/register', expect.objectContaining({ method: 'POST' }));
+    expect(fetch).toHaveBeenCalledWith('/api/register', expect.objectContaining({ method: 'POST' }));
     const body = JSON.parse((fetch as any).mock.calls[0][1].body);
     expect(body.email).toBe('admin@test.com');
     expect(body.user_type).toBe('family_member');
@@ -317,7 +317,7 @@ describe('Multi-user: Invite flow', () => {
     const { api: freshApi } = await import('../pocketbase-client');
     await expect(freshApi.register('newbie@test.com', 'pass', 'Newbie')).rejects.toThrow('Invite code required');
     // Should NOT try to create user directly
-    expect((fetch as any).mock.calls[0][0]).toBe('/api/v1/register');
+    expect((fetch as any).mock.calls[0][0]).toBe('/api/register');
   });
 
   it('non-first user with invalid invite code throws error', async () => {
@@ -367,7 +367,7 @@ describe('Multi-user: Invite flow', () => {
 
     expect(result.code).toBe('XYZ789');
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/validate-invite?code=XYZ789'),
+      expect.stringContaining('/api/validate-invite?code=XYZ789'),
     );
   });
 });

@@ -5,7 +5,7 @@
 // defined INSIDE each route callback.
 
 // ─── LIST tokens (GET) ─────────────────────────────────────────────────────
-routerAdd('GET', '/api/v1/api-tokens', (c) => {
+routerAdd('GET', '/api/api-tokens', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -63,7 +63,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
 });
 
 // ─── CREATE token (POST) ───────────────────────────────────────────────────
-routerAdd('POST', '/api/v1/api-tokens', (c) => {
+routerAdd('POST', '/api/api-tokens', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -153,7 +153,7 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
 });
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
-routerAdd('DELETE', '/api/v1/api-tokens/:id', (c) => {
+routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -202,7 +202,7 @@ routerAdd('DELETE', '/api/v1/api-tokens/:id', (c) => {
 });
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
-routerAdd('PATCH', '/api/v1/api-tokens/:id/toggle', (c) => {
+routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];

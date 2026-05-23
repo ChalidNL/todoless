@@ -25,7 +25,7 @@ export async function fetchSetupStatus(
   fetcher: typeof fetch = fetch,
 ): Promise<SetupStatus> {
   try {
-    const response = await fetcher('/api/v1/setup-status');
+    const response = await fetcher('/api/setup-status');
     if (!response.ok) return SAFE_FALLBACK;
     return normalizeSetupStatus(await response.json());
   } catch {

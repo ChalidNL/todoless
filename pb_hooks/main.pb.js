@@ -30,15 +30,15 @@ onRecordUpdate('tasks', (e) => {
 
 // ─── Public API endpoints ────────────────────────────────────────────────
 
-routerAdd('GET', '/api/v1/hook-health', (c) => c.json(200, { ok: true }));
+routerAdd('GET', '/api/hook-health', (c) => c.json(200, { ok: true }));
 
 // ─── Routes loaded from pb_hooks/routes/ ──
-// Note: routes/openapi.js registers GET /api/v1/openapi.json (inline spec)
-// Note: routes/docs.js registers GET /api/v1/docs + /api/v1/swagger (Swagger UI HTML)
+// Note: routes/openapi.js registers GET /api/openapi.json (inline spec)
+// Note: routes/docs.js registers GET /api/docs + /api/swagger (Swagger UI HTML)
 // Note: routes/api-tokens.js registers CRUD for API tokens
 
 // ── Debug: test token generation (no auth required) ──
-routerAdd('GET', '/api/v1/debug-token', (c) => {
+routerAdd('GET', '/api/debug-token', (c) => {
   try {
     function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return 'tl_'+r; }
     function _ht(tok) { try { return $security.SHA256(tok); } catch(e){ var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return 'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
@@ -51,7 +51,7 @@ routerAdd('GET', '/api/v1/debug-token', (c) => {
 });
 
 // ── Debug: test agent invite (no auth, fixed user ID) ──
-routerAdd('POST', '/api/v1/debug-agent-invite', (c) => {
+routerAdd('POST', '/api/debug-agent-invite', (c) => {
   try {
     function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return 'tl_'+r; }
     function _ht(tok) { try { return $security.SHA256(tok); } catch(e){ var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return 'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
@@ -90,7 +90,7 @@ routerAdd('POST', '/api/v1/debug-agent-invite', (c) => {
 // ── Create invite code (server-side, bypasses PB API rules) ──
 // Supports type: 'human' (default) or 'agent'
 // If type='agent': also generates an API token (enabled=false), stored hashed, returned once.
-routerAdd('POST', '/api/v1/invites/create', (c) => {
+routerAdd('POST', '/api/invites/create', (c) => {
   try {
     var info = c.requestInfo();
     console.log('INVITE_CREATE: type=' + String((info.body||{}).type) + ' body=' + JSON.stringify(info.body||{}));
@@ -168,7 +168,7 @@ routerAdd('POST', '/api/v1/invites/create', (c) => {
   }
 });
 
-routerAdd('GET', '/api/v1/setup-status', (c) => {
+routerAdd('GET', '/api/setup-status', (c) => {
   try {
     var u = $app.findRecordsByFilter('users', '', '-created', 1, 0);
     var s = $app.findRecordsByFilter('app_settings', 'setup_complete = true', '-created', 1, 0);
@@ -177,7 +177,7 @@ routerAdd('GET', '/api/v1/setup-status', (c) => {
 });
 
 // ── Validate invite code (no auth required, public) ──
-routerAdd('GET', '/api/v1/validate-invite', (c) => {
+routerAdd('GET', '/api/validate-invite', (c) => {
   try {
     var q = c.requestInfo().query || {};
     var code = String(q.code || '').trim().toUpperCase();
@@ -211,7 +211,7 @@ routerAdd('GET', '/api/v1/validate-invite', (c) => {
 });
 
 // ── User registration (no auth required) ──
-routerAdd('POST', '/api/v1/register', (c) => {
+routerAdd('POST', '/api/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
   var createUser = function(col, data) {
     var u = $app.unsafeWithoutHooks();
@@ -315,7 +315,7 @@ routerAdd('POST', '/api/v1/register', (c) => {
 });
 
 // ── Entries: LIST (GET) ──
-routerAdd('GET', '/api/v1/entries', (c) => {
+routerAdd('GET', '/api/entries', (c) => {
   function bearerAuthMiddleware(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -619,8 +619,8 @@ routerAdd('POST', '/api/v1', (c) => {
 // ── Agent management endpoints ──────────────────────────────────────────
 // These work with api_tokens records where enabled=false = pending, enabled=true = approved.
 
-// GET /api/v1/agent/counts — returns pending/approved counts
-routerAdd('GET', '/api/v1/agent/counts', (c) => {
+// GET /api/agent/counts — returns pending/approved counts
+routerAdd('GET', '/api/agent/counts', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
@@ -648,8 +648,8 @@ routerAdd('GET', '/api/v1/agent/counts', (c) => {
   } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
-// GET /api/v1/agent/pending — returns tokens where enabled=false
-routerAdd('GET', '/api/v1/agent/pending', (c) => {
+// GET /api/agent/pending — returns tokens where enabled=false
+routerAdd('GET', '/api/agent/pending', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
@@ -681,8 +681,8 @@ routerAdd('GET', '/api/v1/agent/pending', (c) => {
   } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
-// POST /api/v1/agent/approve — enables a token
-routerAdd('POST', '/api/v1/agent/approve', (c) => {
+// POST /api/agent/approve — enables a token
+routerAdd('POST', '/api/agent/approve', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
@@ -716,8 +716,8 @@ routerAdd('POST', '/api/v1/agent/approve', (c) => {
   } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
-// POST /api/v1/agent/reject — deletes a pending token
-routerAdd('POST', '/api/v1/agent/reject', (c) => {
+// POST /api/agent/reject — deletes a pending token
+routerAdd('POST', '/api/agent/reject', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
@@ -742,8 +742,8 @@ routerAdd('POST', '/api/v1/agent/reject', (c) => {
   } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
-// GET /api/v1/agent/list — returns all tokens with status
-routerAdd('GET', '/api/v1/agent/list', (c) => {
+// GET /api/agent/list — returns all tokens with status
+routerAdd('GET', '/api/agent/list', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
@@ -778,8 +778,8 @@ routerAdd('GET', '/api/v1/agent/list', (c) => {
   } catch(e) { return c.json(500, { error: String(e) }); }
 });
 
-// DELETE /api/v1/agent/:id — revoke token
-routerAdd('DELETE', '/api/v1/agent/:id', (c) => {
+// DELETE /api/agent/:id — revoke token
+routerAdd('DELETE', '/api/agent/:id', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
