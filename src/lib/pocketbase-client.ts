@@ -145,6 +145,7 @@ const normalizeInvite = (record: any): InviteCode => ({
   used: !!record.used,
   usedBy: record.used_by || undefined,
   usedAt: toTimestamp(record.used_at),
+  type: record.type || 'human',
 });
 
 const normalizeSettings = (record: any): AppSettings => ({
