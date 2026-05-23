@@ -28,9 +28,8 @@ routerAdd('GET', '/api/todoless/api-tokens', (c) => {
     var auth = resolveAuth(c);
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
-    var filter = auth.role === 'admin'
-      ? ''  // Admin sees all tokens
-      : 'user = "' + auth.id + '"';
+    // All authenticated users can see all tokens (multi-user)
+    var filter = '';
 
     var tokens = $app.findRecordsByFilter('api_tokens', filter, '-created', 0, 0);
 

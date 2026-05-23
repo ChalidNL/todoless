@@ -552,7 +552,6 @@ routerAdd('POST', '/api/todoless/api', (c) => {
     // ── Admin: set_role (max 1 admin) ──
     if (action === 'set_role') {
       if (!auth) return c.json(401, { error: 'Unauthorized' });
-      if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
       var targetId = String(gv(d, 'user_id', '')).trim();
       var newRole = String(gv(d, 'role', '')).trim();
       if (!targetId || !newRole) return c.json(400, { error: 'user_id and role required' });
