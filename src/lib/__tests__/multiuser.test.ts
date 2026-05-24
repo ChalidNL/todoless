@@ -408,7 +408,7 @@ describe('Multi-user: Permission boundaries', () => {
     expect(notes).toHaveLength(1);
   });
 
-  it('getLabels filters strictly by user.id', async () => {
+  it('getLabels filters by family_id', async () => {
     switchUser({ id: 'user-a', email: 'alice@test.com', name: 'Alice', role: 'admin', family_id: 'fam-1' });
     mockLabelsCollection.getFullList.mockResolvedValue([
       { id: 'l1', name: 'Work', color: '#ff0000', is_private: false, user: 'user-a' },
@@ -418,7 +418,7 @@ describe('Multi-user: Permission boundaries', () => {
     const labels = await freshApi.getLabels();
 
     expect(mockLabelsCollection.getFullList).toHaveBeenCalledWith(
-      expect.objectContaining({ filter: 'user.id = "user-a"' }),
+      expect.objectContaining({ filter: 'user.family_id = "fam-1"', sort: 'name' }),
     );
   });
 
