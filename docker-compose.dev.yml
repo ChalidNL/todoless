@@ -1,0 +1,89 @@
+name: todoless-ngx
+
+services:
+  todoless-ngx:
+    image: ghcr.io/chalidnl/todoless-ngx-frontend:dev
+    container_name: todoless-ngx
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Amsterdam
+      DEPLOY_ENV: development
+    ports:
+      - target: 80
+        published: 7070
+        protocol: tcp
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - todoless-net
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_US: Timezone
+      ports:
+        - container: "80"
+          description:
+            en_US: Web UI
+
+  pocketbase:
+    image: ghcr.io/chalidnl/todoless-ngx-pocketbase:dev
+    container_name: todoless-ngx-pocketbase
+    restart: unless-stopped
+    entrypoint: ["/entrypoint.sh"]
+    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
+    environment:
+      TZ: Europe/Amsterdam
+    # No published ports — only accessible via nginx proxy on todoless-net
+    volumes:
+      - /DATA/AppData/todoless-ngx/pb_data:/pb_data
+      - /DATA/AppData/todoless-ngx/pb_migrations:/pb_migrations
+      - /DATA/AppData/todoless-ngx/pb_hooks:/pb_hooks
+    networks:
+      - todoless-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8090/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    x-casaos:
+      volumes:
+        - container: /pb_data
+          description:
+            en_US: PocketBase data — database and uploads
+        - container: /pb_migrations
+          description:
+            en_US: PocketBase migration scripts
+        - container: /pb_hooks
+          description:
+            en_US: PocketBase server-side hooks
+
+networks:
+  todoless-net:
+    driver: bridge
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: todoless-ngx
+  author: self-hosted
+  category: Productivity
+  description:
+    en_US: todoless-ngx — self-hosted multi-user task manager. Tasks, notes, calendar, brain dumps, real-time sync. Free forever.
+  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless-ngx@main/src/public/icon.svg
+  tagline:
+    en_US: Self-hosted productivity app
+  title:
+    en_US: todoless-ngx
+  port_map: "7070"
+  scheme: http
+  index: /

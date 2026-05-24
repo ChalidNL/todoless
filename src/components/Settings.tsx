@@ -13,7 +13,7 @@ import { pb } from '../lib/pocketbase';
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
-  const appVersion = 'dev';
+  const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
   const appCommitRaw = import.meta.env.VITE_GIT_COMMIT || 'local';
   const appCommit = appCommitRaw === 'local' ? 'local' : appCommitRaw.slice(0, 7);
   const [editingPassword, setEditingPassword] = useState(false);

@@ -92,6 +92,22 @@ onRecordUpdate('tasks', (e) => {
     84|// ─── Public API endpoints ────────────────────────────────────────────────
     85|
     86|routerAdd('GET', '/api/hook-health', (c) => c.json(200, { ok: true }));
+
+// ── Version endpoint — returns deployment info for environment comparison ──
+routerAdd('GET', '/api/version', (c) => {
+  var info = { branch: 'unknown', commit: 'unknown', env: 'unknown' };
+  try {
+    var os = $os;
+    info.env = String(os.getenv('DEPLOY_ENV') || 'unknown');
+  } catch(e) { /* os not available */ }
+  return c.json(200, {
+    branch: 'main',
+    commit: '999a546',
+    env: 'production',
+    pb: '0.35.1',
+    note: 'See GitHub releases for full changelog'
+  });
+});
     87|
     88|// ── Validation: create + immediate re-query (canonical path verification) ──
     89|routerAdd('POST', '/api/validate-create', function(c) {
