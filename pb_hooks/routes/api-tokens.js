@@ -45,7 +45,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
     var coll = $app.findCollectionByNameOrId('api_tokens');
-    var allRecords = $app.findRecordsByFilter('api_tokens', '', '-created', 10000, 0);
+    var allRecords = $app.findRecordsByFilter('api_tokens', '', '', 10000, 0);
     var result = [];
     for (var i = 0; i < allRecords.length; i++) {
       var r = allRecords[i];
