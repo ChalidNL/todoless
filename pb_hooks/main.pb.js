@@ -9,77 +9,85 @@
      9|
     10|// ── Canonical Record Hooks: single creation path for ALL sources (UI, API, agent) ──
     11|
-    12|onRecordCreate('tasks', (e) => {
-    13|  try {
-    14|    var rec = e.record;
-    15|    // Default status
-    16|    if (!rec.get('status')) rec.set('status', 'todo');
-    17|    // Default flag
-    18|    if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
-    19|    // Default is_private
-    20|    if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
-    21|    // Auto-set user from auth context if not provided
-    22|    if (!rec.get('user')) {
-    23|      var info = e.requestInfo();
-    24|      var auth = info && info.auth ? info.auth : null;
-    25|      if (auth) rec.set('user', auth.id);
-    26|    }
-    27|    // Auto-set family_id from user
-    28|    if (!rec.get('family_id') || rec.get('family_id') === '') {
-    29|      var uid = rec.get('user');
-    30|      if (uid) {
-    31|        try {
-    32|          var u = $app.findRecordById('users', uid);
-    33|          var fid = u.get('family_id');
-    34|          if (fid) rec.set('family_id', fid);
-    35|        } catch(ex) { /* user may not exist yet during import */ }
-    36|      }
-    37|    }
-    38|    // Subtask_ids from request data
-    39|    var data = e.requestInfo && e.requestInfo().data ? e.requestInfo().data : {};
-    40|    if (data && data.subtask_ids !== undefined) {
-    41|      rec.set('subtask_ids', data.subtask_ids);
-    42|    }
-    43|  } catch(err) { /* ignore */ }
-    44|});
+    onRecordCreate('tasks', (e) => {
+  var rec = e.record;
+  // Canonical defaults - ALWAYS set, no outer try/catch
+  if (!rec.get('status')) rec.set('status', 'todo');
+  if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
+  if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+
+  // Request info - call ONCE, store reference
+  var info = null;
+  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
+
+  // Auto-set user from auth context if not provided
+  if (!rec.get('user')) {
+    var auth = info && info.auth ? info.auth : null;
+    if (auth) rec.set('user', auth.id);
+  }
+  // Auto-set family_id from user
+  if (!rec.get('family_id') || rec.get('family_id') === '') {
+    var uid = rec.get('user');
+    if (uid) {
+      try {
+        var u = $app.findRecordById('users', uid);
+        var fid = u.get('family_id');
+        if (fid) rec.set('family_id', fid);
+      } catch(ex) { /* user may not exist yet */ }
+    }
+  }
+  // Subtask_ids from request data
+  if (info) {
+    try {
+      var data = info.data || {};
+      if (data && data.subtask_ids !== undefined) {
+        rec.set('subtask_ids', data.subtask_ids);
+      }
+    } catch(ex) { /* no data */ }
+  }
+});
     45|
-    46|onRecordCreate('items', (e) => {
-    47|  try {
-    48|    var rec = e.record;
-    49|    // Default completed
-    50|    if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
-    51|    // Default quantity
-    52|    if (!rec.get('quantity')) rec.set('quantity', 1);
-    53|    // Default is_private
-    54|    if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
-    55|    // Auto-set user from auth context if not provided
-    56|    if (!rec.get('user')) {
-    57|      var info = e.requestInfo();
-    58|      var auth = info && info.auth ? info.auth : null;
-    59|      if (auth) rec.set('user', auth.id);
-    60|    }
-    61|    // Auto-set family_id from user
-    62|    if (!rec.get('family_id') || rec.get('family_id') === '') {
-    63|      var uid = rec.get('user');
-    64|      if (uid) {
-    65|        try {
-    66|          var u = $app.findRecordById('users', uid);
-    67|          var fid = u.get('family_id');
-    68|          if (fid) rec.set('family_id', fid);
-    69|        } catch(ex) { /* ignore */ }
-    70|      }
-    71|    }
-    72|  } catch(err) { /* ignore */ }
-    73|});
+onRecordCreate('items', (e) => {
+  var rec = e.record;
+  // Canonical defaults - ALWAYS set, no outer try/catch
+  if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
+  if (!rec.get('quantity')) rec.set('quantity', 1);
+  if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+
+  // Request info - call ONCE, store reference
+  var info = null;
+  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
+
+  // Auto-set user from auth context if not provided
+  if (!rec.get('user')) {
+    var auth = info && info.auth ? info.auth : null;
+    if (auth) rec.set('user', auth.id);
+  }
+  // Auto-set family_id from user
+  if (!rec.get('family_id') || rec.get('family_id') === '') {
+    var uid = rec.get('user');
+    if (uid) {
+      try {
+        var u = $app.findRecordById('users', uid);
+        var fid = u.get('family_id');
+        if (fid) rec.set('family_id', fid);
+      } catch(ex) { /* ignore */ }
+    }
+  }
+});
     74|
-    75|onRecordUpdate('tasks', (e) => {
-    76|  try {
-    77|    var data = e.requestInfo && e.requestInfo().data ? e.requestInfo().data : {};
-    78|    if (data && data.subtask_ids !== undefined) {
-    79|      e.record.set('subtask_ids', data.subtask_ids);
-    80|    }
-    81|  } catch(err) { /* ignore */ }
-    82|});
+onRecordUpdate('tasks', (e) => {
+  var info = null;
+  try { info = e.requestInfo(); } catch(ex) {}
+  if (info) {
+    try {
+      var data = info.data || {};
+      if (data && data.subtask_ids !== undefined) {
+        e.record.set('subtask_ids', data.subtask_ids);
+      }
+    } catch(err) { /* ignore */ }
+  }
+});
     83|
     84|// ─── Public API endpoints ────────────────────────────────────────────────
     85|
