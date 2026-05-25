@@ -217,7 +217,7 @@ export const TasksView = () => {
           {activeTasks.length === 0 && checkedOutTasks.length === 0 ? (
             <div className="text-center py-16">
               <CheckSquare className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-              <p className="text-neutral-400 text-sm">{t('inbox.noTasksFound')}</p>
+              <p className="text-neutral-400 text-sm">{t('inbox.empty')}</p>
             </div>
           ) : (
             <div className="space-y-2">

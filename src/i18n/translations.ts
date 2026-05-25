@@ -12,6 +12,7 @@ interface TranslationStructure {
     closeEditor: string;
     completed: string;
     confirm: string;
+    confirmDeleteTitle: string;
     copied: string;
     copiedToClipboard: string;
     copyToClipboard: string;
@@ -115,6 +116,8 @@ interface TranslationStructure {
     quantity: string;
     category: string;
     searchPlaceholder: string;
+    confirmDelete: string;
+    empty: string;
   };
   notes: {
     title: string;
@@ -299,6 +302,7 @@ interface TranslationStructure {
     noResults: string;
     markAllDone: string;
     clearAll: string;
+    empty: string;
   };
   members: {
     title: string;
@@ -341,6 +345,7 @@ export const translations: Record<Language, TranslationStructure> = {
       closeEditor: 'Close Editor',
       completed: 'Completed',
       confirm: 'Confirm',
+      confirmDeleteTitle: 'Are you sure you want to delete this?',
       copied: 'Copied!',
       copiedToClipboard: 'Copied to clipboard',
       copyToClipboard: 'Copy to clipboard',
@@ -444,6 +449,8 @@ export const translations: Record<Language, TranslationStructure> = {
       quantity: 'Quantity',
       category: 'Category',
       searchPlaceholder: 'Search items...',
+      confirmDelete: 'Delete this item?',
+      empty: 'Empty',
     },
     notes: {
       title: 'Notes',
@@ -628,6 +635,7 @@ export const translations: Record<Language, TranslationStructure> = {
       noResults: 'No results',
       markAllDone: 'Mark All Done',
       clearAll: 'Clear All',
+      empty: 'Empty',
     },
     members: {
       title: 'Members',
@@ -668,6 +676,7 @@ export const translations: Record<Language, TranslationStructure> = {
       closeEditor: 'Fermer l\'éditeur',
       completed: 'Terminé',
       confirm: 'Confirmer',
+      confirmDeleteTitle: 'Êtes-vous sûr de vouloir supprimer ceci ?',
       copied: 'Copié !',
       copiedToClipboard: 'Copié dans le presse-papier',
       copyToClipboard: 'Copier dans le presse-papier',
@@ -771,6 +780,8 @@ export const translations: Record<Language, TranslationStructure> = {
       quantity: 'Quantité',
       category: 'Catégorie',
       searchPlaceholder: 'Rechercher des articles...',
+      confirmDelete: 'Supprimer cet article ?',
+      empty: 'Vide',
     },
     notes: {
       title: 'Notes',
@@ -955,6 +966,7 @@ export const translations: Record<Language, TranslationStructure> = {
       noResults: 'Aucun résultat',
       markAllDone: 'Tout marquer comme fait',
       clearAll: 'Tout effacer',
+      empty: 'Vide',
     },
     members: {
       title: 'Membres',
@@ -995,6 +1007,7 @@ export const translations: Record<Language, TranslationStructure> = {
       closeEditor: 'Editor sluiten',
       completed: 'Voltooid',
       confirm: 'Bevestigen',
+      confirmDeleteTitle: 'Weet je zeker dat je dit wilt verwijderen?',
       copied: 'Gekopieerd!',
       copiedToClipboard: 'Gekopieerd naar klembord',
       copyToClipboard: 'Kopiëren naar klembord',
@@ -1098,6 +1111,8 @@ export const translations: Record<Language, TranslationStructure> = {
       quantity: 'Hoeveelheid',
       category: 'Categorie',
       searchPlaceholder: 'Items zoeken...',
+      confirmDelete: 'Dit item verwijderen?',
+      empty: 'Leeg',
     },
     notes: {
       title: 'Notities',
@@ -1282,6 +1297,7 @@ export const translations: Record<Language, TranslationStructure> = {
       noResults: 'Geen resultaten',
       markAllDone: 'Alles als gedaan markeren',
       clearAll: 'Alles wissen',
+      empty: 'Leeg',
     },
     members: {
       title: 'Leden',
@@ -1322,6 +1338,7 @@ export const translations: Record<Language, TranslationStructure> = {
       closeEditor: 'Editor schließen',
       completed: 'Abgeschlossen',
       confirm: 'Bestätigen',
+      confirmDeleteTitle: 'Möchtest du das wirklich löschen?',
       copied: 'Kopiert!',
       copiedToClipboard: 'In Zwischenablage kopiert',
       copyToClipboard: 'In Zwischenablage kopieren',
@@ -1425,6 +1442,8 @@ export const translations: Record<Language, TranslationStructure> = {
       quantity: 'Menge',
       category: 'Kategorie',
       searchPlaceholder: 'Artikel suchen...',
+      confirmDelete: 'Diesen Artikel löschen?',
+      empty: 'Leer',
     },
     notes: {
       title: 'Notizen',
@@ -1609,6 +1628,7 @@ export const translations: Record<Language, TranslationStructure> = {
       noResults: 'Keine Ergebnisse',
       markAllDone: 'Alle als erledigt markieren',
       clearAll: 'Alles löschen',
+      empty: 'Leer',
     },
     members: {
       title: 'Mitglieder',

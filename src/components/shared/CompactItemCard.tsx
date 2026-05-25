@@ -279,18 +279,29 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
             </div>
           )}
 
-          {/* Delete confirmation */}
+          {/* Delete confirmation popup */}
           {showActions && (
-            <div className="mt-2 pt-2 border-t border-neutral-100">
-              <button
-                onClick={() => {
-                  deleteItem(item.id);
-                  setShowActions(false);
-                }}
-                className="text-xs text-red-600 hover:text-red-700"
-              >
-                {t('items.confirmDelete')}
-              </button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowActions(false)}>
+              <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
+                <p className="text-sm font-medium text-neutral-900 mb-4">{t('items.confirmDelete')}</p>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setShowActions(false)}
+                    className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
+                  >
+                    {t('common.no')}
+                  </button>
+                  <button
+                    onClick={() => {
+                      deleteItem(item.id);
+                      setShowActions(false);
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+                  >
+                    {t('common.confirm')}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>

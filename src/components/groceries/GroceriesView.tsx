@@ -184,7 +184,7 @@ export const GroceriesView = () => {
         {sortedActiveItems.length === 0 ? (
           <div className="text-center py-16">
             <ShoppingCart className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-            <p className="text-neutral-400 text-sm">{t('common.noData')}</p>
+            <p className="text-neutral-400 text-sm">{t('items.empty')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

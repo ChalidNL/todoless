@@ -633,7 +633,7 @@ export const Settings = () => {
               )}
 
               <div className="space-y-3">
-                {users.map(user => (
+                {users.filter(user => user.role === 'member' || user.role === 'agent' || (user.role === 'admin' && users.filter(u => u.role === 'admin').length > 1)).map(user => (
                   <div key={user.id} className="p-3 border border-neutral-200 rounded">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold shrink-0">
