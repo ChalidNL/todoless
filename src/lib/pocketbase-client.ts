@@ -339,7 +339,11 @@ class PocketBaseClient {
 
   async createTask(task: Partial<Task>) {
     try {
-      const userId = pb.authStore.record?.id;
+      const userId = pb.authStore.record?.id || (pb.authStore.model as any)?.id;
+      if (!userId) {
+        this.showError('Not authenticated — please log in again');
+        throw new Error('Not authenticated');
+      }
       return await pb.collection('tasks').create({
         title: task.title,
         status: task.status || 'todo',
@@ -450,6 +454,11 @@ class PocketBaseClient {
 
   async createItem(item: Partial<Item>) {
     try {
+      const userId = pb.authStore.record?.id || (pb.authStore.model as any)?.id;
+      if (!userId) {
+        this.showError('Not authenticated — please log in again');
+        throw new Error('Not authenticated');
+      }
       return await pb.collection('items').create({
         title: item.title,
         completed: item.completed || false,
@@ -462,7 +471,7 @@ class PocketBaseClient {
         is_private: item.isPrivate || false,
         linked_task_ids: item.linkedTaskIds || [],
         linked_note_ids: item.linkedNoteIds || [],
-        user: pb.authStore.record?.id,
+        user: userId,
       });
     } catch (error: any) {
       const msg = error?.response?.message || error?.message || 'Failed to create item';
