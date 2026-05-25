@@ -264,7 +264,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0 || task.priority) && (
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority])) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -313,7 +313,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   color="#8b5cf6"
                 />
               )}
-              {task.priority && (
+              {task.priority && PRIORITY_COLORS[task.priority] && (
                 <AttributeChip
                   icon={<AlertTriangle className="w-3.5 h-3.5" />}
                   label={PRIORITY_LABELS[task.priority] || task.priority}
@@ -464,7 +464,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
                   className={`p-1.5 rounded transition-colors ${
-                    task.priority || activeEditor === 'priority'
+                    (task.priority && PRIORITY_COLORS[task.priority]) || activeEditor === 'priority'
                       ? 'bg-amber-100 text-amber-700'
                       : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
