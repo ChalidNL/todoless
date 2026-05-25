@@ -126,6 +126,9 @@ interface TranslationStructure {
     noSavedFilters: string;
     manageFilters: string;
   };
+  groceries: {
+    empty: string;
+  };
   settings: {
     account: string;
     active: string;
@@ -470,6 +473,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'No saved filters',
       manageFilters: 'Manage your saved filters here.',
     },
+    groceries: {
+      empty: 'No items yet',
+    },
     settings: {
       account: 'Account',
       active: 'Active',
@@ -812,6 +818,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'Aucun filtre enregistré',
       manageFilters: 'Gérez vos filtres enregistrés ici.',
     },
+    groceries: {
+      empty: 'Aucun article',
+    },
     settings: {
       account: 'Compte',
       active: 'Actif',
@@ -908,6 +917,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tokenName: 'Nom du jeton',
       tokenPermissions: 'Permissions du jeton',
       tuesday: 'Mardi',
+      unblock: 'Débloquer',
       unlimited: 'Illimité',
       unnamed: 'Sans nom',
       update: 'Mettre à jour',
@@ -1153,6 +1163,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noSavedFilters: 'Geen opgeslagen filters',
       manageFilters: 'Beheer je opgeslagen filters hier.',
     },
+    groceries: {
+      empty: 'Geen items',
+    },
     settings: {
       account: 'Account',
       active: 'Actief',
@@ -1249,6 +1262,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tokenName: 'Token naam',
       tokenPermissions: 'Token rechten',
       tuesday: 'Dinsdag',
+      unblock: 'Deblokkeren',
       unlimited: 'Onbeperkt',
       unnamed: 'Naamloos',
       update: 'Bijwerken',
@@ -1493,6 +1507,9 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Filter',
       noSavedFilters: 'Keine gespeicherten Filter',
       manageFilters: 'Verwalte deine gespeicherten Filter hier.',
+    },
+    groceries: {
+      empty: 'Keine Artikel',
     },
     settings: {
       account: 'Konto',
