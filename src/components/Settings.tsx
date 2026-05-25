@@ -625,7 +625,6 @@ export const Settings = () => {
 
           {showTeamMembers && (
             <>
-              {/* Invite Manager - only for admins */}
               {currentUser?.role === 'admin' && (
                 <div className="mb-6 p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
                   <h3 className="text-sm font-semibold mb-3">{t('members.inviteMember')}</h3>
@@ -633,84 +632,66 @@ export const Settings = () => {
                 </div>
               )}
 
-              {currentUser?.role !== 'admin' && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
-                  🔒
-                  {t('members.noMembers')}
+              {users.length === 0 ? (
+                <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {users.map(user => {
+                    const isCurrentUser = currentUser?.id === user.id;
+                    const isAdmin = user.role === 'admin';
+                    const isOwner = user.role === 'owner';
+                    const isAgent = user.role === 'agent';
+                    const roleColor = isOwner ? '#a855f7' : isAdmin ? '#f59e0b' : isAgent ? '#3b82f6' : '#6b7280';
+                    const roleLabel = isOwner ? t('settings.owner') : isAdmin ? 'Admin' : isAgent ? 'Agent' : t('settings.member');
+                    const isActive = user.active ?? true;
+
+                    return (
+                      <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                          style={{ backgroundColor: roleColor }}>
+                          {userDisplayName(user).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm truncate">{userDisplayName(user)}</span>
+                            {isCurrentUser && <span className="text-[10px] text-neutral-400">(you)</span>}
+                          </div>
+                          <p className="text-xs text-neutral-500 truncate">{user.email}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          <span className="inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium text-white"
+                            style={{ backgroundColor: roleColor }}>
+                            {roleLabel}
+                          </span>
+                          <span className={`inline-flex items-center px-2 h-6 rounded-full text-[10px] font-medium ${
+                            isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                            {isActive ? t('settings.active') : t('settings.blocked')}
+                          </span>
+                          {currentUser?.role === 'admin' && !isCurrentUser && (
+                            <div className="flex gap-1 ml-1">
+                              <button
+                                onClick={() => handleToggleMemberActive(user)}
+                                className="p-1.5 hover:bg-neutral-100 rounded text-neutral-500"
+                                title={isActive ? t('settings.blocked') : t('settings.unblock')}
+                              >
+                                {isActive ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5 text-green-600" />}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMember(user)}
+                                className="p-1.5 hover:bg-red-50 rounded text-red-500"
+                                title={t('common.delete')}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
-
-              <h3 className="text-sm font-semibold mb-3">{t('settings.teamMembers')}</h3>
-
-              {/* Admin max-1 warning */}
-              {users.filter(u => u.role === 'admin').length > 1 && currentUser?.role === 'admin' && (
-                <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                  ⚠️ Er zijn {users.filter(u => u.role === 'admin').length} admins. Maximaal 1 admin toegestaan. Demote de extra admins naar user.
-                </div>
-              )}
-
-              <div className="space-y-3">
-                {users.map(user => (
-                  <div key={user.id} className="p-3 border border-neutral-200 rounded">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold shrink-0">
-                        {userDisplayName(user).charAt(0)}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{userDisplayName(user)}</p>
-                        <p className="text-xs text-neutral-600 truncate">{user.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <span className={`text-xs px-2 py-1 rounded capitalize ${
-                        user.role === 'admin' ? 'bg-neutral-900 text-white' : user.role === 'agent' ? 'bg-blue-100 text-blue-700' : user.role === 'owner' ? 'bg-purple-100 text-purple-700' : 'bg-neutral-100'
-                      }`}>
-                        {user.role === 'owner' ? t('settings.owner') : user.role === 'admin' ? t('settings.member') : user.role === 'agent' ? t('settings.member') : t('settings.member')}
-                      </span>
-                      {(user.active ?? true) ? (
-                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">{t('settings.active')}</span>
-                      ) : (
-                        <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700">{t('settings.blocked')}</span>
-                      )}
-                    </div>
-
-                    {currentUser?.role === 'admin' && currentUser.id !== user.id && user.role !== 'admin' && (
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={() => handleToggleMemberActive(user)}
-                          className="text-xs px-2 py-1 rounded border border-neutral-200 hover:bg-neutral-50"
-                        >
-                          {(user.active ?? true) ? t('settings.blocked') : t('settings.active')}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteMember(user)}
-                          className="text-xs px-2 py-1 rounded border border-red-200 text-red-600 hover:bg-red-50"
-                        >
-                          {t('common.delete')}
-                        </button>
-                      </div>
-                    )}
-                    {currentUser?.role === 'admin' && currentUser.id !== user.id && user.role === 'admin' && users.filter(u => u.role === 'admin').length > 1 && (
-                      <div className="mt-2">
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateUser(user.id, { role: 'member' });
-                              showCompletionMessage(`${user.name} gedemote naar member`);
-                            } catch (e: any) {
-                              showCompletionMessage(String(e.message || e));
-                            }
-                          }}
-                          className="text-xs px-2 py-1 rounded border border-orange-200 text-orange-600 hover:bg-orange-50"
-                        >
-                          {t('settings.demoteToMember')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             </>
           )}
         </div>
@@ -842,7 +823,7 @@ export const Settings = () => {
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center justify-between w-full mb-3"
           >
-            <h2 className="text-lg font-semibold">{t('settings.filterViews')}</h2>
+            <h2 className="text-lg font-semibold">{t('settings.filters')}</h2>
             {showFilters ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
@@ -890,7 +871,7 @@ export const Settings = () => {
         </div>
 
 
-        {/* Integration Section */}
+        {/* Integration Section — API Documentation */}
           <div className="mb-6 border-b border-neutral-200 pb-6">
             <button
               onClick={toggleIntegrationsSection}
@@ -908,7 +889,6 @@ export const Settings = () => {
 
             {showIntegrations && (
               <div className="space-y-4">
-                {/* API Documentation */}
                 <div>
                   <h3 className="text-sm font-semibold mb-2">{t('settings.apiDocumentation')}</h3>
                   <a
@@ -920,189 +900,6 @@ export const Settings = () => {
                     <ExternalLink className="w-4 h-4" />
                     {t('settings.openSwaggerDocs')}
                   </a>
-                </div>
-
-                {/* Agent Pending Summary + API Tokens + Agents inline */}
-
-                {/* Agent Status Summary */}
-                {approvedAgentsCount > 0 || pendingAgentsCount > 0 ? (
-                  <div className="flex items-center gap-3 text-sm">
-                    {pendingAgentsCount > 0 && (
-                      <span className="text-orange-600 font-medium">{pendingAgentsCount} {t('settings.pendingCount')}</span>
-                    )}
-                    {approvedAgentsCount > 0 && (
-                      <span className="text-green-600 font-medium">{approvedAgentsCount} {t('settings.approvedCount')}</span>
-                    )}
-                  </div>
-                ) : null}
-
-                {/* API Tokens */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">{t('settings.apiTokens')}</h3>
-
-                  {apiTokens.length === 0 ? (
-                    <p className="text-sm text-neutral-600">{t('settings.noApiTokensYet')}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {apiTokens.map(token => (
-                        <div key={token.id} className="p-3 border border-neutral-200 rounded">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="font-medium text-sm truncate">{token.name}</p>
-                              <p className="text-xs text-neutral-500 mt-0.5">
-                                {token.permissions?.join(', ') || t('settings.noPermissions')}
-                              </p>
-                              {token.expires_at && (
-                                <p className="text-xs text-neutral-400 mt-0.5">
-                                  {t('settings.expires')}: {new Date(token.expires_at).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <button
-                                onClick={() => handleToggleToken(token.id, !token.enabled)}
-                                className={`text-xs px-2 py-1 rounded ${
-                                  token.enabled
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-neutral-100 text-neutral-500'
-                                }`}
-                              >
-                                {token.enabled ? t('settings.enabled') : t('settings.disabled')}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteToken(token.id)}
-                                className="p-1 hover:bg-red-50 rounded text-red-500"
-                                title={t('settings.revokeToken')}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">{t('settings.agentApproval')}</h3>
-                  {loadingAgents ? (
-                    <p className="text-sm text-neutral-600 py-4 text-center">{t('common.loading')}</p>
-                  ) : pendingAgents.length === 0 ? (
-                    <p className="text-sm text-neutral-600 py-4 text-center">{t('settings.noPendingAgents')}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {pendingAgents.map(agent => (
-                        <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
-                              {(agent.name || agent.email || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{agent.name || t('settings.unnamed')}</p>
-                              <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">
-                                {t('settings.requested')}: {new Date(agent.created).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              onClick={() => handleApproveAgent(agent.id)}
-                              disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
-                              className="flex-1 px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                            >
-                              {approvingAgentId === agent.id ? (
-                                <span>{t('settings.approving')}</span>
-                              ) : (
-                                <>
-                                  <Check className="w-4 h-4" />
-                                  {t('settings.approve')}
-                                </>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleRejectAgent(agent.id)}
-                              disabled={approvingAgentId === agent.id || rejectingAgentId === agent.id}
-                              className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                            >
-                              {rejectingAgentId === agent.id ? (
-                                <span>{t('settings.rejecting')}</span>
-                              ) : (
-                                <>
-                                  <X className="w-4 h-4" />
-                                  {t('settings.reject')}
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">{t('settings.agents')}</h3>
-                  {loadingAllAgents ? (
-                    <p className="text-sm text-neutral-600 py-4 text-center">{t('common.loading')}</p>
-                  ) : allAgents.length === 0 ? (
-                    <p className="text-sm text-neutral-600 py-4 text-center">{t('settings.noRegisteredAgents')}</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {allAgents.map(agent => (
-                        <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
-                          <div className="flex items-start gap-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${
-                              agent.status === 'approved' ? 'bg-green-100 text-green-700' :
-                              agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {(agent.name || agent.email || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm truncate">{agent.name || t('settings.unnamed')}</p>
-                                <span className={`text-xs px-2 py-0.5 rounded ${
-                                  agent.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                  agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-red-100 text-red-700'
-                                }`}>
-                                  {agent.status}
-                                </span>
-                              </div>
-                              <p className="text-xs text-neutral-600 truncate">{agent.email}</p>
-                              <p className="text-xs text-neutral-400 mt-0.5">
-                                {t('settings.created')}: {new Date(agent.created).toLocaleDateString()}
-                                {agent.updated && ` • ${t('settings.updated')}: ${new Date(agent.updated).toLocaleDateString()}`}
-                              </p>
-                            </div>
-                          </div>
-
-                          {agent.status === 'approved' && (
-                            <div className="mt-3 flex gap-2">
-                              <button
-                                onClick={() => handleRevokeAgent(agent.id)}
-                                disabled={revokingAgentId === agent.id}
-                                className="flex-1 px-3 py-1.5 border border-red-200 text-red-600 rounded text-sm hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-1.5"
-                              >
-                                {revokingAgentId === agent.id ? (
-                                  <span>{t('settings.revoking')}</span>
-                                ) : (
-                                  <>
-                                    <Trash2 className="w-4 h-4" />
-                                    {t('settings.revokeToken')}
-                                  </>
-                                )}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
             )}

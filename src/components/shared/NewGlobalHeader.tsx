@@ -1,10 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Filter, X, Check, Circle, AlertCircle, Flag, User, Tag, Zap, ShoppingCart, MapPin, CalendarDays, Repeat, CheckSquare } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Filter, CheckSquare, X, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
-import { LabelBadge } from './LabelBadge';
-import { Priority, Horizon, TaskStatus } from '../../types';
-import { PRIORITY_ORDER, PRIORITY_LABELS, PRIORITY_COLORS } from '../../lib/priority';
 
 interface NewGlobalHeaderProps {
   onSearch?: (query: string) => void;
@@ -28,121 +25,22 @@ export const NewGlobalHeader = ({
   showAdd = true
 }: NewGlobalHeaderProps) => {
   const [inputValue, setInputValue] = useState('');
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const { users, labels, filters, items, shops, appSettings, sprints } = useApp();
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters, addFilter, showCompletionMessage } = useApp();
 
-  // Common filter states
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-  const [showCompleted, setShowCompleted] = useState(false);
-
-  // Task specific filters
-  const [selectedStatus, setSelectedStatus] = useState<TaskStatus[]>([]);
-  const [selectedPriority, setSelectedPriority] = useState<Priority[]>([]);
-  const [selectedHorizon, setSelectedHorizon] = useState<Horizon[]>([]);
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
-  const [hasSprintId, setHasSprintId] = useState<boolean | undefined>(undefined);
-  const [blocked, setBlocked] = useState<boolean | undefined>(undefined);
-
-  // Sprint assignment for new tasks
-  const [selectedSprintId, setSelectedSprintId] = useState<string>('');
-
-  // Item specific filters
-  const [selectedShops, setSelectedShops] = useState<string[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [belowMinimumStock, setBelowMinimumStock] = useState<boolean | undefined>(undefined);
-
-  // Note specific filters
-  const [selectedLinkedTypes, setSelectedLinkedTypes] = useState<('task' | 'item')[]>([]);
-
-  // Calendar specific filters
-  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
-  const [hasRecurring, setHasRecurring] = useState<boolean | undefined>(undefined);
-
-  // Auto-apply filters when any filter changes
-  useEffect(() => {
-    applyFilter();
-  }, [selectedLabels, showCompleted, selectedStatus, selectedPriority, selectedHorizon, 
-      selectedAssignees, hasSprintId, blocked, selectedShops, selectedCategories, selectedLocations, 
-      belowMinimumStock, selectedLinkedTypes, dateRange, hasRecurring]);
-
-  const parseInput = (text: string) => {
-    let cleanText = text;
-    const metadata: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string } = {};
-
-    // Parse @me or @user (assignee)
-    const assigneeMatch = text.match(/@(\w+)/);
-    if (assigneeMatch) {
-      const userName = assigneeMatch[1];
-      if (userName.toLowerCase() === 'me' && appSettings.currentUserId) {
-        metadata.assignee = appSettings.currentUserId;
-        cleanText = cleanText.replace(assigneeMatch[0], '').trim();
-      } else {
-        const user = users.find(u => u.name.toLowerCase() === userName.toLowerCase());
-        if (user) {
-          metadata.assignee = user.id;
-          cleanText = cleanText.replace(assigneeMatch[0], '').trim();
-        }
-      }
-    }
-
-    // Parse #label (can have multiple)
-    const labelMatches = text.matchAll(/#(\w+)/g);
-    const labelIds: string[] = [];
-    for (const match of labelMatches) {
-      const labelName = match[1];
-      const label = labels.find(l => l.name.toLowerCase() === labelName.toLowerCase());
-      if (label) {
-        labelIds.push(label.id);
-        cleanText = cleanText.replace(match[0], '').trim();
-      }
-    }
-    if (labelIds.length > 0) {
-      metadata.labels = labelIds;
-    }
-
-    // Parse $shopname (groceries only)
-    const shopMatch = text.match(/\$(\w+)/);
-    if (shopMatch) {
-      const shopName = shopMatch[1];
-      const shop = shops.find(s => s.name.toLowerCase() === shopName.toLowerCase());
-      if (shop) {
-        metadata.shopId = shop.id;
-        cleanText = cleanText.replace(shopMatch[0], '').trim();
-      }
-    }
-
-    // Parse //date (due date)
-    const dateMatch = text.match(/\/\/(\d{4}-\d{2}-\d{2})/);
-    if (dateMatch) {
-      const dateStr = dateMatch[1];
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        metadata.dueDate = date.getTime();
-        cleanText = cleanText.replace(dateMatch[0], '').trim();
-      }
-    }
-
-    return { cleanText, metadata };
-  };
+  const typeFilters = filters.filter(f => f.type === type);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    if (onSearch) {
-      onSearch(value);
-    }
+    if (onSearch) onSearch(value);
   };
 
   const handleAdd = () => {
     if (!inputValue.trim() || !onAdd) return;
-    const { cleanText, metadata } = parseInput(inputValue);
-    onAdd(cleanText, metadata);
+    onAdd(inputValue.trim());
     setInputValue('');
-    // Clear search filter after adding so the new task is visible
-    if (onSearch) {
-      onSearch('');
-    }
+    if (onSearch) onSearch('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -151,90 +49,37 @@ export const NewGlobalHeader = ({
     }
   };
 
-  const toggleArrayValue = <T,>(arr: T[], value: T, setter: (arr: T[]) => void) => {
-    if (arr.includes(value)) {
-      setter(arr.filter(v => v !== value));
-    } else {
-      setter([...arr, value]);
+  const applySavedFilter = (filterId: string) => {
+    const filter = filters.find(f => f.id === filterId);
+    if (!filter) return;
+    clearChipFilters();
+    if (filter.chipFilters) {
+      filter.chipFilters.forEach((cf: any) => {
+        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
+      });
     }
+    setShowFilterDropdown(false);
+    showCompletionMessage('Filter applied');
   };
 
-  const getUniqueCategories = () => {
-    const categories = items.map(i => i.category).filter(Boolean) as string[];
-    return [...new Set(categories)];
-  };
-
-  const getUniqueLocations = () => {
-    const locations = items.map(i => i.location).filter(Boolean) as string[];
-    return [...new Set(locations)];
-  };
-
-  const applyFilter = () => {
-    if (!onFilter) return;
-
-    const activeFilters: any = {
-      showCompleted,
-    };
-
-    if (selectedLabels.length > 0) activeFilters.labelIds = selectedLabels;
-
-    if (type === 'task') {
-      if (selectedStatus.length > 0) activeFilters.status = selectedStatus;
-      if (selectedPriority.length > 0) activeFilters.priority = selectedPriority;
-      if (selectedHorizon.length > 0) activeFilters.horizon = selectedHorizon;
-      if (selectedAssignees.length > 0) activeFilters.assignedTo = selectedAssignees;
-      if (hasSprintId !== undefined) activeFilters.hasSprintId = hasSprintId;
-      if (blocked !== undefined) activeFilters.blocked = blocked;
-    } else if (type === 'item') {
-      if (selectedShops.length > 0) activeFilters.shopIds = selectedShops;
-      if (selectedCategories.length > 0) activeFilters.category = selectedCategories;
-      if (selectedLocations.length > 0) activeFilters.location = selectedLocations;
-      if (belowMinimumStock !== undefined) activeFilters.belowMinimumStock = belowMinimumStock;
-    } else if (type === 'note') {
-      if (selectedLinkedTypes.length > 0) activeFilters.linkedType = selectedLinkedTypes;
-    } else if (type === 'calendar') {
-      if (selectedAssignees.length > 0) activeFilters.assignedTo = selectedAssignees;
-      if (dateRange.start) activeFilters.startDate = dateRange.start;
-      if (dateRange.end) activeFilters.endDate = dateRange.end;
-      if (hasRecurring !== undefined) activeFilters.hasRecurring = hasRecurring;
+  const saveCurrentFilter = () => {
+    if (activeChipFilters.length === 0) {
+      showCompletionMessage('No active filters to save');
+      return;
     }
-
-    onFilter(activeFilters);
-  };
-
-  const clearFilters = () => {
-    setSelectedLabels([]);
-    setShowCompleted(false);
-    setSelectedStatus([]);
-    setSelectedPriority([]);
-    setSelectedHorizon([]);
-    setSelectedAssignees([]);
-    setHasSprintId(undefined);
-    setBlocked(undefined);
-    setSelectedShops([]);
-    setSelectedCategories([]);
-    setSelectedLocations([]);
-    setBelowMinimumStock(undefined);
-    setSelectedLinkedTypes([]);
-    setDateRange({});
-    setHasRecurring(undefined);
-  };
-
-  const typeFilters = filters.filter(f => f.type === type);
-
-  const getStatusIcon = (status: TaskStatus) => {
-    if (status === 'done') return <Check className="w-3 h-3" />;
-    if (status === 'todo') return <Circle className="w-3 h-3" />;
-    return <AlertCircle className="w-3 h-3" />;
-  };
-
-  const getPriorityIcon = (priority: Priority) => {
-    return <Flag className="w-3 h-3" />;
+    const name = `Filter ${typeFilters.length + 1}`;
+    addFilter({
+      name,
+      type: type === 'item' ? 'item' : 'task',
+      labelIds: [],
+      chipFilters: activeChipFilters.map(f => ({ type: f.type, id: f.id, label: f.label, color: f.color })),
+    });
+    setShowFilterDropdown(false);
+    showCompletionMessage('Filter saved');
   };
 
   return (
     <>
-      {/* Header Bar */}
       <div className="bg-black border-b border-neutral-800 sticky top-0 z-40">
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
           <div className="flex items-center justify-center gap-2 text-white w-full">
@@ -243,20 +88,83 @@ export const NewGlobalHeader = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Filter Icon */}
             {showFilters && (
-              <button
-                onClick={() => setShowFilterPanel(!showFilterPanel)}
-                className={`p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 ${
-                  showFilterPanel ? 'bg-neutral-800' : ''
-                }`}
-                title={t('common.filtersTooltip')}
-              >
-                <Filter className="w-4 h-4" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                  className={`p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 ${
+                    activeChipFilters.length > 0 ? 'bg-neutral-800 ring-1 ring-neutral-600' : ''
+                  }`}
+                  title={t('common.filtersTooltip')}
+                >
+                  <Filter className="w-4 h-4" />
+                  {activeChipFilters.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {activeChipFilters.length}
+                    </span>
+                  )}
+                </button>
+
+                {showFilterDropdown && (
+                  <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                    <div className="p-2 border-b border-neutral-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-neutral-600">{t('settings.filters')}</span>
+                        <button onClick={() => setShowFilterDropdown(false)} className="p-0.5 hover:bg-neutral-100 rounded">
+                          <X className="w-3.5 h-3.5 text-neutral-400" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {activeChipFilters.length > 0 && (
+                      <div className="p-2 border-b border-neutral-100">
+                        <div className="flex flex-wrap gap-1">
+                          {activeChipFilters.map(f => (
+                            <span key={`${f.type}-${f.id}`}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                              style={{ backgroundColor: f.color ? `${f.color}20` : '#f3f4f6', color: f.color || '#6b7280' }}
+                            >
+                              {f.label || f.id}
+                              <button onClick={() => toggleChipFilter(f.type, f.id)} className="hover:opacity-70">
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={saveCurrentFilter} className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100 py-1 rounded">
+                            <Save className="w-3 h-3" /> Save
+                          </button>
+                          <button onClick={clearChipFilters} className="flex-1 text-[10px] font-medium text-red-500 hover:bg-red-50 py-1 rounded">
+                            Clear all
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="p-1">
+                      {typeFilters.length === 0 ? (
+                        <p className="text-xs text-neutral-400 p-3 text-center">
+                          No saved filters. Apply filters via chips and save them here.
+                        </p>
+                      ) : (
+                        typeFilters.map(f => (
+                          <button key={f.id} onClick={() => applySavedFilter(f.id)}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 rounded flex items-center justify-between"
+                          >
+                            <span className="truncate">{f.name}</span>
+                            <span className="text-[10px] text-neutral-400 ml-2 shrink-0">
+                              {f.chipFilters?.length || 0}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* Search/Input Bar */}
             {showSearch && (
               <div className="flex-1 relative">
                 <input
@@ -270,7 +178,6 @@ export const NewGlobalHeader = ({
               </div>
             )}
 
-            {/* Add Button */}
             {showAdd && (
               <button
                 onClick={handleAdd}
@@ -283,288 +190,6 @@ export const NewGlobalHeader = ({
           </div>
         </div>
       </div>
-
-      {/* Filter Panel */}
-      {showFilterPanel && (
-        <div className="border-b border-neutral-200 bg-neutral-50">
-          <div className="max-w-2xl mx-auto px-4 py-3 space-y-3">
-            {/* Labels */}
-            {labels.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1.5">
-                  <Tag className="w-3.5 h-3.5 text-neutral-600" />
-                  <span className="text-xs font-medium text-neutral-700">{t('tasks.labels')}</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {labels.map(label => (
-                    <button
-                      key={label.id}
-                      onClick={() => toggleArrayValue(selectedLabels, label.id, setSelectedLabels)}
-                      className={`transition-opacity ${
-                        selectedLabels.includes(label.id) ? 'opacity-100' : 'opacity-40'
-                      }`}
-                    >
-                      <LabelBadge label={label} size="sm" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Task Specific Filters */}
-            {type === 'task' && (
-              <>
-                {/* Status */}
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Circle className="w-3.5 h-3.5 text-neutral-600" />
-                    <span className="text-xs font-medium text-neutral-700">{t('tasks.status')}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(['backlog', 'todo', 'done'] as TaskStatus[]).map(status => (
-                      <button
-                        key={status}
-                        onClick={() => toggleArrayValue(selectedStatus, status, setSelectedStatus)}
-                        className={`px-2 py-1 rounded text-xs capitalize transition-colors flex items-center gap-1 ${
-                          selectedStatus.includes(status)
-                            ? 'bg-neutral-900 text-white'
-                            : 'bg-white border border-neutral-200 text-neutral-600'
-                        }`}
-                      >
-                        {getStatusIcon(status)}
-                        {status === 'backlog' ? t('tasks.statusBacklog') : status === 'todo' ? t('tasks.statusTodo') : t('tasks.statusDone')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Priority */}
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Flag className="w-3.5 h-3.5 text-neutral-600" />
-                    <span className="text-xs font-medium text-neutral-700">{t('tasks.priority')}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PRIORITY_ORDER.map(priority => (
-                      <button
-                        key={priority}
-                        onClick={() => toggleArrayValue(selectedPriority, priority, setSelectedPriority)}
-                        className={`px-2 py-1 rounded text-xs capitalize transition-colors flex items-center gap-1 ${
-                          selectedPriority.includes(priority)
-                            ? 'bg-neutral-900 text-white'
-                            : 'bg-white border border-neutral-200 text-neutral-600'
-                        }`}
-                      >
-                        {getPriorityIcon(priority)}
-                        {PRIORITY_LABELS[priority] || priority}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Assignees */}
-                {users.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <User className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">{t('tasks.assignedFilterHeader')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {/* @me filter */}
-                      {appSettings.currentUserId && (
-                        <button
-                          onClick={() => toggleArrayValue(selectedAssignees, appSettings.currentUserId!, setSelectedAssignees)}
-                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
-                            selectedAssignees.includes(appSettings.currentUserId)
-                              ? 'bg-neutral-900 text-white'
-                              : 'bg-white border border-neutral-200 text-neutral-600'
-                          }`}
-                        >
-                          <User className="w-3 h-3" />
-                          {t('tasks.assignedToMe')}
-                        </button>
-                      )}
-                      {users.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => toggleArrayValue(selectedAssignees, user.id, setSelectedAssignees)}
-                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
-                            selectedAssignees.includes(user.id)
-                              ? 'bg-neutral-900 text-white'
-                              : 'bg-white border border-neutral-200 text-neutral-600'
-                          }`}
-                        >
-                          <User className="w-3 h-3" />
-                          {user.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Quick toggles */}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setHasSprintId(hasSprintId === true ? undefined : true)}
-                    className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
-                      hasSprintId === true
-                        ? 'bg-neutral-900 text-white'
-                        : 'bg-white border border-neutral-200 text-neutral-600'
-                    }`}
-                  >
-                    <Zap className="w-3 h-3" />
-                    {t('tasks.sprintFilter')}
-                  </button>
-                  <button
-                    onClick={() => setBlocked(blocked === true ? undefined : true)}
-                    className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
-                      blocked === true
-                        ? 'bg-neutral-900 text-white'
-                        : 'bg-white border border-neutral-200 text-neutral-600'
-                    }`}
-                  >
-                    <AlertCircle className="w-3 h-3" />
-                    {t('tasks.blockedFilter')}
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* Item Specific Filters */}
-            {type === 'item' && (
-              <>
-                {/* Shops */}
-                {shops && shops.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <ShoppingCart className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">{t('items.shopsFilterHeader')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {shops.map(shop => (
-                        <button
-                          key={shop.id}
-                          onClick={() => toggleArrayValue(selectedShops, shop.id, setSelectedShops)}
-                          className={`transition-opacity ${
-                            selectedShops.includes(shop.id) ? 'opacity-100' : 'opacity-40'
-                          }`}
-                        >
-                          <LabelBadge label={shop} size="sm" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Locations */}
-                {getUniqueLocations().length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">{t('items.locationFilterHeader')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {getUniqueLocations().map(location => (
-                        <button
-                          key={location}
-                          onClick={() => toggleArrayValue(selectedLocations, location, setSelectedLocations)}
-                          className={`px-2 py-1 rounded text-xs transition-colors ${
-                            selectedLocations.includes(location)
-                              ? 'bg-neutral-900 text-white'
-                              : 'bg-white border border-neutral-200 text-neutral-600'
-                          }`}
-                        >
-                          {location}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Calendar Specific Filters */}
-            {type === 'calendar' && (
-              <>
-                {/* Assignees for Calendar */}
-                {users.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <User className="w-3.5 h-3.5 text-neutral-600" />
-                      <span className="text-xs font-medium text-neutral-700">{t('calendar.assignedFilterHeader')}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {appSettings.currentUserId && (
-                        <button
-                          onClick={() => toggleArrayValue(selectedAssignees, appSettings.currentUserId!, setSelectedAssignees)}
-                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
-                            selectedAssignees.includes(appSettings.currentUserId)
-                              ? 'bg-neutral-900 text-white'
-                              : 'bg-white border border-neutral-200 text-neutral-600'
-                          }`}
-                        >
-                          <User className="w-3 h-3" />
-                          {t('calendar.assignedToMe')}
-                        </button>
-                      )}
-                      {users.map(user => (
-                        <button
-                          key={user.id}
-                          onClick={() => toggleArrayValue(selectedAssignees, user.id, setSelectedAssignees)}
-                          className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
-                            selectedAssignees.includes(user.id)
-                              ? 'bg-neutral-900 text-white'
-                              : 'bg-white border border-neutral-200 text-neutral-600'
-                          }`}
-                        >
-                          <User className="w-3 h-3" />
-                          {user.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => setHasRecurring(hasRecurring === true ? undefined : true)}
-                  className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
-                    hasRecurring === true
-                      ? 'bg-neutral-900 text-white'
-                      : 'bg-white border border-neutral-200 text-neutral-600'
-                  }`}
-                >
-                  <Repeat className="w-3 h-3" />
-                  {t('calendar.recurringFilter')}
-                </button>
-              </>
-            )}
-
-            {/* Common Toggles */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setShowCompleted(!showCompleted)}
-                className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
-                  showCompleted
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-white border border-neutral-200 text-neutral-600'
-                }`}
-              >
-                <Check className="w-3 h-3" />
-                {t('common.completed')}
-              </button>
-            </div>
-
-            {/* Clear Button */}
-            <button
-              onClick={clearFilters}
-              className="w-full px-3 py-1.5 bg-white border border-neutral-200 rounded text-xs flex items-center justify-center gap-1.5 hover:bg-neutral-50"
-            >
-              <X className="w-3.5 h-3.5" />
-              {t('common.clearAllTooltip')}
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 };
