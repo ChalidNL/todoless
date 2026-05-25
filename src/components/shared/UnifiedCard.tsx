@@ -220,7 +220,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   label={label.name}
                   color={label.color}
                   active={isChipFilterActive('label', label.id)}
-                  onClick={!showMenu ? () => toggleChipFilter('label', label.id, label.name, label.color) : undefined}
+                  onClick={showMenu ? () => setValue({ labels: (entity.labels as string[]).filter(id => id !== label.id) }) : () => toggleChipFilter('label', label.id, label.name, label.color)}
                 />
               ) : null;
             })}
@@ -230,7 +230,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 label={assignedUser.firstName || ''}
                 color="#10b981"
                 active={isChipFilterActive('assignee', assignedUser.id)}
-                onClick={!showMenu ? () => toggleChipFilter('assignee', assignedUser.id, assignedUser.firstName || '', '#10b981') : undefined}
+                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, assignedUser.firstName || '', '#10b981')}
               />
             )}
             {isTask && dateStr && (
@@ -238,6 +238,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 icon={<CalendarDays className="w-3.5 h-3.5" />}
                 label={dateStr}
                 color="#ea580c"
+                onClick={showMenu ? () => setValue({ dueDate: null, repeatInterval: null }) : undefined}
               />
             )}
             {currentShop && (
