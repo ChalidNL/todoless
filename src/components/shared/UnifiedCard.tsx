@@ -209,7 +209,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
         {/* Chip row — labels + assignee + shop + date (only when not done) */}
         {/* Tasks: chips visible in both collapsed and edit mode (labels+assignee always visible) */}
         {/* Items: chips always visible */}
-        {!isDone && (showMenu || !isTask || hasLabels || assignedUser) && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0) && (
+        {!isDone && (showMenu || !isTask || hasLabels || assignedUser || task?.priority) && (hasLabels || assignedUser || hasShop || dateStr || subtaskCount > 0 || task?.priority) && (
           <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
             {isTask && entity.labels.map(labelId => {
               const label = labels.find(l => l.id === labelId);

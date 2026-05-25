@@ -27,7 +27,7 @@ const toISO = (timestamp?: number | string | null): string | null =>
 
 // --- Normalizers: PocketBase snake_case → Frontend camelCase ---
 const normalizeUser = (r: any): User => ({
-  id: r.id, email: r.email, name: r.name || r.email,
+  id: r.id, email: r.email, name: r.name || r.email || [r.first_name, r.last_name].filter(Boolean).join(' ') || r.display_name || r.id || '?',
   role: (r.role || 'member') as User['role'], avatarUrl: r.avatar,
 });
 

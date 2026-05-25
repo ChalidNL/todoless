@@ -260,7 +260,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0) && (
+          {!isDone && (hasLabels || assignedUser || (dateStr && !isDone) || (repeatLabel && !isDone) || subtaskCount > 0 || task.priority) && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);

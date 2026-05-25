@@ -21,7 +21,7 @@ const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime(
 const normalizeUser = (record: any): User => ({
   id: record.id,
   email: record.email,
-  name: record.name || record.email,
+  name: record.name || record.email || [record.first_name, record.last_name].filter(Boolean).join(' ') || record.display_name || record.id || '?',
   firstName: record.first_name || undefined,
   lastName: record.last_name || undefined,
   displayName: record.display_name || undefined,

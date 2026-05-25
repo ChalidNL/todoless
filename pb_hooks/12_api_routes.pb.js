@@ -5,8 +5,8 @@
 
 // ─── Inline helpers (PB 0.35: each route gets its own copies) ──
 
-// Hash token for lookup
-function _ht(tok) {
+// Hash token for lookup (var = hoistable in PB 0.35 callbacks)
+var _ht = function(tok) {
   try { return $security.SHA256(tok); } catch(e) {
     var h = 0;
     if (tok.length === 0) return 'd_';
@@ -16,10 +16,10 @@ function _ht(tok) {
     }
     return 'd_' + Math.abs(h).toString(16).padStart(8, '0');
   }
-}
+};
 
-// Generate new token
-function _gt(len) {
+// Generate new token (var = hoistable in PB 0.35 callbacks)
+var _gt = function(len) {
   if (typeof len === 'undefined') len = 48;
   var c = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   var r = '';

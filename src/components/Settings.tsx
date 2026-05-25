@@ -434,11 +434,11 @@ export const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {currentUser.name.charAt(0)}
+                  {userDisplayName(currentUser).charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold truncate">{currentUser.name}</p>
+                    <p className="font-semibold truncate">{userDisplayName(currentUser)}</p>
                     <button
                       onClick={handleProfileEdit}
                       className="p-1.5 hover:bg-neutral-100 rounded transition-colors shrink-0"
@@ -534,7 +534,7 @@ export const Settings = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {currentUser.name.charAt(0)}
+                  {userDisplayName(currentUser).charAt(0)}
                 </div>
                 <div>
                   <p className="text-sm text-neutral-500">{currentUser.email}</p>
@@ -637,10 +637,10 @@ export const Settings = () => {
                   <div key={user.id} className="p-3 border border-neutral-200 rounded">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-neutral-200 flex items-center justify-center text-sm font-semibold shrink-0">
-                        {user.name.charAt(0)}
+                        {userDisplayName(user).charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{user.name}</p>
+                        <p className="font-medium text-sm truncate">{userDisplayName(user)}</p>
                         <p className="text-xs text-neutral-600 truncate">{user.email}</p>
                       </div>
                     </div>
@@ -979,7 +979,7 @@ export const Settings = () => {
                         <div key={agent.id} className="p-4 border border-neutral-200 rounded-lg">
                           <div className="flex items-start gap-3">
                             <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-semibold text-orange-700 shrink-0">
-                              {agent.name.charAt(0).toUpperCase()}
+                              {(agent.name || agent.email || '?').charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{agent.name || t('settings.unnamed')}</p>
@@ -1043,7 +1043,7 @@ export const Settings = () => {
                               agent.status === 'pending' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              {agent.name.charAt(0).toUpperCase()}
+                              {(agent.name || agent.email || '?').charAt(0).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
