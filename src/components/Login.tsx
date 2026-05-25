@@ -94,10 +94,18 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Log In'}
           </button>
 
-          <div className="text-center pt-4 border-t border-neutral-100">
+          <div className="text-center pt-4 border-t border-neutral-100 space-y-2">
             <p className="text-xs text-neutral-500">
               Don't have an account? Contact your administrator for an invite.
             </p>
+            {onSwitchToRegister && (
+              <button
+                onClick={onSwitchToRegister}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                I have an invite code
+              </button>
+            )}
           </div>
         </div>
       </div>

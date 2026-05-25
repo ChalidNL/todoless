@@ -142,8 +142,14 @@ function AppContent() {
         return;
       }
 
-      if (mode === 'info') {
-        setOnboardingMode('info');
+      if (mode === 'info' || mode === 'admin') {
+        // First check for register route — invite links bypass info slides
+        const path = window.location.pathname.toLowerCase();
+        if (path === '/register') {
+          setAppScreen('register');
+          return;
+        }
+        setOnboardingMode(mode);
         setAppScreen('onboarding');
         return;
       }
@@ -181,7 +187,7 @@ function AppContent() {
         onComplete={() => {
           localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser((user as any)?.id ?? null));
 
-          if (onboardingMode === 'info') {
+          if (onboardingMode === 'info' || onboardingMode === 'admin') {
             setAppScreen('login');
           } else {
             setAppScreen('app');
