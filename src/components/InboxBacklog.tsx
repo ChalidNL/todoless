@@ -113,7 +113,7 @@ export const InboxBacklog = () => {
     addTask({
       title: value.trim(),
       status: 'backlog',
-      priority: 'normal',
+      priority: 'medium',
       labels: metadata?.labels || [],
       assignedTo: metadata?.assignee,
       dueDate: metadata?.dueDate,
