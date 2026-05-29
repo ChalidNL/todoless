@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Item } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Trash2, Menu, X, RotateCcw, Plus, Minus, ToggleLeft } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { AttributeChip } from './AttributeChip';
 import { LabelBadge } from './LabelBadge';
@@ -11,7 +11,7 @@ interface CompactItemCardProps {
 }
 
 export const CompactItemCard = ({ item }: CompactItemCardProps) => {
-  const { updateItem, deleteItem, shops, createShop, toggleChipFilter, isChipFilterActive } = useApp();
+  const { updateItem, deleteItem, shops, createShop, toggleChipFilter, isChipFilterActive, convertItemToTask } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [showShopSelector, setShowShopSelector] = useState(false);
   const [shopSearchQuery, setShopSearchQuery] = useState('');
@@ -132,6 +132,15 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
                   </button>
                 )}
               </div>
+
+              {/* Convert to task */}
+              <button
+                onClick={() => convertItemToTask(item.id)}
+                className="flex items-center gap-1.5 px-2 py-1.5 text-xs text-neutral-600 hover:bg-neutral-100 rounded w-full"
+              >
+                <ToggleLeft className="w-3.5 h-3.5" />
+                {t('items.convertToTaskTooltip')}
+              </button>
 
               {/* Delete button */}
               <button
