@@ -11,24 +11,29 @@ export const InboxBacklog = () => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Derive counts
+  // Helper: filter out subtask-linked tasks (they appear under their parent)
+  const isNotSubtask = (t: any) => !(t.linkedType === 'task' && t.linkedTo);
+
+  // Derive counts — exclude subtasks from all stat counts
   const backlogTasks = tasks
     .filter((t) => t.status === 'backlog')
     .filter((t) => !t.archived)
+    .filter(isNotSubtask)
     .filter((t) => searchQuery === '' || t.title.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
 
   const blockedTasks = tasks
-    .filter((t) => t.blocked && !t.archived && t.status !== 'done' && t.status !== 'backlog');
+    .filter((t) => t.blocked && !t.archived && t.status !== 'done' && t.status !== 'backlog')
+    .filter(isNotSubtask);
 
   const backlogCount = backlogTasks.length;
-  const todoCount = tasks.filter((t) => t.status === 'todo' && !t.archived).length;
+  const todoCount = tasks.filter((t) => t.status === 'todo' && !t.archived && isNotSubtask(t)).length;
   const blockedCount = blockedTasks.length;
   const doneToday = tasks.filter((t) => {
     if (!t.completedAt) return false;
     const today = new Date();
     const completed = new Date(t.completedAt);
-    return completed.toDateString() === today.toDateString();
+    return completed.toDateString() === today.toDateString() && isNotSubtask(t);
   }).length;
 
   // Status filter from stat boxes

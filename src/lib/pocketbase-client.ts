@@ -357,6 +357,7 @@ class PocketBaseClient {
         title: task.title,
         status: task.status || 'todo',
         blocked: task.blocked || false,
+        focus: task.focus || false,
         blocked_comment: task.blockedComment,
         priority: task.priority,
         horizon: task.horizon,
@@ -371,6 +372,7 @@ class PocketBaseClient {
         archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
         delete_after: task.deleteAfter ? new Date(task.deleteAfter).toISOString() : null,
         completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
+        completed_by: task.completedBy || null,
         subtask_ids: task.subtaskIds || [],
         linked_to: task.linkedTo,
         linked_type: task.linkedType,
@@ -432,6 +434,8 @@ class PocketBaseClient {
       if (has('archivedAt')) payload.archived_at = updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined;
       if (has('deleteAfter')) payload.delete_after = updates.deleteAfter ? new Date(updates.deleteAfter).toISOString() : undefined;
       if (has('completedAt')) payload.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined;
+      if (has('completedBy')) payload.completed_by = updates.completedBy;
+      if (has('focus')) payload.focus = updates.focus;
       if (has('linkedTo')) payload.linked_to = updates.linkedTo;
       if (has('linkedType')) payload.linked_type = updates.linkedType;
       if (has('linkedItemIds')) payload.linked_item_ids = updates.linkedItemIds;

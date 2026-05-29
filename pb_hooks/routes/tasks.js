@@ -71,6 +71,7 @@ routerAdd(
       .set('title', body.get('title') || '')
       .set('status', body.get('status') || 'todo')
       .set('blocked', body.get('blocked') || false)
+      .set('focus', body.get('focus') || false)
       .set('priority', body.get('priority') || '')
       .set('horizon', body.get('horizon') || '')
       .set('due_date', body.get('due_date') || '')
@@ -88,6 +89,7 @@ routerAdd(
     if (body.get('assigned_to')) data.set('assigned_to', body.get('assigned_to'))
     if (body.get('sprint_id')) data.set('sprint_id', body.get('sprint_id'))
     if (body.get('completed_at')) data.set('completed_at', body.get('completed_at'))
+    if (body.get('completed_by')) data.set('completed_by', body.get('completed_by'))
 
     data.submit()
 
@@ -122,6 +124,7 @@ routerAdd(
     if (body.has('status')) data.set('status', body.get('status'))
     if (body.has('blocked')) data.set('blocked', body.get('blocked'))
     if (body.has('blocked_comment')) data.set('blocked_comment', body.get('blocked_comment'))
+    if (body.has('focus')) data.set('focus', body.get('focus'))
     if (body.has('priority')) data.set('priority', body.get('priority'))
     if (body.has('horizon')) data.set('horizon', body.get('horizon'))
     if (body.has('assigned_to')) data.set('assigned_to', body.get('assigned_to'))
@@ -129,6 +132,7 @@ routerAdd(
     if (body.has('due_date')) data.set('due_date', body.get('due_date'))
     if (body.has('repeat_interval')) data.set('repeat_interval', body.get('repeat_interval'))
     if (body.has('completed_at')) data.set('completed_at', body.get('completed_at'))
+    if (body.has('completed_by')) data.set('completed_by', body.get('completed_by'))
     if (body.has('labels')) data.set('labels', body.get('labels'))
     if (body.has('is_private')) data.set('is_private', body.get('is_private'))
     if (body.has('archived')) data.set('archived', body.get('archived'))

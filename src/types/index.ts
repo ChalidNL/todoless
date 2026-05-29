@@ -93,6 +93,7 @@ export interface Task {
   status: TaskStatus;
   blocked: boolean;
   blockedComment?: string;
+  focus?: boolean;
   priority?: Priority;
   horizon?: Horizon;
   assignedTo?: string;
@@ -101,6 +102,7 @@ export interface Task {
   dueDate?: number;
   repeatInterval?: RepeatInterval;
   completedAt?: number;
+  completedBy?: string;
   archived?: boolean;
   archivedAt?: number;
   deleteAfter?: number;
@@ -263,6 +265,7 @@ export interface Entry {
   completed?: boolean;
   blocked?: boolean;
   blockedComment?: string;
+  focus?: boolean;
   priority?: Priority;
   horizon?: Horizon;
   assignedTo?: string;

@@ -15,6 +15,7 @@
   if (!rec.get('status')) rec.set('status', 'todo');
   if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+  if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
 
   // Request info - call ONCE, store reference
   var info = null;

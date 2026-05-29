@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch } from 'lucide-react';
 import { t } from '../../i18n/translations';
 
 // Subtask icon: square with dot inside
@@ -19,6 +19,7 @@ import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/prio
 interface CompactTaskCardProps {
   task: Task;
   showCheckbox?: boolean;
+  urgent?: boolean;
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | null;
@@ -67,7 +68,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
@@ -118,9 +119,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
 
   const handleToggle = () => {
     if (task.status === 'done') {
-      updateTask(task.id, { status: 'todo', completedAt: undefined });
+      updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
     } else {
-      updateTask(task.id, { status: 'done', completedAt: Date.now() });
+      updateTask(task.id, { status: 'done', completedAt: Date.now(), completedBy: users.find(u => u.id === (task.assignedTo || ''))?.id || undefined });
     }
   };
 
@@ -192,7 +193,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
         className={`rounded-lg border transition-colors ${
         isDone ? 'border-neutral-200 opacity-75' : 'border-neutral-200 hover:border-neutral-300'
       } ${
-        isFlagged ? 'border-red-300 !bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
+        urgent ? '!border-orange-400 !bg-orange-50' : isFlagged ? 'border-red-300 !bg-red-50' : isOverdue ? '!bg-orange-50' : 'bg-white'
       } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
         <div className="p-2.5">
           {/* Line 1: checkbox + title + hamburger */}
@@ -477,6 +478,50 @@ export const CompactTaskCard = ({ task, showCheckbox = true }: CompactTaskCardPr
                   aria-label="Edit priority"
                 >
                   <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+                {/* Focus toggle */}
+                <button
+                  onClick={() => updateTask(task.id, { focus: !task.focus })}
+                  className={`p-1.5 rounded transition-colors ${
+                    task.focus ? 'bg-orange-100 text-orange-700 ring-1 ring-orange-300' : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title={task.focus ? 'Remove focus' : 'Add focus'}
+                  aria-label="Toggle focus"
+                >
+                  <Target className="w-4 h-4" strokeWidth={1.75} />
+                </button>
+                {/* Parent↔child toggle */}
+                <button
+                  onClick={async () => {
+                    if (task.linkedType === 'task' && task.linkedTo) {
+                      // This is a subtask — promote to standalone task
+                      updateTask(task.id, { linkedTo: null, linkedType: null });
+                      showCompletionMessage('Promoted to standalone task');
+                    } else {
+                      // This is a standalone task — ask for parent
+                      const parentTitle = window.prompt('Enter parent task title to link under:');
+                      if (!parentTitle || !parentTitle.trim()) return;
+                      const parentTask = tasks.find(t => t.title.toLowerCase() === parentTitle.trim().toLowerCase() && t.status !== 'done');
+                      if (parentTask) {
+                        updateTask(task.id, { linkedTo: parentTask.id, linkedType: 'task' });
+                        // Add to parent's subtaskIds
+                        const current = parentTask.subtaskIds || [];
+                        if (!current.includes(task.id)) {
+                          updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
+                        }
+                        showCompletionMessage(`Linked under "${parentTask.title}"`);
+                      } else {
+                        showCompletionMessage('Parent task not found');
+                      }
+                    }
+                  }}
+                  className={`p-1.5 rounded transition-colors ${
+                    (task.linkedType === 'task' && task.linkedTo) ? 'bg-purple-100 text-purple-700 ring-1 ring-purple-300' : 'hover:bg-neutral-100 text-neutral-500'
+                  }`}
+                  title={task.linkedType === 'task' && task.linkedTo ? 'Promote to standalone' : 'Convert to subtask'}
+                  aria-label="Toggle parent/child"
+                >
+                  <GitBranch className="w-4 h-4" strokeWidth={1.75} />
                 </button>
                 <button
                   onClick={() => updateTask(task.id, { flag: !task.flag, blocked: !task.flag })}
