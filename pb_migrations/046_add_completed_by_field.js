@@ -8,7 +8,7 @@ migrate(
           name: 'completed_by',
           required: false,
           maxSelect: 1,
-          collectionId: 'users',
+          collectionId: app.findCollectionByNameOrId('users').id,
           cascadeDelete: false,
         }),
       );
