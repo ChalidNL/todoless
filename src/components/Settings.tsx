@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName, Agent } from '../types';
@@ -9,13 +9,16 @@ import { AttributeChip } from './shared/AttributeChip';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
+import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
-  const appVersion = import.meta.env.VITE_APP_VERSION || 'dev';
-  const appCommitRaw = import.meta.env.VITE_GIT_COMMIT || 'local';
+  const appVersion = __APP_VERSION__;
+  const appCommitRaw = __APP_COMMIT__;
+  const appBuildId = __APP_BUILD_ID__;
   const appCommit = appCommitRaw === 'local' ? 'local' : appCommitRaw.slice(0, 7);
+  const currentAppVersion = useMemo(() => getNormalizedAppVersion({ version: appVersion, commit: appCommitRaw, buildId: appBuildId }), [appBuildId, appCommitRaw, appVersion]);
   const [editingPassword, setEditingPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -55,6 +58,8 @@ export const Settings = () => {
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [pendingAgentsCount, setPendingAgentsCount] = useState(0);
   const [approvedAgentsCount, setApprovedAgentsCount] = useState(0);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updatingApp, setUpdatingApp] = useState(false);
 
   // Full Agents management
   const [showAgents, setShowAgents] = useState(false);
@@ -63,6 +68,38 @@ export const Settings = () => {
   const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
+
+  const checkForAppUpdate = useCallback(async () => {
+    const latestAppVersion = await fetchLatestAppVersion();
+    setUpdateAvailable(shouldShowUpdateButton(currentAppVersion, latestAppVersion));
+  }, [currentAppVersion]);
+
+  useEffect(() => {
+    void checkForAppUpdate();
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        void checkForAppUpdate();
+      }
+    };
+
+    const handleFocus = () => {
+      void checkForAppUpdate();
+    };
+
+    const intervalId = window.setInterval(() => {
+      void checkForAppUpdate();
+    }, 60000);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [checkForAppUpdate]);
 
   const handlePasswordChange = async () => {
     setPasswordError('');
@@ -189,6 +226,16 @@ export const Settings = () => {
       }
     } catch {
       showCompletionMessage(t('settings.copyFailed'));
+    }
+  };
+
+  const handleUpdateApp = async () => {
+    try {
+      setUpdatingApp(true);
+      await forceRefreshApp();
+    } catch {
+      setUpdatingApp(false);
+      showCompletionMessage(t('common.error'));
     }
   };
 
@@ -926,27 +973,19 @@ export const Settings = () => {
             <p><span className="font-medium text-neutral-800">{t('settings.version')}:</span> <code>{appVersion}</code></p>
             <p><span className="font-medium text-neutral-800">{t('settings.commit')}:</span> <code>{appCommit}</code></p>
           </div>
-          <button
-            onClick={() => {
-              if ('caches' in window) {
-                caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).then(() => {
-                  if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.getRegistrations().then(regs => {
-                      Promise.all(regs.map(r => r.unregister())).then(() => window.location.reload());
-                    });
-                  } else {
-                    window.location.reload();
-                  }
-                });
-              } else {
-                window.location.reload();
-              }
-            }}
-            className="w-full mt-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors flex items-center justify-center gap-1.5"
-          >
-            <RefreshCw className="w-3 h-3" />
-            {t('settings.update')}
-          </button>
+          {updateAvailable && (
+            <div className="space-y-2 pt-1">
+              <p className="text-xs font-medium text-blue-700">{t('settings.updateAvailable')}</p>
+              <button
+                onClick={handleUpdateApp}
+                disabled={updatingApp}
+                className="w-full px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-wait"
+              >
+                <RefreshCw className={`w-3 h-3 ${updatingApp ? 'animate-spin' : ''}`} />
+                {updatingApp ? t('common.loading') : t('settings.update')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Logout */}

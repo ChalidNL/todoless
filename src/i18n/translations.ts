@@ -236,6 +236,7 @@ interface TranslationStructure {
     unlimited: string;
     unnamed: string;
     update: string;
+    updateAvailable: string;
     updated: string;
     version: string;
     wednesday: string;
@@ -591,6 +592,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unlimited: 'Unlimited',
       unnamed: 'Unnamed',
       update: 'Update',
+      updateAvailable: 'A new version is available',
       updated: 'Updated',
       version: 'Version',
       wednesday: 'Wednesday',
@@ -944,6 +946,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unlimited: 'Illimité',
       unnamed: 'Sans nom',
       update: 'Mettre à jour',
+      updateAvailable: 'Une nouvelle version est disponible',
       updated: 'Mis à jour',
       version: 'Version',
       wednesday: 'Mercredi',
@@ -1297,6 +1300,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unlimited: 'Onbeperkt',
       unnamed: 'Naamloos',
       update: 'Bijwerken',
+      updateAvailable: 'Er is een nieuwe versie beschikbaar',
       updated: 'Bijgewerkt',
       version: 'Versie',
       wednesday: 'Woensdag',
@@ -1649,6 +1653,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unlimited: 'Unbegrenzt',
       unnamed: 'Unbenannt',
       update: 'Aktualisieren',
+      updateAvailable: 'Eine neue Version ist verfügbar',
       updated: 'Aktualisiert',
       version: 'Version',
       wednesday: 'Mittwoch',

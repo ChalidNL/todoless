@@ -1,12 +1,57 @@
 
-import { defineConfig } from 'vite';
+import { execSync } from 'node:child_process';
+import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
+function getBuildCommit(): string {
+  const envCommit = process.env.VITE_GIT_COMMIT?.trim();
+  if (envCommit) return envCommit.slice(0, 7);
+
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch {
+    return 'local';
+  }
+}
+
+const BUILD_VERSION = process.env.VITE_APP_VERSION || 'dev';
+const BUILD_COMMIT = getBuildCommit();
+const BUILD_TIMESTAMP = new Date().toISOString();
+const BUILD_ID = `${BUILD_VERSION}-${BUILD_COMMIT}-${BUILD_TIMESTAMP}`;
+
+function buildVersionAsset(): PluginOption {
+  return {
+    name: 'build-version-asset',
+    apply: 'build' as const,
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'version.json',
+        source: JSON.stringify(
+          {
+            version: BUILD_VERSION,
+            commit: BUILD_COMMIT,
+            buildId: BUILD_ID,
+          },
+          null,
+          2
+        ),
+      });
+    },
+  };
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(BUILD_VERSION),
+    __APP_COMMIT__: JSON.stringify(BUILD_COMMIT),
+    __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [
     react(),
+    buildVersionAsset(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
