@@ -20,5 +20,5 @@
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/_mvp_removed", "src/components/__tests__", "src/**/__tests__", "src/components/ui"]
+  "exclude": ["src/components/__tests__", "src/**/__tests__", "src/components/ui"]
 }
