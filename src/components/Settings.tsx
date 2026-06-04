@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Co
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getCompactUserName, getMemberInitials, canChangeMemberRole, isOnlyAdmin } from '../lib/member-role-utils';
+import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
@@ -60,6 +61,7 @@ export const Settings = () => {
   const [approvedAgentsCount, setApprovedAgentsCount] = useState(0);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updatingApp, setUpdatingApp] = useState(false);
+  const [familyName, setFamilyName] = useState<string | undefined>(undefined);
 
   // Full Agents management
   const [showAgents, setShowAgents] = useState(false);
@@ -68,6 +70,10 @@ export const Settings = () => {
   const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
+  const familyMembershipView = useMemo(
+    () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
+    [currentUser?.family_id, familyName, users]
+  );
 
   const checkForAppUpdate = useCallback(async () => {
     const latestAppVersion = await fetchLatestAppVersion();
@@ -100,6 +106,34 @@ export const Settings = () => {
       window.removeEventListener('focus', handleFocus);
     };
   }, [checkForAppUpdate]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFamilyName = async () => {
+      if (!currentUser?.family_id) {
+        setFamilyName(undefined);
+        return;
+      }
+
+      try {
+        const family = await api.getFamilyById(currentUser.family_id);
+        if (!cancelled) {
+          setFamilyName(family.name);
+        }
+      } catch {
+        if (!cancelled) {
+          setFamilyName(undefined);
+        }
+      }
+    };
+
+    void loadFamilyName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.family_id]);
 
   const handlePasswordChange = async () => {
     setPasswordError('');
@@ -668,11 +702,17 @@ export const Settings = () => {
                 </div>
               )}
 
-              {users.length === 0 ? (
+              {familyMembershipView.members.length === 0 ? (
                 <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
               ) : (
-                <div className="space-y-2">
-                  {users.map(user => {
+                <>
+                  <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{t('members.familyLabel')}</p>
+                    <p className="text-sm font-medium text-neutral-900">{familyMembershipView.familyName}</p>
+                    <p className="text-[11px] text-neutral-500">{t('members.sameFamilyHint')}</p>
+                  </div>
+                  <div className="space-y-2">
+                    {familyMembershipView.members.map(user => {
                     const isCurrentUser = currentUser?.id === user.id;
                     const isAdmin = user.role === 'admin';
                     const isOwner = user.role === 'owner';
@@ -688,7 +728,7 @@ export const Settings = () => {
                     });
                     const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? 'Admin' : isAgent ? 'Agent' : t('settings.member');
                     const roleColor = isOwner ? '#a855f7' : isAdmin ? '#f59e0b' : isAgent ? '#3b82f6' : '#6b7280';
-                    const disableMemberRole = isAdmin && isOnlyAdmin(users, user.id);
+                    const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
 
                     return (
                       <div key={user.id} className="flex items-start gap-2.5 p-2.5 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
@@ -761,7 +801,8 @@ export const Settings = () => {
                       </div>
                     );
                   })}
-                </div>
+                  </div>
+                </>
               )}
             </>
           )}

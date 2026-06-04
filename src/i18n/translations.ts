@@ -317,6 +317,8 @@ interface TranslationStructure {
     role: string;
     manageMembers: string;
     addMember: string;
+    familyLabel: string;
+    sameFamilyHint: string;
   };
   agent: {
     title: string;
@@ -677,6 +679,8 @@ export const translations: Record<Language, TranslationStructure> = {
       role: 'Role',
       manageMembers: 'Manage Members',
       addMember: 'Add Member',
+      familyLabel: 'Family',
+      sameFamilyHint: 'Only members from the same family are shown here.',
     },
     agent: {
       title: 'Agents',
@@ -1035,6 +1039,8 @@ export const translations: Record<Language, TranslationStructure> = {
       role: 'Rôle',
       manageMembers: 'Gérer les membres',
       addMember: 'Ajouter un membre',
+      familyLabel: 'Famille',
+      sameFamilyHint: 'Seuls les membres de la même famille sont affichés ici.',
     },
     agent: {
       title: 'Agents',
@@ -1393,6 +1399,8 @@ export const translations: Record<Language, TranslationStructure> = {
       role: 'Rol',
       manageMembers: 'Leden beheren',
       addMember: 'Lid toevoegen',
+      familyLabel: 'Familie',
+      sameFamilyHint: 'Hier zie je alleen leden uit dezelfde familie.',
     },
     agent: {
       title: 'Agenten',
@@ -1751,6 +1759,8 @@ export const translations: Record<Language, TranslationStructure> = {
       role: 'Rolle',
       manageMembers: 'Mitglieder verwalten',
       addMember: 'Mitglied hinzufügen',
+      familyLabel: 'Familie',
+      sameFamilyHint: 'Hier werden nur Mitglieder derselben Familie angezeigt.',
     },
     agent: {
       title: 'Agenten',
