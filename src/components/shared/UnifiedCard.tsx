@@ -64,6 +64,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const quantity = item?.quantity ?? 1;
   const currentShop = item?.shopId ? shops.find(s => s.id === item.shopId) : null;
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
+  const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
   const dateStr = entity.dueDate ? new Date(entity.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }) : null;
   const repeatLabel = task?.repeatInterval ? getRepeatLabel(task.repeatInterval, task.dueDate) : null;
   const repeatChipLabel = task?.repeatInterval ? getRepeatChipLabel(task.repeatInterval, task.dueDate) : null;
@@ -236,9 +237,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <AttributeChip
                 icon={<User className="w-3.5 h-3.5" />}
                 label={getCompactUserName(assignedUser)}
-                color="#10b981"
+                color={assigneeColor}
                 active={isChipFilterActive('assignee', assignedUser.id)}
-                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), '#10b981')}
+                onClick={showMenu ? () => setValue({ assignedTo: null }) : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
               />
             )}
             {isTask && dateStr && (

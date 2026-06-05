@@ -6,8 +6,9 @@ import { t } from '../i18n/translations';
 import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
-import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, getMemberRoleColor, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
+import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
+import { entityBg, entityBorder, entityColor } from '../lib/entity-colors';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
@@ -733,7 +734,7 @@ export const Settings = () => {
                           email: user.email,
                         });
                         const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
-                        const roleColor = getMemberRoleColor(user);
+                        const userColor = entityColor(user.id);
                         const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
                         const isEditingMember = editingMemberId === user.id;
 
@@ -742,7 +743,7 @@ export const Settings = () => {
                             <div className="flex items-center gap-3 min-w-0">
                               <div
                                 className="w-8 h-8 min-w-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                                style={{ backgroundColor: roleColor }}
+                                style={{ backgroundColor: userColor }}
                               >
                                 {initials}
                               </div>
@@ -750,7 +751,14 @@ export const Settings = () => {
                                 <div className="flex items-center gap-2 min-w-0">
                                   <span className="font-medium text-neutral-900 truncate">{displayName || userDisplayName(user)}</span>
                                   {isCurrentUser && (
-                                    <span className="inline-flex items-center h-5 px-2 rounded-full bg-neutral-100 text-[10px] font-medium uppercase tracking-wide text-neutral-500 flex-shrink-0">
+                                    <span
+                                      className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium uppercase tracking-wide flex-shrink-0 border"
+                                      style={{
+                                        backgroundColor: entityBg(user.id),
+                                        color: userColor,
+                                        borderColor: entityBorder(user.id),
+                                      }}
+                                    >
                                       {t('settings.you')}
                                     </span>
                                   )}
@@ -758,7 +766,7 @@ export const Settings = () => {
                                 <span className="block text-xs text-neutral-500 truncate mt-0.5">{user.email}</span>
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                <AttributeChip label={memberRoleLabel} color={roleColor} active />
+                                <AttributeChip label={memberRoleLabel} color={userColor} active />
                                 <AttributeChip label={isActive ? t('settings.active') : t('settings.blocked')} color={isActive ? '#16a34a' : '#dc2626'} active />
                                 {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
                                 {canManageMembers && !isCurrentUser && !isOwner && (

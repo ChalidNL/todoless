@@ -121,6 +121,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
 
   const isDone = task.status === 'done';
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
+  const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
   const isFlagged = task.flag && !isDone;
   const isFocusTask = !!task.focus && !isDone;
   const isOverdue = !!task.dueDate && task.dueDate < Date.now() && !isDone;
@@ -462,9 +463,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   <AttributeChip
                     icon={<User className="w-3.5 h-3.5" />}
                     label={getCompactUserName(assignedUser)}
-                  color="#10b981"
+                  color={assigneeColor}
                   active={isAssigneeFiltered(assignedUser.id)}
-                  onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), '#10b981')}
+                  onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
                 />
               )}
               {dateStr && !isDone && (
