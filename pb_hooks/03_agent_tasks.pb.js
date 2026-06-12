@@ -1,150 +1,30 @@
-// Agent Task & Reminder endpoints - API-005 (PB 0.35 compatible)
-// All helpers inline due to Goja module scope isolation.
+// Agent Task & Reminder endpoints - PB 0.35 compatible.
+// Helpers are duplicated inside each route because PB 0.35 callback scope is isolated.
 
 // GET /api/agent/tasks
 routerAdd('GET', '/api/agent/tasks', function(c) {
-  function apiKey() {
-    var info = c.requestInfo();
-    var h = info.headers ? info.headers.Authorization : '';
-    if (!h) return null;
-    var p = String(h).split(' ');
-    if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
-    var t = p[1].trim(); if (!t) return null;
-    var recs = $app.findRecordsByFilter('api_tokens', 'token = {:token}', 'created', 1, 0, {token: t});
-    return recs.length > 0 ? recs[0] : null;
-  }
-  function checkScope(k, scope) {
-    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
-    var list = sc.split(',');
-    for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; }
-    return false;
-  }
-  function authCheck() {
-    var key = apiKey(); if (!key) return 'Missing API key'; if (!key.get('active')) return 'Revoked';
-    var ex = key.get('expires_at'); if (ex) { var em = new Date(String(ex)).getTime(); if (em > 0 && em < Date.now()) return 'Expired'; }
-    var o = String(key.get('owner') || ''); if (!o) return 'No owner';
-    var u = $app.findRecordById('users', o); if (!u) return 'User not found';
-    var f = String(u.get('family_id') || ''); if (!f) return 'No family';
-    return {uid: o, fid: f, key: key};
-  }
-  try {
-    var a = authCheck(); if (typeof a === 'string') return c.json(401, {error: a});
-    if (!checkScope(a.key, 'entries:read')) return c.json(403, {error: 'Missing scope'});
-    var q = c.requestInfo().query || {};
-    var s = String(q.status || '').trim();
-    var filter = 'assigned_to = "' + a.uid + '"';
-    if (s) filter += ' && status = "' + s + '"';
-    var sort = String(q.sort || '-created');
-    var tasks = $app.findRecordsByFilter('tasks', filter, sort, 100, 0);
-    var r = [];
-    for (var i = 0; i < tasks.length; i++) { var t = tasks[i]; r.push({id: t.id, title: t.get('title'), status: t.get('status'), created: String(t.get('created'))}); }
-    return c.json(200, {tasks: r});
-  } catch(e) { return c.json(500, {error: String(e)}); }
+  function auth() { var info=c.requestInfo(); var headers=info.headers||{}; var hh=headers.authorization||headers.Authorization||''; if(!hh)return{error:'Missing API key',status:401}; var p=String(hh).split(' '); if(p.length!==2||p[0].toLowerCase()!=='bearer')return{error:'Invalid Authorization header',status:401}; var raw=p[1].trim(); if(!raw)return{error:'Empty API key',status:401}; var hashed=(function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;if(tok.length===0)return'd_';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(raw); var keys=$app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0); if(keys.length===0)return{error:'Invalid API key',status:401}; var key=keys[0]; var en=key.get('enabled'); if(en===false||en===0||en==='false')return{error:'Revoked',status:401}; var ex=key.get('expires_at'); if(ex){var em=new Date(String(ex)).getTime(); if(em>0&&em<Date.now())return{error:'Expired',status:401};} var uid=String(key.get('user')||''); if(!uid)return{error:'No owner',status:401}; var user=null; try{user=$app.findRecordById('users',uid);}catch(e){} if(!user)return{error:'User not found',status:401}; var ms=String(user.get('member_status')||'active'); if(ms==='blocked')return{error:'Token owner account is blocked',status:403}; if(ms==='pending_approval')return{error:'Token owner is pending approval',status:403}; var fid=String(user.get('family_id')||''); if(!fid)return{error:'No family',status:401}; return{uid:uid,fid:fid,key:key,user:user}; }
+  function hasScope(key,scope){var raw=key.get('permissions')||key.get('scopes')||[];var list=[];if(Array.isArray(raw))list=raw;else if(typeof raw==='string'){try{list=JSON.parse(raw);}catch(e){list=raw.split(',');}}var fam=scope.split(':')[0]+':*';for(var i=0;i<list.length;i++){var s=String(list[i]||'').trim();if(s==='*'||s===scope||s===fam)return true;if(scope.indexOf('entries:')===0&&(s==='tasks:*'||s==='groceries:*'))return true;}return false;}
+  try { var a=auth(); if(a.error)return c.json(a.status||401,{error:a.error}); if(!hasScope(a.key,'entries:read')&&!hasScope(a.key,'tasks:read'))return c.json(403,{error:'Missing scope'}); var q=c.requestInfo().query||{}; var st=String(q.status||'').trim(); var filter='user.family_id = "'+a.fid+'" && assigned_to = "'+a.uid+'"'; if(st)filter+=' && status = "'+st+'"'; var sort=String(q.sort||'-created'); var tasks=$app.findRecordsByFilter('tasks',filter,sort,100,0); var r=[]; for(var i=0;i<tasks.length;i++){var t=tasks[i];r.push({id:t.id,title:t.get('title'),status:t.get('status'),created:String(t.get('created'))});} return c.json(200,{tasks:r}); } catch(e){return c.json(500,{error:String(e)});} 
 });
 
 // PATCH /api/agent/tasks/:id
 routerAdd('PATCH', '/api/agent/tasks/:id', function(c) {
-  function apiKey() {
-    var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
-    var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
-    var t = p[1].trim(); if (!t) return null;
-    var recs = $app.findRecordsByFilter('api_tokens', 'token = {:token}', 'created', 1, 0, {token: t});
-    return recs.length > 0 ? recs[0] : null;
-  }
-  function checkScope(k, scope) {
-    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
-    var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
-  }
-  function authCheck() {
-    var key = apiKey(); if (!key) return 'Missing API key'; if (!key.get('active')) return 'Revoked';
-    var ex = key.get('expires_at'); if (ex) { var em = new Date(String(ex)).getTime(); if (em > 0 && em < Date.now()) return 'Expired'; }
-    var o = String(key.get('owner') || ''); if (!o) return 'No owner';
-    var u = $app.findRecordById('users', o); if (!u) return 'User not found';
-    var f = String(u.get('family_id') || ''); if (!f) return 'No family';
-    return {uid: o, fid: f, key: key};
-  }
-  try {
-    var a = authCheck(); if (typeof a === 'string') return c.json(401, {error: a});
-    if (!checkScope(a.key, 'entries:write')) return c.json(403, {error: 'Missing scope'});
-    var id = c.pathParam('id');
-    var t = $app.findRecordById('tasks', id); if (!t) return c.json(404, {error: 'Not found'});
-    if (String(t.get('assigned_to') || '') !== a.uid) return c.json(403, {error: 'Not assigned'});
-    var info = $apis.requestInfo(c);
-    if (info && info.body && typeof info.body.get === 'function') {
-      var ns = String(info.body.get('status') || '').trim();
-      if (ns) { t.set('status', ns); if (ns === 'done') t.set('completed_at', new Date().toISOString()); }
-    }
-    $app.save(t);
-    return c.json(200, {id: t.id, status: t.get('status')});
-  } catch(e) { return c.json(500, {error: String(e)}); }
+  function auth() { var info=c.requestInfo(); var headers=info.headers||{}; var hh=headers.authorization||headers.Authorization||''; if(!hh)return{error:'Missing API key',status:401}; var p=String(hh).split(' '); if(p.length!==2||p[0].toLowerCase()!=='bearer')return{error:'Invalid Authorization header',status:401}; var raw=p[1].trim(); if(!raw)return{error:'Empty API key',status:401}; var hashed=(function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;if(tok.length===0)return'd_';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(raw); var keys=$app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0); if(keys.length===0)return{error:'Invalid API key',status:401}; var key=keys[0]; var en=key.get('enabled'); if(en===false||en===0||en==='false')return{error:'Revoked',status:401}; var ex=key.get('expires_at'); if(ex){var em=new Date(String(ex)).getTime(); if(em>0&&em<Date.now())return{error:'Expired',status:401};} var uid=String(key.get('user')||''); if(!uid)return{error:'No owner',status:401}; var user=null; try{user=$app.findRecordById('users',uid);}catch(e){} if(!user)return{error:'User not found',status:401}; var ms=String(user.get('member_status')||'active'); if(ms==='blocked')return{error:'Token owner account is blocked',status:403}; if(ms==='pending_approval')return{error:'Token owner is pending approval',status:403}; var fid=String(user.get('family_id')||''); if(!fid)return{error:'No family',status:401}; return{uid:uid,fid:fid,key:key,user:user}; }
+  function hasScope(key,scope){var raw=key.get('permissions')||key.get('scopes')||[];var list=[];if(Array.isArray(raw))list=raw;else if(typeof raw==='string'){try{list=JSON.parse(raw);}catch(e){list=raw.split(',');}}var fam=scope.split(':')[0]+':*';for(var i=0;i<list.length;i++){var s=String(list[i]||'').trim();if(s==='*'||s===scope||s===fam)return true;if(scope.indexOf('entries:')===0&&(s==='tasks:*'||s==='groceries:*'))return true;}return false;}
+  try { var a=auth(); if(a.error)return c.json(a.status||401,{error:a.error}); if(!hasScope(a.key,'entries:write')&&!hasScope(a.key,'tasks:write'))return c.json(403,{error:'Missing scope'}); var id=c.pathParam('id'); var t=$app.findRecordById('tasks',id); if(!t)return c.json(404,{error:'Not found'}); if(String(t.get('assigned_to')||'')!==a.uid)return c.json(403,{error:'Not assigned'}); var owner=null; try{owner=$app.findRecordById('users',String(t.get('user')||''));}catch(e){} if(!owner||String(owner.get('family_id')||'')!==a.fid)return c.json(403,{error:'Outside family'}); var info=c.requestInfo(); var body=info.body||info.data||{}; var ns=String(body.status||'').trim(); if(ns){t.set('status',ns); if(ns==='done')t.set('completed_at',new Date().toISOString());} $app.save(t); return c.json(200,{id:t.id,status:t.get('status')}); } catch(e){return c.json(500,{error:String(e)});} 
 });
 
 // POST /api/agent/reminders
 routerAdd('POST', '/api/agent/reminders', function(c) {
-  function apiKey() {
-    var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
-    var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
-    var t = p[1].trim(); if (!t) return null;
-    var recs = $app.findRecordsByFilter('api_tokens', 'token = {:token}', 'created', 1, 0, {token: t});
-    return recs.length > 0 ? recs[0] : null;
-  }
-  function checkScope(k, scope) {
-    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
-    var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
-  }
-  function authCheck() {
-    var key = apiKey(); if (!key) return 'Missing API key'; if (!key.get('active')) return 'Revoked';
-    var ex = key.get('expires_at'); if (ex) { var em = new Date(String(ex)).getTime(); if (em > 0 && em < Date.now()) return 'Expired'; }
-    var o = String(key.get('owner') || ''); if (!o) return 'No owner';
-    var u = $app.findRecordById('users', o); if (!u) return 'User not found';
-    var f = String(u.get('family_id') || ''); if (!f) return 'No family';
-    return {uid: o, fid: f, key: key};
-  }
-  try {
-    var a = authCheck(); if (typeof a === 'string') return c.json(401, {error: a});
-    if (!checkScope(a.key, 'entries:write')) return c.json(403, {error: 'Missing scope'});
-    var info = $apis.requestInfo(c);
-    if (!info || !info.body || typeof info.body.get !== 'function') return c.json(400, {error: 'Invalid body'});
-    var title = String(info.body.get('title') || '').trim(); if (!title) return c.json(400, {error: 'Title required'});
-    var rt = String(info.body.get('reminder_time') || '').trim(); if (!rt) return c.json(400, {error: 'reminder_time required'});
-    var rec = $app.findRecordById('reminders', $security.randomString(15).toLowerCase());
-    rec.set('title', title); rec.set('reminder_time', rt); rec.set('family_id', a.fid); rec.set('assigned_to', a.uid);
-    $app.save(rec);
-    return c.json(201, {id: rec.id, title: title, reminder_time: rt});
-  } catch(e) { return c.json(500, {error: String(e)}); }
+  function auth() { var info=c.requestInfo(); var headers=info.headers||{}; var hh=headers.authorization||headers.Authorization||''; if(!hh)return{error:'Missing API key',status:401}; var p=String(hh).split(' '); if(p.length!==2||p[0].toLowerCase()!=='bearer')return{error:'Invalid Authorization header',status:401}; var raw=p[1].trim(); if(!raw)return{error:'Empty API key',status:401}; var hashed=(function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;if(tok.length===0)return'd_';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(raw); var keys=$app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0); if(keys.length===0)return{error:'Invalid API key',status:401}; var key=keys[0]; var en=key.get('enabled'); if(en===false||en===0||en==='false')return{error:'Revoked',status:401}; var ex=key.get('expires_at'); if(ex){var em=new Date(String(ex)).getTime(); if(em>0&&em<Date.now())return{error:'Expired',status:401};} var uid=String(key.get('user')||''); if(!uid)return{error:'No owner',status:401}; var user=null; try{user=$app.findRecordById('users',uid);}catch(e){} if(!user)return{error:'User not found',status:401}; var ms=String(user.get('member_status')||'active'); if(ms==='blocked')return{error:'Token owner account is blocked',status:403}; if(ms==='pending_approval')return{error:'Token owner is pending approval',status:403}; var fid=String(user.get('family_id')||''); if(!fid)return{error:'No family',status:401}; return{uid:uid,fid:fid,key:key,user:user}; }
+  function hasScope(key,scope){var raw=key.get('permissions')||key.get('scopes')||[];var list=[];if(Array.isArray(raw))list=raw;else if(typeof raw==='string'){try{list=JSON.parse(raw);}catch(e){list=raw.split(',');}}var fam=scope.split(':')[0]+':*';for(var i=0;i<list.length;i++){var s=String(list[i]||'').trim();if(s==='*'||s===scope||s===fam)return true;if(scope.indexOf('entries:')===0&&(s==='tasks:*'||s==='groceries:*'))return true;}return false;}
+  try { var a=auth(); if(a.error)return c.json(a.status||401,{error:a.error}); if(!hasScope(a.key,'entries:write')&&!hasScope(a.key,'calendar:write'))return c.json(403,{error:'Missing scope'}); var info=c.requestInfo(); var body=info.body||info.data||{}; var title=String(body.title||'').trim(); if(!title)return c.json(400,{error:'Title required'}); var rt=String(body.reminder_time||'').trim(); if(!rt)return c.json(400,{error:'reminder_time required'}); var coll=$app.findCollectionByNameOrId('reminders'); var rec=new Record(coll); rec.set('title',title); rec.set('reminder_time',rt); rec.set('family_id',a.fid); rec.set('assigned_to',a.uid); $app.save(rec); return c.json(201,{id:rec.id,title:title,reminder_time:rt}); } catch(e){return c.json(500,{error:String(e)});} 
 });
 
 // GET /api/agent/reminders
 routerAdd('GET', '/api/agent/reminders', function(c) {
-  function apiKey() {
-    var info = c.requestInfo(); var h = info.headers ? info.headers.Authorization : ''; if (!h) return null;
-    var p = String(h).split(' '); if (p.length !== 2 || p[0].toLowerCase() !== 'bearer') return null;
-    var t = p[1].trim(); if (!t) return null;
-    var recs = $app.findRecordsByFilter('api_tokens', 'token = {:token}', 'created', 1, 0, {token: t});
-    return recs.length > 0 ? recs[0] : null;
-  }
-  function checkScope(k, scope) {
-    var sc = String(k.get('permissions') || k.get('scopes') || ''); if (!sc) return false;
-    var list = sc.split(','); for (var i = 0; i < list.length; i++) { if (list[i].trim() === '*' || list[i].trim() === scope) return true; } return false;
-  }
-  function authCheck() {
-    var key = apiKey(); if (!key) return 'Missing API key'; if (!key.get('active')) return 'Revoked';
-    var ex = key.get('expires_at'); if (ex) { var em = new Date(String(ex)).getTime(); if (em > 0 && em < Date.now()) return 'Expired'; }
-    var o = String(key.get('owner') || ''); if (!o) return 'No owner';
-    var u = $app.findRecordById('users', o); if (!u) return 'User not found';
-    var f = String(u.get('family_id') || ''); if (!f) return 'No family';
-    return {uid: o, fid: f, key: key};
-  }
-  try {
-    var a = authCheck(); if (typeof a === 'string') return c.json(401, {error: a});
-    if (!checkScope(a.key, 'entries:read')) return c.json(403, {error: 'Missing scope'});
-    var q = c.requestInfo().query || {};
-    var inc = String(q.include_fired || 'false').trim() === 'true';
-    var filter = 'assigned_to = "' + a.uid + '"';
-    if (!inc) filter += ' && reminder_time >= "' + new Date().toISOString() + '"';
-    var rems = $app.findRecordsByFilter('reminders', filter, '-created', 100, 0);
-    var r = [];
-    for (var i = 0; i < rems.length; i++) { var rm = rems[i]; r.push({id: rm.id, title: rm.get('title'), reminder_time: String(rm.get('reminder_time'))}); }
-    return c.json(200, {reminders: r});
-  } catch(e) { return c.json(500, {error: String(e)}); }
+  function auth() { var info=c.requestInfo(); var headers=info.headers||{}; var hh=headers.authorization||headers.Authorization||''; if(!hh)return{error:'Missing API key',status:401}; var p=String(hh).split(' '); if(p.length!==2||p[0].toLowerCase()!=='bearer')return{error:'Invalid Authorization header',status:401}; var raw=p[1].trim(); if(!raw)return{error:'Empty API key',status:401}; var hashed=(function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;if(tok.length===0)return'd_';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(raw); var keys=$app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0); if(keys.length===0)return{error:'Invalid API key',status:401}; var key=keys[0]; var en=key.get('enabled'); if(en===false||en===0||en==='false')return{error:'Revoked',status:401}; var ex=key.get('expires_at'); if(ex){var em=new Date(String(ex)).getTime(); if(em>0&&em<Date.now())return{error:'Expired',status:401};} var uid=String(key.get('user')||''); if(!uid)return{error:'No owner',status:401}; var user=null; try{user=$app.findRecordById('users',uid);}catch(e){} if(!user)return{error:'User not found',status:401}; var ms=String(user.get('member_status')||'active'); if(ms==='blocked')return{error:'Token owner account is blocked',status:403}; if(ms==='pending_approval')return{error:'Token owner is pending approval',status:403}; var fid=String(user.get('family_id')||''); if(!fid)return{error:'No family',status:401}; return{uid:uid,fid:fid,key:key,user:user}; }
+  function hasScope(key,scope){var raw=key.get('permissions')||key.get('scopes')||[];var list=[];if(Array.isArray(raw))list=raw;else if(typeof raw==='string'){try{list=JSON.parse(raw);}catch(e){list=raw.split(',');}}var fam=scope.split(':')[0]+':*';for(var i=0;i<list.length;i++){var s=String(list[i]||'').trim();if(s==='*'||s===scope||s===fam)return true;if(scope.indexOf('entries:')===0&&(s==='tasks:*'||s==='groceries:*'))return true;}return false;}
+  try { var a=auth(); if(a.error)return c.json(a.status||401,{error:a.error}); if(!hasScope(a.key,'entries:read')&&!hasScope(a.key,'calendar:read'))return c.json(403,{error:'Missing scope'}); var q=c.requestInfo().query||{}; var inc=String(q.include_fired||'false').trim()==='true'; var filter='family_id = "'+a.fid+'" && assigned_to = "'+a.uid+'"'; if(!inc)filter+=' && reminder_time >= "'+new Date().toISOString()+'"'; var rems=$app.findRecordsByFilter('reminders',filter,'-created',100,0); var r=[]; for(var i=0;i<rems.length;i++){var rm=rems[i];r.push({id:rm.id,title:rm.get('title'),reminder_time:String(rm.get('reminder_time'))});} return c.json(200,{reminders:r}); } catch(e){return c.json(500,{error:String(e)});} 
 });

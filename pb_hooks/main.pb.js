@@ -188,6 +188,10 @@ routerAdd('POST', '/api/invites/create', (c) => {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var role = String(auth.get('role') || '');
+    if (role !== 'admin' && role !== 'owner') return c.json(403, { error: 'Admin only' });
+    var inviterFamilyId = String(auth.get('family_id') || '').trim();
+    if (!inviterFamilyId) return c.json(400, { error: 'Current admin has no family assigned' });
 
     var body = info.body || {};
     var type = String(body.type || 'human').trim();
@@ -497,7 +501,7 @@ routerAdd('POST', '/api/v1', (c) => {
     if (!action) return c.json(400, { error: 'action required' });
     var auth = null;
 
-    var needsAuth = ['create','update','complete','assign','delete','list','filters','add_subtask'];
+    var needsAuth = ['create','update','complete','assign','delete','list','filters','add_subtask','set_role','set_user_block','delete_user'];
     if (needsAuth.indexOf(action) >= 0) {
       auth = info.auth || c.get('authRecord');
       if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -669,7 +673,7 @@ routerAdd('POST', '/api/v1', (c) => {
         return c.json(400, { error: 'Agents cannot be assigned admin or owner roles.' });
       }
 
-      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = "' + actorFamilyId + '" && (role = "admin" || role = "owner")', '', 0, 0);
+      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = "' + actorFamilyId + '" && (role = "admin" || role = "owner")', '', 10000, 0);
 
       // Keep a single admin/owner per family: promoting a new admin demotes the others in that family only.
       if (newRole === 'admin' || newRole === 'owner') {
@@ -697,6 +701,44 @@ routerAdd('POST', '/api/v1', (c) => {
       return c.json(200, { success: true, user_id: targetId, role: newRole });
     }
 
+    // ── Admin: block/unblock member (family scoped, owner protected) ──
+    if (action === 'set_user_block') {
+      if (!auth) return c.json(401, { error: 'Unauthorized' });
+      var actorRole = String(auth.get('role') || '');
+      if (actorRole !== 'admin' && actorRole !== 'owner') return c.json(403, { error: 'Admin only' });
+      var targetIdBlock = String(gv(d, 'user_id', '')).trim();
+      var blocked = gv(d, 'blocked', false);
+      if (!targetIdBlock) return c.json(400, { error: 'user_id required' });
+      if (auth.id === targetIdBlock) return c.json(400, { error: 'Cannot block yourself' });
+      var targetBlock = $app.findRecordById('users', targetIdBlock);
+      if (!targetBlock) return c.json(404, { error: 'User not found' });
+      var actorFamilyBlock = String(auth.get('family_id') || '').trim();
+      if (!actorFamilyBlock || String(targetBlock.get('family_id') || '').trim() !== actorFamilyBlock) return c.json(403, { error: 'You can only manage members in your own family.' });
+      if (String(targetBlock.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot block the owner' });
+      var ub = $app.unsafeWithoutHooks();
+      targetBlock.set('member_status', blocked ? 'blocked' : 'active');
+      ub.save(targetBlock);
+      return c.json(200, { success: true, user_id: targetIdBlock, blocked: !!blocked });
+    }
+
+    // ── Admin: delete member (family scoped, owner/self protected) ──
+    if (action === 'delete_user') {
+      if (!auth) return c.json(401, { error: 'Unauthorized' });
+      var actorRoleDel = String(auth.get('role') || '');
+      if (actorRoleDel !== 'admin' && actorRoleDel !== 'owner') return c.json(403, { error: 'Admin only' });
+      var targetIdDel = String(gv(d, 'user_id', '')).trim();
+      if (!targetIdDel) return c.json(400, { error: 'user_id required' });
+      if (auth.id === targetIdDel) return c.json(400, { error: 'Cannot delete yourself' });
+      var targetDel = $app.findRecordById('users', targetIdDel);
+      if (!targetDel) return c.json(404, { error: 'User not found' });
+      var actorFamilyDel = String(auth.get('family_id') || '').trim();
+      if (!actorFamilyDel || String(targetDel.get('family_id') || '').trim() !== actorFamilyDel) return c.json(403, { error: 'You can only manage members in your own family.' });
+      if (String(targetDel.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot delete the owner' });
+      $app.delete(targetDel);
+      return c.json(200, { success: true, user_id: targetIdDel, deleted: true });
+    }
+
+
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
@@ -719,13 +761,13 @@ routerAdd('GET', '/api/agent/counts', (c) => {
     var fid = String(auth.get('family_id') || '');
     var userIds = [];
     if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
       for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
     } else {
       userIds.push('"' + auth.id + '"');
     }
     var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var allTokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 0, 0);
+    var allTokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
     var pending = 0, approved = 0;
     for (var ti = 0; ti < allTokens.length; ti++) {
       var rawEnabled = allTokens[ti].get('enabled');
@@ -747,13 +789,13 @@ routerAdd('GET', '/api/agent/pending', (c) => {
     var fid = String(auth.get('family_id') || '');
     var userIds = [];
     if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
       for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
     } else {
       userIds.push('"' + auth.id + '"');
     }
     var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter + ' && enabled=false', '-created', 0, 0);
+    var tokens = $app.findRecordsByFilter('api_tokens', userFilter + ' && enabled=false', '', 10000, 0);
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -783,6 +825,8 @@ routerAdd('POST', '/api/agent/approve', (c) => {
 
     var token = $app.findRecordById('api_tokens', tokenId);
     if (!token) return c.json(404, { error: 'Token not found' });
+    var tokenUser = null; try { tokenUser = $app.findRecordById('users', String(token.get('user') || '')); } catch(e) {}
+    if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
     token.set('enabled', true);
     $app.save(token);
 
@@ -818,6 +862,8 @@ routerAdd('POST', '/api/agent/reject', (c) => {
 
     var token = $app.findRecordById('api_tokens', tokenId);
     if (!token) return c.json(404, { error: 'Token not found' });
+    var tokenUser = null; try { tokenUser = $app.findRecordById('users', String(token.get('user') || '')); } catch(e) {}
+    if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
 
     // Also delete linked invite
     var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
@@ -841,13 +887,13 @@ routerAdd('GET', '/api/agent/list', (c) => {
     var fid = String(auth.get('family_id') || '');
     var userIds = [];
     if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 0, 0);
+      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
       for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
     } else {
       userIds.push('"' + auth.id + '"');
     }
     var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter, '-created', 0, 0);
+    var tokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -879,6 +925,8 @@ routerAdd('DELETE', '/api/agent/:id', (c) => {
 
     var token = $app.findRecordById('api_tokens', tokenId);
     if (!token) return c.json(404, { error: 'Token not found' });
+    var tokenUser = null; try { tokenUser = $app.findRecordById('users', String(token.get('user') || '')); } catch(e) {}
+    if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
     $app.delete(token);
     return c.json(200, { deleted: true });
   } catch(e) { return c.json(500, { error: String(e) }); }

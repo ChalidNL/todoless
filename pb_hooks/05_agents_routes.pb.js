@@ -347,12 +347,22 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     // Resolve which user/family this agent acts for
     var ownerUser = getAgentUserFamily(agentKey);
     if (!ownerUser) return c.json(500, { error: 'Agent owner not found' });
+    var ownerStatus = String(ownerUser.get('member_status') || 'active');
+    if (ownerUser.get('active') === false || ownerUser.get('active') === 0 || ownerUser.get('active') === 'false' || ownerStatus === 'blocked') return c.json(403, { error: 'Agent owner account is blocked' });
+    if (ownerStatus === 'pending_approval') return c.json(403, { error: 'Agent owner is pending approval' });
     var familyId = String(ownerUser.get('family_id') || '');
     var actingUserId = ownerUser.id;
 
     // Helper: build family-scoped filter
     function familyFilter() {
       return familyId ? 'user.family_id = "' + familyId + '"' : 'user = "' + actingUserId + '"';
+    }
+
+    function recordInFamily(rec, fid, uid) {
+      var ownerId = String(rec.get('user') || '');
+      if (!fid) return ownerId === uid;
+      var owner = null; try { owner = $app.findRecordById('users', ownerId); } catch(e) {}
+      return !!owner && String(owner.get('family_id') || '') === fid;
     }
 
     // ── Agent actions ─────────────────────────────────────────────────────
@@ -541,6 +551,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
       if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) rec.set('assigned_to', gv(d, 'assignee_id', ''));
@@ -577,6 +588,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       var title = String(rec.get('title') || '');
       $app.delete(rec);
@@ -596,6 +608,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       if (type === 'task') {
         rec.set('status', complete ? 'done' : 'todo');
@@ -619,6 +632,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
       $app.save(rec);
@@ -637,6 +651,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       var newLabels = gv(d, 'labels', []);
       rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
@@ -651,6 +666,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 
       var rec = $app.findRecordById('tasks', id);
       if (!rec) return c.json(404, { error: 'Task not found' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
 
       rec.set('due_date', String(gv(d, 'due_date', '') || ''));
       $app.save(rec);
@@ -707,6 +723,9 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
 
     var ownerUser = getAgentUserFamily(agentKey);
     if (!ownerUser) return c.json(500, { error: 'Agent owner not found' });
+    var ownerStatus = String(ownerUser.get('member_status') || 'active');
+    if (ownerUser.get('active') === false || ownerUser.get('active') === 0 || ownerUser.get('active') === 'false' || ownerStatus === 'blocked') return c.json(403, { error: 'Agent owner account is blocked' });
+    if (ownerStatus === 'pending_approval') return c.json(403, { error: 'Agent owner is pending approval' });
     var familyId = String(ownerUser.get('family_id') || '');
     var actingUserId = ownerUser.id;
 

@@ -96,10 +96,13 @@ function bearerAuthMiddleware(c) {
 
     if (!user) return c.json(401, { 'error': 'Token owner not found' });
 
-    // Check user is active
+    // Check user is active and approved
     var rawActive = user.get('active');
     var isBlocked = (rawActive === false || rawActive === 0 || rawActive === 'false');
     if (isBlocked) return c.json(403, { 'error': 'Token owner account is blocked' });
+    var rawMemberStatus = user.get('member_status');
+    if (rawMemberStatus === 'blocked') return c.json(403, { 'error': 'Token owner account is blocked' });
+    if (rawMemberStatus === 'pending_approval') return c.json(403, { 'error': 'Token owner is pending approval' });
 
     // Parse permissions (prefer 'permissions', fallback 'scopes')
     var rawPerms = tokRec.get('permissions');

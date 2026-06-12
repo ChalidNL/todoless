@@ -25,6 +25,9 @@ routerAdd('GET', '/api/api-tokens', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      var rawMemberStatus = user.get('member_status');
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -39,14 +42,20 @@ routerAdd('GET', '/api/api-tokens', (c) => {
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
-    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), fromToken: false }; } }
+    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, family_id: String(_ti.family_id || ''), fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), family_id: String(_a.get('family_id') || ''), fromToken: false }; } }
     if (!auth) return c.json(401, { error: 'Unauthorized' });
 
-    var coll = $app.findCollectionByNameOrId('api_tokens');
     var allRecords = $app.findRecordsByFilter('api_tokens', '', '', 10000, 0);
     var result = [];
     for (var i = 0; i < allRecords.length; i++) {
       var r = allRecords[i];
+      var ownerId = String(r.get('user') || '');
+      if (auth.role !== 'admin' && auth.role !== 'owner') {
+        if (ownerId !== auth.id) continue;
+      } else if (auth.family_id) {
+        var owner = null; try { owner = $app.findRecordById('users', ownerId); } catch(e) {}
+        if (!owner || String(owner.get('family_id') || '') !== auth.family_id) continue;
+      }
       result.push({
         id: r.id,
         name: String(r.get('name') || ''),
@@ -83,6 +92,9 @@ routerAdd('POST', '/api/api-tokens', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      var rawMemberStatus = user.get('member_status');
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -99,8 +111,9 @@ routerAdd('POST', '/api/api-tokens', (c) => {
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
-    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), fromToken: false }; } }
+    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, family_id: String(_ti.family_id || ''), fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), family_id: String(_a.get('family_id') || ''), fromToken: false }; } }
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (auth.fromToken) return c.json(403, { error: 'API tokens cannot create API tokens' });
 
     var info = c.requestInfo();
     var body = info.body || {};
@@ -126,6 +139,7 @@ routerAdd('POST', '/api/api-tokens', (c) => {
         if (pParts.length === 2 && pParts[1] === '*') { valid = true; }
       }
       if (!valid) return c.json(400, { error: 'Invalid permission: ' + perm });
+      if ((perm === '*' || perm.indexOf(':*') > 0) && auth.role !== 'admin' && auth.role !== 'owner') return c.json(403, { error: 'Admin only permission: ' + perm });
     }
 
     var rawToken = _gt(48);
@@ -173,6 +187,9 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      var rawMemberStatus = user.get('member_status');
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -187,14 +204,22 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
-    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), fromToken: false }; } }
+    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, family_id: String(_ti.family_id || ''), fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), family_id: String(_a.get('family_id') || ''), fromToken: false }; } }
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (auth.fromToken) return c.json(403, { error: 'API tokens cannot manage API tokens' });
 
     var tokenId = c.pathParam('id');
     if (!tokenId) return c.json(400, { error: 'Token ID is required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);
     if (!token) return c.json(404, { error: 'Token not found' });
+    var ownerId = String(token.get('user') || '');
+    if (auth.role !== 'admin' && auth.role !== 'owner') {
+      if (ownerId !== auth.id) return c.json(403, { error: 'Cannot manage another user token' });
+    } else if (auth.family_id) {
+      var owner = null; try { owner = $app.findRecordById('users', ownerId); } catch(e) {}
+      if (!owner || String(owner.get('family_id') || '') !== auth.family_id) return c.json(403, { error: 'Token is outside your family' });
+    }
 
     $app.delete(token);
     return c.json(200, { deleted: true, id: tokenId });
@@ -222,6 +247,9 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
       var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
       if (!user) return c.json(401,{'error':'Token owner not found'});
       if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
+      var rawMemberStatus = user.get('member_status');
+      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
+      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
       var rawPerms = tokRec.get('permissions');
       if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
       var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
@@ -236,14 +264,22 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
-    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), fromToken: false }; } }
+    if (_ti) { auth = { id: _ti.user_id, role: _ti.user_role, family_id: String(_ti.family_id || ''), fromToken: true }; } else { var _i = c.requestInfo(); var _a = _i.auth || c.auth; if (_a) { auth = { id: _a.id, role: String(_a.get('role') || 'user'), family_id: String(_a.get('family_id') || ''), fromToken: false }; } }
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    if (auth.fromToken) return c.json(403, { error: 'API tokens cannot manage API tokens' });
 
     var tokenId = c.pathParam('id');
     if (!tokenId) return c.json(400, { error: 'Token ID is required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);
     if (!token) return c.json(404, { error: 'Token not found' });
+    var ownerId = String(token.get('user') || '');
+    if (auth.role !== 'admin' && auth.role !== 'owner') {
+      if (ownerId !== auth.id) return c.json(403, { error: 'Cannot manage another user token' });
+    } else if (auth.family_id) {
+      var owner = null; try { owner = $app.findRecordById('users', ownerId); } catch(e) {}
+      if (!owner || String(owner.get('family_id') || '') !== auth.family_id) return c.json(403, { error: 'Token is outside your family' });
+    }
 
     var current = token.get('enabled');
     var newVal = (current === false || current === 0 || current === 'false') ? true : false;

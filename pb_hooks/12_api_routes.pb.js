@@ -735,7 +735,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
     }
 
     // Disable any existing tokens for this user
-    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 0, 0);
+    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 10000, 0);
     for (var ei = 0; ei < existingTokens.length; ei++) {
       existingTokens[ei].set('enabled', false);
       $app.save(existingTokens[ei]);
@@ -829,7 +829,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
     }
 
     // Disable all tokens for this user
-    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 0, 0);
+    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 10000, 0);
     var disabled = 0;
     for (var ei = 0; ei < existingTokens.length; ei++) {
       existingTokens[ei].set('enabled', false);
