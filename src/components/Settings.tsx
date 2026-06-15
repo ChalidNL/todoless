@@ -221,7 +221,7 @@ export const Settings = () => {
   const handleRoleChange = async (userId: string, role: 'admin' | 'member') => {
     const success = await updateUser(userId, { role });
     if (success) {
-      showCompletionMessage(role === 'admin' ? 'Admin bijgewerkt' : 'Member bijgewerkt');
+      showCompletionMessage(role === 'admin' ? t('settings.adminUpdated') : t('settings.memberUpdated'));
     }
   };
 
@@ -1118,22 +1118,22 @@ export const Settings = () => {
       {showAddLabelModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Add Label</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('settings.addLabelTitle')}</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
                 <input
                   type="text"
                   value={newLabelName}
                   onChange={(e) => setNewLabelName(e.target.value)}
-                  placeholder="Label Name"
+                  placeholder={t('settings.labelNamePlaceholder')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Color</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.color')}</label>
                 <div className="flex items-center gap-2">
                   <div
                     className="w-9 h-9 rounded-md border border-neutral-300 cursor-pointer flex-shrink-0"
@@ -1182,22 +1182,22 @@ export const Settings = () => {
       {showAddShopModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Add Shop</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('settings.addShopTitle')}</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
                 <input
                   type="text"
                   value={newShopName}
                   onChange={(e) => setNewShopName(e.target.value)}
-                  placeholder="Shop Name"
+                  placeholder={t('settings.shopNamePlaceholder')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Color</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.color')}</label>
                 <div className="flex items-center gap-2">
                   <div
                     className="w-9 h-9 rounded-md border border-neutral-300 cursor-pointer flex-shrink-0"
@@ -1247,22 +1247,22 @@ export const Settings = () => {
       {editingLabelId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Edit Label</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('settings.editLabelTitle')}</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
                 <input
                   type="text"
                   value={editingLabelName}
                   onChange={(e) => setEditingLabelName(e.target.value)}
-                  placeholder="Label name"
+                  placeholder={t('settings.labelNamePlaceholder')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Color</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.color')}</label>
                 <div className="flex items-center gap-2">
                   <div
                     className="w-9 h-9 rounded-md border border-neutral-300 cursor-pointer flex-shrink-0"
@@ -1301,22 +1301,22 @@ export const Settings = () => {
       {editingShopId && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold mb-4">Edit Shop</h3>
+            <h3 className="text-lg font-semibold mb-4">{t('settings.editShopTitle')}</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Name</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.name')}</label>
                 <input
                   type="text"
                   value={editingShopName}
                   onChange={(e) => setEditingShopName(e.target.value)}
-                  placeholder="Shop name"
+                  placeholder={t('settings.shopNamePlaceholder')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Color</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.color')}</label>
                 <div className="flex items-center gap-2">
                   <div
                     className="w-9 h-9 rounded-md border border-neutral-300 cursor-pointer flex-shrink-0"

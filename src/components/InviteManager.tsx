@@ -16,7 +16,7 @@ export const InviteManager = () => {
     const invite = await generateInviteCode();
     setGenerating(false);
     if (!invite) {
-      showCompletionMessage('Failed to generate invite code');
+      showCompletionMessage(t('invite.generateFailed'));
       return;
     }
 
@@ -25,7 +25,7 @@ export const InviteManager = () => {
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(invite.code);
     setShowShareModal(true);
-    showCompletionMessage('Member invite generated');
+    showCompletionMessage(t('invite.generatedHuman'));
   };
 
   const handleShareInvite = (code: string) => {
@@ -73,9 +73,9 @@ export const InviteManager = () => {
         document.execCommand('copy');
         document.body.removeChild(textarea);
       }
-      showCompletionMessage('Copied to clipboard');
+      showCompletionMessage(t('common.copiedToClipboard'));
     } catch {
-      showCompletionMessage('Share failed');
+      showCompletionMessage(t('invite.shareFailed'));
     }
   };
 
@@ -169,7 +169,7 @@ export const InviteManager = () => {
 
               {/* Code Display */}
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Invite Code</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('invite.inviteCode')}</label>
                 <div className="p-3 bg-neutral-50 border border-neutral-200 rounded">
                   <p className="font-mono text-2xl font-bold text-center text-blue-600">{currentInviteCode}</p>
                 </div>
@@ -177,7 +177,7 @@ export const InviteManager = () => {
 
               {/* URL with Copy */}
               <div>
-                <label className="block text-sm text-neutral-600 mb-1">Invite Link</label>
+                <label className="block text-sm text-neutral-600 mb-1">{t('invite.inviteLink')}</label>
                 <div className="flex gap-2">
                   <input
                     type="text"

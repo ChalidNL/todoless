@@ -119,7 +119,7 @@ export const InboxBacklog = () => {
       assignedTo: metadata?.assignee,
       dueDate: metadata?.dueDate,
     } as any);
-    showCompletionMessage(t('inbox.taskAdded') || 'Task added to inbox');
+    showCompletionMessage(t('inbox.taskAdded'));
   };
 
   const toggleSelect = (id: string) => {
@@ -194,7 +194,7 @@ export const InboxBacklog = () => {
                 <XIcon className="w-3.5 h-3.5" />
               </button>
               <button
-                onClick={() => showCompletionMessage('Filter saved (not yet implemented)')}
+                onClick={() => showCompletionMessage(t('filters.saveUnavailable'))}
                 className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
                 title={t('common.save')}
                 aria-label={t('common.save')}

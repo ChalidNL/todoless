@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, stripCategoryEmoji } from '../lib/grocery-view-utils';
 import { categorizeItem } from '../lib/grocery-categories';
+import { setActiveLanguage } from '../i18n/translations';
 import type { Item } from '../types';
 
 const item = (overrides: Partial<Item>): Item => ({
@@ -24,6 +25,10 @@ const item = (overrides: Partial<Item>): Item => ({
 });
 
 describe('grocery view utils', () => {
+  beforeEach(() => {
+    setActiveLanguage('en');
+  });
+
   it('sorts groceries alphabetically by title', () => {
     const sorted = sortGroceriesAlpha([
       item({ id: 'b', title: 'Banaan' }),
@@ -42,17 +47,21 @@ describe('grocery view utils', () => {
     ]);
 
     expect(grouped.map(([category]) => stripCategoryEmoji(category))).toEqual([
-      'Aardappelen, Groente & Fruit',
-      'Brood & Gebak',
-      'Zuivel, Boter & Eieren',
+      'Bread & Pastry',
+      'Dairy, Butter & Eggs',
+      'Potatoes, Vegetables & Fruit',
     ]);
   });
 
-  it('keeps produce and juices in separate supermarket categories', () => {
+  it('keeps produce and juices in separate localized supermarket categories', () => {
+    expect(stripCategoryEmoji(categorizeItem('groenten'))).toBe('Potatoes, Vegetables & Fruit');
+    expect(stripCategoryEmoji(categorizeItem('bananen'))).toBe('Potatoes, Vegetables & Fruit');
+    expect(stripCategoryEmoji(categorizeItem('appelsap'))).toBe('Soft Drinks & Juices');
+    expect(stripCategoryEmoji(categorizeItem('sinaasappelsap'))).toBe('Soft Drinks & Juices');
+
+    setActiveLanguage('nl');
     expect(stripCategoryEmoji(categorizeItem('groenten'))).toBe('Aardappelen, Groente & Fruit');
-    expect(stripCategoryEmoji(categorizeItem('bananen'))).toBe('Aardappelen, Groente & Fruit');
     expect(stripCategoryEmoji(categorizeItem('appelsap'))).toBe('Frisdrank & Sappen');
-    expect(stripCategoryEmoji(categorizeItem('sinaasappelsap'))).toBe('Frisdrank & Sappen');
   });
 
   it('partitions focused groceries into a dedicated top section', () => {

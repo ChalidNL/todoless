@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
 import { api } from '../lib/pocketbase-client';
+import { t } from '../i18n/translations';
 import { pb } from '../lib/pocketbase';
 
 const FILTER_PARAM_KEY = 'filters';
@@ -616,9 +617,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       await api.updateUser(id, updates);
       await refreshUsers();
       if (typeof updates.active !== 'undefined') {
-        showCompletionMessage(updates.active ? 'Member unblocked' : 'Member blocked');
+        showCompletionMessage(updates.active ? t('settings.memberUnblocked') : t('settings.memberBlocked'));
       } else if (typeof updates.role !== 'undefined') {
-        showCompletionMessage('Role updated');
+        showCompletionMessage(t('settings.roleUpdated'));
       }
       return true;
     } catch (error) {
@@ -633,7 +634,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       await api.deleteUser(id);
       await refreshUsers();
       await Promise.allSettled([refreshEntries(), refreshNotes()]);
-      showCompletionMessage('Member deleted');
+      showCompletionMessage(t('settings.memberDeleted'));
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete member';

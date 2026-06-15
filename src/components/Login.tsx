@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { t } from '../i18n/translations';
 
 interface LoginProps {
   onLogin: () => void;
@@ -18,7 +19,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please enter email and password');
+      setError(t('auth.missingCredentials'));
       return;
     }
 
@@ -30,7 +31,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
     setIsLoading(false);
 
     if (signInError) {
-      setError(signInError.message || 'Invalid email or password');
+      setError(signInError.message || t('auth.invalidCredentials'));
       return;
     }
 
@@ -44,14 +45,14 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           <AppLogo size="lg" showText={true} variant="dark" />
         </div>
         
-        <h1 className="text-2xl font-bold text-center mb-2">Welcome back</h1>
+        <h1 className="text-2xl font-bold text-center mb-2">{t('auth.welcomeBack')}</h1>
         <p className="text-neutral-600 text-center mb-8 text-sm">
-          Sign in to your todoless-ngx account
+          {t('auth.signInSubtitle')}
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Email</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
@@ -63,7 +64,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Password</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.password')}</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -91,19 +92,19 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
             onClick={handleLogin}
             className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
           >
-            {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Log In'}
+            {isLoading ? <Loader2 size={16} className="animate-spin" /> : t('auth.logIn')}
           </button>
 
           <div className="text-center pt-4 border-t border-neutral-100 space-y-2">
             <p className="text-xs text-neutral-500">
-              Don't have an account? Contact your administrator for an invite.
+              {t('auth.noAccountInviteHint')}
             </p>
             {onSwitchToRegister && (
               <button
                 onClick={onSwitchToRegister}
                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
               >
-                I have an invite code
+                {t('auth.iHaveInviteCode')}
               </button>
             )}
           </div>
