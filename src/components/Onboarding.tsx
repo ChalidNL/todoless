@@ -301,7 +301,7 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
                   value={familyName}
                   onChange={(e) => { setFamilyName(e.target.value); setError(''); }}
                   className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Smith Family"
+                  placeholder={t('onboarding.exampleFamilyName')}
                   autoFocus
                 />
               </div>

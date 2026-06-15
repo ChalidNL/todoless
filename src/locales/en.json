@@ -108,7 +108,8 @@
     "stepUserTitle": "Let's Start",
     "welcome": "Welcome to todoless-ngx",
     "workspaceName": "Workspace name",
-    "workspaceNameMissing": "Workspace name is missing — go back and enter it"
+    "workspaceNameMissing": "Workspace name is missing — go back and enter it",
+    "exampleFamilyName": "Smith Family"
   },
   "tasks": {
     "title": "Tasks",
@@ -151,7 +152,8 @@
     "parentTaskSearchPlaceholder": "Type to search for a parent task",
     "inbox": "Inbox",
     "taskAdded": "Task added to inbox",
-    "movedToBacklog": "Moved to backlog"
+    "movedToBacklog": "Moved to backlog",
+    "noMatchingParentTask": "No matching main task found"
   },
   "items": {
     "title": "Items",
@@ -195,7 +197,11 @@
     "filterByAssignee": "Filter by Assignee",
     "newFilterNamePlaceholder": "New filter name...",
     "applied": "Filter applied",
-    "noActiveFilters": "No active filters to save"
+    "noActiveFilters": "No active filters to save",
+    "newLabel": "New label",
+    "saveJqlHint": "Saves current JQL query and label filters",
+    "saveLabelsHint": "Select labels above, then save as filter",
+    "noSavedFiltersHint": "No saved filters. Apply filters via chips and save them here."
   },
   "groceries": {
     "empty": "No items yet",
@@ -396,7 +402,13 @@
     "shareViaWhatsApp": "Share via WhatsApp",
     "urlCopied": "URL copied!",
     "usedOn": "Used on {date}",
-    "generatedHuman": "Member invite generated"
+    "generatedHuman": "Member invite generated",
+    "generateMember": "Generate member invite",
+    "memberInviteTitle": "Share member invite",
+    "memberLabel": "Member",
+    "shareTitle": "Invite to todoless-ngx",
+    "shareText": "Member invite to todoless-ngx\n\nCode: {code}\n\n{url}",
+    "copyText": "{url}\n\nCode: {code}"
   },
   "calendar": {
     "title": "Calendar",

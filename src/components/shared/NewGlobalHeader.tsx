@@ -134,10 +134,10 @@ export const NewGlobalHeader = ({
                         </div>
                         <div className="flex gap-2 mt-2">
                           <button onClick={saveCurrentFilter} className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100 py-1 rounded">
-                            <Save className="w-3 h-3" /> Save
+                            <Save className="w-3 h-3" /> {t('common.save')}
                           </button>
                           <button onClick={clearChipFilters} className="flex-1 text-[10px] font-medium text-red-500 hover:bg-red-50 py-1 rounded">
-                            Clear all
+                            {t('common.clearAllTooltip')}
                           </button>
                         </div>
                       </div>
@@ -146,7 +146,7 @@ export const NewGlobalHeader = ({
                     <div className="p-1">
                       {typeFilters.length === 0 ? (
                         <p className="text-xs text-neutral-400 p-3 text-center">
-                          No saved filters. Apply filters via chips and save them here.
+                          {t('filters.noSavedFiltersHint')}
                         </p>
                       ) : (
                         typeFilters.map(f => (

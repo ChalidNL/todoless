@@ -1082,7 +1082,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                           ))
                         ) : (
                           <div className="px-3 py-2 text-xs text-neutral-500 bg-white rounded border border-dashed border-purple-200">
-                            Geen passende hoofdtaak gevonden
+                            {t('tasks.noMatchingParentTask')}
                           </div>
                         )}
                       </div>

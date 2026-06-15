@@ -43,8 +43,10 @@ export const InviteManager = () => {
 
   const handleShare = async () => {
     const shareData: ShareData = {
-      title: 'Invite to todoless-ngx',
-      text: `Member invite to todoless-ngx\n\nCode: ${currentInviteCode}\n\n${currentInviteUrl}`,
+      title: t('invite.shareTitle'),
+      text: t('invite.shareText')
+        .replace('{code}', currentInviteCode)
+        .replace('{url}', currentInviteUrl),
       url: currentInviteUrl,
     };
 
@@ -58,7 +60,9 @@ export const InviteManager = () => {
     }
 
     // Fallback: copy invite URL to clipboard
-    const fallbackText = `${currentInviteUrl}\n\nCode: ${currentInviteCode}`;
+    const fallbackText = t('invite.copyText')
+      .replace('{code}', currentInviteCode)
+      .replace('{url}', currentInviteUrl);
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(fallbackText);
@@ -87,7 +91,7 @@ export const InviteManager = () => {
         className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4 disabled:opacity-50"
       >
         <Plus className="w-4 h-4" />
-        {generating ? 'Generating...' : 'Generate Member Invite'}
+        {generating ? t('invite.generating') : t('invite.generateMember')}
       </button>
 
       {inviteCodes.length > 0 && (
@@ -111,7 +115,7 @@ export const InviteManager = () => {
                       {invite.code}
                     </p>
                     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase bg-neutral-100 text-neutral-600">
-                      Member
+                      {t('invite.memberLabel')}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-500 mt-0.5">
@@ -156,14 +160,14 @@ export const InviteManager = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">
-              Share Member Invite
+              {t('invite.memberInviteTitle')}
             </h3>
             
             <div className="space-y-4">
               {/* Invite Type Badge */}
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-neutral-100 text-neutral-600 rounded-full text-xs font-semibold">
-                  <UserPlus className="w-3.5 h-3.5" /> Member
+                  <UserPlus className="w-3.5 h-3.5" /> {t('invite.memberLabel')}
                 </span>
               </div>
 
@@ -202,7 +206,7 @@ export const InviteManager = () => {
                   className="w-full px-4 py-3 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 flex items-center justify-center gap-2"
                 >
                   <Share2 className="w-5 h-5" />
-                  {navigator.share ? 'Share' : 'Copy to clipboard'}
+                  {navigator.share ? t('common.share') : t('common.copyToClipboard')}
                 </button>
               </div>
 

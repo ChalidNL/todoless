@@ -1164,13 +1164,13 @@ export const Settings = () => {
                   onClick={() => setShowAddLabelModal(false)}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleAddLabel}
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded"
                 >
-                  Add
+                  {t('common.add')}
                 </button>
               </div>
             </div>
@@ -1229,13 +1229,13 @@ export const Settings = () => {
                   onClick={() => setShowAddShopModal(false)}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleAddShop}
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded"
                 >
-                  Add
+                  {t('common.add')}
                 </button>
               </div>
             </div>
@@ -1283,13 +1283,13 @@ export const Settings = () => {
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleEditLabel}
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded"
                 >
-                  Save
+                  {t('common.save')}
                 </button>
               </div>
             </div>
@@ -1337,13 +1337,13 @@ export const Settings = () => {
                   }}
                   className="flex-1 px-4 py-2 border border-neutral-200 rounded"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleEditShop}
                   className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded"
                 >
-                  Save
+                  {t('common.save')}
                 </button>
               </div>
             </div>

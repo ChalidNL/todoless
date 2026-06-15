@@ -40,6 +40,15 @@ describe('per-user UI language preferences', () => {
     expect(t('missing.translation.key', 'fr')).toBe('missing.translation.key');
   });
 
+  it('translates member invite UI copy in all launch languages', () => {
+    expect(t('invite.generateMember', 'en')).toBe('Generate member invite');
+    expect(t('invite.generateMember', 'nl')).toBe('Genereer uitnodiging voor lid');
+    expect(t('invite.memberInviteTitle', 'nl')).toBe('Deel uitnodiging voor lid');
+    expect(t('invite.memberLabel', 'nl')).toBe('Lid');
+    expect(t('invite.shareText', 'nl')).toContain('Uitnodiging voor lid');
+    expect(t('invite.generateMember', 'fr')).toBe('Générer une invitation membre');
+  });
+
   it('formats dates and numbers with the active locale', () => {
     const value = new Date('2026-06-15T12:00:00Z');
     expect(formatDate(value, { month: 'long' }, 'fr')).toBe('juin');

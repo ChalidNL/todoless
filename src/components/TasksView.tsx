@@ -309,7 +309,7 @@ export const TasksView = () => {
                 >
                   <Target className="w-4 h-4 text-orange-500" />
                   <h3 className="text-sm font-semibold text-orange-600">
-                    Focus ({sortedFocusTasks.length})
+                    {t('tasks.focus')} ({sortedFocusTasks.length})
                   </h3>
                   {showFocus ? (
                     <ChevronUp className="w-4 h-4 text-orange-400 ml-auto" />
@@ -341,7 +341,7 @@ export const TasksView = () => {
                 >
                   <Lock className="w-4 h-4 text-red-500" />
                   <h3 className="text-sm font-semibold text-red-600">
-                    Blocked ({sortedBlockedTasks.length})
+                    {t('inbox.blocked')} ({sortedBlockedTasks.length})
                   </h3>
                   {showBlocked ? (
                     <ChevronUp className="w-4 h-4 text-red-400 ml-auto" />

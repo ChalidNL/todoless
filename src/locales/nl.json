@@ -108,7 +108,8 @@
     "stepUserTitle": "Laten We Beginnen",
     "welcome": "Welkom bij todoless-ngx",
     "workspaceName": "Werkruimte naam",
-    "workspaceNameMissing": "Werkruimte naam ontbreekt — ga terug en voer het in"
+    "workspaceNameMissing": "Werkruimte naam ontbreekt — ga terug en voer het in",
+    "exampleFamilyName": "Familie Jansen"
   },
   "tasks": {
     "title": "Taken",
@@ -151,7 +152,8 @@
     "parentTaskSearchPlaceholder": "Typ om een hoofdtaak te zoeken",
     "inbox": "Inbox",
     "taskAdded": "Taak toegevoegd aan inbox",
-    "movedToBacklog": "Verplaatst naar backlog"
+    "movedToBacklog": "Verplaatst naar backlog",
+    "noMatchingParentTask": "Geen passende hoofdtaak gevonden"
   },
   "items": {
     "title": "Items",
@@ -195,7 +197,11 @@
     "filterByAssignee": "Filter op toegewezen persoon",
     "newFilterNamePlaceholder": "Nieuwe filternaam...",
     "applied": "Filter toegepast",
-    "noActiveFilters": "Geen actieve filters om op te slaan"
+    "noActiveFilters": "Geen actieve filters om op te slaan",
+    "newLabel": "Nieuw label",
+    "saveJqlHint": "Slaat de huidige JQL-query en labelfilters op",
+    "saveLabelsHint": "Selecteer hierboven labels en sla ze op als filter",
+    "noSavedFiltersHint": "Geen opgeslagen filters. Pas filters toe via chips en sla ze hier op."
   },
   "groceries": {
     "empty": "Geen items",
@@ -396,7 +402,13 @@
     "shareViaWhatsApp": "Delen via WhatsApp",
     "urlCopied": "URL gekopieerd!",
     "usedOn": "Gebruikt op {date}",
-    "generatedHuman": "Member invite gegenereerd"
+    "generatedHuman": "Uitnodiging voor lid gegenereerd",
+    "generateMember": "Genereer uitnodiging voor lid",
+    "memberInviteTitle": "Deel uitnodiging voor lid",
+    "memberLabel": "Lid",
+    "shareTitle": "Uitnodiging voor todoless-ngx",
+    "shareText": "Uitnodiging voor lid voor todoless-ngx\n\nCode: {code}\n\n{url}",
+    "copyText": "{url}\n\nCode: {code}"
   },
   "calendar": {
     "title": "Kalender",
