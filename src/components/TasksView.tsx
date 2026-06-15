@@ -5,7 +5,7 @@ import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
-import { t } from '../i18n/translations';
+import { t, formatDate } from '../i18n/translations';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
 
@@ -82,7 +82,7 @@ export const TasksView = () => {
         case 'date':
           filtered = filtered.filter((t) => {
             if (!t.dueDate) return false;
-            const ds = new Date(t.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' });
+            const ds = formatDate(t.dueDate, { month: 'short', day: 'numeric' });
             return ds === f.id;
           });
           break;

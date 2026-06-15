@@ -1,58 +1,61 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { translations, Language } from '../i18n/translations';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import i18n, { changeAppLanguage } from '../i18n';
+import {
+  DEFAULT_UI_LANGUAGE,
+  getStoredLanguage,
+  isSupportedUiLanguage,
+  t as translate,
+  type Language,
+  type SupportedUiLanguage,
+} from '../i18n/translations';
+import { pb } from '../lib/pocketbase';
 
 interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
+  language: SupportedUiLanguage;
+  setLanguage: (lang: SupportedUiLanguage) => void;
   t: (key: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
+const getUserLanguage = (record: unknown): SupportedUiLanguage | undefined => {
+  const lang = (record as { language?: unknown } | null | undefined)?.language;
+  return isSupportedUiLanguage(lang) ? lang : undefined;
+};
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<SupportedUiLanguage>(() => {
+    return getUserLanguage(pb.authStore.record) ?? getStoredLanguage() ?? DEFAULT_UI_LANGUAGE;
+  });
 
-  // Load language preference from localStorage on mount
   useEffect(() => {
-    const savedLanguage = localStorage.getItem('app_language') as Language;
-    if (savedLanguage && ['en', 'fr', 'nl', 'de'].includes(savedLanguage)) {
-      setLanguageState(savedLanguage);
-    }
-  }, []);
+    void changeAppLanguage(language);
+  }, [language]);
 
-  // Save language preference to localStorage when changed
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem('app_language', lang);
-  };
-
-  // Translation function
-  const t = (key: string): string => {
-    const keys = key.split('.');
-    let value: any = translations[language];
-
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
-      } else {
-        // Fallback to English if translation not found
-        value = translations.en;
-        for (const fallbackKey of keys) {
-          if (value && typeof value === 'object' && fallbackKey in value) {
-            value = value[fallbackKey];
-          } else {
-            return key; // Return key if not found
-          }
-        }
-        break;
-      }
+  useEffect(() => {
+    const userLanguage = getUserLanguage(pb.authStore.record);
+    if (userLanguage && userLanguage !== language) {
+      setLanguageState(userLanguage);
     }
 
-    return typeof value === 'string' ? value : key;
-  };
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
+      const nextLanguage = getUserLanguage(record) ?? getStoredLanguage();
+      setLanguageState(nextLanguage);
+    });
+
+    return () => unsubscribe();
+  }, [language]);
+
+  const value = useMemo<LanguageContextType>(() => ({
+    language,
+    setLanguage: (lang: SupportedUiLanguage) => {
+      setLanguageState(isSupportedUiLanguage(lang) ? lang : DEFAULT_UI_LANGUAGE);
+    },
+    t: (key: string) => translate(key, language as Language),
+  }), [language]);
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
@@ -65,3 +68,5 @@ export function useLanguage() {
   }
   return context;
 }
+
+export { i18n };

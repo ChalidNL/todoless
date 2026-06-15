@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName, Agent } from '../types';
-import { t } from '../i18n/translations';
+import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
+import { changeAppLanguage } from '../i18n';
 import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
@@ -52,6 +53,7 @@ export const Settings = () => {
   const [editingProfile, setEditingProfile] = useState(false);
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
+  const [editLanguage, setEditLanguage] = useState<SupportedUiLanguage>('en');
   const [showAgentApproval, setShowAgentApproval] = useState(false);
   const [pendingAgents, setPendingAgents] = useState<{id: string; email: string; name: string; created: string}[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
@@ -72,6 +74,7 @@ export const Settings = () => {
   const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
+  const getLanguageLabel = (lang: SupportedUiLanguage) => ({ nl: 'Nederlands', fr: 'Français', en: 'English' })[lang];
   const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
   const familyMembershipView = useMemo(
     () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
@@ -184,6 +187,7 @@ export const Settings = () => {
     if (!currentUser) return;
     setEditFirstName(currentUser.firstName || '');
     setEditLastName(currentUser.lastName || '');
+    setEditLanguage(currentUser.language || 'en');
     setEditingProfile(true);
   };
 
@@ -199,10 +203,12 @@ export const Settings = () => {
       name: fullName || currentUser.name,
       firstName: editFirstName.trim() || undefined,
       lastName: editLastName.trim() || undefined,
+      language: editLanguage,
     } as Partial<User>);
     if (success) {
+      await changeAppLanguage(editLanguage);
       setEditingProfile(false);
-      showCompletionMessage('Profiel opgeslagen');
+      showCompletionMessage(t('settings.updated'));
     } else {
       setProfileError(t('settings.profileSaveFailed'));
     }
@@ -559,6 +565,9 @@ export const Settings = () => {
                   <p className="text-xs text-neutral-500 capitalize mt-1">
                     {t('settings.role')}: {currentUser.role || t('settings.member')}
                   </p>
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {t('settings.language')}: {getLanguageLabel(currentUser.language || 'en')}
+                  </p>
                 </div>
               </div>
 
@@ -666,6 +675,19 @@ export const Settings = () => {
                   placeholder={t('onboarding.lastName')}
                   className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm text-neutral-600 mb-1">{t('settings.language')}</label>
+                <select
+                  value={editLanguage}
+                  onChange={(event) => setEditLanguage(event.target.value as SupportedUiLanguage)}
+                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
+                >
+                  {SUPPORTED_UI_LANGUAGES.map((lang) => (
+                    <option key={lang} value={lang}>{getLanguageLabel(lang)}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 pt-2">

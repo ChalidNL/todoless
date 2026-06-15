@@ -42,6 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             displayName: record.display_name,
             role: record.role,
             avatarUrl: record.avatar,
+            member_type: record.member_type || 'human',
+            member_status: record.member_status,
+            language: record.language || 'en',
+            family_id: record.family_id,
+            active: record.member_status ? record.member_status === 'active' : true,
           });
         } catch (error) {
           // Token expired or invalid
@@ -65,6 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: record.display_name,
           role: record.role,
           avatarUrl: record.avatar,
+          member_type: record.member_type || 'human',
+          member_status: record.member_status,
+          language: record.language || 'en',
+          family_id: record.family_id,
+          active: record.member_status ? record.member_status === 'active' : true,
         });
       } else {
         setUser(null);
