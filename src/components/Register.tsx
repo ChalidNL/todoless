@@ -3,6 +3,7 @@ import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
 import { api } from '../lib/pocketbase-client';
+import { t } from '../i18n/translations';
 
 interface RegisterProps {
   onRegister: () => void;
@@ -35,7 +36,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
 
   const handleValidateInvite = async () => {
     if (!inviteCode || inviteCode.length < 6) {
-      setError('Please enter a valid invite code');
+      setError(t('auth.invalidInviteCode'));
       return;
     }
 
@@ -46,7 +47,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
       await api.validateInviteCode(inviteCode);
       setStep('create');
     } catch (validationError: any) {
-      setError(validationError?.message || 'Invalid or expired invite code');
+      setError(validationError?.message || t('auth.expiredInviteCode'));
     } finally {
       setIsLoading(false);
     }
@@ -55,28 +56,28 @@ export const Register = ({ onRegister }: RegisterProps) => {
   const handleCreateAccount = async () => {
     // Validation
     if (!firstName.trim()) {
-      setError('First name is required');
+      setError(t('auth.firstNameRequired'));
       return;
     }
     if (!email || !password || !confirmPassword) {
-      setError('All fields are required');
+      setError(t('auth.allFieldsRequired'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordMinLength'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+      setError(t('auth.emailInvalid'));
       return;
     }
 
@@ -88,7 +89,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
     setIsLoading(false);
 
     if (signUpError) {
-      setError(signUpError.message || 'Registration failed');
+      setError(signUpError.message || t('auth.registrationFailed'));
       return;
     }
 
@@ -107,14 +108,14 @@ export const Register = ({ onRegister }: RegisterProps) => {
             <AppLogo size="lg" showText={true} variant="dark" />
           </div>
           
-          <h1 className="text-2xl font-bold text-center mb-2">join todoless-ngx</h1>
+          <h1 className="text-2xl font-bold text-center mb-2">{t('auth.joinTitle')}</h1>
           <p className="text-neutral-600 text-center mb-8 text-sm">
-            Enter your 6-digit invite code to get started
+            {t('auth.invitePrompt')}
           </p>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-neutral-600 mb-1">Invite Code</label>
+              <label className="block text-sm text-neutral-600 mb-1">{t('auth.inviteCode')}</label>
               <input
                 type="text"
                 value={inviteCode}
@@ -135,14 +136,14 @@ export const Register = ({ onRegister }: RegisterProps) => {
               disabled={isLoading}
               className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
             >
-              {isLoading ? <Loader2 className="animate-spin inline" size={16} /> : 'Validate Code'}
+              {isLoading ? <Loader2 className="animate-spin inline" size={16} /> : t('auth.validateCode')}
             </button>
 
             <div className="text-center pt-4 border-t border-neutral-100">
               <p className="text-xs text-neutral-500">
-                Already have an account?{' '}
+                {t('auth.alreadyHaveAccount')}{' '}
                 <a href="/" className="text-neutral-900 hover:underline font-medium">
-                  Log in
+                  {t('auth.loginLink')}
                 </a>
               </p>
             </div>
@@ -161,17 +162,17 @@ export const Register = ({ onRegister }: RegisterProps) => {
 
         <div className="flex items-center justify-center gap-2 mb-6 bg-green-50 border border-green-200 rounded-lg p-3">
           <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <p className="text-sm text-green-800 font-medium">Invite code validated!</p>
+          <p className="text-sm text-green-800 font-medium">{t('auth.inviteValidated')}</p>
         </div>
         
-        <h1 className="text-2xl font-bold text-center mb-2">Create Your Account</h1>
+        <h1 className="text-2xl font-bold text-center mb-2">{t('auth.createAccountTitle')}</h1>
         <p className="text-neutral-600 text-center mb-8 text-sm">
-          Set up your profile to start organizing
+          {t('auth.createAccountSubtitle')}
         </p>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">First Name</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.firstName')}</label>
             <input
               type="text"
               value={firstName}
@@ -182,7 +183,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Last Name</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.lastName')}</label>
             <input
               type="text"
               value={lastName}
@@ -193,7 +194,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Email</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
@@ -204,7 +205,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Password</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.password')}</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -221,11 +222,11 @@ export const Register = ({ onRegister }: RegisterProps) => {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="text-xs text-neutral-500 mt-1">Minimum 6 characters</p>
+            <p className="text-xs text-neutral-500 mt-1">{t('auth.passwordMinLengthShort')}</p>
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">Confirm Password</label>
+            <label className="block text-sm text-neutral-600 mb-1">{t('auth.confirmPassword')}</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -253,14 +254,14 @@ export const Register = ({ onRegister }: RegisterProps) => {
             onClick={handleCreateAccount}
             className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={16} /> : 'Create Account'}
+            {isLoading ? <Loader2 className="animate-spin" size={16} /> : t('auth.createAccount')}
           </button>
 
           <div className="text-center pt-4 border-t border-neutral-100">
             <p className="text-xs text-neutral-500">
-              Already have an account?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <a href="/" className="text-neutral-900 hover:underline font-medium">
-                Log in
+                {t('auth.loginLink')}
               </a>
             </p>
           </div>

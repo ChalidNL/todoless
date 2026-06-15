@@ -141,7 +141,7 @@ export const GroceriesView = () => {
                         {f.name}
                       </button>
                       <button
-                        onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
+                        onClick={() => { deleteFilter(f.id); showCompletionMessage(t('filters.deleted')); }}
                         className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
                         title={t('common.delete')}
                       >
@@ -157,7 +157,7 @@ export const GroceriesView = () => {
                 try {
                   const name = window.prompt(t('settings.filterName'), '');
                   if (!name || !name.trim()) return;
-                  const typeRaw = window.prompt(t('items.title') + ' of shop?', 'item');
+                  const typeRaw = window.prompt(t('filters.itemOrShopPrompt'), 'item');
                   const ftype = (typeRaw || 'item').trim().toLowerCase();
                   const validType = ftype === 'task' ? 'task' : 'item';
                   addFilter({
@@ -167,9 +167,9 @@ export const GroceriesView = () => {
                     showCompleted: true,
                     type: validType,
                   });
-                  showCompletionMessage('Filter saved');
+                  showCompletionMessage(t('filters.saved'));
                 } catch(e) {
-                  showCompletionMessage('Failed to save filter');
+                  showCompletionMessage(t('filters.saveFailed'));
                 }
               }}
               className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"

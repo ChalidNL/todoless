@@ -92,7 +92,7 @@ export const FilterPanel = ({
         {/* Saved filters */}
         {typeFilters.length > 0 && (
           <div>
-            <p className="text-xs text-neutral-500 mb-2">Saved Filters</p>
+            <p className="text-xs text-neutral-500 mb-2">{t('filters.savedFilters')}</p>
             <div className="flex flex-wrap gap-2">
               {typeFilters.map(filter => (
                 <div key={filter.id} className="flex items-center gap-1">
@@ -111,7 +111,7 @@ export const FilterPanel = ({
                   <button
                     onClick={() => deleteFilter(filter.id)}
                     className="p-1 hover:bg-neutral-200 rounded"
-                    title="Delete filter"
+                    title={t('filters.deleteFilter')}
                   >
                     <X className="w-3 h-3 text-neutral-400" />
                   </button>
@@ -124,7 +124,7 @@ export const FilterPanel = ({
         {/* Label filters */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-neutral-500">Filter by Label</p>
+            <p className="text-xs text-neutral-500">{t('filters.filterByLabel')}</p>
             <button
               onClick={() => setShowNewLabel(!showNewLabel)}
               className="text-xs text-neutral-600 hover:text-neutral-800 flex items-center gap-1"
@@ -150,14 +150,14 @@ export const FilterPanel = ({
                     setEditingLabelName(label.name);
                   }}
                   className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-neutral-200 rounded transition-opacity"
-                  title="Edit label"
+                  title={t('filters.editLabel')}
                 >
                   <Edit2 className="w-2.5 h-2.5 text-neutral-500" />
                 </button>
                 <button
                   onClick={() => handleDeleteLabel(label.id)}
                   className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-opacity"
-                  title="Delete label"
+                  title={t('filters.deleteLabel')}
                 >
                   <Trash2 className="w-2.5 h-2.5 text-red-400" />
                 </button>
@@ -172,7 +172,7 @@ export const FilterPanel = ({
                 type="text"
                 value={newLabelName}
                 onChange={(e) => setNewLabelName(e.target.value)}
-                placeholder="Label name..."
+                placeholder={t('filters.labelNamePlaceholder')}
                 className="w-full px-2 py-1 border border-neutral-200 rounded text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateLabel()}
               />
@@ -211,7 +211,7 @@ export const FilterPanel = ({
         {/* Filter by Assignee (only for tasks) */}
         {type === 'task' && users.length > 0 && (
           <div>
-            <p className="text-xs text-neutral-500 mb-2">Filter by Assignee</p>
+            <p className="text-xs text-neutral-500 mb-2">{t('filters.filterByAssignee')}</p>
               <div className="flex flex-wrap gap-2">
                 {users.map(user => (
                   <span
@@ -234,7 +234,7 @@ export const FilterPanel = ({
               type="text"
               value={newFilterName}
               onChange={(e) => setNewFilterName(e.target.value)}
-              placeholder="New filter name..."
+              placeholder={t('filters.newFilterNamePlaceholder')}
               className="flex-1 px-3 py-1.5 border border-neutral-200 rounded text-sm bg-white"
               onKeyDown={(e) => e.key === 'Enter' && handleSaveFilter()}
             />

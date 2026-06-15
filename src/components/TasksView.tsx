@@ -232,7 +232,7 @@ export const TasksView = () => {
                           {f.name}
                         </button>
                         <button
-                          onClick={() => { deleteFilter(f.id); showCompletionMessage('Filter deleted'); }}
+                          onClick={() => { deleteFilter(f.id); showCompletionMessage(t('filters.deleted')); }}
                           className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
                           title={t('common.delete')}
                         >
@@ -248,7 +248,7 @@ export const TasksView = () => {
                   try {
                     const name = window.prompt(t('settings.filterName'), '');
                     if (!name || !name.trim()) return;
-                    const typeRaw = window.prompt(t('tasks.title') + ' of shop?', 'task');
+                    const typeRaw = window.prompt(t('filters.taskOrShopPrompt'), 'task');
                     const ftype = (typeRaw || 'task').trim().toLowerCase();
                     const validType = ftype === 'item' ? 'item' : 'task';
                     addFilter({
@@ -258,9 +258,9 @@ export const TasksView = () => {
                       showCompleted: true,
                       type: validType,
                     });
-                    showCompletionMessage('Filter saved');
+                    showCompletionMessage(t('filters.saved'));
                   } catch(e) {
-                    showCompletionMessage('Failed to save filter');
+                    showCompletionMessage(t('filters.saveFailed'));
                   }
                 }}
                 className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
@@ -292,11 +292,11 @@ export const TasksView = () => {
                 value={sortMode}
                 onChange={(e) => setSortMode(e.target.value as SortMode)}
                 className="text-xs px-2 py-1 border border-neutral-200 rounded bg-white text-neutral-600"
-                aria-label="Sort tasks"
+                aria-label={t('filters.sortTasks')}
               >
                 <option value="alpha">A-Z</option>
-                <option value="priority">Priority</option>
-                <option value="dueDate">Due date</option>
+                <option value="priority">{t('filters.priority')}</option>
+                <option value="dueDate">{t('filters.dueDate')}</option>
               </select>
             </div>
 

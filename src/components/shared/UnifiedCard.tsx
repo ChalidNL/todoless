@@ -453,8 +453,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       ? { backgroundColor: entity.priority ? PRIORITY_COLORS[entity.priority as Priority] : '#f59e0b' }
                       : undefined
                   }
-                  title="Priority"
-                  aria-label="Edit priority"
+                  title={t('tasks.priority')}
+                  aria-label={t('tasks.editPriority')}
                 >
                   <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
                 </button>

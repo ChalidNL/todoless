@@ -1871,8 +1871,499 @@ export const translations: Record<Language, TranslationStructure> = {
   },
 };
 
+
+const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  "en": {
+    "auth": {
+      "appErrorDescription": "Something went wrong. Reset all data to continue.",
+      "resetAllData": "Reset All Data & Restart"
+    },
+    "tasks": {
+      "taskAdded": "Task added to inbox",
+      "movedToBacklog": "Moved to backlog"
+    },
+    "common": {
+      "previousSlide": "Previous slide",
+      "nextSlide": "Next slide",
+      "pagination": "pagination",
+      "goToPreviousPage": "Go to previous page",
+      "goToNextPage": "Go to next page",
+      "toggleSidebar": "Toggle Sidebar",
+      "sidebar": "Sidebar",
+      "mobileSidebarDescription": "Displays the mobile sidebar.",
+      "errorLoadingImage": "Error loading image"
+    },
+    "repeat": {
+      "day": "Every day",
+      "week": "Every week",
+      "month": "Every month",
+      "year": "Every year",
+      "monthWeekdayFallback": "Every first Monday of the month",
+      "monthly": "Monthly",
+      "repeat": "Repeat",
+      "shortDay": "Daily",
+      "shortWeek": "Weekly",
+      "shortMonth": "Monthly",
+      "shortYear": "Yearly",
+      "shortMonthPrefix": "Mon ·"
+    }
+  },
+  "nl": {
+    "auth": {
+      "appErrorDescription": "Er is iets misgegaan. Reset alle data om door te gaan.",
+      "resetAllData": "Alle data resetten & herstarten"
+    },
+    "tasks": {
+      "taskAdded": "Taak toegevoegd aan inbox",
+      "movedToBacklog": "Verplaatst naar backlog"
+    },
+    "common": {
+      "previousSlide": "Vorige slide",
+      "nextSlide": "Volgende slide",
+      "pagination": "paginering",
+      "goToPreviousPage": "Ga naar vorige pagina",
+      "goToNextPage": "Ga naar volgende pagina",
+      "toggleSidebar": "Sidebar wisselen",
+      "sidebar": "Sidebar",
+      "mobileSidebarDescription": "Toont de mobiele sidebar.",
+      "errorLoadingImage": "Afbeelding laden mislukt"
+    },
+    "repeat": {
+      "day": "Elke dag",
+      "week": "Elke week",
+      "month": "Elke maand",
+      "year": "Elk jaar",
+      "monthWeekdayFallback": "Elke eerste maandag van de maand",
+      "monthly": "Maandelijks",
+      "repeat": "Herhalen",
+      "shortDay": "Dagelijks",
+      "shortWeek": "Wekelijks",
+      "shortMonth": "Maandelijks",
+      "shortYear": "Jaarlijks",
+      "shortMonthPrefix": "Mnd ·"
+    }
+  },
+  "fr": {
+    "auth": {
+      "appErrorDescription": "Une erreur est survenue. Réinitialisez toutes les données pour continuer.",
+      "resetAllData": "Réinitialiser toutes les données et redémarrer"
+    },
+    "tasks": {
+      "taskAdded": "Tâche ajoutée à l’inbox",
+      "movedToBacklog": "Déplacé vers le backlog"
+    },
+    "common": {
+      "previousSlide": "Diapositive précédente",
+      "nextSlide": "Diapositive suivante",
+      "pagination": "pagination",
+      "goToPreviousPage": "Aller à la page précédente",
+      "goToNextPage": "Aller à la page suivante",
+      "toggleSidebar": "Basculer la barre latérale",
+      "sidebar": "Barre latérale",
+      "mobileSidebarDescription": "Affiche la barre latérale mobile.",
+      "errorLoadingImage": "Erreur de chargement de l’image"
+    },
+    "repeat": {
+      "day": "Chaque jour",
+      "week": "Chaque semaine",
+      "month": "Chaque mois",
+      "year": "Chaque année",
+      "monthWeekdayFallback": "Chaque premier lundi du mois",
+      "monthly": "Mensuel",
+      "repeat": "Répéter",
+      "shortDay": "Quotidien",
+      "shortWeek": "Hebdomadaire",
+      "shortMonth": "Mensuel",
+      "shortYear": "Annuel",
+      "shortMonthPrefix": "Mois ·"
+    }
+  }
+};
+
+const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  "en": {
+    "auth": {
+      "appError": "App Error",
+      "welcomeBack": "Welcome back",
+      "signInSubtitle": "Sign in to your todoless-ngx account",
+      "email": "Email",
+      "password": "Password",
+      "logIn": "Log In",
+      "missingCredentials": "Please enter email and password",
+      "invalidCredentials": "Invalid email or password",
+      "noAccountInviteHint": "Don't have an account? Contact your administrator for an invite.",
+      "iHaveInviteCode": "I have an invite code",
+      "joinTitle": "Join todoless-ngx",
+      "invitePrompt": "Enter your 6-digit invite code to get started",
+      "inviteCode": "Invite Code",
+      "validateCode": "Validate Code",
+      "alreadyHaveAccount": "Already have an account?",
+      "loginLink": "Log in",
+      "invalidInviteCode": "Please enter a valid invite code",
+      "expiredInviteCode": "Invalid or expired invite code",
+      "inviteValidated": "Invite code validated!",
+      "createAccountTitle": "Create Your Account",
+      "createAccountSubtitle": "Set up your profile to start organizing",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "emailInvalid": "Please enter a valid email address",
+      "firstNameRequired": "First name is required",
+      "allFieldsRequired": "All fields are required",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "passwordMinLengthShort": "Minimum 6 characters",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "confirmPassword": "Confirm Password",
+      "registrationFailed": "Registration failed",
+      "createAccount": "Create Account"
+    },
+    "filters": {
+      "deleted": "Filter deleted",
+      "saved": "Filter saved",
+      "saveFailed": "Failed to save filter",
+      "saveUnavailable": "Filter saved (not yet implemented)",
+      "taskOrShopPrompt": "Task or shop?",
+      "itemOrShopPrompt": "Item or shop?",
+      "sortTasks": "Sort tasks",
+      "priority": "Priority",
+      "dueDate": "Due date",
+      "savedFilters": "Saved Filters",
+      "deleteFilter": "Delete filter",
+      "filterByLabel": "Filter by Label",
+      "editLabel": "Edit label",
+      "deleteLabel": "Delete label",
+      "labelNamePlaceholder": "Label name...",
+      "filterByAssignee": "Filter by Assignee",
+      "newFilterNamePlaceholder": "New filter name...",
+      "applied": "Filter applied",
+      "noActiveFilters": "No active filters to save"
+    },
+    "settings": {
+      "adminUpdated": "Admin updated",
+      "memberUpdated": "Member updated",
+      "memberUnblocked": "Member unblocked",
+      "memberBlocked": "Member blocked",
+      "roleUpdated": "Role updated",
+      "memberDeleted": "Member deleted",
+      "addLabelTitle": "Add Label",
+      "editLabelTitle": "Edit Label",
+      "addShopTitle": "Add Shop",
+      "editShopTitle": "Edit Shop",
+      "labelNamePlaceholder": "Label Name",
+      "shopNamePlaceholder": "Shop Name"
+    },
+    "tasks": {
+      "linkedUnder": "Linked under \"{title}\"",
+      "subtasksEditTitle": "Edit subtasks",
+      "subtasksEditAria": "Edit subtasks",
+      "subtaskTitleEditAria": "Edit subtask title",
+      "subtaskEditTitle": "Edit subtask",
+      "subtaskDeleteTitle": "Delete subtask",
+      "editPriority": "Edit priority",
+      "toggleFocus": "Toggle focus",
+      "otherActions": "Other actions",
+      "swap": "Swap",
+      "promotedStandalone": "Promoted to standalone task",
+      "makeMainTask": "Make main task again",
+      "makeSubTask": "Make sub-task",
+      "parentTaskSearchPlaceholder": "Type to search for a parent task",
+      "inbox": "Inbox"
+    },
+    "groceries": {
+      "categories": {
+        "produce": "🥔 Potatoes, Vegetables & Fruit",
+        "freshMeals": "🥗 Fresh Meals & Convenience",
+        "meatFishVega": "🥩 Meat, Fish & Vegetarian",
+        "breadPastry": "🍞 Bread & Pastry",
+        "dairyButterEggs": "🥛 Dairy, Butter & Eggs",
+        "deliCheeseTapas": "🧀 Cold Cuts, Cheese & Tapas",
+        "cansSoupsSaucesOil": "🥫 Cans, Soups, Sauces & Oil",
+        "worldHerbsPastaRice": "🌍 World Foods, Herbs, Pasta & Rice",
+        "breakfastSpreadsBaking": "🥣 Breakfast, Spreads & Baking",
+        "cookiesCandyChocolateChips": "🍪 Cookies, Candy, Chocolate & Chips",
+        "coffeeTea": "☕ Coffee & Tea",
+        "softDrinksJuices": "🥤 Soft Drinks & Juices",
+        "beerWine": "🍷 Beer & Wine",
+        "frozen": "❄️ Frozen",
+        "drugstoreHealth": "💊 Drugstore & Health",
+        "babyChild": "👶 Baby & Child",
+        "householdPets": "🧼 Household & Pets",
+        "nonFoodService": "🧾 Non-food & Service Desk",
+        "other": "Other"
+      }
+    },
+    "invite": {
+      "generatedHuman": "Member invite generated"
+    },
+    "common": {
+      "previous": "Previous",
+      "next": "Next",
+      "more": "More",
+      "morePages": "More pages"
+    }
+  },
+  "nl": {
+    "auth": {
+      "appError": "App-fout",
+      "welcomeBack": "Welkom terug",
+      "signInSubtitle": "Log in op je todoless-ngx account",
+      "email": "E-mail",
+      "password": "Wachtwoord",
+      "logIn": "Inloggen",
+      "missingCredentials": "Vul e-mail en wachtwoord in",
+      "invalidCredentials": "Ongeldige e-mail of wachtwoord",
+      "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
+      "iHaveInviteCode": "Ik heb een invite-code",
+      "joinTitle": "Word lid van todoless-ngx",
+      "invitePrompt": "Voer je 6-cijferige invite-code in om te starten",
+      "inviteCode": "Invite-code",
+      "validateCode": "Code valideren",
+      "alreadyHaveAccount": "Heb je al een account?",
+      "loginLink": "Inloggen",
+      "invalidInviteCode": "Voer een geldige invite-code in",
+      "expiredInviteCode": "Ongeldige of verlopen invite-code",
+      "inviteValidated": "Invite-code gevalideerd!",
+      "createAccountTitle": "Maak je account aan",
+      "createAccountSubtitle": "Stel je profiel in om te starten met organiseren",
+      "firstName": "Voornaam",
+      "lastName": "Achternaam",
+      "emailInvalid": "Voer een geldig e-mailadres in",
+      "firstNameRequired": "Voornaam is verplicht",
+      "allFieldsRequired": "Alle velden zijn verplicht",
+      "passwordMinLength": "Wachtwoord moet minimaal 6 tekens zijn",
+      "passwordMinLengthShort": "Minimaal 6 tekens",
+      "passwordsDoNotMatch": "Wachtwoorden komen niet overeen",
+      "confirmPassword": "Bevestig wachtwoord",
+      "registrationFailed": "Registratie mislukt",
+      "createAccount": "Account aanmaken"
+    },
+    "filters": {
+      "deleted": "Filter verwijderd",
+      "saved": "Filter opgeslagen",
+      "saveFailed": "Filter opslaan mislukt",
+      "saveUnavailable": "Filter opgeslagen (nog niet geïmplementeerd)",
+      "taskOrShopPrompt": "Taak of winkel?",
+      "itemOrShopPrompt": "Item of winkel?",
+      "sortTasks": "Taken sorteren",
+      "priority": "Prioriteit",
+      "dueDate": "Vervaldatum",
+      "savedFilters": "Opgeslagen filters",
+      "deleteFilter": "Filter verwijderen",
+      "filterByLabel": "Filter op label",
+      "editLabel": "Label bewerken",
+      "deleteLabel": "Label verwijderen",
+      "labelNamePlaceholder": "Labelnaam...",
+      "filterByAssignee": "Filter op toegewezen persoon",
+      "newFilterNamePlaceholder": "Nieuwe filternaam...",
+      "applied": "Filter toegepast",
+      "noActiveFilters": "Geen actieve filters om op te slaan"
+    },
+    "settings": {
+      "adminUpdated": "Admin bijgewerkt",
+      "memberUpdated": "Member bijgewerkt",
+      "memberUnblocked": "Member gedeblokkeerd",
+      "memberBlocked": "Member geblokkeerd",
+      "roleUpdated": "Rol bijgewerkt",
+      "memberDeleted": "Member verwijderd",
+      "addLabelTitle": "Label toevoegen",
+      "editLabelTitle": "Label bewerken",
+      "addShopTitle": "Winkel toevoegen",
+      "editShopTitle": "Winkel bewerken",
+      "labelNamePlaceholder": "Labelnaam",
+      "shopNamePlaceholder": "Winkelnaam"
+    },
+    "tasks": {
+      "linkedUnder": "Gekoppeld onder \"{title}\"",
+      "subtasksEditTitle": "Subtaken bewerken",
+      "subtasksEditAria": "Subtaken bewerken",
+      "subtaskTitleEditAria": "Subtaaktitel bewerken",
+      "subtaskEditTitle": "Subtaak bewerken",
+      "subtaskDeleteTitle": "Subtaak verwijderen",
+      "editPriority": "Prioriteit bewerken",
+      "toggleFocus": "Focus wisselen",
+      "otherActions": "Andere acties",
+      "swap": "Wisselen",
+      "promotedStandalone": "Gepromoveerd naar losse taak",
+      "makeMainTask": "Maak weer hoofdtaak",
+      "makeSubTask": "Maak sub-taak",
+      "parentTaskSearchPlaceholder": "Typ om een hoofdtaak te zoeken",
+      "inbox": "Inbox"
+    },
+    "groceries": {
+      "categories": {
+        "produce": "🥔 Aardappelen, Groente & Fruit",
+        "freshMeals": "🥗 Verse Maaltijden & Gemak",
+        "meatFishVega": "🥩 Vlees, Vis & Vega",
+        "breadPastry": "🍞 Brood & Gebak",
+        "dairyButterEggs": "🥛 Zuivel, Boter & Eieren",
+        "deliCheeseTapas": "🧀 Vleeswaren, Kaas & Tapas",
+        "cansSoupsSaucesOil": "🥫 Conserven, Soepen, Sauzen & Olie",
+        "worldHerbsPastaRice": "🌍 Wereldkeukens, Kruiden, Pasta & Rijst",
+        "breakfastSpreadsBaking": "🥣 Ontbijt, Broodbeleg & Bakproducten",
+        "cookiesCandyChocolateChips": "🍪 Koek, Snoep, Chocolade & Chips",
+        "coffeeTea": "☕ Koffie & Thee",
+        "softDrinksJuices": "🥤 Frisdrank & Sappen",
+        "beerWine": "🍷 Bier & Wijn",
+        "frozen": "❄️ Diepvries",
+        "drugstoreHealth": "💊 Drogisterij & Gezondheid",
+        "babyChild": "👶 Baby & Kind",
+        "householdPets": "🧼 Huishouden & Dieren",
+        "nonFoodService": "🧾 Non-food & Servicebalie",
+        "other": "Overig"
+      }
+    },
+    "invite": {
+      "generatedHuman": "Member invite gegenereerd"
+    },
+    "common": {
+      "previous": "Vorige",
+      "next": "Volgende",
+      "more": "Meer",
+      "morePages": "Meer pagina’s"
+    }
+  },
+  "fr": {
+    "auth": {
+      "appError": "Erreur de l’application",
+      "welcomeBack": "Bon retour",
+      "signInSubtitle": "Connectez-vous à votre compte todoless-ngx",
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "logIn": "Connexion",
+      "missingCredentials": "Veuillez saisir votre e-mail et votre mot de passe",
+      "invalidCredentials": "E-mail ou mot de passe invalide",
+      "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
+      "iHaveInviteCode": "J’ai un code d’invitation",
+      "joinTitle": "Rejoindre todoless-ngx",
+      "invitePrompt": "Saisissez votre code d’invitation à 6 caractères pour commencer",
+      "inviteCode": "Code d’invitation",
+      "validateCode": "Valider le code",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "loginLink": "Connexion",
+      "invalidInviteCode": "Veuillez saisir un code d’invitation valide",
+      "expiredInviteCode": "Code d’invitation invalide ou expiré",
+      "inviteValidated": "Code d’invitation validé !",
+      "createAccountTitle": "Créer votre compte",
+      "createAccountSubtitle": "Configurez votre profil pour commencer à organiser",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "emailInvalid": "Veuillez saisir une adresse e-mail valide",
+      "firstNameRequired": "Le prénom est obligatoire",
+      "allFieldsRequired": "Tous les champs sont obligatoires",
+      "passwordMinLength": "Le mot de passe doit contenir au moins 6 caractères",
+      "passwordMinLengthShort": "Minimum 6 caractères",
+      "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+      "confirmPassword": "Confirmer le mot de passe",
+      "registrationFailed": "Inscription échouée",
+      "createAccount": "Créer le compte"
+    },
+    "filters": {
+      "deleted": "Filtre supprimé",
+      "saved": "Filtre enregistré",
+      "saveFailed": "Échec de l’enregistrement du filtre",
+      "saveUnavailable": "Filtre enregistré (pas encore implémenté)",
+      "taskOrShopPrompt": "Tâche ou magasin ?",
+      "itemOrShopPrompt": "Article ou magasin ?",
+      "sortTasks": "Trier les tâches",
+      "priority": "Priorité",
+      "dueDate": "Date d’échéance",
+      "savedFilters": "Filtres enregistrés",
+      "deleteFilter": "Supprimer le filtre",
+      "filterByLabel": "Filtrer par étiquette",
+      "editLabel": "Modifier l’étiquette",
+      "deleteLabel": "Supprimer l’étiquette",
+      "labelNamePlaceholder": "Nom de l’étiquette...",
+      "filterByAssignee": "Filtrer par assigné",
+      "newFilterNamePlaceholder": "Nouveau nom de filtre...",
+      "applied": "Filtre appliqué",
+      "noActiveFilters": "Aucun filtre actif à enregistrer"
+    },
+    "settings": {
+      "adminUpdated": "Admin mis à jour",
+      "memberUpdated": "Membre mis à jour",
+      "memberUnblocked": "Membre débloqué",
+      "memberBlocked": "Membre bloqué",
+      "roleUpdated": "Rôle mis à jour",
+      "memberDeleted": "Membre supprimé",
+      "addLabelTitle": "Ajouter une étiquette",
+      "editLabelTitle": "Modifier l’étiquette",
+      "addShopTitle": "Ajouter un magasin",
+      "editShopTitle": "Modifier le magasin",
+      "labelNamePlaceholder": "Nom de l’étiquette",
+      "shopNamePlaceholder": "Nom du magasin"
+    },
+    "tasks": {
+      "linkedUnder": "Lié sous « {title} »",
+      "subtasksEditTitle": "Modifier les sous-tâches",
+      "subtasksEditAria": "Modifier les sous-tâches",
+      "subtaskTitleEditAria": "Modifier le titre de la sous-tâche",
+      "subtaskEditTitle": "Modifier la sous-tâche",
+      "subtaskDeleteTitle": "Supprimer la sous-tâche",
+      "editPriority": "Modifier la priorité",
+      "toggleFocus": "Basculer le focus",
+      "otherActions": "Autres actions",
+      "swap": "Échanger",
+      "promotedStandalone": "Promu en tâche autonome",
+      "makeMainTask": "Redevenir tâche principale",
+      "makeSubTask": "Créer une sous-tâche",
+      "parentTaskSearchPlaceholder": "Tapez pour rechercher une tâche parent",
+      "inbox": "Inbox"
+    },
+    "groceries": {
+      "categories": {
+        "produce": "🥔 Pommes de terre, légumes et fruits",
+        "freshMeals": "🥗 Repas frais & prêt-à-manger",
+        "meatFishVega": "🥩 Viande, poisson & végétarien",
+        "breadPastry": "🍞 Pain & pâtisserie",
+        "dairyButterEggs": "🥛 Produits laitiers, beurre & œufs",
+        "deliCheeseTapas": "🧀 Charcuterie, fromage & tapas",
+        "cansSoupsSaucesOil": "🥫 Conserves, soupes, sauces & huile",
+        "worldHerbsPastaRice": "🌍 Cuisine du monde, épices, pâtes & riz",
+        "breakfastSpreadsBaking": "🥣 Petit-déjeuner, tartinables & pâtisserie",
+        "cookiesCandyChocolateChips": "🍪 Biscuits, bonbons, chocolat & chips",
+        "coffeeTea": "☕ Café & thé",
+        "softDrinksJuices": "🥤 Sodas & jus",
+        "beerWine": "🍷 Bière & vin",
+        "frozen": "❄️ Surgelés",
+        "drugstoreHealth": "💊 Droguerie & santé",
+        "babyChild": "👶 Bébé & enfant",
+        "householdPets": "🧼 Maison & animaux",
+        "nonFoodService": "🧾 Non-alimentaire & service",
+        "other": "Autre"
+      }
+    },
+    "invite": {
+      "generatedHuman": "Invitation membre générée"
+    },
+    "common": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "more": "Plus",
+      "morePages": "Plus de pages"
+    }
+  }
+};
+
+function lookupNested(dict: unknown, key: string): string | undefined {
+  const parts = key.split('.');
+  let value: any = dict;
+  for (const part of parts) {
+    if (value && typeof value === 'object' && part in value) {
+      value = value[part];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
 /** Simple translation helper: looks up nested key in language dict. */
 function lookupTranslation(key: string, lang: Language): string | undefined {
+  const overlayDict = isSupportedUiLanguage(lang) ? overlayTranslations[lang] : undefined;
+  const overlay = lookupNested(overlayDict, key);
+  if (overlay) return overlay;
+  const extraDict = isSupportedUiLanguage(lang) ? extraTranslations[lang] : undefined;
+  const extra = lookupNested(extraDict, key);
+  if (extra) return extra;
   const dict = translations[lang];
   const parts = key.split('.');
   let value: any = dict;

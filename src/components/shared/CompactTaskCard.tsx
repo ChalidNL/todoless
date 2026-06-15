@@ -339,7 +339,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
     if (!current.includes(task.id)) {
       updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
     }
-    showCompletionMessage(`Linked under "${parentTask.title}"`);
+    showCompletionMessage(t('tasks.linkedUnder').replace('{title}', parentTask.title));
     resetParentPicker();
     setActiveEditor(null);
   };
@@ -532,8 +532,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     }
                   }}
                   className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title="Subtasks bewerken"
-                  aria-label="Bewerk subtasks"
+                  title={t('tasks.subtasksEditTitle')}
+                  aria-label={t('tasks.subtasksEditAria')}
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -581,7 +581,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                         }}
                         autoFocus
                         className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
-                        aria-label="Bewerk subtask titel"
+                        aria-label={t('tasks.subtaskTitleEditAria')}
                       />
                     ) : (
                       <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>
@@ -594,16 +594,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                         <button
                           onClick={() => startEditingSubtask(subtask)}
                           className="p-1 rounded text-neutral-500 hover:bg-white hover:text-neutral-700 transition-colors"
-                          title="Subtask bewerken"
-                          aria-label="Subtask bewerken"
+                          title={t('tasks.subtaskEditTitle')}
+                          aria-label={t('tasks.subtaskEditTitle')}
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => setSubtaskPendingDelete(subtask)}
                           className="p-1 rounded text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                          title="Subtask verwijderen"
-                          aria-label="Subtask verwijderen"
+                          title={t('tasks.subtaskDeleteTitle')}
+                          aria-label={t('tasks.subtaskDeleteTitle')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -712,8 +712,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                       ? { backgroundColor: PRIORITY_COLORS[task.priority] }
                       : undefined
                   }
-                  title="Priority"
-                  aria-label="Edit priority"
+                  title={t('tasks.priority')}
+                  aria-label={t('tasks.editPriority')}
                 >
                   <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -724,7 +724,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
                   title={task.focus ? 'Remove focus' : 'Add focus'}
-                  aria-label="Toggle focus"
+                  aria-label={t('tasks.toggleFocus')}
                 >
                   <Target className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -753,8 +753,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   className={`p-1.5 rounded transition-colors ${
                     activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-neutral-100 text-neutral-500'
                   }`}
-                  title="Others"
-                  aria-label="Open other actions"
+                  title={t('tasks.otherActions')}
+                  aria-label={t('tasks.otherActions')}
                 >
                   <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -1029,14 +1029,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-neutral-200 hover:bg-neutral-50 transition-colors"
                   >
                     <ArrowLeftRight className="w-4 h-4 text-neutral-500" strokeWidth={1.75} />
-                    <span>Swap</span>
+                    <span>{t('tasks.swap')}</span>
                   </button>
                   <button
                     onClick={() => {
                       if (task.linkedType === 'task' && task.linkedTo) {
                         detachFromParentTask(task.linkedTo);
                         updateTask(task.id, { linkedTo: null, linkedType: null });
-                        showCompletionMessage('Promoted to standalone task');
+                        showCompletionMessage(t('tasks.promotedStandalone'));
                         resetParentPicker();
                         setActiveEditor(null);
                         return;
@@ -1052,7 +1052,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                     }`}
                   >
                     <GitBranch className="w-4 h-4" strokeWidth={1.75} />
-                    <span>{task.linkedType === 'task' && task.linkedTo ? 'Maak weer hoofdtaak' : 'Maak sub-taak'}</span>
+                    <span>{task.linkedType === 'task' && task.linkedTo ? t('tasks.makeMainTask') : t('tasks.makeSubTask')}</span>
                   </button>
                   {!(task.linkedType === 'task' && task.linkedTo) && showParentPicker && (
                     <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-2.5 space-y-2">
@@ -1060,7 +1060,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                         type="text"
                         value={parentSearch}
                         onChange={(e) => setParentSearch(e.target.value)}
-                        placeholder="Typ om een hoofdtaak te zoeken"
+                        placeholder={t('tasks.parentTaskSearchPlaceholder')}
                         className="w-full text-sm px-3 py-2 border border-purple-200 rounded bg-white"
                         autoFocus
                       />
@@ -1098,7 +1098,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                       className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
                     >
                       <Inbox className="w-4 h-4" strokeWidth={1.75} />
-                      <span>Inbox</span>
+                      <span>{t('tasks.inbox')}</span>
                     </button>
                   )}
                 </div>

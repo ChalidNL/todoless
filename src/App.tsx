@@ -44,9 +44,9 @@ class ErrorBoundary extends React.Component<
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-8 h-8 text-red-600" />
             </div>
-            <h1 className="text-xl font-bold mb-2">App Error</h1>
+            <h1 className="text-xl font-bold mb-2">{t('auth.appError')}</h1>
             <p className="text-neutral-600 mb-6 text-sm">
-              Something went wrong. Reset all data to continue.
+              {t('auth.appErrorDescription')}
             </p>
             <button
               onClick={() => {
@@ -55,7 +55,7 @@ class ErrorBoundary extends React.Component<
               }}
               className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
             >
-              Reset All Data & Restart
+              {t('auth.resetAllData')}
             </button>
           </div>
         </div>

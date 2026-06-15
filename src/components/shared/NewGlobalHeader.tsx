@@ -60,12 +60,12 @@ export const NewGlobalHeader = ({
       });
     }
     setShowFilterDropdown(false);
-    showCompletionMessage('Filter applied');
+    showCompletionMessage(t('filters.applied'));
   };
 
   const saveCurrentFilter = () => {
     if (activeChipFilters.length === 0) {
-      showCompletionMessage('No active filters to save');
+      showCompletionMessage(t('filters.noActiveFilters'));
       return;
     }
     const name = `Filter ${typeFilters.length + 1}`;
@@ -76,7 +76,7 @@ export const NewGlobalHeader = ({
       chipFilters: activeChipFilters.map(f => ({ type: f.type, id: f.id, label: f.label, color: f.color })),
     });
     setShowFilterDropdown(false);
-    showCompletionMessage('Filter saved');
+    showCompletionMessage(t('filters.saved'));
   };
 
   return (
