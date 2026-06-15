@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck } from 'lucide-react';
-import { t } from '../i18n/translations';
+import { t, formatDate } from '../i18n/translations';
 
 export const InboxBacklog = () => {
   const { tasks, updateTask, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
@@ -63,7 +63,7 @@ export const InboxBacklog = () => {
         case 'date':
           filtered = filtered.filter((t) => {
             if (!t.dueDate) return false;
-            const ds = new Date(t.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' });
+            const ds = formatDate(t.dueDate, { month: 'short', day: 'numeric' });
             return ds === f.id;
           });
           break;

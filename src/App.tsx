@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
-import { LanguageProvider } from './context/LanguageContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './components/AuthProvider';
 import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
@@ -71,6 +71,7 @@ function AppContent() {
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const { completionMessage, tasks, items } = useApp();
   const { user, loading } = useAuth();
+  const { language } = useLanguage();
   const location = useLocation();
 
   useEffect(() => {
@@ -216,10 +217,10 @@ function AppContent() {
   }
 
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
-    { to: '/', label: t('common.inbox'), icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: t('common.tasks'), icon: <AppMark className="w-5 h-5" /> },
-    { to: '/groceries', label: t('common.groceries'), icon: <ShoppingCart className="w-5 h-5" /> },
-    { to: '/settings', label: t('common.settings'), icon: <SettingsIcon className="w-5 h-5" /> },
+    { to: '/', label: t('common.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
+    { to: '/tasks', label: t('common.tasks', language), icon: <AppMark className="w-5 h-5" /> },
+    { to: '/groceries', label: t('common.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/settings', label: t('common.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
   return (

@@ -1,0 +1,49 @@
+import { describe, expect, it, beforeEach } from 'vitest';
+import {
+  DEFAULT_UI_LANGUAGE,
+  formatDate,
+  formatNumber,
+  getStoredLanguage,
+  isSupportedUiLanguage,
+  setActiveLanguage,
+  t,
+} from '../i18n/translations';
+
+describe('per-user UI language preferences', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    setActiveLanguage(DEFAULT_UI_LANGUAGE);
+  });
+
+  it('uses English as startup default', () => {
+    expect(DEFAULT_UI_LANGUAGE).toBe('en');
+    expect(getStoredLanguage()).toBe('en');
+    expect(t('common.settings')).toBe('Settings');
+  });
+
+  it('accepts only launch languages for persisted user preference', () => {
+    expect(isSupportedUiLanguage('nl')).toBe(true);
+    expect(isSupportedUiLanguage('fr')).toBe(true);
+    expect(isSupportedUiLanguage('en')).toBe(true);
+    expect(isSupportedUiLanguage('de')).toBe(false);
+
+    localStorage.setItem('app_language', 'fr');
+    expect(getStoredLanguage()).toBe('fr');
+
+    localStorage.setItem('app_language', 'de');
+    expect(getStoredLanguage()).toBe('en');
+  });
+
+  it('falls back to English and then the key when a translation is missing', () => {
+    expect(t('common.settings', 'fr')).toBe('Paramètres');
+    expect(t('common.settings', 'de')).toBe('Einstellungen');
+    expect(t('missing.translation.key', 'fr')).toBe('missing.translation.key');
+  });
+
+  it('formats dates and numbers with the active locale', () => {
+    const value = new Date('2026-06-15T12:00:00Z');
+    expect(formatDate(value, { month: 'long' }, 'fr')).toBe('juin');
+    expect(formatNumber(1234.5, undefined, 'fr')).toBe('1 234,5');
+    expect(formatNumber(1234.5, undefined, 'en')).toBe('1,234.5');
+  });
+});

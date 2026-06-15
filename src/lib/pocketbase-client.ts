@@ -29,6 +29,7 @@ const normalizeUser = (record: any): User => ({
   role: (record.role || 'member') as User['role'],
   member_type: record.member_type || 'human',
   member_status: record.member_status || undefined,
+  language: record.language || 'en',
   family_id: record.family_id || undefined,
   active: record.member_status ? record.member_status === 'active' : (typeof record.active === 'boolean' ? record.active : true),
 });
@@ -894,6 +895,7 @@ class PocketBaseClient {
       first_name: updates.firstName,
       last_name: updates.lastName,
       display_name: updates.displayName,
+      language: updates.language,
       password: updates.password,
       passwordConfirm: updates.password,
     });

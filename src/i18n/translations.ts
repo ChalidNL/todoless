@@ -1,4 +1,29 @@
-export type Language = 'en' | 'fr' | 'nl' | 'de';
+export type Language = 'nl' | 'fr' | 'en' | 'de';
+
+export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en'] as const;
+export type SupportedUiLanguage = typeof SUPPORTED_UI_LANGUAGES[number];
+export const DEFAULT_UI_LANGUAGE: SupportedUiLanguage = 'en';
+const STORAGE_LANGUAGE_KEY = 'app_language';
+let activeLanguage: Language = DEFAULT_UI_LANGUAGE;
+
+export function isSupportedUiLanguage(value: unknown): value is SupportedUiLanguage {
+  return typeof value === 'string' && (SUPPORTED_UI_LANGUAGES as readonly string[]).includes(value);
+}
+
+export function getStoredLanguage(): SupportedUiLanguage {
+  if (typeof localStorage === 'undefined') return DEFAULT_UI_LANGUAGE;
+  const stored = localStorage.getItem(STORAGE_LANGUAGE_KEY);
+  return isSupportedUiLanguage(stored) ? stored : DEFAULT_UI_LANGUAGE;
+}
+
+export function setActiveLanguage(lang: Language) {
+  activeLanguage = isSupportedUiLanguage(lang) ? lang : DEFAULT_UI_LANGUAGE;
+}
+
+export function getActiveLanguage(): Language {
+  return activeLanguage;
+}
+
 
 interface TranslationStructure {
   common: {
@@ -1847,16 +1872,29 @@ export const translations: Record<Language, TranslationStructure> = {
 };
 
 /** Simple translation helper: looks up nested key in language dict. */
-export function t(key: string, lang: Language = 'en'): string {
-  const dict = translations[lang] ?? translations['en'];
+function lookupTranslation(key: string, lang: Language): string | undefined {
+  const dict = translations[lang];
   const parts = key.split('.');
   let value: any = dict;
   for (const part of parts) {
     if (value && typeof value === 'object' && part in value) {
       value = value[part];
     } else {
-      return key;
+      return undefined;
     }
   }
-  return typeof value === 'string' ? value : key;
+  return typeof value === 'string' ? value : undefined;
+}
+
+/** Simple translation helper: active language → English fallback → key. */
+export function t(key: string, lang: Language = activeLanguage): string {
+  return lookupTranslation(key, lang) ?? lookupTranslation(key, 'en') ?? key;
+}
+
+export function formatDate(value: Date | number | string, options?: Intl.DateTimeFormatOptions, lang: Language = activeLanguage): string {
+  return new Intl.DateTimeFormat(lang, options).format(new Date(value));
+}
+
+export function formatNumber(value: number, options?: Intl.NumberFormatOptions, lang: Language = activeLanguage): string {
+  return new Intl.NumberFormat(lang, options).format(value);
 }

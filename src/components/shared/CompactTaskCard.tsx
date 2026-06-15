@@ -3,7 +3,7 @@ import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
-import { t } from '../../i18n/translations';
+import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
@@ -126,7 +126,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const isFocusTask = !!task.focus && !isDone;
   const isOverdue = !!task.dueDate && task.dueDate < Date.now() && !isDone;
   const dateStr = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })
+    ? formatDate(task.dueDate, { month: 'short', day: 'numeric' })
     : null;
 
   const repeatLabel = getRepeatLabel(task.repeatInterval, task.dueDate);
@@ -1075,7 +1075,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                               <span className="block text-sm font-medium text-neutral-900 truncate">{parentTask.title}</span>
                               {parentTask.dueDate && (
                                 <span className="block text-xs text-neutral-500 mt-0.5">
-                                  {new Date(parentTask.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' })}
+                                  {formatDate(parentTask.dueDate, { month: 'short', day: 'numeric' })}
                                 </span>
                               )}
                             </button>

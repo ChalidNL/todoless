@@ -288,6 +288,7 @@ routerAdd('POST', '/api/register', (c) => {
     rec.set('family_id', data.family_id || '');
     rec.set('member_status', data.member_status || 'active');
     rec.set('member_type', data.member_type || 'family_member');
+    rec.set('language', ['nl', 'fr', 'en'].indexOf(String(data.language || '')) !== -1 ? data.language : 'en');
     u.save(rec);
     return rec;
   };

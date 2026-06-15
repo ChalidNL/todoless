@@ -3,7 +3,7 @@ import { Task, Item, userDisplayName, Priority, RepeatInterval } from '../../typ
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ShoppingCart, ArrowLeftRight, X, AlertTriangle, RotateCcw, Inbox, MessageSquare, Target } from 'lucide-react';
-import { t } from '../../i18n/translations';
+import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
@@ -65,7 +65,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const currentShop = item?.shopId ? shops.find(s => s.id === item.shopId) : null;
   const assignedUser = entity.assignedTo ? users.find(u => u.id === entity.assignedTo) : null;
   const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
-  const dateStr = entity.dueDate ? new Date(entity.dueDate).toLocaleDateString('nl-NL', { month: 'short', day: 'numeric' }) : null;
+  const dateStr = entity.dueDate ? formatDate(entity.dueDate, { month: 'short', day: 'numeric' }) : null;
   const repeatLabel = task?.repeatInterval ? getRepeatLabel(task.repeatInterval, task.dueDate) : null;
   const repeatChipLabel = task?.repeatInterval ? getRepeatChipLabel(task.repeatInterval, task.dueDate) : null;
   const hasTaskComment = !!task?.blockedComment?.trim();
