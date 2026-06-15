@@ -108,7 +108,8 @@
     "stepUserTitle": "C'est Parti",
     "welcome": "Bienvenue sur todoless-ngx",
     "workspaceName": "Nom de l'espace de travail",
-    "workspaceNameMissing": "Le nom de l'espace de travail est manquant — revenez en arrière et saisissez-le"
+    "workspaceNameMissing": "Le nom de l'espace de travail est manquant — revenez en arrière et saisissez-le",
+    "exampleFamilyName": "Famille Dupont"
   },
   "tasks": {
     "title": "Tâches",
@@ -151,7 +152,8 @@
     "parentTaskSearchPlaceholder": "Tapez pour rechercher une tâche parent",
     "inbox": "Inbox",
     "taskAdded": "Tâche ajoutée à l’inbox",
-    "movedToBacklog": "Déplacé vers le backlog"
+    "movedToBacklog": "Déplacé vers le backlog",
+    "noMatchingParentTask": "Aucune tâche principale correspondante trouvée"
   },
   "items": {
     "title": "Articles",
@@ -195,7 +197,11 @@
     "filterByAssignee": "Filtrer par assigné",
     "newFilterNamePlaceholder": "Nouveau nom de filtre...",
     "applied": "Filtre appliqué",
-    "noActiveFilters": "Aucun filtre actif à enregistrer"
+    "noActiveFilters": "Aucun filtre actif à enregistrer",
+    "newLabel": "Nouveau label",
+    "saveJqlHint": "Enregistre la requête JQL actuelle et les filtres de labels",
+    "saveLabelsHint": "Sélectionnez des labels ci-dessus, puis enregistrez comme filtre",
+    "noSavedFiltersHint": "Aucun filtre enregistré. Appliquez des filtres via les chips et enregistrez-les ici."
   },
   "groceries": {
     "empty": "Aucun article",
@@ -396,7 +402,13 @@
     "shareViaWhatsApp": "Partager via WhatsApp",
     "urlCopied": "URL copiée !",
     "usedOn": "Utilisé le {date}",
-    "generatedHuman": "Invitation membre générée"
+    "generatedHuman": "Invitation membre générée",
+    "generateMember": "Générer une invitation membre",
+    "memberInviteTitle": "Partager l’invitation membre",
+    "memberLabel": "Membre",
+    "shareTitle": "Invitation à todoless-ngx",
+    "shareText": "Invitation membre à todoless-ngx\n\nCode : {code}\n\n{url}",
+    "copyText": "{url}\n\nCode : {code}"
   },
   "calendar": {
     "title": "Calendrier",

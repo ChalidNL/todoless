@@ -2016,6 +2016,9 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "registrationFailed": "Registration failed",
       "createAccount": "Create Account"
     },
+    "onboarding": {
+      "exampleFamilyName": "Smith Family"
+    },
     "filters": {
       "deleted": "Filter deleted",
       "saved": "Filter saved",
@@ -2034,6 +2037,10 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "labelNamePlaceholder": "Label name...",
       "filterByAssignee": "Filter by Assignee",
       "newFilterNamePlaceholder": "New filter name...",
+      "newLabel": "New label",
+      "saveJqlHint": "Saves current JQL query and label filters",
+      "saveLabelsHint": "Select labels above, then save as filter",
+      "noSavedFiltersHint": "No saved filters. Apply filters via chips and save them here.",
       "applied": "Filter applied",
       "noActiveFilters": "No active filters to save"
     },
@@ -2053,6 +2060,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
     },
     "tasks": {
       "linkedUnder": "Linked under \"{title}\"",
+      "noMatchingParentTask": "No matching main task found",
       "subtasksEditTitle": "Edit subtasks",
       "subtasksEditAria": "Edit subtasks",
       "subtaskTitleEditAria": "Edit subtask title",
@@ -2092,7 +2100,13 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       }
     },
     "invite": {
-      "generatedHuman": "Member invite generated"
+      "generatedHuman": "Member invite generated",
+      "generateMember": "Generate member invite",
+      "memberInviteTitle": "Share member invite",
+      "memberLabel": "Member",
+      "shareTitle": "Invite to todoless-ngx",
+      "shareText": "Member invite to todoless-ngx\n\nCode: {code}\n\n{url}",
+      "copyText": "{url}\n\nCode: {code}"
     },
     "common": {
       "previous": "Previous",
@@ -2136,6 +2150,9 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "registrationFailed": "Registratie mislukt",
       "createAccount": "Account aanmaken"
     },
+    "onboarding": {
+      "exampleFamilyName": "Familie Jansen"
+    },
     "filters": {
       "deleted": "Filter verwijderd",
       "saved": "Filter opgeslagen",
@@ -2154,6 +2171,10 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "labelNamePlaceholder": "Labelnaam...",
       "filterByAssignee": "Filter op toegewezen persoon",
       "newFilterNamePlaceholder": "Nieuwe filternaam...",
+      "newLabel": "Nieuw label",
+      "saveJqlHint": "Slaat de huidige JQL-query en labelfilters op",
+      "saveLabelsHint": "Selecteer hierboven labels en sla ze op als filter",
+      "noSavedFiltersHint": "Geen opgeslagen filters. Pas filters toe via chips en sla ze hier op.",
       "applied": "Filter toegepast",
       "noActiveFilters": "Geen actieve filters om op te slaan"
     },
@@ -2173,6 +2194,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
     },
     "tasks": {
       "linkedUnder": "Gekoppeld onder \"{title}\"",
+      "noMatchingParentTask": "Geen passende hoofdtaak gevonden",
       "subtasksEditTitle": "Subtaken bewerken",
       "subtasksEditAria": "Subtaken bewerken",
       "subtaskTitleEditAria": "Subtaaktitel bewerken",
@@ -2212,7 +2234,13 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       }
     },
     "invite": {
-      "generatedHuman": "Member invite gegenereerd"
+      "generatedHuman": "Uitnodiging voor lid gegenereerd",
+      "generateMember": "Genereer uitnodiging voor lid",
+      "memberInviteTitle": "Deel uitnodiging voor lid",
+      "memberLabel": "Lid",
+      "shareTitle": "Uitnodiging voor todoless-ngx",
+      "shareText": "Uitnodiging voor lid voor todoless-ngx\n\nCode: {code}\n\n{url}",
+      "copyText": "{url}\n\nCode: {code}"
     },
     "common": {
       "previous": "Vorige",
@@ -2256,6 +2284,9 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "registrationFailed": "Inscription échouée",
       "createAccount": "Créer le compte"
     },
+    "onboarding": {
+      "exampleFamilyName": "Famille Dupont"
+    },
     "filters": {
       "deleted": "Filtre supprimé",
       "saved": "Filtre enregistré",
@@ -2265,15 +2296,19 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "itemOrShopPrompt": "Article ou magasin ?",
       "sortTasks": "Trier les tâches",
       "priority": "Priorité",
-      "dueDate": "Date d’échéance",
+      "dueDate": "Échéance",
       "savedFilters": "Filtres enregistrés",
       "deleteFilter": "Supprimer le filtre",
-      "filterByLabel": "Filtrer par étiquette",
-      "editLabel": "Modifier l’étiquette",
-      "deleteLabel": "Supprimer l’étiquette",
-      "labelNamePlaceholder": "Nom de l’étiquette...",
+      "filterByLabel": "Filtrer par label",
+      "editLabel": "Modifier le label",
+      "deleteLabel": "Supprimer le label",
+      "labelNamePlaceholder": "Nom du label...",
       "filterByAssignee": "Filtrer par assigné",
       "newFilterNamePlaceholder": "Nouveau nom de filtre...",
+      "newLabel": "Nouveau label",
+      "saveJqlHint": "Enregistre la requête JQL actuelle et les filtres de labels",
+      "saveLabelsHint": "Sélectionnez des labels ci-dessus, puis enregistrez comme filtre",
+      "noSavedFiltersHint": "Aucun filtre enregistré. Appliquez des filtres via les chips et enregistrez-les ici.",
       "applied": "Filtre appliqué",
       "noActiveFilters": "Aucun filtre actif à enregistrer"
     },
@@ -2293,6 +2328,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
     },
     "tasks": {
       "linkedUnder": "Lié sous « {title} »",
+      "noMatchingParentTask": "Aucune tâche principale correspondante trouvée",
       "subtasksEditTitle": "Modifier les sous-tâches",
       "subtasksEditAria": "Modifier les sous-tâches",
       "subtaskTitleEditAria": "Modifier le titre de la sous-tâche",
@@ -2332,7 +2368,13 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       }
     },
     "invite": {
-      "generatedHuman": "Invitation membre générée"
+      "generatedHuman": "Invitation membre générée",
+      "generateMember": "Générer une invitation membre",
+      "memberInviteTitle": "Partager l’invitation membre",
+      "memberLabel": "Membre",
+      "shareTitle": "Invitation à todoless-ngx",
+      "shareText": "Invitation membre à todoless-ngx\n\nCode : {code}\n\n{url}",
+      "copyText": "{url}\n\nCode : {code}"
     },
     "common": {
       "previous": "Précédent",

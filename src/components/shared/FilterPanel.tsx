@@ -130,7 +130,7 @@ export const FilterPanel = ({
               className="text-xs text-neutral-600 hover:text-neutral-800 flex items-center gap-1"
             >
               <Plus className="w-3 h-3" />
-              New Label
+              {t('filters.newLabel')}
             </button>
           </div>
 
@@ -192,7 +192,7 @@ export const FilterPanel = ({
                   disabled={!newLabelName.trim()}
                   className="px-3 py-1 bg-neutral-900 text-white rounded text-xs disabled:opacity-50"
                 >
-                  Create
+                  {t('common.create')}
                 </button>
                 <button
                   onClick={() => {
@@ -201,7 +201,7 @@ export const FilterPanel = ({
                   }}
                   className="px-3 py-1 text-neutral-600 text-xs"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -244,11 +244,11 @@ export const FilterPanel = ({
               className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
               <Plus className="w-4 h-4" />
-              Save
+              {t('common.save')}
             </button>
           </div>
           <p className="text-xs text-neutral-400 mt-1">
-            {jqlQuery ? 'Saves current JQL query and label filters' : 'Select labels above, then save as filter'}
+            {jqlQuery ? t('filters.saveJqlHint') : t('filters.saveLabelsHint')}
           </p>
         </div>
       </div>
