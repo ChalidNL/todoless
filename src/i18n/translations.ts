@@ -328,6 +328,15 @@ interface TranslationStructure {
     description: string;
     eventTitle: string;
     eventDescription: string;
+    month: string;
+    week: string;
+    day: string;
+    agenda: string;
+    today: string;
+    location: string;
+    repeat: string;
+    noEvents: string;
+    datedTask: string;
   };
   inbox: {
     title: string;
@@ -703,6 +712,15 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Description',
       eventTitle: 'Event Title',
       eventDescription: 'Event Description',
+      month: 'Month',
+      week: 'Week',
+      day: 'Day',
+      agenda: 'Agenda',
+      today: 'Today',
+      location: 'Location',
+      repeat: 'Repeat',
+      noEvents: 'No calendar items',
+      datedTask: 'Task',
     },
     inbox: {
       title: 'Inbox',
@@ -1076,6 +1094,15 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Description',
       eventTitle: 'Titre de l\'événement',
       eventDescription: 'Description de l\'événement',
+      month: 'Mois',
+      week: 'Semaine',
+      day: 'Jour',
+      agenda: 'Agenda',
+      today: 'Aujourd’hui',
+      location: 'Lieu',
+      repeat: 'Répéter',
+      noEvents: 'Aucun élément d’agenda',
+      datedTask: 'Tâche',
     },
     inbox: {
       title: 'Boîte de réception',
@@ -1449,6 +1476,15 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Beschrijving',
       eventTitle: 'Evenement titel',
       eventDescription: 'Evenement beschrijving',
+      month: 'Maand',
+      week: 'Week',
+      day: 'Dag',
+      agenda: 'Agenda',
+      today: 'Vandaag',
+      location: 'Locatie',
+      repeat: 'Herhalen',
+      noEvents: 'Geen agenda-items',
+      datedTask: 'Taak',
     },
     inbox: {
       title: 'Inbox',
@@ -1822,6 +1858,15 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Beschreibung',
       eventTitle: 'Ereignistitel',
       eventDescription: 'Ereignisbeschreibung',
+      month: 'Monat',
+      week: 'Woche',
+      day: 'Tag',
+      agenda: 'Agenda',
+      today: 'Heute',
+      location: 'Ort',
+      repeat: 'Wiederholen',
+      noEvents: 'Keine Kalendereinträge',
+      datedTask: 'Aufgabe',
     },
     inbox: {
       title: 'Posteingang',

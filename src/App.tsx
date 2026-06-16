@@ -8,11 +8,12 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
+import { CalendarView } from './components/calendar/CalendarView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
+import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays } from 'lucide-react';
 import { AppMark } from './components/shared/AppLogo';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
@@ -219,6 +220,7 @@ function AppContent() {
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
     { to: '/', label: t('common.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: t('common.tasks', language), icon: <AppMark className="w-5 h-5" /> },
+    { to: '/calendar', label: t('common.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
     { to: '/groceries', label: t('common.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/settings', label: t('common.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
@@ -229,6 +231,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
+          <Route path="/calendar" element={<CalendarView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -246,7 +249,7 @@ function AppContent() {
       <nav className="flex-shrink-0 bg-white border-t border-neutral-200 z-40"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
       >
-        <div className="max-w-lg mx-auto flex justify-around items-center">
+        <div className="max-w-xl mx-auto flex justify-around items-center">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
