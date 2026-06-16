@@ -33,8 +33,8 @@ export function CalendarView() {
   const [anchor, setAnchor] = useState(() => startOfLocalDay(Date.now()));
   const [selectedDay, setSelectedDay] = useState(() => startOfLocalDay(Date.now()));
   const [mode, setMode] = useState<CalendarViewMode>(() => getStoredCalendarView((user as any)?.id, getDefaultCalendarView()));
+  const [quickAdd, setQuickAdd] = useState<CalendarEvent | null>(null);
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -58,22 +58,35 @@ export function CalendarView() {
     });
   }, [allItems, searchQuery]);
   const selectedItems = items.filter((item) => sameLocalDay(item.startTime, selectedDay));
-
   const views: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
 
-  const openCreate = (day = selectedDay) => {
+  const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
+
+  const draftEvent = (startTime: number): CalendarEvent => ({
+    id: '',
+    title: '',
+    startTime,
+    endTime: startTime + 60 * 60 * 1000,
+    allDay: false,
+    color: MODULE_COLOR,
+    createdAt: Date.now(),
+    source: 'local',
+  });
+
+  const openCreate = (day = selectedDay, hour = 9) => {
     const start = new Date(day);
-    start.setHours(9, 0, 0, 0);
-    const end = new Date(day);
-    end.setHours(10, 0, 0, 0);
-    setEditing({ id: '', title: '', startTime: start.getTime(), endTime: end.getTime(), allDay: false, color: MODULE_COLOR, createdAt: Date.now(), source: 'local' });
-    setIsFormOpen(true);
+    start.setHours(hour, 0, 0, 0);
+    setSelectedDay(startOfLocalDay(start.getTime()));
+    setQuickAdd(draftEvent(start.getTime()));
+    setEditing(null);
   };
 
   const saveEvent = (event: CalendarEvent) => {
-    if (event.id) updateCalendarEvent(event.id, event);
-    else addCalendarEvent(event as Omit<CalendarEvent, 'id' | 'createdAt'>);
-    setIsFormOpen(false);
+    const cleaned = { ...event, title: event.title.trim() };
+    if (!cleaned.title) return;
+    if (cleaned.id) updateCalendarEvent(cleaned.id, cleaned);
+    else addCalendarEvent(cleaned as Omit<CalendarEvent, 'id' | 'createdAt'>);
+    setQuickAdd(null);
     setEditing(null);
   };
 
@@ -92,9 +105,9 @@ export function CalendarView() {
           <button type="button" aria-label={t('calendar.previous', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
           <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
           <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
-          <p className="min-w-0 flex-1 truncate text-xs font-semibold text-neutral-500">{sameLocalDay(anchor, Date.now()) ? `${t('calendar.today', language)} · ` : ''}{toDateLabel(anchor, language)}</p>
-          <label className="sr-only" htmlFor="calendar-view-select">{t('calendar.viewLabel', language)}</label>
+          <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-sm font-bold text-neutral-900">{periodTitle}</p>
           <select
+            aria-label={t('calendar.viewLabel', language)}
             id="calendar-view-select"
             value={mode}
             onChange={(event) => setMode(event.target.value as CalendarViewMode)}
@@ -106,16 +119,14 @@ export function CalendarView() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
+        {quickAdd && <InlineEventEditor event={quickAdd} language={language} onCancel={() => setQuickAdd(null)} onSave={saveEvent} />}
+        {editing && <InlineEventEditor event={editing} language={language} onCancel={() => setEditing(null)} onSave={saveEvent} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} expandedDefault />}
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
-        {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} language={language} />}
-        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
-        {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
-        {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={setEditing} onCreate={openCreate} language={language} />}
+        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={setEditing} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={setEditing} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={setEditing} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
       </main>
-
-      {isFormOpen && editing && (
-        <EventForm event={editing} language={language} onCancel={() => setIsFormOpen(false)} onSave={saveEvent} onDelete={(id) => { deleteCalendarEvent(id); setIsFormOpen(false); }} />
-      )}
     </div>
   );
 }
@@ -150,7 +161,7 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
 const HOURS = Array.from({ length: 16 }, (_, index) => index + 7);
 const HOUR_HEIGHT = 56;
 
-function TimeGrid({ mode, start, items, onEdit, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void; language: string }) {
+function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: string }) {
   const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
@@ -187,7 +198,7 @@ function TimeGrid({ mode, start, items, onEdit, onCompleteTask, language }: { mo
         </div>
         {days.map((day) => (
           <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
-            {HOURS.map((hour) => <div key={hour} className="h-14 border-b border-neutral-100" />)}
+            {HOURS.map((hour) => <button key={hour} type="button" data-testid={`calendar-slot-${String(hour).padStart(2, '0')}`} onClick={() => onCreate(day, hour)} className="block h-14 w-full border-b border-neutral-100 text-left focus:outline-none focus:ring-2 focus:ring-violet-300" />)}
             {timedItems.filter((item) => sameLocalDay(item.startTime, day)).map((item) => <TimedEvent key={item.kind + item.id} item={item} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}
           </div>
         ))}
@@ -243,26 +254,54 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
   );
 }
 
-function EventForm({ event, language, onCancel, onSave, onDelete }: { event: CalendarEvent; language: string; onCancel: () => void; onSave: (event: CalendarEvent) => void; onDelete: (id: string) => void }) {
+function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: string) {
+  const monthYear = new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' });
+  if (mode === 'month') return monthYear.format(new Date(anchor));
+  if (mode === 'week') {
+    const start = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart));
+    const end = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd));
+    return `${start}–${end}`;
+  }
+  if (mode === 'day') return new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(anchor));
+  return `${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart))}–${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd))}`;
+}
+
+function InlineEventEditor({ event, language, onCancel, onSave, onDelete, expandedDefault = false }: { event: CalendarEvent; language: string; onCancel: () => void; onSave: (event: CalendarEvent) => void; onDelete?: (id: string) => void; expandedDefault?: boolean }) {
   const [draft, setDraft] = useState(event);
+  const [expanded, setExpanded] = useState(expandedDefault);
+  const save = () => onSave(draft);
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 flex items-end sm:items-center justify-center p-3">
-      <form onSubmit={(e) => { e.preventDefault(); onSave(draft); }} className="w-full max-w-md bg-white rounded-3xl p-4 shadow-xl space-y-3">
-        <input autoFocus value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder={t('calendar.eventTitle', language)} className="w-full px-3 py-2 rounded-xl border border-neutral-200 text-base font-semibold" required />
-        <input value={draft.location || ''} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder={t('calendar.location', language)} className="w-full px-3 py-2 rounded-xl border border-neutral-200" />
-        <textarea value={draft.description || ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder={t('calendar.description', language)} className="w-full px-3 py-2 rounded-xl border border-neutral-200 min-h-20" />
-        <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" checked={!!draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />{t('calendar.allDay', language)}</label>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs font-semibold text-neutral-500">{t('calendar.startTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.startTime)} onChange={(e) => setDraft({ ...draft, startTime: parseDateInputValue(e.target.value) || draft.startTime })} className="mt-1 w-full px-2 py-2 rounded-xl border border-neutral-200 text-neutral-900 font-normal" /></label>
-          <label className="text-xs font-semibold text-neutral-500">{t('calendar.endTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.endTime)} onChange={(e) => setDraft({ ...draft, endTime: parseDateInputValue(e.target.value) || draft.endTime })} className="mt-1 w-full px-2 py-2 rounded-xl border border-neutral-200 text-neutral-900 font-normal" /></label>
+    <form data-testid="calendar-quick-add" onSubmit={(e) => { e.preventDefault(); save(); }} className="mb-2 rounded-2xl border border-violet-200 bg-white p-2 shadow-sm space-y-2">
+      <div className="flex items-center gap-2">
+        <input
+          autoFocus
+          value={draft.title}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } }}
+          placeholder={t('calendar.eventTitle', language)}
+          className="min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-300"
+          required
+        />
+        <button type="submit" className="rounded-xl px-3 py-2 text-xs font-semibold text-white" style={{ backgroundColor: MODULE_COLOR }}>{t('common.save', language)}</button>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.startTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.startTime)} onChange={(e) => setDraft({ ...draft, startTime: parseDateInputValue(e.target.value) || draft.startTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
+        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.endTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.endTime)} onChange={(e) => setDraft({ ...draft, endTime: parseDateInputValue(e.target.value) || draft.endTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
+      </div>
+      <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold text-violet-700">{expanded ? t('calendar.fewerDetails', language) : t('calendar.moreDetails', language)}</button>
+      {expanded && (
+        <div className="space-y-2 border-t border-neutral-100 pt-2">
+          <input value={draft.location || ''} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder={t('calendar.location', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
+          <textarea value={draft.description || ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder={t('calendar.description', language)} className="min-h-16 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
+          <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" checked={!!draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />{t('calendar.allDay', language)}</label>
+          <input value={draft.rrule || ''} onChange={(e) => setDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 font-mono text-xs" />
         </div>
-        <input value={draft.rrule || ''} onChange={(e) => setDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full px-3 py-2 rounded-xl border border-neutral-200 font-mono text-xs" />
-        <div className="flex gap-2 pt-1">
-          {draft.id && <button type="button" onClick={() => onDelete(draft.id)} className="p-2 rounded-xl bg-red-50 text-red-600"><Trash2 className="w-4 h-4" /></button>}
-          <button type="button" onClick={onCancel} className="ml-auto px-4 py-2 rounded-xl bg-neutral-100 text-neutral-700 font-semibold">{t('common.cancel', language)}</button>
-          <button type="submit" className="px-4 py-2 rounded-xl text-white font-semibold" style={{ backgroundColor: MODULE_COLOR }}>{t('common.save', language)}</button>
-        </div>
-      </form>
-    </div>
+      )}
+      <div className="flex gap-2">
+        {draft.id && onDelete && <button type="button" aria-label={t('common.delete', language)} onClick={() => onDelete(draft.id)} className="rounded-xl bg-red-50 p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>}
+        <button type="button" onClick={onCancel} className="ml-auto rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-700">{t('common.cancel', language)}</button>
+      </div>
+    </form>
   );
 }

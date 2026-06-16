@@ -341,6 +341,8 @@ interface TranslationStructure {
     viewLabel: string;
     previous: string;
     next: string;
+    moreDetails: string;
+    fewerDetails: string;
   };
   inbox: {
     title: string;
@@ -729,6 +731,8 @@ export const translations: Record<Language, TranslationStructure> = {
       viewLabel: 'Calendar view',
       previous: 'Previous',
       next: 'Next',
+      moreDetails: 'More details',
+      fewerDetails: 'Fewer details',
     },
     inbox: {
       title: 'Inbox',
@@ -1115,6 +1119,8 @@ export const translations: Record<Language, TranslationStructure> = {
       viewLabel: 'Vue calendrier',
       previous: 'Précédent',
       next: 'Suivant',
+      moreDetails: 'Plus de détails',
+      fewerDetails: 'Moins de détails',
     },
     inbox: {
       title: 'Boîte de réception',
@@ -1501,6 +1507,8 @@ export const translations: Record<Language, TranslationStructure> = {
       viewLabel: 'Agendaweergave',
       previous: 'Vorige',
       next: 'Volgende',
+      moreDetails: 'Meer details',
+      fewerDetails: 'Minder details',
     },
     inbox: {
       title: 'Inbox',
@@ -1887,6 +1895,8 @@ export const translations: Record<Language, TranslationStructure> = {
       viewLabel: 'Kalenderansicht',
       previous: 'Zurück',
       next: 'Weiter',
+      moreDetails: 'Mehr Details',
+      fewerDetails: 'Weniger Details',
     },
     inbox: {
       title: 'Posteingang',
