@@ -61,7 +61,7 @@ export const AppHeader = ({
       if (onSearch) onSearch('');
       return;
     }
-    if (!trimmed && onAddEmpty) {
+    if (onAddEmpty) {
       onAddEmpty();
     }
   };

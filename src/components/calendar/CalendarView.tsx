@@ -89,23 +89,26 @@ export function CalendarView() {
       </div>
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
         <div className="flex items-center gap-2">
-          <button onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
-          <button onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
-          <button onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
-          <div className="ml-auto grid grid-cols-4 rounded-xl bg-neutral-100 p-1 text-xs font-semibold">
-            {views.map((view) => (
-              <button key={view} onClick={() => setMode(view)} className={`px-2 py-1.5 rounded-lg ${mode === view ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'}`}>
-                {t(`calendar.${view}`, language)}
-              </button>
-            ))}
-          </div>
+          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
+          <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
+          <p className="min-w-0 flex-1 truncate text-xs font-semibold text-neutral-500">{sameLocalDay(anchor, Date.now()) ? `${t('calendar.today', language)} · ` : ''}{toDateLabel(anchor, language)}</p>
+          <label className="sr-only" htmlFor="calendar-view-select">{t('calendar.viewLabel', language)}</label>
+          <select
+            id="calendar-view-select"
+            value={mode}
+            onChange={(event) => setMode(event.target.value as CalendarViewMode)}
+            className="rounded-xl border border-neutral-200 bg-white px-2 py-2 text-xs font-semibold text-neutral-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+          >
+            {views.map((view) => <option key={view} value={view}>{t(`calendar.${view}`, language)}</option>)}
+          </select>
         </div>
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
-        {mode === 'week' && <WeekGrid start={range.start} items={items} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} language={language} />}
-        {mode === 'day' && <AgendaList items={selectedItems} language={language} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} language={language} />}
+        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
         {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
         {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={(event) => { setEditing(event); setIsFormOpen(true); }} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
       </main>
@@ -131,10 +134,10 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
           const dayItems = items.filter((item) => sameLocalDay(item.startTime, day));
           const active = sameLocalDay(day, selectedDay);
           return (
-            <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[58px] border-r border-b border-neutral-100 p-1 text-left ${active ? 'bg-violet-50' : ''}`}>
-              <span className={`text-xs font-semibold ${new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
-              <div className="mt-1 flex flex-wrap gap-0.5">
-                {dayItems.slice(0, 4).map((item) => <span key={item.kind + item.id} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />)}
+            <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[clamp(64px,11vh,112px)] border-r border-b border-neutral-100 p-1 text-left ${active ? 'bg-violet-50' : ''}`}>
+              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'bg-violet-600 text-white' : new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
+              <div className="mt-1 space-y-0.5 overflow-hidden">
+                {dayItems.slice(0, 3).map((item) => <span key={item.kind + item.id} className="block h-1.5 rounded-full" style={{ backgroundColor: item.color }} />)}
               </div>
             </button>
           );
@@ -144,14 +147,84 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
   );
 }
 
-function WeekGrid({ start, items, onEdit, language }: { start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; language: string }) {
-  const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
-  return <div className="grid grid-cols-7 gap-1 min-h-full">{days.map((day) => <div key={day} className="bg-white rounded-xl border border-neutral-200 p-1"><div className="text-[11px] font-bold text-neutral-700 mb-1">{toDateLabel(day, language)}</div>{items.filter((item) => sameLocalDay(item.startTime, day)).map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} />)}</div>)}</div>;
+const HOURS = Array.from({ length: 16 }, (_, index) => index + 7);
+const HOUR_HEIGHT = 56;
+
+function TimeGrid({ mode, start, items, onEdit, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void; language: string }) {
+  const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
+  const allDayItems = items.filter((item) => item.allDay);
+  const timedItems = items.filter((item) => !item.allDay);
+  const now = Date.now();
+  const nowDate = new Date(now);
+  const nowTop = ((nowDate.getHours() - 7) * 60 + nowDate.getMinutes()) / 60 * HOUR_HEIGHT;
+  const showNowLine = days.some((day) => sameLocalDay(day, now)) && nowTop >= 0 && nowTop <= HOURS.length * HOUR_HEIGHT;
+
+  return (
+    <section data-testid={mode === 'week' ? 'calendar-week-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
+      <div className="sticky top-0 z-10 grid bg-white/95 backdrop-blur border-b border-neutral-100" style={{ gridTemplateColumns: `44px repeat(${days.length}, minmax(${mode === 'week' ? '48px' : '180px'}, 1fr))` }}>
+        <div className="border-r border-neutral-100" />
+        {days.map((day) => {
+          const today = sameLocalDay(day, now);
+          return (
+            <div key={day} className={`px-1 py-2 text-center text-[11px] font-bold ${today ? 'bg-violet-50 text-violet-700' : 'text-neutral-700'}`}>
+              <span className={`inline-flex items-center justify-center rounded-full px-2 py-1 ${today ? 'bg-violet-600 text-white' : ''}`}>
+                {new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric' }).format(new Date(day))}
+              </span>
+            </div>
+          );
+        })}
+        <div className="col-start-2 col-end-[-1] grid border-t border-neutral-100" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${mode === 'week' ? '48px' : '180px'}, 1fr))` }}>
+          {days.map((day) => (
+            <div key={day} className="min-h-7 border-r border-neutral-100 px-1 py-1">
+              {allDayItems.filter((item) => sameLocalDay(item.startTime, day)).slice(0, 2).map((item) => <CompactEvent key={item.kind + item.id} item={item} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="relative grid" style={{ gridTemplateColumns: `44px repeat(${days.length}, minmax(${mode === 'week' ? '48px' : '180px'}, 1fr))`, minHeight: HOURS.length * HOUR_HEIGHT }}>
+        <div className="border-r border-neutral-100 bg-neutral-50">
+          {HOURS.map((hour) => <div key={hour} className="h-14 pr-1 text-right text-[10px] font-medium text-neutral-400">{String(hour).padStart(2, '0')}:00</div>)}
+        </div>
+        {days.map((day) => (
+          <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
+            {HOURS.map((hour) => <div key={hour} className="h-14 border-b border-neutral-100" />)}
+            {timedItems.filter((item) => sameLocalDay(item.startTime, day)).map((item) => <TimedEvent key={item.kind + item.id} item={item} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}
+          </div>
+        ))}
+        {showNowLine && <div data-testid="calendar-now-line" className="pointer-events-none absolute left-11 right-0 z-20 h-0.5 bg-violet-600" style={{ top: nowTop }} />}
+      </div>
+    </section>
+  );
+}
+
+function CompactEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+  return (
+    <button type="button" onClick={() => item.kind === 'event' ? onEdit(item.source as CalendarEvent) : onCompleteTask?.(item.id)} className="mb-0.5 w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-white" style={{ backgroundColor: item.color }}>
+      {item.title}
+    </button>
+  );
+}
+
+function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+  const start = new Date(item.startTime);
+  const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
+  const startMinutes = Math.max(0, (start.getHours() - 7) * 60 + start.getMinutes());
+  const durationMinutes = Math.max(30, (end.getTime() - start.getTime()) / 60000);
+  return (
+    <button
+      type="button"
+      onClick={() => item.kind === 'event' ? onEdit(item.source as CalendarEvent) : onCompleteTask?.(item.id)}
+      className="absolute left-1 right-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[11px] font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 28, height: (durationMinutes / 60) * HOUR_HEIGHT, backgroundColor: item.color }}
+    >
+      <span className="block truncate">{item.title}</span>
+    </button>
+  );
 }
 
 function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { items: CalendarItem[]; language: string; compact?: boolean; onEdit: (event: CalendarEvent) => void; onCompleteTask: (id: string) => void }) {
-  if (!items.length) return <div className="mt-2 bg-white rounded-2xl border border-neutral-200 p-6 text-center text-sm text-neutral-500">{t('calendar.noEvents', language)}</div>;
-  return <div className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}</div>;
+  if (!items.length) return <div data-testid="calendar-agenda-list" className="mt-2 rounded-2xl border border-dashed border-neutral-200 bg-white/70 p-3 text-center text-xs text-neutral-400">{t('calendar.noEvents', language)}</div>;
+  return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}</div>;
 }
 
 function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: string; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {

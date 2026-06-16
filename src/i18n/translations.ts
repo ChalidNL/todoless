@@ -338,6 +338,9 @@ interface TranslationStructure {
     noEvents: string;
     datedTask: string;
     searchPlaceholder: string;
+    viewLabel: string;
+    previous: string;
+    next: string;
   };
   inbox: {
     title: string;
@@ -723,6 +726,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noEvents: 'No calendar items',
       datedTask: 'Task',
       searchPlaceholder: 'Search calendar...',
+      viewLabel: 'Calendar view',
+      previous: 'Previous',
+      next: 'Next',
     },
     inbox: {
       title: 'Inbox',
@@ -1106,6 +1112,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noEvents: 'Aucun élément d’agenda',
       datedTask: 'Tâche',
       searchPlaceholder: 'Rechercher dans l’agenda...',
+      viewLabel: 'Vue calendrier',
+      previous: 'Précédent',
+      next: 'Suivant',
     },
     inbox: {
       title: 'Boîte de réception',
@@ -1489,6 +1498,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noEvents: 'Geen agenda-items',
       datedTask: 'Taak',
       searchPlaceholder: 'Agenda zoeken...',
+      viewLabel: 'Agendaweergave',
+      previous: 'Vorige',
+      next: 'Volgende',
     },
     inbox: {
       title: 'Inbox',
@@ -1872,6 +1884,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noEvents: 'Keine Kalendereinträge',
       datedTask: 'Aufgabe',
       searchPlaceholder: 'Kalender suchen...',
+      viewLabel: 'Kalenderansicht',
+      previous: 'Zurück',
+      next: 'Weiter',
     },
     inbox: {
       title: 'Posteingang',
