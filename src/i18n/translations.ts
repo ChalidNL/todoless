@@ -326,7 +326,6 @@ interface TranslationStructure {
     startTime: string;
     endTime: string;
     description: string;
-    eventTitle: string;
     saveEvent: string;
     eventDescription: string;
     month: string;
@@ -717,7 +716,6 @@ export const translations: Record<Language, TranslationStructure> = {
       startTime: 'Start Time',
       endTime: 'End Time',
       description: 'Description',
-      eventTitle: 'Event Title',
       saveEvent: 'Save event',
       eventDescription: 'Event Description',
       month: 'Month',
@@ -1106,7 +1104,6 @@ export const translations: Record<Language, TranslationStructure> = {
       startTime: 'Heure de début',
       endTime: 'Heure de fin',
       description: 'Description',
-      eventTitle: 'Titre de l\'événement',
       saveEvent: 'Enregistrer l\'événement',
       eventDescription: 'Description de l\'événement',
       month: 'Mois',
@@ -1495,7 +1492,6 @@ export const translations: Record<Language, TranslationStructure> = {
       startTime: 'Starttijd',
       endTime: 'Eindtijd',
       description: 'Beschrijving',
-      eventTitle: 'Evenement titel',
       saveEvent: 'Evenement opslaan',
       eventDescription: 'Evenement beschrijving',
       month: 'Maand',
@@ -1884,7 +1880,6 @@ export const translations: Record<Language, TranslationStructure> = {
       startTime: 'Startzeit',
       endTime: 'Endzeit',
       description: 'Beschreibung',
-      eventTitle: 'Ereignistitel',
       saveEvent: 'Ereignis speichern',
       eventDescription: 'Ereignisbeschreibung',
       month: 'Monat',
