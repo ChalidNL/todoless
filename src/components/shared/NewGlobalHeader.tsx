@@ -4,9 +4,10 @@ import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AppMark } from './AppLogo';
 
-interface NewGlobalHeaderProps {
+interface AppHeaderProps {
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
+  onAddEmpty?: () => void;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -15,16 +16,31 @@ interface NewGlobalHeaderProps {
   showAdd?: boolean;
 }
 
-export const NewGlobalHeader = ({ 
-  onSearch, 
-  onAdd, 
+export function AddButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
+      title={t('common.addTooltip')}
+      aria-label={t('common.addTooltip')}
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+  );
+}
+
+export const AppHeader = ({
+  onSearch,
+  onAdd,
+  onAddEmpty,
   onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
   showFilters = true,
   showSearch = true,
   showAdd = true
-}: NewGlobalHeaderProps) => {
+}: AppHeaderProps) => {
   const [inputValue, setInputValue] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage } = useApp();
@@ -38,10 +54,16 @@ export const NewGlobalHeader = ({
   };
 
   const handleAdd = () => {
-    if (!inputValue.trim() || !onAdd) return;
-    onAdd(inputValue.trim());
-    setInputValue('');
-    if (onSearch) onSearch('');
+    const trimmed = inputValue.trim();
+    if (trimmed && onAdd) {
+      onAdd(trimmed);
+      setInputValue('');
+      if (onSearch) onSearch('');
+      return;
+    }
+    if (!trimmed && onAddEmpty) {
+      onAddEmpty();
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -179,18 +201,12 @@ export const NewGlobalHeader = ({
               </div>
             )}
 
-            {showAdd && (
-              <button
-                onClick={handleAdd}
-                className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
-                title={t('common.addTooltip')}
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
+            {showAdd && <AddButton onClick={handleAdd} />}
           </div>
         </div>
       </div>
     </>
   );
 };
+
+export const NewGlobalHeader = AppHeader;

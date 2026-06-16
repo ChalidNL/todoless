@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import { t } from '../../i18n/translations';
+import { AppHeader } from '../shared/NewGlobalHeader';
 import type { CalendarEvent } from '../../types';
 import {
   addDays,
@@ -34,6 +35,7 @@ export function CalendarView() {
   const [mode, setMode] = useState<CalendarViewMode>(() => getStoredCalendarView((user as any)?.id, getDefaultCalendarView()));
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     storeCalendarView((user as any)?.id, mode);
@@ -46,7 +48,15 @@ export function CalendarView() {
     return { start: startOfLocalDay(Date.now()), end: endOfLocalDay(addDays(Date.now(), 60)) };
   }, [anchor, mode]);
 
-  const items = useMemo(() => buildCalendarItems({ events: calendarEvents, tasks, rangeStart: range.start, rangeEnd: range.end }), [calendarEvents, tasks, range]);
+  const allItems = useMemo(() => buildCalendarItems({ events: calendarEvents, tasks, rangeStart: range.start, rangeEnd: range.end }), [calendarEvents, tasks, range]);
+  const items = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return allItems;
+    return allItems.filter((item) => {
+      const event = item.kind === 'event' ? (item.source as CalendarEvent) : null;
+      return item.title.toLowerCase().includes(query) || (event?.location || '').toLowerCase().includes(query);
+    });
+  }, [allItems, searchQuery]);
   const selectedItems = items.filter((item) => sameLocalDay(item.startTime, selectedDay));
 
   const views: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
@@ -69,22 +79,16 @@ export function CalendarView() {
 
   return (
     <div className="h-full min-h-0 flex flex-col bg-neutral-50">
+      <div className="sticky top-0 z-40">
+        <AppHeader
+          onSearch={setSearchQuery}
+          onAddEmpty={() => openCreate()}
+          searchPlaceholder={t('calendar.searchPlaceholder', language)}
+          type="calendar"
+        />
+      </div>
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-2xl flex items-center justify-center text-white" style={{ backgroundColor: MODULE_COLOR }}>
-              <CalendarDays className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-lg font-bold text-neutral-900 truncate">{t('calendar.title', language)}</h1>
-              <p className="text-xs text-neutral-500 truncate">{toDateLabel(anchor, language)}</p>
-            </div>
-          </div>
-          <button onClick={() => openCreate()} className="h-9 px-3 rounded-xl text-white text-sm font-semibold flex items-center gap-1" style={{ backgroundColor: MODULE_COLOR }}>
-            <Plus className="w-4 h-4" /> {t('common.add', language)}
-          </button>
-        </div>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <button onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
           <button onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
           <button onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
