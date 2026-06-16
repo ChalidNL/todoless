@@ -8,6 +8,12 @@ interface AppHeaderProps {
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
   onAddEmpty?: () => void;
+  onInputValueChange?: (value: string) => void;
+  onSubmitInput?: (value: string) => void;
+  onCancelInput?: () => void;
+  inputValue?: string;
+  submitAriaLabel?: string;
+  cancelAriaLabel?: string;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -34,6 +40,12 @@ export const AppHeader = ({
   onSearch,
   onAdd,
   onAddEmpty,
+  onInputValueChange,
+  onSubmitInput,
+  onCancelInput,
+  inputValue,
+  submitAriaLabel = t('common.save'),
+  cancelAriaLabel = t('common.cancel'),
   onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
@@ -41,24 +53,42 @@ export const AppHeader = ({
   showSearch = true,
   showAdd = true
 }: AppHeaderProps) => {
-  const [inputValue, setInputValue] = useState('');
+  const [internalInputValue, setInternalInputValue] = useState('');
+  const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage } = useApp();
 
   const typeFilters = filters.filter(f => f.type === type);
 
+  const setInputText = (value: string) => {
+    if (onInputValueChange) onInputValueChange(value);
+    else setInternalInputValue(value);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value);
+    setInputText(value);
     if (onSearch) onSearch(value);
   };
 
-  const handleAdd = () => {
-    const trimmed = inputValue.trim();
-    if (trimmed && onAdd) {
+  const submitInput = () => {
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
+    if (onSubmitInput) {
+      onSubmitInput(trimmed);
+      return;
+    }
+    if (onAdd) {
       onAdd(trimmed);
-      setInputValue('');
+      setInputText('');
       if (onSearch) onSearch('');
+    }
+  };
+
+  const handleAdd = () => {
+    const trimmed = inputText.trim();
+    if (trimmed && (onAdd || onSubmitInput)) {
+      submitInput();
       return;
     }
     if (onAddEmpty) {
@@ -67,8 +97,8 @@ export const AppHeader = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
-      handleAdd();
+    if (e.key === 'Enter' && inputText.trim()) {
+      submitInput();
     }
   };
 
@@ -192,13 +222,37 @@ export const AppHeader = ({
               <div className="flex-1 relative">
                 <input
                   type="text"
-                  value={inputValue}
+                  value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder={searchPlaceholder}
                   className="w-full px-3 py-2 bg-neutral-900 text-white border border-neutral-700 rounded-md focus:outline-none focus:border-neutral-500 text-sm"
                 />
               </div>
+            )}
+
+            {onSubmitInput && (
+              <button
+                type="button"
+                onClick={submitInput}
+                className="p-2 rounded-md flex-shrink-0 bg-white text-black hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white/60"
+                title={submitAriaLabel}
+                aria-label={submitAriaLabel}
+              >
+                <Save className="w-4 h-4" />
+              </button>
+            )}
+
+            {onCancelInput && (
+              <button
+                type="button"
+                onClick={onCancelInput}
+                className="p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-white/50"
+                title={cancelAriaLabel}
+                aria-label={cancelAriaLabel}
+              >
+                <X className="w-4 h-4" />
+              </button>
             )}
 
             {showAdd && <AddButton onClick={handleAdd} />}

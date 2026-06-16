@@ -56,17 +56,21 @@ describe('CalendarView UI', () => {
     expect(screen.queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
   });
 
-  it('opens inline quick add from the shared plus and saves with Enter', () => {
+  it('opens compact quick add using the header search field as title input and saves with an icon', () => {
     render(<CalendarView />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     expect(screen.queryByTestId('calendar-event-modal')).not.toBeInTheDocument();
-    expect(screen.getByTestId('calendar-quick-add')).toBeInTheDocument();
+    const quickAdd = screen.getByTestId('calendar-quick-add');
+    expect(quickAdd).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Event Title')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('New event…')).toBeInTheDocument();
+    expect(screen.getByTestId('calendar-time-row')).toHaveClass('grid-cols-2');
     expect((screen.getByLabelText(/Start/) as HTMLInputElement).value).toMatch(/T09:00$/);
 
-    fireEvent.change(screen.getByPlaceholderText('Event Title'), { target: { value: 'Plan sprint' } });
-    fireEvent.keyDown(screen.getByPlaceholderText('Event Title'), { key: 'Enter' });
+    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Plan sprint' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
     expect(addCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan sprint' }));
   });
 
@@ -91,6 +95,8 @@ describe('CalendarView UI', () => {
 
     expect(screen.getByTestId('calendar-quick-add')).toBeInTheDocument();
     expect((screen.getByLabelText(/Start/) as HTMLInputElement).value).toMatch(/T09:00$/);
+    expect(screen.queryByPlaceholderText('Event Title')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('New event…')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Location')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'More details' }));

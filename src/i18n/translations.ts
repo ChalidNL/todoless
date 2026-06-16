@@ -327,6 +327,7 @@ interface TranslationStructure {
     endTime: string;
     description: string;
     eventTitle: string;
+    saveEvent: string;
     eventDescription: string;
     month: string;
     week: string;
@@ -711,12 +712,13 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Calendar',
-      newEvent: 'New Event',
+      newEvent: 'New event…',
       allDay: 'All Day',
       startTime: 'Start Time',
       endTime: 'End Time',
       description: 'Description',
       eventTitle: 'Event Title',
+      saveEvent: 'Save event',
       eventDescription: 'Event Description',
       month: 'Month',
       week: 'Week',
@@ -1099,12 +1101,13 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Calendrier',
-      newEvent: 'Nouvel événement',
+      newEvent: 'Nouvel événement…',
       allDay: 'Toute la journée',
       startTime: 'Heure de début',
       endTime: 'Heure de fin',
       description: 'Description',
       eventTitle: 'Titre de l\'événement',
+      saveEvent: 'Enregistrer l\'événement',
       eventDescription: 'Description de l\'événement',
       month: 'Mois',
       week: 'Semaine',
@@ -1487,12 +1490,13 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Kalender',
-      newEvent: 'Nieuw evenement',
+      newEvent: 'Nieuw event…',
       allDay: 'Hele dag',
       startTime: 'Starttijd',
       endTime: 'Eindtijd',
       description: 'Beschrijving',
       eventTitle: 'Evenement titel',
+      saveEvent: 'Evenement opslaan',
       eventDescription: 'Evenement beschrijving',
       month: 'Maand',
       week: 'Week',
@@ -1875,12 +1879,13 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Kalender',
-      newEvent: 'Neues Ereignis',
+      newEvent: 'Neues Ereignis…',
       allDay: 'Ganztägig',
       startTime: 'Startzeit',
       endTime: 'Endzeit',
       description: 'Beschreibung',
       eventTitle: 'Ereignistitel',
+      saveEvent: 'Ereignis speichern',
       eventDescription: 'Ereignisbeschreibung',
       month: 'Monat',
       week: 'Woche',

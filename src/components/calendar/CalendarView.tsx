@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
-import { t } from '../../i18n/translations';
+import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 import type { CalendarEvent } from '../../types';
 import {
@@ -90,14 +90,30 @@ export function CalendarView() {
     setEditing(null);
   };
 
+  const activeDraft = quickAdd ?? editing;
+  const updateActiveDraft = (event: CalendarEvent) => {
+    if (quickAdd) setQuickAdd(event);
+    else setEditing(event);
+  };
+  const closeActiveDraft = () => {
+    if (quickAdd) setQuickAdd(null);
+    else setEditing(null);
+  };
+
   return (
     <div className="h-full min-h-0 flex flex-col bg-neutral-50">
       <div className="sticky top-0 z-40">
         <AppHeader
-          onSearch={setSearchQuery}
+          onSearch={activeDraft ? undefined : setSearchQuery}
           onAddEmpty={() => openCreate()}
-          searchPlaceholder={t('calendar.searchPlaceholder', language)}
+          onInputValueChange={activeDraft ? (title) => updateActiveDraft({ ...activeDraft, title }) : undefined}
+          onSubmitInput={activeDraft ? (title) => saveEvent({ ...activeDraft, title }) : undefined}
+          onCancelInput={activeDraft ? closeActiveDraft : undefined}
+          inputValue={activeDraft ? activeDraft.title : undefined}
+          submitAriaLabel={t('calendar.saveEvent', language)}
+          searchPlaceholder={activeDraft ? t('calendar.newEvent', language) : t('calendar.searchPlaceholder', language)}
           type="calendar"
+          showAdd={!activeDraft}
         />
       </div>
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
@@ -119,8 +135,8 @@ export function CalendarView() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
-        {quickAdd && <InlineEventEditor event={quickAdd} language={language} onCancel={() => setQuickAdd(null)} onSave={saveEvent} />}
-        {editing && <InlineEventEditor event={editing} language={language} onCancel={() => setEditing(null)} onSave={saveEvent} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} expandedDefault />}
+        {quickAdd && <InlineEventEditor event={quickAdd} language={language} onCancel={() => setQuickAdd(null)} onChange={setQuickAdd} />}
+        {editing && <InlineEventEditor event={editing} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} expandedDefault />}
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
         {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={setEditing} onCreate={openCreate} language={language} />}
         {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={setEditing} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
@@ -131,7 +147,7 @@ export function CalendarView() {
   );
 }
 
-function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }: { anchor: number; items: CalendarItem[]; selectedDay: number; onSelect: (day: number) => void; onCreate: (day: number) => void; language: string }) {
+function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }: { anchor: number; items: CalendarItem[]; selectedDay: number; onSelect: (day: number) => void; onCreate: (day: number) => void; language: Language }) {
   const start = startOfMonthGrid(anchor);
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
   const month = new Date(anchor).getMonth();
@@ -161,7 +177,7 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
 const HOURS = Array.from({ length: 16 }, (_, index) => index + 7);
 const HOUR_HEIGHT = 56;
 
-function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: string }) {
+function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: Language }) {
   const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
@@ -233,12 +249,12 @@ function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEd
   );
 }
 
-function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { items: CalendarItem[]; language: string; compact?: boolean; onEdit: (event: CalendarEvent) => void; onCompleteTask: (id: string) => void }) {
+function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { items: CalendarItem[]; language: Language; compact?: boolean; onEdit: (event: CalendarEvent) => void; onCompleteTask: (id: string) => void }) {
   if (!items.length) return <div data-testid="calendar-agenda-list" className="mt-2 rounded-2xl border border-dashed border-neutral-200 bg-white/70 p-3 text-center text-xs text-neutral-400">{t('calendar.noEvents', language)}</div>;
   return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}</div>;
 }
 
-function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: string; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
   return (
     <article onClick={() => item.kind === 'event' && onEdit(item.source as CalendarEvent)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
       <div className="flex items-start gap-2">
@@ -254,7 +270,7 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
   );
 }
 
-function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: string) {
+function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: Language) {
   const monthYear = new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' });
   if (mode === 'month') return monthYear.format(new Date(anchor));
   if (mode === 'week') {
@@ -266,36 +282,27 @@ function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: numb
   return `${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart))}–${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd))}`;
 }
 
-function InlineEventEditor({ event, language, onCancel, onSave, onDelete, expandedDefault = false }: { event: CalendarEvent; language: string; onCancel: () => void; onSave: (event: CalendarEvent) => void; onDelete?: (id: string) => void; expandedDefault?: boolean }) {
+function InlineEventEditor({ event, language, onCancel, onChange, onDelete, expandedDefault = false }: { event: CalendarEvent; language: Language; onCancel: () => void; onChange?: (event: CalendarEvent) => void; onDelete?: (id: string) => void; expandedDefault?: boolean }) {
   const [draft, setDraft] = useState(event);
   const [expanded, setExpanded] = useState(expandedDefault);
-  const save = () => onSave(draft);
+  const updateDraft = (next: CalendarEvent) => {
+    setDraft(next);
+    onChange?.(next);
+  };
 
   return (
-    <form data-testid="calendar-quick-add" onSubmit={(e) => { e.preventDefault(); save(); }} className="mb-2 rounded-2xl border border-violet-200 bg-white p-2 shadow-sm space-y-2">
-      <div className="flex items-center gap-2">
-        <input
-          autoFocus
-          value={draft.title}
-          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } }}
-          placeholder={t('calendar.eventTitle', language)}
-          className="min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-violet-300"
-          required
-        />
-        <button type="submit" className="rounded-xl px-3 py-2 text-xs font-semibold text-white" style={{ backgroundColor: MODULE_COLOR }}>{t('common.save', language)}</button>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.startTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.startTime)} onChange={(e) => setDraft({ ...draft, startTime: parseDateInputValue(e.target.value) || draft.startTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
-        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.endTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.endTime)} onChange={(e) => setDraft({ ...draft, endTime: parseDateInputValue(e.target.value) || draft.endTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
+    <form data-testid="calendar-quick-add" className="mb-2 rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm space-y-2">
+      <div data-testid="calendar-time-row" className="grid grid-cols-2 gap-2">
+        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.startTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.startTime)} onChange={(e) => updateDraft({ ...draft, startTime: parseDateInputValue(e.target.value) || draft.startTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
+        <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.endTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.endTime)} onChange={(e) => updateDraft({ ...draft, endTime: parseDateInputValue(e.target.value) || draft.endTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
       </div>
       <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold text-violet-700">{expanded ? t('calendar.fewerDetails', language) : t('calendar.moreDetails', language)}</button>
       {expanded && (
         <div className="space-y-2 border-t border-neutral-100 pt-2">
-          <input value={draft.location || ''} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder={t('calendar.location', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
-          <textarea value={draft.description || ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} placeholder={t('calendar.description', language)} className="min-h-16 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
-          <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" checked={!!draft.allDay} onChange={(e) => setDraft({ ...draft, allDay: e.target.checked })} />{t('calendar.allDay', language)}</label>
-          <input value={draft.rrule || ''} onChange={(e) => setDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 font-mono text-xs" />
+          <input value={draft.location || ''} onChange={(e) => updateDraft({ ...draft, location: e.target.value })} placeholder={t('calendar.location', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
+          <textarea value={draft.description || ''} onChange={(e) => updateDraft({ ...draft, description: e.target.value })} placeholder={t('calendar.description', language)} className="min-h-16 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
+          <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" checked={!!draft.allDay} onChange={(e) => updateDraft({ ...draft, allDay: e.target.checked })} />{t('calendar.allDay', language)}</label>
+          <input value={draft.rrule || ''} onChange={(e) => updateDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 font-mono text-xs" />
         </div>
       )}
       <div className="flex gap-2">
