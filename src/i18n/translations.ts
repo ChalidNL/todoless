@@ -343,6 +343,9 @@ interface TranslationStructure {
     next: string;
     moreDetails: string;
     fewerDetails: string;
+    titleRequired: string;
+    timeRequired: string;
+    saveFailed: string;
   };
   inbox: {
     title: string;
@@ -494,6 +497,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Tasks',
       newTask: 'New Task',
+      searchPlaceholder: 'Search tasks…',
       dueDate: 'Due Date',
       assignee: 'Assignee',
       labels: 'Labels',
@@ -522,7 +526,7 @@ export const translations: Record<Language, TranslationStructure> = {
       newItem: 'New Item',
       quantity: 'Quantity',
       category: 'Category',
-      searchPlaceholder: 'Search items...',
+      searchPlaceholder: 'Search items…',
       confirmDelete: 'Delete this item?',
       confirmRestock: 'Restock all completed groceries?',
       empty: 'Empty',
@@ -727,12 +731,15 @@ export const translations: Record<Language, TranslationStructure> = {
       repeat: 'Repeat',
       noEvents: 'No calendar items',
       datedTask: 'Task',
-      searchPlaceholder: 'Search calendar...',
+      searchPlaceholder: 'Search calendar…',
       viewLabel: 'Calendar view',
       previous: 'Previous',
       next: 'Next',
       moreDetails: 'More details',
       fewerDetails: 'Fewer details',
+      titleRequired: 'Title is required',
+      timeRequired: 'Start and end time are required',
+      saveFailed: 'Could not save event',
     },
     inbox: {
       title: 'Inbox',
@@ -744,7 +751,7 @@ export const translations: Record<Language, TranslationStructure> = {
       deselectAll: 'Deselect All',
       cancelSelection: 'Cancel Selection',
       pushSelected: 'Push Selected',
-      searchPlaceholder: 'Search inbox...',
+      searchPlaceholder: 'Search inbox…',
       noTasksFound: 'No tasks found',
       noResults: 'No results',
       markAllDone: 'Mark All Done',
@@ -882,6 +889,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Tâches',
       newTask: 'Nouvelle tâche',
+      searchPlaceholder: 'Rechercher des tâches…',
       dueDate: "Date d'échéance",
       assignee: 'Assigné à',
       labels: 'Étiquettes',
@@ -1121,6 +1129,9 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Suivant',
       moreDetails: 'Plus de détails',
       fewerDetails: 'Moins de détails',
+      titleRequired: 'Le titre est requis',
+      timeRequired: 'Le début et la fin sont requis',
+      saveFailed: 'Impossible d’enregistrer l’événement',
     },
     inbox: {
       title: 'Boîte de réception',
@@ -1270,6 +1281,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Taken',
       newTask: 'Nieuwe taak',
+      searchPlaceholder: 'Taken zoeken…',
       dueDate: 'Verloopdatum',
       assignee: 'Toegewezen aan',
       labels: 'Labels',
@@ -1509,6 +1521,9 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Volgende',
       moreDetails: 'Meer details',
       fewerDetails: 'Minder details',
+      titleRequired: 'Titel is verplicht',
+      timeRequired: 'Start- en eindtijd zijn verplicht',
+      saveFailed: 'Evenement opslaan mislukt',
     },
     inbox: {
       title: 'Inbox',
@@ -1658,6 +1673,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Aufgaben',
       newTask: 'Neue Aufgabe',
+      searchPlaceholder: 'Aufgaben suchen…',
       dueDate: 'Fälligkeitsdatum',
       assignee: 'Zugewiesen an',
       labels: 'Etiketten',
@@ -1897,6 +1913,9 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Weiter',
       moreDetails: 'Mehr Details',
       fewerDetails: 'Weniger Details',
+      titleRequired: 'Titel ist erforderlich',
+      timeRequired: 'Start- und Endzeit sind erforderlich',
+      saveFailed: 'Ereignis konnte nicht gespeichert werden',
     },
     inbox: {
       title: 'Posteingang',

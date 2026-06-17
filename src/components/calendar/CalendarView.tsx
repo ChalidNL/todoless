@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, MapPin, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, RotateCcw, Save, Trash2, User, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
+import { SharedSelect } from '../shared/SharedSelect';
+import { AttributeChip } from '../shared/AttributeChip';
 import type { CalendarEvent } from '../../types';
 import {
   addDays,
@@ -36,6 +38,11 @@ export function CalendarView() {
   const [quickAdd, setQuickAdd] = useState<CalendarEvent | null>(null);
   const [editing, setEditing] = useState<CalendarEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [draftTitle, setDraftTitle] = useState('');
+  const draftTitleRef = useRef('');
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
+  const [formError, setFormError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     storeCalendarView((user as any)?.id, mode);
@@ -48,7 +55,11 @@ export function CalendarView() {
     return { start: startOfLocalDay(Date.now()), end: endOfLocalDay(addDays(Date.now(), 60)) };
   }, [anchor, mode]);
 
-  const allItems = useMemo(() => buildCalendarItems({ events: calendarEvents, tasks, rangeStart: range.start, rangeEnd: range.end }), [calendarEvents, tasks, range]);
+  const combinedEvents = useMemo(() => {
+    const remoteIds = new Set(calendarEvents.map((event) => event.id));
+    return [...calendarEvents, ...localEvents.filter((event) => !remoteIds.has(event.id))];
+  }, [calendarEvents, localEvents]);
+  const allItems = useMemo(() => buildCalendarItems({ events: combinedEvents, tasks, rangeStart: range.start, rangeEnd: range.end }), [combinedEvents, tasks, range]);
   const items = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return allItems;
@@ -58,6 +69,8 @@ export function CalendarView() {
     });
   }, [allItems, searchQuery]);
   const selectedItems = items.filter((item) => sameLocalDay(item.startTime, selectedDay));
+  const visibleItemIds = new Set(items.map((item) => item.id));
+  const pendingVisibleEvents = localEvents.filter((event) => !visibleItemIds.has(event.id));
   const views: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
 
   const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
@@ -73,25 +86,64 @@ export function CalendarView() {
     source: 'local',
   });
 
-  const openCreate = (day = selectedDay, hour = 9) => {
+  const openCreate = (day = selectedDay, hour = 9, title = searchQuery) => {
     const start = new Date(day);
     start.setHours(hour, 0, 0, 0);
     setSelectedDay(startOfLocalDay(start.getTime()));
-    setQuickAdd(draftEvent(start.getTime()));
+    const nextTitle = title.trim();
+    draftTitleRef.current = nextTitle;
+    setDraftTitle(nextTitle);
+    setQuickAdd({ ...draftEvent(start.getTime()), title: nextTitle });
+    setFormError('');
     setEditing(null);
   };
 
-  const saveEvent = (event: CalendarEvent) => {
+  const saveEvent = async (event: CalendarEvent) => {
     const cleaned = { ...event, title: event.title.trim() };
-    if (!cleaned.title) return;
-    if (cleaned.id) updateCalendarEvent(cleaned.id, cleaned);
-    else addCalendarEvent(cleaned as Omit<CalendarEvent, 'id' | 'createdAt'>);
-    setQuickAdd(null);
-    setEditing(null);
+    if (!cleaned.title) {
+      setFormError(t('calendar.titleRequired', language));
+      return;
+    }
+    if (!cleaned.startTime || !cleaned.endTime || cleaned.endTime <= cleaned.startTime) {
+      setFormError(t('calendar.timeRequired', language));
+      return;
+    }
+    setIsSaving(true);
+    setFormError('');
+    try {
+      if (cleaned.id) {
+        setLocalEvents((prev) => prev.map((existing) => existing.id === cleaned.id ? cleaned : existing));
+        setQuickAdd(null);
+        setEditing(null);
+        setSearchQuery('');
+        await Promise.resolve(updateCalendarEvent(cleaned.id, cleaned));
+      } else {
+        const optimistic: CalendarEvent = { ...cleaned, id: `local-${Date.now()}`, createdAt: cleaned.createdAt || Date.now() };
+        setLocalEvents((prev) => [...prev, optimistic]);
+        setQuickAdd(null);
+        setEditing(null);
+        setSearchQuery('');
+        void Promise.resolve(addCalendarEvent(cleaned as Omit<CalendarEvent, 'id' | 'createdAt'>))
+          .catch(() => setFormError(t('calendar.saveFailed', language)));
+      }
+    } catch {
+      setFormError(t('calendar.saveFailed', language));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEdit = (event: CalendarEvent) => {
+    draftTitleRef.current = event.title;
+    setDraftTitle(event.title);
+    setEditing(event);
+    setFormError('');
   };
 
   const activeDraft = quickAdd ?? editing;
   const updateActiveDraft = (event: CalendarEvent) => {
+    draftTitleRef.current = event.title;
+    setDraftTitle(event.title);
     if (quickAdd) setQuickAdd(event);
     else setEditing(event);
   };
@@ -105,15 +157,16 @@ export function CalendarView() {
       <div className="sticky top-0 z-40">
         <AppHeader
           onSearch={activeDraft ? undefined : setSearchQuery}
-          onAddEmpty={() => openCreate()}
+          onAddEmpty={(value) => openCreate(selectedDay, 9, value || searchQuery)}
           onInputValueChange={activeDraft ? (title) => updateActiveDraft({ ...activeDraft, title }) : undefined}
-          onSubmitInput={activeDraft ? (title) => saveEvent({ ...activeDraft, title }) : undefined}
+          onSubmitInput={activeDraft ? (title) => { void saveEvent({ ...activeDraft, title }); } : undefined}
           onCancelInput={activeDraft ? closeActiveDraft : undefined}
-          inputValue={activeDraft ? activeDraft.title : undefined}
+          inputValue={activeDraft ? draftTitle : undefined}
           submitAriaLabel={t('calendar.saveEvent', language)}
           searchPlaceholder={activeDraft ? t('calendar.newEvent', language) : t('calendar.searchPlaceholder', language)}
           type="calendar"
           showAdd={!activeDraft}
+          showInputActions={false}
         />
       </div>
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
@@ -122,26 +175,30 @@ export function CalendarView() {
           <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
           <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
           <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-sm font-bold text-neutral-900">{periodTitle}</p>
-          <select
-            aria-label={t('calendar.viewLabel', language)}
+          <SharedSelect
             id="calendar-view-select"
+            ariaLabel={t('calendar.viewLabel', language)}
             value={mode}
-            onChange={(event) => setMode(event.target.value as CalendarViewMode)}
-            className="rounded-xl border border-neutral-200 bg-white px-2 py-2 text-xs font-semibold text-neutral-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-          >
-            {views.map((view) => <option key={view} value={view}>{t(`calendar.${view}`, language)}</option>)}
-          </select>
+            onChange={(value) => setMode(value as CalendarViewMode)}
+            options={views.map((view) => ({ value: view, label: t(`calendar.${view}`, language) }))}
+            className="py-2 font-semibold text-neutral-800 shadow-sm focus:ring-violet-300"
+          />
         </div>
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
-        {quickAdd && <InlineEventEditor event={quickAdd} language={language} onCancel={() => setQuickAdd(null)} onChange={setQuickAdd} />}
-        {editing && <InlineEventEditor event={editing} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} expandedDefault />}
+        {!quickAdd && pendingVisibleEvents.map((event) => (
+          <article key={`pending-${event.id}`} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm">
+            <h3 className="text-sm font-semibold text-neutral-900 truncate">{event.title}</h3>
+          </article>
+        ))}
+        {quickAdd && <InlineEventEditor event={{ ...quickAdd, title: draftTitle }} language={language} onCancel={() => setQuickAdd(null)} onChange={setQuickAdd} error={formError} onSave={() => { void saveEvent({ ...quickAdd, title: draftTitleRef.current }); }} isSaving={isSaving} />}
+        {editing && <InlineEventEditor event={{ ...editing, title: draftTitle }} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onSave={() => { void saveEvent({ ...editing, title: draftTitleRef.current }); }} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} error={formError} isSaving={isSaving} expandedDefault />}
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
-        {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={setEditing} onCreate={openCreate} language={language} />}
-        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={setEditing} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
-        {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={setEditing} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
-        {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={setEditing} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={openEdit} onCreate={openCreate} language={language} />}
+        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={openEdit} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={openEdit} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={openEdit} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
       </main>
     </div>
   );
@@ -162,7 +219,7 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
           const active = sameLocalDay(day, selectedDay);
           return (
             <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[clamp(64px,11vh,112px)] border-r border-b border-neutral-100 p-1 text-left ${active ? 'bg-violet-50' : ''}`}>
-              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'bg-violet-600 text-white' : new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
+              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border-black bg-white text-black' : new Date(day).getMonth() === month ? 'border-transparent text-neutral-800' : 'border-transparent text-neutral-300'}`}>{new Date(day).getDate()}</span>
               <div className="mt-1 space-y-0.5 overflow-hidden">
                 {dayItems.slice(0, 3).map((item) => <span key={item.kind + item.id} className="block h-1.5 rounded-full" style={{ backgroundColor: item.color }} />)}
               </div>
@@ -183,8 +240,8 @@ function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, langua
   const timedItems = items.filter((item) => !item.allDay);
   const now = Date.now();
   const nowDate = new Date(now);
-  const nowTop = ((nowDate.getHours() - 7) * 60 + nowDate.getMinutes()) / 60 * HOUR_HEIGHT;
-  const showNowLine = days.some((day) => sameLocalDay(day, now)) && nowTop >= 0 && nowTop <= HOURS.length * HOUR_HEIGHT;
+  const showNowLine = days.some((day) => sameLocalDay(day, now));
+  const nowTop = Math.min(Math.max(((new Date(now).getHours() - HOURS[0]) + new Date(now).getMinutes() / 60) * HOUR_HEIGHT, 0), HOURS.length * HOUR_HEIGHT);
 
   return (
     <section data-testid={mode === 'week' ? 'calendar-week-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
@@ -194,7 +251,7 @@ function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, langua
           const today = sameLocalDay(day, now);
           return (
             <div key={day} className={`px-1 py-2 text-center text-[11px] font-bold ${today ? 'bg-violet-50 text-violet-700' : 'text-neutral-700'}`}>
-              <span className={`inline-flex items-center justify-center rounded-full px-2 py-1 ${today ? 'bg-violet-600 text-white' : ''}`}>
+              <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 ${today ? 'border-black bg-white text-black' : 'border-transparent'}`}>
                 {new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric' }).format(new Date(day))}
               </span>
             </div>
@@ -255,15 +312,20 @@ function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { item
 }
 
 function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+  const event = item.kind === 'event' ? (item.source as CalendarEvent) : null;
   return (
-    <article onClick={() => item.kind === 'event' && onEdit(item.source as CalendarEvent)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
+    <article onClick={() => event && onEdit(event)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
       <div className="flex items-start gap-2">
         {item.kind === 'task' ? <input type="checkbox" checked={item.completed} onChange={() => onCompleteTask?.(item.id)} className="mt-1" /> : <span className="mt-1 h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1 text-[11px] text-neutral-500"><Clock className="w-3 h-3" />{item.allDay ? t('calendar.allDay', language) : toTimeLabel(item.startTime, language)}</div>
+        <div className="min-w-0 flex-1 space-y-1">
           <h3 className={`text-sm font-semibold text-neutral-900 truncate ${item.completed ? 'line-through text-neutral-400' : ''}`}>{item.title}</h3>
-          {item.kind === 'task' && <p className="text-[11px] text-sky-600">{t('calendar.datedTask', language)}</p>}
-          {item.kind === 'event' && (item.source as CalendarEvent).location && <p className="text-[11px] text-neutral-500 flex items-center gap-1"><MapPin className="w-3 h-3" />{(item.source as CalendarEvent).location}</p>}
+          <div className="flex flex-wrap gap-1">
+            <span data-testid="calendar-date-chip"><AttributeChip compact={false} icon={<CalendarDays className="w-3.5 h-3.5" />} label={`${toDateLabel(item.startTime, language)}${item.allDay ? '' : ` ${toTimeLabel(item.startTime, language)}`}`} color="#0ea5e9" /></span>
+            {event?.createdBy && <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={event.createdBy} color="#64748b" />}
+            {event?.location && <AttributeChip icon={<MapPin className="w-3.5 h-3.5" />} label={event.location} color="#16a34a" />}
+            {event?.rrule && <AttributeChip icon={<RotateCcw className="w-3.5 h-3.5" />} label={t('calendar.repeat', language)} color="#f97316" />}
+            {item.kind === 'task' && <AttributeChip icon={<Clock className="w-3.5 h-3.5" />} label={t('calendar.datedTask', language)} color="#0ea5e9" />}
+          </div>
         </div>
       </div>
     </article>
@@ -271,8 +333,7 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
 }
 
 function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: Language) {
-  const monthYear = new Intl.DateTimeFormat(language, { month: 'long', year: 'numeric' });
-  if (mode === 'month') return monthYear.format(new Date(anchor));
+  if (mode === 'month') return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(anchor));
   if (mode === 'week') {
     const start = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart));
     const end = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd));
@@ -282,7 +343,7 @@ function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: numb
   return `${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart))}–${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd))}`;
 }
 
-function InlineEventEditor({ event, language, onCancel, onChange, onDelete, expandedDefault = false }: { event: CalendarEvent; language: Language; onCancel: () => void; onChange?: (event: CalendarEvent) => void; onDelete?: (id: string) => void; expandedDefault?: boolean }) {
+function InlineEventEditor({ event, language, onCancel, onChange, onSave, onDelete, error, isSaving, expandedDefault = false }: { event: CalendarEvent; language: Language; onCancel: () => void; onChange?: (event: CalendarEvent) => void; onSave: () => void; onDelete?: (id: string) => void; error?: string; isSaving?: boolean; expandedDefault?: boolean }) {
   const [draft, setDraft] = useState(event);
   const [expanded, setExpanded] = useState(expandedDefault);
   const updateDraft = (next: CalendarEvent) => {
@@ -292,6 +353,7 @@ function InlineEventEditor({ event, language, onCancel, onChange, onDelete, expa
 
   return (
     <form data-testid="calendar-quick-add" className="mb-2 rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm space-y-2">
+      {error && <p role="alert" className="rounded-lg bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">{error}</p>}
       <div data-testid="calendar-time-row" className="grid grid-cols-2 gap-2">
         <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.startTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.startTime)} onChange={(e) => updateDraft({ ...draft, startTime: parseDateInputValue(e.target.value) || draft.startTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
         <label className="text-[11px] font-semibold text-neutral-500">{t('calendar.endTime', language)}<input type="datetime-local" value={formatDateInputValue(draft.endTime)} onChange={(e) => updateDraft({ ...draft, endTime: parseDateInputValue(e.target.value) || draft.endTime })} className="mt-1 w-full rounded-xl border border-neutral-200 px-2 py-1.5 text-xs font-normal text-neutral-900" /></label>
@@ -305,9 +367,10 @@ function InlineEventEditor({ event, language, onCancel, onChange, onDelete, expa
           <input value={draft.rrule || ''} onChange={(e) => updateDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 font-mono text-xs" />
         </div>
       )}
-      <div className="flex gap-2">
-        {draft.id && onDelete && <button type="button" aria-label={t('common.delete', language)} onClick={() => onDelete(draft.id)} className="rounded-xl bg-red-50 p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>}
-        <button type="button" onClick={onCancel} className="ml-auto rounded-xl bg-neutral-100 px-3 py-2 text-xs font-semibold text-neutral-700">{t('common.cancel', language)}</button>
+      <div className="flex items-center justify-end gap-2">
+        {draft.id && onDelete && <button type="button" aria-label={t('common.delete', language)} onClick={() => onDelete(draft.id)} className="mr-auto rounded-xl bg-red-50 p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>}
+        <button type="button" onClick={onSave} disabled={isSaving} aria-label={t('calendar.saveEvent', language)} className="rounded-xl bg-neutral-900 p-2 text-white hover:bg-neutral-700 disabled:opacity-50"><Save className="h-4 w-4" /></button>
+        <button type="button" aria-label={t('common.cancel', language)} onClick={onCancel} className="rounded-xl bg-neutral-100 p-2 text-neutral-700"><X className="h-4 w-4" /></button>
       </div>
     </form>
   );

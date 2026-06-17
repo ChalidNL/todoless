@@ -49,10 +49,12 @@ describe('CalendarView UI', () => {
     expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
     expect(screen.getAllByText('Today')).toHaveLength(1);
     expect(screen.queryByText('Calendar view')).not.toBeInTheDocument();
-    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent(/Jun|June|2026/);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent(/(\d{1,2}.*(Jun|June).*2026)|(June \d{1,2}, 2026)/);
 
     const switcher = screen.getByRole('combobox', { name: 'Calendar view' });
-    expect(switcher).toHaveValue('agenda');
+    expect(switcher).toHaveAttribute('data-component', 'shared-select');
+    expect(switcher).toHaveValue('month');
     expect(screen.queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
   });
 
@@ -72,6 +74,31 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Plan sprint' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
     expect(addCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan sprint' }));
+  });
+
+  it('preserves typed header text when plus starts quick add and validates save', async () => {
+    render(<CalendarView />);
+
+    fireEvent.change(screen.getByPlaceholderText('Search calendar…'), { target: { value: 'test' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByPlaceholderText('New event…')).toHaveValue('test');
+    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+    expect(addCalendarEvent).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Title is required');
+  });
+
+  it('creates an event, closes quick add, and shows it immediately without refetch', async () => {
+    addCalendarEvent.mockResolvedValueOnce({ id: 'new-1', title: 'Visible now', startTime: Date.now(), endTime: Date.now() + 3600000, createdAt: Date.now(), source: 'local' });
+    render(<CalendarView />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Visible now' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
+
+    expect(await screen.findByText('Visible now')).toBeInTheDocument();
+    expect(screen.queryByTestId('calendar-quick-add')).not.toBeInTheDocument();
   });
 
   it('renders week and day as screen-filling time grids with a current-time line', () => {
@@ -118,11 +145,12 @@ describe('CalendarView UI', () => {
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
     const todayCell = screen.getByTestId('calendar-today');
-    expect(todayCell).toHaveClass('bg-violet-600');
+    expect(todayCell).toHaveClass('border-black');
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'agenda' } });
     const agenda = screen.getByTestId('calendar-agenda-list');
     expect(within(agenda).getByText('Dentist')).toBeInTheDocument();
+    expect(within(agenda).getByTestId('calendar-date-chip')).toBeInTheDocument();
     expect(within(agenda).queryByText('No calendar items')).not.toBeInTheDocument();
   });
 });

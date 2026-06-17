@@ -152,7 +152,7 @@ interface AppContextType {
   createLabel: (label: Omit<Label, 'id'>) => void;
   addShop: (shop: Omit<Shop, 'id'>) => void;
   createShop: (shop: Omit<Shop, 'id'>) => void;
-  addCalendarEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => void;
+  addCalendarEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => Promise<CalendarEvent>;
   addFilter: (filter: Omit<Filter, 'id'>) => void;
   addSprint: (sprint: Omit<Sprint, 'id'>) => void;
   addUser: (user: User) => void;
@@ -542,11 +542,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const createShop = addShop;
 
-  const addCalendarEvent = (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
-    void (async () => {
-      await api.createCalendarEvent(event);
-      await refreshCalendarEvents();
-    })();
+  const addCalendarEvent = async (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
+    const created = await api.createCalendarEvent(event);
+    setCalendarEvents((prev) => [...prev.filter((existing) => existing.id !== created.id), created]);
+    void refreshCalendarEvents();
+    return created;
   };
 
   const addFilter = (filter: Omit<Filter, 'id'>) => {

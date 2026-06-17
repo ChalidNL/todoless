@@ -7,13 +7,14 @@ import { AppMark } from './AppLogo';
 interface AppHeaderProps {
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
-  onAddEmpty?: () => void;
+  onAddEmpty?: (value?: string) => void;
   onInputValueChange?: (value: string) => void;
   onSubmitInput?: (value: string) => void;
   onCancelInput?: () => void;
   inputValue?: string;
   submitAriaLabel?: string;
   cancelAriaLabel?: string;
+  showInputActions?: boolean;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -46,6 +47,7 @@ export const AppHeader = ({
   inputValue,
   submitAriaLabel = t('common.save'),
   cancelAriaLabel = t('common.cancel'),
+  showInputActions = true,
   onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
@@ -92,7 +94,7 @@ export const AppHeader = ({
       return;
     }
     if (onAddEmpty) {
-      onAddEmpty();
+      onAddEmpty(trimmed || undefined);
     }
   };
 
@@ -231,7 +233,7 @@ export const AppHeader = ({
               </div>
             )}
 
-            {onSubmitInput && (
+            {showInputActions && onSubmitInput && (
               <button
                 type="button"
                 onClick={submitInput}
@@ -243,7 +245,7 @@ export const AppHeader = ({
               </button>
             )}
 
-            {onCancelInput && (
+            {showInputActions && onCancelInput && (
               <button
                 type="button"
                 onClick={onCancelInput}
