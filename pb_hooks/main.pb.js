@@ -18,6 +18,8 @@
   if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
   if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
+  if (rec.get('all_day') === undefined || rec.get('all_day') === null) rec.set('all_day', false);
+  if (!rec.get('start_time') && rec.get('due_date')) { rec.set('start_time', rec.get('due_date')); }
 
   // Request info - call ONCE, store reference
   var info = null;

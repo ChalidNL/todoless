@@ -36,6 +36,9 @@ const normalizeTask = (r: any): Task => ({
   blocked: !!r.blocked, blockedComment: r.blocked_comment,
   priority: r.priority, horizon: r.horizon, assignedTo: r.assigned_to,
   dueDate: r.due_date ? new Date(r.due_date).getTime() : undefined,
+  startTime: r.start_time ? new Date(r.start_time).getTime() : undefined,
+  endTime: r.end_time ? new Date(r.end_time).getTime() : undefined,
+  allDay: !!r.all_day,
   repeatInterval: r.repeat_interval, completedAt: r.completed_at ? new Date(r.completed_at).getTime() : undefined,
   archived: !!r.archived, archivedAt: r.archived_at ? new Date(r.archived_at).getTime() : undefined,
   deleteAfter: r.delete_after ? new Date(r.delete_after).getTime() : undefined,
@@ -173,6 +176,9 @@ export const api = {
         title: data.title, status: data.status || 'todo', blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
         assigned_to: data.assignedTo, due_date: toISO(data.dueDate),
+        start_time: toISO(data.startTime),
+        end_time: toISO(data.endTime),
+        all_day: data.allDay,
         repeat_interval: data.repeatInterval, labels: data.labels || [],
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
@@ -184,6 +190,9 @@ export const api = {
         title: data.title, status: data.status, blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
         assigned_to: data.assignedTo, due_date: toISO(data.dueDate),
+        start_time: toISO(data.startTime),
+        end_time: toISO(data.endTime),
+        all_day: data.allDay,
         repeat_interval: data.repeatInterval, completed_at: toISO(data.completedAt),
         labels: data.labels, is_private: data.isPrivate, archived: data.archived,
         archived_at: toISO(data.archivedAt),
@@ -192,6 +201,16 @@ export const api = {
       return normalizeTask(record);
     },
     async delete(id: string) { await pb.collection('tasks').delete(id); },
+    async getCalendarTasks(start: number, end: number): Promise<Task[]> {
+      const userId = requireAuth().id;
+      const startISO = new Date(start).toISOString();
+      const endISO = new Date(end).toISOString();
+      const list = await pb.collection('tasks').getFullList({
+        filter: `user = "${userId}" && due_date != "" && due_date >= "${startISO}" && due_date <= "${endISO}"`,
+        sort: 'due_date',
+      });
+      return list.map(normalizeTask);
+    },
   },
 
   items: {
@@ -317,12 +336,15 @@ export const api = {
     async delete(id: string) { await pb.collection('sprints').delete(id); },
   },
 
+  /** @deprecated Use api.tasks methods with calendar fields instead */
   calendar: {
+    /** @deprecated Use api.tasks.getCalendarTasks() instead */
     async list(): Promise<CalendarEvent[]> {
       const userId = requireAuth().id;
       const list = await pb.collection('calendar_events').getFullList({ filter: `user = "${userId}"`, sort: 'start_time' });
       return list.map(normalizeCalendarEvent);
     },
+    /** @deprecated Use api.tasks.create() with startTime/endTime/allDay instead */
     async create(data: Partial<CalendarEvent>): Promise<CalendarEvent> {
       const record = await pb.collection('calendar_events').create({
         title: data.title, description: data.description,
@@ -331,6 +353,7 @@ export const api = {
       } as any);
       return normalizeCalendarEvent(record);
     },
+    /** @deprecated Use api.tasks.update() with startTime/endTime/allDay instead */
     async update(id: string, data: Partial<CalendarEvent>): Promise<CalendarEvent> {
       const record = await pb.collection('calendar_events').update(id, {
         title: data.title, description: data.description,
@@ -338,6 +361,7 @@ export const api = {
       } as any);
       return normalizeCalendarEvent(record);
     },
+    /** @deprecated Use api.tasks.delete() instead */
     async delete(id: string) { await pb.collection('calendar_events').delete(id); },
   },
 

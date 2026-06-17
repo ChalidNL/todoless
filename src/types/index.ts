@@ -107,6 +107,9 @@ export interface Task {
   sprintId?: string;
   projectId?: string;
   dueDate?: number;
+  startTime?: number;
+  endTime?: number;
+  allDay?: boolean;
   showInCalendar?: boolean;
   repeatInterval?: RepeatInterval;
   completedAt?: number;

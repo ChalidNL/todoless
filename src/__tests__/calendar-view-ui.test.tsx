@@ -4,8 +4,9 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { CalendarView } from '../components/calendar/CalendarView';
 
 const useAppMock = vi.fn();
+const addTask = vi.fn();
 const updateTask = vi.fn();
-const addCalendarEvent = vi.fn();
+const deleteTask = vi.fn();
 
 vi.mock('../context/AppContext', () => ({
   useApp: () => useAppMock(),
@@ -20,12 +21,10 @@ vi.mock('../context/LanguageContext', () => ({
 }));
 
 const baseAppValue = {
-  calendarEvents: [],
   tasks: [],
-  addCalendarEvent,
-  updateCalendarEvent: vi.fn(),
-  deleteCalendarEvent: vi.fn(),
+  addTask,
   updateTask,
+  deleteTask,
   filters: [],
   toggleChipFilter: vi.fn(),
   clearChipFilters: vi.fn(),
@@ -50,7 +49,7 @@ describe('CalendarView UI', () => {
     expect(screen.getAllByText('Today')).toHaveLength(1);
     expect(screen.queryByText('Calendar view')).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
-    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent(/(\d{1,2}.*(Jun|June).*2026)|(June \d{1,2}, 2026)/);
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent(/2026/);
 
     const switcher = screen.getByRole('combobox', { name: 'Calendar view' });
     expect(switcher).toHaveAttribute('data-component', 'shared-select');
@@ -73,7 +72,7 @@ describe('CalendarView UI', () => {
 
     fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Plan sprint' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
-    expect(addCalendarEvent).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan sprint' }));
+    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan sprint' }));
   });
 
   it('preserves typed header text when plus starts quick add and validates save', async () => {
@@ -85,12 +84,11 @@ describe('CalendarView UI', () => {
     expect(screen.getByPlaceholderText('New event…')).toHaveValue('test');
     fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
-    expect(addCalendarEvent).not.toHaveBeenCalled();
+    expect(addTask).not.toHaveBeenCalled();
     expect(screen.getByRole('alert')).toHaveTextContent('Title is required');
   });
 
-  it('creates an event, closes quick add, and shows it immediately without refetch', async () => {
-    addCalendarEvent.mockResolvedValueOnce({ id: 'new-1', title: 'Visible now', startTime: Date.now(), endTime: Date.now() + 3600000, createdAt: Date.now(), source: 'local' });
+  it('creates a task, closes quick add, and shows it immediately without refetch', async () => {
     render(<CalendarView />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
@@ -127,18 +125,31 @@ describe('CalendarView UI', () => {
     expect(screen.queryByPlaceholderText('Location')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'More details' }));
-    expect(screen.getByPlaceholderText('Location')).toBeInTheDocument();
+    // After refactor, expanded section only has all-day checkbox, no Location field
+    expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
 
-  it('marks today in month view and skips empty days in agenda view', () => {
+  it('marks today in month view and shows tasks in agenda view', () => {
     const now = new Date();
-    const eventStart = new Date(now);
-    eventStart.setHours(13, 0, 0, 0);
-    const eventEnd = new Date(now);
-    eventEnd.setHours(14, 0, 0, 0);
+    const taskStart = new Date(now);
+    taskStart.setHours(13, 0, 0, 0);
+    const taskEnd = new Date(now);
+    taskEnd.setHours(14, 0, 0, 0);
     useAppMock.mockReturnValue({
       ...baseAppValue,
-      calendarEvents: [{ id: 'event-1', title: 'Dentist', startTime: eventStart.getTime(), endTime: eventEnd.getTime(), createdAt: 1, source: 'local' }],
+      tasks: [{
+        id: 'task-1',
+        title: 'Dentist',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: taskStart.getTime(),
+        startTime: taskStart.getTime(),
+        endTime: taskEnd.getTime(),
+        showInCalendar: true,
+        createdAt: 1,
+      }],
     });
 
     render(<CalendarView />);

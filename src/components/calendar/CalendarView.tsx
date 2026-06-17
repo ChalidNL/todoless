@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, RotateCcw, Save, Trash2, User, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Save, Trash2, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,7 +7,7 @@ import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { AttributeChip } from '../shared/AttributeChip';
-import type { CalendarEvent } from '../../types';
+import type { Task } from '../../types';
 import {
   addDays,
   buildCalendarItems,
@@ -26,21 +26,19 @@ import {
   type CalendarView as CalendarViewMode,
 } from '../../lib/calendar-utils';
 
-const MODULE_COLOR = '#8B5CF6';
-
 export function CalendarView() {
-  const { calendarEvents, tasks, addCalendarEvent, updateCalendarEvent, deleteCalendarEvent, updateTask } = useApp();
+  const { tasks, addTask, updateTask, deleteTask } = useApp();
   const { user } = useAuth();
   const { language } = useLanguage();
   const [anchor, setAnchor] = useState(() => startOfLocalDay(Date.now()));
   const [selectedDay, setSelectedDay] = useState(() => startOfLocalDay(Date.now()));
   const [mode, setMode] = useState<CalendarViewMode>(() => getStoredCalendarView((user as any)?.id, getDefaultCalendarView()));
-  const [quickAdd, setQuickAdd] = useState<CalendarEvent | null>(null);
-  const [editing, setEditing] = useState<CalendarEvent | null>(null);
+  const [quickAdd, setQuickAdd] = useState<Task | null>(null);
+  const [editing, setEditing] = useState<Task | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [draftTitle, setDraftTitle] = useState('');
   const draftTitleRef = useRef('');
-  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>([]);
+  const [localTasks, setLocalTasks] = useState<Task[]>([]);
   const [formError, setFormError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -55,51 +53,52 @@ export function CalendarView() {
     return { start: startOfLocalDay(Date.now()), end: endOfLocalDay(addDays(Date.now(), 60)) };
   }, [anchor, mode]);
 
-  const combinedEvents = useMemo(() => {
-    const remoteIds = new Set(calendarEvents.map((event) => event.id));
-    return [...calendarEvents, ...localEvents.filter((event) => !remoteIds.has(event.id))];
-  }, [calendarEvents, localEvents]);
-  const allItems = useMemo(() => buildCalendarItems({ events: combinedEvents, tasks, rangeStart: range.start, rangeEnd: range.end }), [combinedEvents, tasks, range]);
+  const effectiveTasks = useMemo(() => {
+    const contextIds = new Set(tasks.map((t) => t.id));
+    return [...tasks, ...localTasks.filter((t) => !contextIds.has(t.id))];
+  }, [tasks, localTasks]);
+
+  const allItems = useMemo(() => buildCalendarItems({ tasks: effectiveTasks, rangeStart: range.start, rangeEnd: range.end }), [effectiveTasks, range]);
   const items = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return allItems;
-    return allItems.filter((item) => {
-      const event = item.kind === 'event' ? (item.source as CalendarEvent) : null;
-      return item.title.toLowerCase().includes(query) || (event?.location || '').toLowerCase().includes(query);
-    });
+    return allItems.filter((item) => item.title.toLowerCase().includes(query));
   }, [allItems, searchQuery]);
   const selectedItems = items.filter((item) => sameLocalDay(item.startTime, selectedDay));
-  const visibleItemIds = new Set(items.map((item) => item.id));
-  const pendingVisibleEvents = localEvents.filter((event) => !visibleItemIds.has(event.id));
   const views: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
 
   const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
 
-  const draftEvent = (startTime: number): CalendarEvent => ({
+  const draftTask = (startTime: number): Task => ({
     id: '',
     title: '',
+    status: 'todo',
+    blocked: false,
+    flag: false,
+    labels: [],
+    dueDate: startTime,
     startTime,
     endTime: startTime + 60 * 60 * 1000,
     allDay: false,
-    color: MODULE_COLOR,
+    showInCalendar: true,
     createdAt: Date.now(),
-    source: 'local',
   });
 
   const openCreate = (day = selectedDay, hour = 9, title = searchQuery) => {
     const start = new Date(day);
     start.setHours(hour, 0, 0, 0);
-    setSelectedDay(startOfLocalDay(start.getTime()));
+    const startMs = start.getTime();
+    setSelectedDay(startOfLocalDay(startMs));
     const nextTitle = title.trim();
     draftTitleRef.current = nextTitle;
     setDraftTitle(nextTitle);
-    setQuickAdd({ ...draftEvent(start.getTime()), title: nextTitle });
+    setQuickAdd({ ...draftTask(startMs), title: nextTitle });
     setFormError('');
     setEditing(null);
   };
 
-  const saveEvent = async (event: CalendarEvent) => {
-    const cleaned = { ...event, title: event.title.trim() };
+  const saveTask = async (task: Task) => {
+    const cleaned = { ...task, title: task.title.trim() };
     if (!cleaned.title) {
       setFormError(t('calendar.titleRequired', language));
       return;
@@ -112,19 +111,18 @@ export function CalendarView() {
     setFormError('');
     try {
       if (cleaned.id) {
-        setLocalEvents((prev) => prev.map((existing) => existing.id === cleaned.id ? cleaned : existing));
+        setLocalTasks((prev) => prev.map((existing) => existing.id === cleaned.id ? cleaned : existing));
         setQuickAdd(null);
         setEditing(null);
         setSearchQuery('');
-        await Promise.resolve(updateCalendarEvent(cleaned.id, cleaned));
+        updateTask(cleaned.id, cleaned);
       } else {
-        const optimistic: CalendarEvent = { ...cleaned, id: `local-${Date.now()}`, createdAt: cleaned.createdAt || Date.now() };
-        setLocalEvents((prev) => [...prev, optimistic]);
+        const optimistic: Task = { ...cleaned, id: `local-${Date.now()}`, createdAt: cleaned.createdAt || Date.now() };
+        setLocalTasks((prev) => [...prev, optimistic]);
         setQuickAdd(null);
         setEditing(null);
         setSearchQuery('');
-        void Promise.resolve(addCalendarEvent(cleaned as Omit<CalendarEvent, 'id' | 'createdAt'>))
-          .catch(() => setFormError(t('calendar.saveFailed', language)));
+        addTask(cleaned as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
       }
     } catch {
       setFormError(t('calendar.saveFailed', language));
@@ -133,19 +131,19 @@ export function CalendarView() {
     }
   };
 
-  const openEdit = (event: CalendarEvent) => {
-    draftTitleRef.current = event.title;
-    setDraftTitle(event.title);
-    setEditing(event);
+  const openEdit = (task: Task) => {
+    draftTitleRef.current = task.title;
+    setDraftTitle(task.title);
+    setEditing(task);
     setFormError('');
   };
 
   const activeDraft = quickAdd ?? editing;
-  const updateActiveDraft = (event: CalendarEvent) => {
-    draftTitleRef.current = event.title;
-    setDraftTitle(event.title);
-    if (quickAdd) setQuickAdd(event);
-    else setEditing(event);
+  const updateActiveDraft = (task: Task) => {
+    draftTitleRef.current = task.title;
+    setDraftTitle(task.title);
+    if (quickAdd) setQuickAdd(task);
+    else setEditing(task);
   };
   const closeActiveDraft = () => {
     if (quickAdd) setQuickAdd(null);
@@ -159,7 +157,7 @@ export function CalendarView() {
           onSearch={activeDraft ? undefined : setSearchQuery}
           onAddEmpty={(value) => openCreate(selectedDay, 9, value || searchQuery)}
           onInputValueChange={activeDraft ? (title) => updateActiveDraft({ ...activeDraft, title }) : undefined}
-          onSubmitInput={activeDraft ? (title) => { void saveEvent({ ...activeDraft, title }); } : undefined}
+          onSubmitInput={activeDraft ? (title) => { void saveTask({ ...activeDraft, title }); } : undefined}
           onCancelInput={activeDraft ? closeActiveDraft : undefined}
           inputValue={activeDraft ? draftTitle : undefined}
           submitAriaLabel={t('calendar.saveEvent', language)}
@@ -187,13 +185,8 @@ export function CalendarView() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
-        {!quickAdd && pendingVisibleEvents.map((event) => (
-          <article key={`pending-${event.id}`} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm">
-            <h3 className="text-sm font-semibold text-neutral-900 truncate">{event.title}</h3>
-          </article>
-        ))}
-        {quickAdd && <InlineEventEditor event={{ ...quickAdd, title: draftTitle }} language={language} onCancel={() => setQuickAdd(null)} onChange={setQuickAdd} error={formError} onSave={() => { void saveEvent({ ...quickAdd, title: draftTitleRef.current }); }} isSaving={isSaving} />}
-        {editing && <InlineEventEditor event={{ ...editing, title: draftTitle }} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onSave={() => { void saveEvent({ ...editing, title: draftTitleRef.current }); }} onDelete={(id) => { deleteCalendarEvent(id); setEditing(null); }} error={formError} isSaving={isSaving} expandedDefault />}
+        {quickAdd && <InlineEventEditor event={{ ...quickAdd, title: draftTitle }} language={language} onCancel={() => setQuickAdd(null)} onChange={setQuickAdd} error={formError} onSave={() => { void saveTask({ ...quickAdd, title: draftTitleRef.current }); }} isSaving={isSaving} />}
+        {editing && <InlineEventEditor event={{ ...editing, title: draftTitle }} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onSave={() => { void saveTask({ ...editing, title: draftTitleRef.current }); }} onDelete={(id) => { deleteTask(id); setEditing(null); }} error={formError} isSaving={isSaving} expandedDefault />}
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
         {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={openEdit} onCreate={openCreate} language={language} />}
         {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={openEdit} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
@@ -234,7 +227,7 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
 const HOURS = Array.from({ length: 16 }, (_, index) => index + 7);
 const HOUR_HEIGHT = 56;
 
-function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (event: CalendarEvent) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: Language }) {
+function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (task: Task) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: Language }) {
   const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
@@ -281,23 +274,39 @@ function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, langua
   );
 }
 
-function CompactEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+function CompactEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
+  const handleClick = () => {
+    if (item.completed) {
+      onCompleteTask?.(item.id);
+    } else {
+      onEdit(item.source);
+    }
+  };
   return (
-    <button type="button" onClick={() => item.kind === 'event' ? onEdit(item.source as CalendarEvent) : onCompleteTask?.(item.id)} className="mb-0.5 w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-white" style={{ backgroundColor: item.color }}>
+    <button type="button" onClick={handleClick} className="mb-0.5 w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-white" style={{ backgroundColor: item.color }}>
       {item.title}
     </button>
   );
 }
 
-function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
+function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, (start.getHours() - 7) * 60 + start.getMinutes());
   const durationMinutes = Math.max(30, (end.getTime() - start.getTime()) / 60000);
+
+  const handleClick = () => {
+    if (item.completed) {
+      onCompleteTask?.(item.id);
+    } else {
+      onEdit(item.source);
+    }
+  };
+
   return (
     <button
       type="button"
-      onClick={() => item.kind === 'event' ? onEdit(item.source as CalendarEvent) : onCompleteTask?.(item.id)}
+      onClick={handleClick}
       className="absolute left-1 right-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[11px] font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
       style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 28, height: (durationMinutes / 60) * HOUR_HEIGHT, backgroundColor: item.color }}
     >
@@ -306,25 +315,22 @@ function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEd
   );
 }
 
-function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { items: CalendarItem[]; language: Language; compact?: boolean; onEdit: (event: CalendarEvent) => void; onCompleteTask: (id: string) => void }) {
+function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { items: CalendarItem[]; language: Language; compact?: boolean; onEdit: (task: Task) => void; onCompleteTask: (id: string) => void }) {
   if (!items.length) return <div data-testid="calendar-agenda-list" className="mt-2 rounded-2xl border border-dashed border-neutral-200 bg-white/70 p-3 text-center text-xs text-neutral-400">{t('calendar.noEvents', language)}</div>;
   return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}</div>;
 }
 
-function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (event: CalendarEvent) => void; onCompleteTask?: (id: string) => void }) {
-  const event = item.kind === 'event' ? (item.source as CalendarEvent) : null;
+function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
+  const task = item.source;
   return (
-    <article onClick={() => event && onEdit(event)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
+    <article onClick={() => onEdit(task)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
       <div className="flex items-start gap-2">
-        {item.kind === 'task' ? <input type="checkbox" checked={item.completed} onChange={() => onCompleteTask?.(item.id)} className="mt-1" /> : <span className="mt-1 h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />}
+        <input type="checkbox" checked={item.completed} onChange={() => onCompleteTask?.(item.id)} className="mt-1" />
         <div className="min-w-0 flex-1 space-y-1">
           <h3 className={`text-sm font-semibold text-neutral-900 truncate ${item.completed ? 'line-through text-neutral-400' : ''}`}>{item.title}</h3>
           <div className="flex flex-wrap gap-1">
             <span data-testid="calendar-date-chip"><AttributeChip compact={false} icon={<CalendarDays className="w-3.5 h-3.5" />} label={`${toDateLabel(item.startTime, language)}${item.allDay ? '' : ` ${toTimeLabel(item.startTime, language)}`}`} color="#0ea5e9" /></span>
-            {event?.createdBy && <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={event.createdBy} color="#64748b" />}
-            {event?.location && <AttributeChip icon={<MapPin className="w-3.5 h-3.5" />} label={event.location} color="#16a34a" />}
-            {event?.rrule && <AttributeChip icon={<RotateCcw className="w-3.5 h-3.5" />} label={t('calendar.repeat', language)} color="#f97316" />}
-            {item.kind === 'task' && <AttributeChip icon={<Clock className="w-3.5 h-3.5" />} label={t('calendar.datedTask', language)} color="#0ea5e9" />}
+            <AttributeChip icon={<Clock className="w-3.5 h-3.5" />} label={t('calendar.datedTask', language)} color="#0ea5e9" />
           </div>
         </div>
       </div>
@@ -343,10 +349,10 @@ function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: numb
   return `${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart))}–${new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd))}`;
 }
 
-function InlineEventEditor({ event, language, onCancel, onChange, onSave, onDelete, error, isSaving, expandedDefault = false }: { event: CalendarEvent; language: Language; onCancel: () => void; onChange?: (event: CalendarEvent) => void; onSave: () => void; onDelete?: (id: string) => void; error?: string; isSaving?: boolean; expandedDefault?: boolean }) {
+function InlineEventEditor({ event, language, onCancel, onChange, onSave, onDelete, error, isSaving, expandedDefault = false }: { event: Task; language: Language; onCancel: () => void; onChange?: (task: Task) => void; onSave: () => void; onDelete?: (id: string) => void; error?: string; isSaving?: boolean; expandedDefault?: boolean }) {
   const [draft, setDraft] = useState(event);
   const [expanded, setExpanded] = useState(expandedDefault);
-  const updateDraft = (next: CalendarEvent) => {
+  const updateDraft = (next: Task) => {
     setDraft(next);
     onChange?.(next);
   };
@@ -361,10 +367,7 @@ function InlineEventEditor({ event, language, onCancel, onChange, onSave, onDele
       <button type="button" onClick={() => setExpanded(!expanded)} className="text-xs font-semibold text-violet-700">{expanded ? t('calendar.fewerDetails', language) : t('calendar.moreDetails', language)}</button>
       {expanded && (
         <div className="space-y-2 border-t border-neutral-100 pt-2">
-          <input value={draft.location || ''} onChange={(e) => updateDraft({ ...draft, location: e.target.value })} placeholder={t('calendar.location', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
-          <textarea value={draft.description || ''} onChange={(e) => updateDraft({ ...draft, description: e.target.value })} placeholder={t('calendar.description', language)} className="min-h-16 w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm" />
           <label className="flex items-center gap-2 text-sm text-neutral-700"><input type="checkbox" checked={!!draft.allDay} onChange={(e) => updateDraft({ ...draft, allDay: e.target.checked })} />{t('calendar.allDay', language)}</label>
-          <input value={draft.rrule || ''} onChange={(e) => updateDraft({ ...draft, rrule: e.target.value })} placeholder={t('calendar.repeat', language)} className="w-full rounded-xl border border-neutral-200 px-3 py-2 font-mono text-xs" />
         </div>
       )}
       <div className="flex items-center justify-end gap-2">

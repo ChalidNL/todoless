@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import type { CalendarEvent, Task } from '../types';
+import type { Task } from '../types';
 import {
   buildCalendarItems,
-  expandRecurringEvent,
+  expandRecurringTask,
   formatDateInputValue,
   getDefaultCalendarView,
   getStoredCalendarView,
@@ -17,28 +17,29 @@ describe('calendar utilities', () => {
       task({ id: 'task-1', title: 'Tandarts', dueDate: day }),
       task({ id: 'task-2', title: 'Verborgen', dueDate: day, showInCalendar: false }),
       task({ id: 'task-3', title: 'Geen datum' }),
+      task({ id: 'task-4', title: 'School', dueDate: day, startTime: day, endTime: day + 3600000 }),
     ];
-    const events = [event({ id: 'event-1', title: 'School', startTime: day, endTime: day + 3600000 })];
 
-    const items = buildCalendarItems({ events, tasks, rangeStart: startOfDay(day), rangeEnd: endOfDay(day) });
+    const items = buildCalendarItems({ tasks, rangeStart: startOfDay(day), rangeEnd: endOfDay(day) });
 
-    expect(items.map((item) => `${item.kind}:${item.id}`)).toEqual(['event:event-1', 'task:task-1']);
+    expect(items.map((item) => `${item.kind}:${item.id}`)).toEqual(['task:task-1', 'task:task-4']);
   });
 
-  it('expands RRULE events and skips EXDATE instances', () => {
-    const base = event({
-      id: 'event-1',
+  it('expands recurring tasks and skips EXDATE instances', () => {
+    const base = task({
+      id: 'task-1',
       title: 'Training',
+      dueDate: Date.parse('2026-06-16T08:00:00.000Z'),
       startTime: Date.parse('2026-06-16T08:00:00.000Z'),
       endTime: Date.parse('2026-06-16T09:00:00.000Z'),
-      rrule: 'FREQ=WEEKLY;COUNT=3',
-      exdates: ['2026-06-23T08:00:00.000Z'],
+      repeatInterval: 'week',
     });
 
-    const expanded = expandRecurringEvent(base, Date.parse('2026-06-01T00:00:00.000Z'), Date.parse('2026-07-01T00:00:00.000Z'));
+    const expanded = expandRecurringTask(base, Date.parse('2026-06-01T00:00:00.000Z'), Date.parse('2026-07-01T00:00:00.000Z'));
 
     expect(expanded.map((item) => new Date(item.startTime).toISOString())).toEqual([
       '2026-06-16T08:00:00.000Z',
+      '2026-06-23T08:00:00.000Z',
       '2026-06-30T08:00:00.000Z',
     ]);
     expect(expanded.every((item) => item.recurrenceId)).toBe(true);
@@ -71,19 +72,6 @@ function task(overrides: Partial<Task>): Task {
     blocked: false,
     labels: [],
     flag: false,
-    createdAt: Date.now(),
-    ...overrides,
-  };
-}
-
-function event(overrides: Partial<CalendarEvent>): CalendarEvent {
-  const startTime = Date.now();
-  return {
-    id: 'event',
-    title: 'Event',
-    startTime,
-    endTime: startTime + 3600000,
-    allDay: false,
     createdAt: Date.now(),
     ...overrides,
   };

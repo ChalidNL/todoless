@@ -1,17 +1,17 @@
 import { RRule, rrulestr } from 'rrule';
-import type { CalendarEvent, Task } from '../types';
+import type { Task, RepeatInterval } from '../types';
 
 export type CalendarView = 'month' | 'week' | 'day' | 'agenda';
 
 export interface CalendarItem {
   id: string;
-  kind: 'event' | 'task';
+  kind: 'task';
   title: string;
   startTime: number;
   endTime: number;
   allDay: boolean;
   color?: string;
-  source: CalendarEvent | Task;
+  source: Task;
   recurring?: boolean;
   recurrenceId?: string;
   completed?: boolean;
@@ -37,44 +37,64 @@ export function storeCalendarView(userId: string | undefined, view: CalendarView
 }
 
 export function buildCalendarItems({
-  events,
   tasks,
   rangeStart,
   rangeEnd,
 }: {
-  events: CalendarEvent[];
   tasks: Task[];
   rangeStart: number;
   rangeEnd: number;
 }): CalendarItem[] {
-  const eventItems = events.flatMap((event) => event.rrule
-    ? expandRecurringEvent(event, rangeStart, rangeEnd).map(eventToItem)
-    : overlaps(event.startTime, event.endTime || event.startTime, rangeStart, rangeEnd) ? [eventToItem(event)] : []);
+  const visibleTasks = tasks.filter((task) => task.showInCalendar !== false);
 
-  const taskItems = tasks
-    .filter((task) => task.dueDate && task.showInCalendar !== false)
-    .filter((task) => overlaps(task.dueDate!, task.dueDate!, rangeStart, rangeEnd))
+  const recurringTasks = visibleTasks.filter((task) => task.repeatInterval);
+  const nonRecurringTasks = visibleTasks.filter((task) => !task.repeatInterval);
+
+  const recurringItems = recurringTasks.flatMap((task) =>
+    expandRecurringTask(task, rangeStart, rangeEnd).map(taskToItem),
+  );
+
+  const nonRecurringItems = nonRecurringTasks
+    .filter((task) => {
+      if (task.startTime) {
+        const end = task.endTime || task.startTime + 3600000;
+        return overlaps(task.startTime, end, rangeStart, rangeEnd);
+      }
+      if (task.dueDate) {
+        return overlaps(startOfLocalDay(task.dueDate), endOfLocalDay(task.dueDate), rangeStart, rangeEnd);
+      }
+      return false;
+    })
     .map(taskToItem);
 
-  return [...eventItems, ...taskItems].sort((a, b) => a.startTime - b.startTime || a.title.localeCompare(b.title));
+  return [...recurringItems, ...nonRecurringItems].sort(
+    (a, b) => a.startTime - b.startTime || a.title.localeCompare(b.title),
+  );
 }
 
-export function expandRecurringEvent(event: CalendarEvent, rangeStart: number, rangeEnd: number): CalendarEvent[] {
-  if (!event.rrule) return [event];
-  const duration = Math.max(0, (event.endTime || event.startTime) - event.startTime);
-  const rule = rrulestr(event.rrule, { dtstart: new Date(event.startTime) }) as RRule;
-  const exdateSet = new Set((event.exdates || []).map((date) => new Date(date).getTime()));
+export function expandRecurringTask(task: Task, rangeStart: number, rangeEnd: number): Task[] {
+  if (!task.repeatInterval) return [task];
+
+  const startTime = task.startTime || task.dueDate;
+  if (!startTime) return [task];
+
+  const duration = task.startTime && task.endTime
+    ? Math.max(0, task.endTime - task.startTime)
+    : 0;
+
+  const rruleStr = repeatIntervalToRRule(task.repeatInterval);
+  const rule = rrulestr(rruleStr, { dtstart: new Date(startTime) }) as RRule;
 
   return rule
     .between(new Date(rangeStart), new Date(rangeEnd), true)
-    .filter((date) => !exdateSet.has(date.getTime()))
     .map((date) => {
-      const startTime = date.getTime();
+      const newStartTime = date.getTime();
       return {
-        ...event,
-        id: `${event.id}:${date.toISOString()}`,
-        startTime,
-        endTime: startTime + duration,
+        ...task,
+        id: `${task.id}:${date.toISOString()}`,
+        startTime: newStartTime,
+        endTime: newStartTime + duration,
+        dueDate: newStartTime,
         recurrenceId: date.toISOString(),
       };
     });
@@ -131,33 +151,35 @@ export function toTimeLabel(timestamp: number, locale = 'en') {
   return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp));
 }
 
-function eventToItem(event: CalendarEvent): CalendarItem {
-  return {
-    id: event.id,
-    kind: 'event',
-    title: event.title,
-    startTime: event.startTime,
-    endTime: event.endTime || event.startTime,
-    allDay: !!event.allDay,
-    color: event.color || '#8B5CF6',
-    source: event,
-    recurring: !!event.rrule,
-    recurrenceId: event.recurrenceId,
-  };
-}
-
 function taskToItem(task: Task): CalendarItem {
-  const startTime = task.dueDate!;
+  if (task.startTime) {
+    return {
+      id: task.id,
+      kind: 'task',
+      title: task.title,
+      startTime: task.startTime,
+      endTime: task.endTime || task.startTime + 3600000,
+      allDay: false,
+      color: '#8B5CF6',
+      source: task,
+      completed: task.status === 'done',
+      recurring: !!task.repeatInterval,
+    };
+  }
+
+  // dueDate but no startTime → all-day
+  const dueDate = task.dueDate!;
   return {
     id: task.id,
     kind: 'task',
     title: task.title,
-    startTime,
-    endTime: startTime,
+    startTime: startOfLocalDay(dueDate),
+    endTime: startOfLocalDay(dueDate),
     allDay: true,
-    color: task.status === 'done' ? '#94a3b8' : '#0ea5e9',
+    color: '#8B5CF6',
     source: task,
     completed: task.status === 'done',
+    recurring: !!task.repeatInterval,
   };
 }
 
@@ -167,4 +189,21 @@ function overlaps(start: number, end: number, rangeStart: number, rangeEnd: numb
 
 function storageKey(userId: string) {
   return `todoless_calendar_view_${userId}`;
+}
+
+function repeatIntervalToRRule(interval: RepeatInterval): string {
+  switch (interval) {
+    case 'day':
+      return 'FREQ=DAILY';
+    case 'week':
+      return 'FREQ=WEEKLY';
+    case 'month':
+      return 'FREQ=MONTHLY';
+    case 'year':
+      return 'FREQ=YEARLY';
+    case 'month_weekday':
+      return 'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR';
+    default:
+      return 'FREQ=DAILY';
+  }
 }
