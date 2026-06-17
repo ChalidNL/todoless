@@ -82,7 +82,10 @@ export function expandRecurringTask(task: Task, rangeStart: number, rangeEnd: nu
     ? Math.max(0, task.endTime - task.startTime)
     : 0;
 
-  const rruleStr = repeatIntervalToRRule(task.repeatInterval);
+  // Prefer explicit recurrence_rule JSON field when present
+  const rruleStr = (task as any).recurrenceRule
+    ? (task as any).recurrenceRule
+    : repeatIntervalToRRule(task.repeatInterval, task.dueDate || task.startTime);
   const rule = rrulestr(rruleStr, { dtstart: new Date(startTime) }) as RRule;
 
   return rule
@@ -152,6 +155,23 @@ export function toTimeLabel(timestamp: number, locale = 'en') {
 }
 
 function taskToItem(task: Task): CalendarItem {
+  // Respect explicit allDay flag even if startTime is present
+  if (task.allDay) {
+    const timestamp = task.startTime || task.dueDate!;
+    return {
+      id: task.id,
+      kind: 'task',
+      title: task.title,
+      startTime: startOfLocalDay(timestamp),
+      endTime: startOfLocalDay(timestamp),
+      allDay: true,
+      color: '#8B5CF6',
+      source: task,
+      completed: task.status === 'done',
+      recurring: !!task.repeatInterval,
+    };
+  }
+
   if (task.startTime) {
     return {
       id: task.id,
@@ -191,7 +211,7 @@ function storageKey(userId: string) {
   return `todoless_calendar_view_${userId}`;
 }
 
-function repeatIntervalToRRule(interval: RepeatInterval): string {
+function repeatIntervalToRRule(interval: RepeatInterval, referenceDate: number | undefined): string {
   switch (interval) {
     case 'day':
       return 'FREQ=DAILY';
@@ -201,8 +221,14 @@ function repeatIntervalToRRule(interval: RepeatInterval): string {
       return 'FREQ=MONTHLY';
     case 'year':
       return 'FREQ=YEARLY';
-    case 'month_weekday':
-      return 'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR';
+    case 'month_weekday': {
+      if (!referenceDate) return 'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR'; // fallback
+      const d = new Date(referenceDate);
+      const weekdays = ['SU','MO','TU','WE','TH','FR','SA'];
+      const wd = weekdays[d.getDay()];
+      const nth = Math.ceil(d.getDate() / 7); // 1st, 2nd, 3rd, 4th
+      return `FREQ=MONTHLY;BYDAY=${nth}${wd}`; // e.g. FREQ=MONTHLY;BYDAY=2WE
+    }
     default:
       return 'FREQ=DAILY';
   }

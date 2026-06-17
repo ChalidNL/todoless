@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Save, Trash2, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Flag, RotateCcw, Save, Tag, Trash2, User, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,6 +7,10 @@ import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { AttributeChip } from '../shared/AttributeChip';
+import { entityColor } from '../../lib/entity-colors';
+import { getCompactUserName } from '../../lib/member-role-utils';
+import { getRepeatChipLabel } from '../../lib/repeat-options';
+import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../lib/priority';
 import type { Task } from '../../types';
 import {
   addDays,
@@ -50,7 +54,7 @@ export function CalendarView() {
     if (mode === 'day') return { start: startOfLocalDay(anchor), end: endOfLocalDay(anchor) };
     if (mode === 'week') return { start: startOfLocalDay(addDays(anchor, -((new Date(anchor).getDay() + 6) % 7))), end: endOfLocalDay(addDays(anchor, 6 - ((new Date(anchor).getDay() + 6) % 7))) };
     if (mode === 'month') return { start: startOfMonthGrid(anchor), end: endOfLocalDay(addDays(startOfMonthGrid(anchor), 41)) };
-    return { start: startOfLocalDay(Date.now()), end: endOfLocalDay(addDays(Date.now(), 60)) };
+    return { start: startOfLocalDay(Date.now()), end: endOfLocalDay(addDays(Date.now(), 28)) };
   }, [anchor, mode]);
 
   const effectiveTasks = useMemo(() => {
@@ -68,6 +72,7 @@ export function CalendarView() {
   const views: CalendarViewMode[] = ['month', 'week', 'day', 'agenda'];
 
   const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
+  const isTodayAnchor = sameLocalDay(anchor, Date.now());
 
   const draftTask = (startTime: number): Task => ({
     id: '',
@@ -170,7 +175,7 @@ export function CalendarView() {
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
         <div className="flex items-center gap-2">
           <button type="button" aria-label={t('calendar.previous', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className="px-3 py-2 rounded-xl bg-neutral-100 text-xs font-semibold text-neutral-700">{t('calendar.today', language)}</button>
+          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className={`px-3 py-2 rounded-xl text-xs font-semibold ${isTodayAnchor ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700'}`}>{t('calendar.today', language)}</button>
           <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
           <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-sm font-bold text-neutral-900">{periodTitle}</p>
           <SharedSelect
@@ -224,29 +229,41 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
   );
 }
 
-const HOURS = Array.from({ length: 16 }, (_, index) => index + 7);
+const HOURS = Array.from({ length: 24 }, (_, index) => index);
 const HOUR_HEIGHT = 56;
 
 function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (task: Task) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: Language }) {
+  const containerRef = useRef<HTMLElement>(null);
   const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
   const now = Date.now();
   const nowDate = new Date(now);
-  const showNowLine = days.some((day) => sameLocalDay(day, now));
-  const nowTop = Math.min(Math.max(((new Date(now).getHours() - HOURS[0]) + new Date(now).getMinutes() / 60) * HOUR_HEIGHT, 0), HOURS.length * HOUR_HEIGHT);
+  const nowHours = nowDate.getHours() + nowDate.getMinutes() / 60;
+  const showNowLine = nowHours >= 0 && nowHours <= 24;
+  const nowTop = Math.min(Math.max(nowHours * HOUR_HEIGHT, 0), 24 * HOUR_HEIGHT);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (el && typeof el.scrollTo === 'function') {
+      const scrollTo = Math.max(0, nowTop - el.clientHeight / 2);
+      el.scrollTo({ top: scrollTo, behavior: 'smooth' });
+    }
+  }, [nowTop]);
 
   return (
-    <section data-testid={mode === 'week' ? 'calendar-week-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
+    <section ref={containerRef} data-testid={mode === 'week' ? 'calendar-week-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
       <div className="sticky top-0 z-10 grid bg-white/95 backdrop-blur border-b border-neutral-100" style={{ gridTemplateColumns: `44px repeat(${days.length}, minmax(${mode === 'week' ? '48px' : '180px'}, 1fr))` }}>
         <div className="border-r border-neutral-100" />
         {days.map((day) => {
           const today = sameLocalDay(day, now);
           return (
             <div key={day} className={`px-1 py-2 text-center text-[11px] font-bold ${today ? 'bg-violet-50 text-violet-700' : 'text-neutral-700'}`}>
-              <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 ${today ? 'border-black bg-white text-black' : 'border-transparent'}`}>
-                {new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric' }).format(new Date(day))}
-              </span>
+              {mode === 'week' && (
+                <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 ${today ? 'border-black bg-white text-black' : 'border-transparent'}`}>
+                  {new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric' }).format(new Date(day))}
+                </span>
+              )}
             </div>
           );
         })}
@@ -283,7 +300,8 @@ function CompactEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; on
     }
   };
   return (
-    <button type="button" onClick={handleClick} className="mb-0.5 w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-white" style={{ backgroundColor: item.color }}>
+    <button type="button" onClick={handleClick} className="mb-0.5 w-full truncate rounded-md px-1.5 py-0.5 text-left text-[10px] font-semibold text-neutral-800 bg-neutral-100 border border-neutral-200 flex items-center gap-1">
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: '#8B5CF6' }} />
       {item.title}
     </button>
   );
@@ -292,7 +310,7 @@ function CompactEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; on
 function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
-  const startMinutes = Math.max(0, (start.getHours() - 7) * 60 + start.getMinutes());
+  const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
   const durationMinutes = Math.max(30, (end.getTime() - start.getTime()) / 60000);
 
   const handleClick = () => {
@@ -307,8 +325,8 @@ function TimedEvent({ item, onEdit, onCompleteTask }: { item: CalendarItem; onEd
     <button
       type="button"
       onClick={handleClick}
-      className="absolute left-1 right-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[11px] font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 28, height: (durationMinutes / 60) * HOUR_HEIGHT, backgroundColor: item.color }}
+      className="absolute left-1 right-1 overflow-hidden rounded-lg px-1.5 py-1 text-left text-[11px] font-semibold text-neutral-900 bg-white border-l-2 border-neutral-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 28, height: (durationMinutes / 60) * HOUR_HEIGHT }}
     >
       <span className="block truncate">{item.title}</span>
     </button>
@@ -320,8 +338,31 @@ function AgendaList({ items, language, compact, onEdit, onCompleteTask }: { item
   return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <ItemCard key={item.kind + item.id} item={item} language={language} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}</div>;
 }
 
+const SubtaskIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3" />
+    <circle cx="8" cy="8" r="2.5" fill="currentColor" />
+  </svg>
+);
+
 function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
+  const { labels, users, tasks: allTasks } = useApp();
   const task = item.source;
+  const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
+  const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
+  const subtasks = (task.subtaskIds || [])
+    .map((id) => allTasks.find((t) => t.id === id))
+    .filter(Boolean) as Task[];
+  const subtaskCount = subtasks.length;
+  const completedSubtaskCount = subtasks.filter((s) => s.status === 'done').length;
+  const hasLabels = task.labels.length > 0;
+  const hasAssignee = !!task.assignedTo;
+  const dateLabel = item.allDay
+    ? toDateLabel(item.startTime, language)
+    : `${toDateLabel(item.startTime, language)} ${toTimeLabel(item.startTime, language)}`;
+  const repeatChipLabel = task.repeatInterval ? getRepeatChipLabel(task.repeatInterval, task.dueDate) : null;
+  const hasPriority = !!task.priority && !!PRIORITY_COLORS[task.priority];
+
   return (
     <article onClick={() => onEdit(task)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
       <div className="flex items-start gap-2">
@@ -329,8 +370,25 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
         <div className="min-w-0 flex-1 space-y-1">
           <h3 className={`text-sm font-semibold text-neutral-900 truncate ${item.completed ? 'line-through text-neutral-400' : ''}`}>{item.title}</h3>
           <div className="flex flex-wrap gap-1">
-            <span data-testid="calendar-date-chip"><AttributeChip compact={false} icon={<CalendarDays className="w-3.5 h-3.5" />} label={`${toDateLabel(item.startTime, language)}${item.allDay ? '' : ` ${toTimeLabel(item.startTime, language)}`}`} color="#0ea5e9" /></span>
-            <AttributeChip icon={<Clock className="w-3.5 h-3.5" />} label={t('calendar.datedTask', language)} color="#0ea5e9" />
+            {task.labels.map((labelId) => {
+              const label = labels.find((l) => l.id === labelId);
+              return label ? (
+                <AttributeChip key={label.id} icon={<Tag className="w-3.5 h-3.5" />} label={label.name} color={label.color} />
+              ) : null;
+            })}
+            {assignedUser && (
+              <AttributeChip icon={<User className="w-3.5 h-3.5" />} label={getCompactUserName(assignedUser)} color={assigneeColor} />
+            )}
+            <span data-testid="calendar-date-chip"><AttributeChip icon={<CalendarDays className="w-3.5 h-3.5" />} label={dateLabel} color="#ea580c" /></span>
+            {task.repeatInterval && repeatChipLabel && (
+              <AttributeChip icon={<RotateCcw className="w-3.5 h-3.5" />} label={repeatChipLabel} color="#0f766e" maxWidthClassName="max-w-[92px]" />
+            )}
+            {hasPriority && (
+              <AttributeChip icon={<Flag className="w-3.5 h-3.5" />} label={PRIORITY_LABELS[task.priority!] || task.priority!} color={PRIORITY_COLORS[task.priority!]} />
+            )}
+            {subtaskCount > 0 && (
+              <AttributeChip icon={<SubtaskIcon className="w-3.5 h-3.5" />} label={`${completedSubtaskCount}/${subtaskCount}`} color="#8b5cf6" />
+            )}
           </div>
         </div>
       </div>

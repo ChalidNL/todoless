@@ -112,6 +112,7 @@ export interface Task {
   allDay?: boolean;
   showInCalendar?: boolean;
   repeatInterval?: RepeatInterval;
+  recurrenceRule?: string;
   completedAt?: number;
   completedBy?: string;
   archived?: boolean;
