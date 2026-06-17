@@ -2,15 +2,12 @@ migrate(
   (app) => {
     const tasks = app.findCollectionByNameOrId('tasks');
 
-    const addField = (field) => {
-      if (!tasks.fields.getByName(field.name)) {
-        tasks.fields.add(new Field(field));
-      }
-    };
-
-    addField({ name: 'start_time', type: 'date', required: false });
-    addField({ name: 'end_time', type: 'date', required: false });
-
+    if (!tasks.fields.getByName('start_time')) {
+      tasks.fields.add(new DateField({ name: 'start_time', required: false }));
+    }
+    if (!tasks.fields.getByName('end_time')) {
+      tasks.fields.add(new DateField({ name: 'end_time', required: false }));
+    }
     if (!tasks.fields.getByName('all_day')) {
       tasks.fields.add(new BoolField({ name: 'all_day', required: false }));
     }
@@ -23,7 +20,7 @@ migrate(
     ['start_time', 'end_time', 'all_day'].forEach((name) => {
       try {
         const field = tasks.fields.getByName(name);
-        if (field) tasks.fields.remove(field.id);
+        if (field) tasks.fields.remove(field);
       } catch (_) {}
     });
 
