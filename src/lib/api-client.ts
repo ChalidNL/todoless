@@ -179,6 +179,7 @@ export const api = {
         start_time: toISO(data.startTime),
         end_time: toISO(data.endTime),
         all_day: data.allDay,
+        show_in_calendar: data.showInCalendar,
         repeat_interval: data.repeatInterval, labels: data.labels || [],
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,

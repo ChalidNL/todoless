@@ -502,8 +502,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         await api.createTask(task);
         await refreshEntries();
-      } catch (error) {
-        console.error('addTask failed:', error);
+      } catch (error: any) {
+        const detail = error?.response?.data || error?.data || error?.message || error;
+        console.error('addTask failed — full error:', JSON.stringify(detail, null, 2));
+        console.error('addTask payload:', JSON.stringify(task));
       }
     })();
   };

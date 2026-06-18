@@ -73,7 +73,6 @@ describe('CalendarView UI', () => {
     // No quick-add form — addTask is called directly
     expect(screen.queryByTestId('calendar-quick-add')).not.toBeInTheDocument();
     expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
-      title: '',
       status: 'todo',
       showInCalendar: true,
     }));

@@ -60,7 +60,7 @@ export function CalendarView() {
     const startMs = start.getTime();
     setSelectedDay(startOfLocalDay(startMs));
     addTask({
-      title: '',
+      title: searchQuery.trim() || t('calendar.newEvent', language),
       status: 'todo',
       blocked: false,
       flag: false,
