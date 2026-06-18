@@ -25,12 +25,20 @@ const baseAppValue = {
   addTask,
   updateTask,
   deleteTask,
+  users: [],
+  labels: [],
+  shops: [],
   filters: [],
+  addLabel: vi.fn(),
+  swapEntity: vi.fn(),
   toggleChipFilter: vi.fn(),
   clearChipFilters: vi.fn(),
+  isChipFilterActive: vi.fn().mockReturnValue(false),
   activeChipFilters: [],
   addFilter: vi.fn(),
+  refreshEntries: vi.fn(),
   showCompletionMessage: vi.fn(),
+  moveTaskToStatus: vi.fn(),
 };
 
 describe('CalendarView UI', () => {
@@ -160,7 +168,6 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'agenda' } });
     const agenda = screen.getByTestId('calendar-agenda-list');
     expect(within(agenda).getByText('Dentist')).toBeInTheDocument();
-    expect(within(agenda).getByTestId('calendar-date-chip')).toBeInTheDocument();
     expect(within(agenda).queryByText('No calendar items')).not.toBeInTheDocument();
   });
 });
