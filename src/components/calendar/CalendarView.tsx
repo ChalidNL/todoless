@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Flag, RotateCcw, Save, Tag, Trash2, User, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Flag, RotateCcw, Save, Tag, Target, Trash2, User, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
@@ -74,6 +74,15 @@ export function CalendarView() {
   const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
   const isTodayAnchor = sameLocalDay(anchor, Date.now());
 
+  const getCurrentWeekStart = () => {
+    const now = new Date();
+    const day = now.getDay() || 7; // Make Sunday 7
+    now.setHours(0, 0, 0, 0);
+    now.setDate(now.getDate() - day + 1); // Monday
+    return now.getTime();
+  };
+  const getCurrentWeekEnd = () => getCurrentWeekStart() + 7 * 24 * 60 * 60 * 1000 - 1;
+
   const draftTask = (startTime: number): Task => ({
     id: '',
     title: '',
@@ -122,12 +131,15 @@ export function CalendarView() {
         setSearchQuery('');
         updateTask(cleaned.id, cleaned);
       } else {
-        const optimistic: Task = { ...cleaned, id: `local-${Date.now()}`, createdAt: cleaned.createdAt || Date.now() };
+        const weekStart = getCurrentWeekStart();
+        const weekEnd = getCurrentWeekEnd();
+        const taskStatus = cleaned.dueDate && cleaned.dueDate >= weekStart && cleaned.dueDate <= weekEnd ? 'todo' : 'backlog';
+        const optimistic: Task = { ...cleaned, status: taskStatus, id: `local-${Date.now()}`, createdAt: cleaned.createdAt || Date.now() };
         setLocalTasks((prev) => [...prev, optimistic]);
         setQuickAdd(null);
         setEditing(null);
         setSearchQuery('');
-        addTask(cleaned as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
+        addTask({ ...cleaned, status: taskStatus } as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
       }
     } catch {
       setFormError(t('calendar.saveFailed', language));
@@ -174,10 +186,10 @@ export function CalendarView() {
       </div>
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
         <div className="flex items-center gap-2">
+          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`p-2 rounded-xl ${isTodayAnchor ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700'}`}><Target className="w-4 h-4" /></button>
           <button type="button" aria-label={t('calendar.previous', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : mode === 'agenda' ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
-          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} className={`px-3 py-2 rounded-xl text-xs font-semibold ${isTodayAnchor ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700'}`}>{t('calendar.today', language)}</button>
+          <p data-testid="calendar-period-title" className="min-w-0 flex-1 text-center text-sm font-bold text-neutral-900">{periodTitle}</p>
           <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : mode === 'agenda' ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
-          <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-sm font-bold text-neutral-900">{periodTitle}</p>
           <SharedSelect
             id="calendar-view-select"
             ariaLabel={t('calendar.viewLabel', language)}
@@ -194,7 +206,7 @@ export function CalendarView() {
         {editing && <InlineEventEditor event={{ ...editing, title: draftTitle }} language={language} onCancel={() => setEditing(null)} onChange={setEditing} onSave={() => { void saveTask({ ...editing, title: draftTitleRef.current }); }} onDelete={(id) => { deleteTask(id); setEditing(null); }} error={formError} isSaving={isSaving} expandedDefault />}
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
         {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onEdit={openEdit} onCreate={openCreate} language={language} />}
-        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={selectedItems} onEdit={openEdit} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
+        {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={items} onEdit={openEdit} onCreate={openCreate} language={language} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
         {mode === 'agenda' && <AgendaList items={items} language={language} onEdit={openEdit} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
         {mode === 'month' && <AgendaList items={selectedItems} language={language} compact onEdit={openEdit} onCompleteTask={(id) => updateTask(id, { status: 'done' })} />}
       </main>
@@ -217,7 +229,7 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
           const active = sameLocalDay(day, selectedDay);
           return (
             <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[clamp(64px,11vh,112px)] border-r border-b border-neutral-100 p-1 text-left ${active ? 'bg-violet-50' : ''}`}>
-              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border-black bg-white text-black' : new Date(day).getMonth() === month ? 'border-transparent text-neutral-800' : 'border-transparent text-neutral-300'}`}>{new Date(day).getDate()}</span>
+              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border-2 border-black bg-white text-black ring-2 ring-black' : new Date(day).getMonth() === month ? 'border-transparent text-neutral-800' : 'border-transparent text-neutral-300'}`}>{new Date(day).getDate()}</span>
               <div className="mt-1 space-y-0.5 overflow-hidden">
                 {dayItems.slice(0, 3).map((item) => <span key={item.kind + item.id} className="block h-1.5 rounded-full" style={{ backgroundColor: item.color }} />)}
               </div>
@@ -234,6 +246,10 @@ const HOUR_HEIGHT = 56;
 
 function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, language }: { mode: 'week' | 'day'; start: number; items: CalendarItem[]; onEdit: (task: Task) => void; onCreate: (day: number, hour?: number) => void; onCompleteTask?: (id: string) => void; language: Language }) {
   const containerRef = useRef<HTMLElement>(null);
+  const scrolledRef = useRef(false);
+  const { addTask } = useApp();
+  const [inlineSlot, setInlineSlot] = useState<{ day: number; hour: number } | null>(null);
+  const [inlineTitle, setInlineTitle] = useState('');
   const days = Array.from({ length: mode === 'week' ? 7 : 1 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
@@ -243,9 +259,37 @@ function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, langua
   const showNowLine = nowHours >= 0 && nowHours <= 24;
   const nowTop = Math.min(Math.max(nowHours * HOUR_HEIGHT, 0), 24 * HOUR_HEIGHT);
 
+  const handleInlineCreate = (day: number, hour: number) => {
+    const title = inlineTitle.trim();
+    if (!title) return;
+    const startMs = new Date(day);
+    startMs.setHours(hour, 0, 0, 0);
+    const task: Omit<Task, 'id' | 'createdAt' | 'completedAt'> = {
+      title,
+      status: 'todo',
+      blocked: false,
+      flag: false,
+      labels: [],
+      dueDate: startMs.getTime(),
+      startTime: startMs.getTime(),
+      endTime: startMs.getTime() + 60 * 60 * 1000,
+      allDay: false,
+      showInCalendar: true,
+    };
+    addTask(task);
+    setInlineSlot(null);
+    setInlineTitle('');
+  };
+
+  const clearInline = () => {
+    setInlineSlot(null);
+    setInlineTitle('');
+  };
+
   useEffect(() => {
     const el = containerRef.current;
-    if (el && typeof el.scrollTo === 'function') {
+    if (el && typeof el.scrollTo === 'function' && !scrolledRef.current) {
+      scrolledRef.current = true;
       const scrollTo = Math.max(0, nowTop - el.clientHeight / 2);
       el.scrollTo({ top: scrollTo, behavior: 'smooth' });
     }
@@ -281,11 +325,43 @@ function TimeGrid({ mode, start, items, onEdit, onCreate, onCompleteTask, langua
         </div>
         {days.map((day) => (
           <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
-            {HOURS.map((hour) => <button key={hour} type="button" data-testid={`calendar-slot-${String(hour).padStart(2, '0')}`} onClick={() => onCreate(day, hour)} className="block h-14 w-full border-b border-neutral-100 text-left focus:outline-none focus:ring-2 focus:ring-violet-300" />)}
+            {HOURS.map((hour) => {
+              const isActive = inlineSlot?.day === day && inlineSlot?.hour === hour;
+              if (isActive) {
+                return (
+                  <div key={hour} className="absolute left-1 right-1 z-10" style={{ top: hour * HOUR_HEIGHT }}>
+                    <input
+                      autoFocus
+                      type="text"
+                      value={inlineTitle}
+                      onChange={(e) => setInlineTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleInlineCreate(day, hour);
+                        if (e.key === 'Escape') clearInline();
+                      }}
+                      onBlur={() => {
+                        if (!inlineTitle.trim()) clearInline();
+                      }}
+                      placeholder={t('calendar.newEvent', language)}
+                      className="w-full rounded-lg border border-violet-400 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 shadow-lg outline-none ring-2 ring-violet-300 placeholder:text-neutral-400"
+                    />
+                  </div>
+                );
+              }
+              return (
+                <button
+                  key={hour}
+                  type="button"
+                  data-testid={`calendar-slot-${String(hour).padStart(2, '0')}`}
+                  onClick={() => { setInlineSlot({ day, hour }); setInlineTitle(''); }}
+                  className="block h-14 w-full border-b border-neutral-100 text-left focus:outline-none focus:ring-2 focus:ring-violet-300"
+                />
+              );
+            })}
             {timedItems.filter((item) => sameLocalDay(item.startTime, day)).map((item) => <TimedEvent key={item.kind + item.id} item={item} onEdit={onEdit} onCompleteTask={onCompleteTask} />)}
           </div>
         ))}
-        {showNowLine && <div data-testid="calendar-now-line" className="pointer-events-none absolute left-11 right-0 z-20 h-0.5 bg-violet-600" style={{ top: nowTop }} />}
+        {showNowLine && <div data-testid="calendar-now-line" className="pointer-events-none absolute left-11 right-0 z-30 h-0.5 bg-red-500" style={{ top: nowTop }} />}
       </div>
     </section>
   );
@@ -347,6 +423,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 
 function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarItem; language: Language; onEdit: (task: Task) => void; onCompleteTask?: (id: string) => void }) {
   const { labels, users, tasks: allTasks } = useApp();
+  const [showExpanded, setShowExpanded] = useState(false);
   const task = item.source;
   const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
   const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
@@ -364,11 +441,16 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
   const hasPriority = !!task.priority && !!PRIORITY_COLORS[task.priority];
 
   return (
-    <article onClick={() => onEdit(task)} className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm active:scale-[0.99] transition-transform">
+    <article className="mb-1 rounded-xl border border-neutral-200 bg-white p-2 shadow-sm">
       <div className="flex items-start gap-2">
         <input type="checkbox" checked={item.completed} onChange={() => onCompleteTask?.(item.id)} className="mt-1" />
         <div className="min-w-0 flex-1 space-y-1">
-          <h3 className={`text-sm font-semibold text-neutral-900 truncate ${item.completed ? 'line-through text-neutral-400' : ''}`}>{item.title}</h3>
+          <div className="flex items-center gap-1">
+            <h3 className={`text-sm font-semibold text-neutral-900 truncate flex-1 min-w-0 ${item.completed ? 'line-through text-neutral-400' : ''}`}>{item.title}</h3>
+            <button type="button" onClick={(e) => { e.stopPropagation(); setShowExpanded(!showExpanded); }} className="flex-shrink-0 p-1 rounded-md hover:bg-neutral-100 text-neutral-500" aria-label={showExpanded ? 'Collapse' : 'Expand'}>
+              {showExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
           <div className="flex flex-wrap gap-1">
             {task.labels.map((labelId) => {
               const label = labels.find((l) => l.id === labelId);
@@ -392,6 +474,11 @@ function ItemCard({ item, language, onEdit, onCompleteTask }: { item: CalendarIt
           </div>
         </div>
       </div>
+      {showExpanded && (
+        <div className="mt-2 pt-2 border-t border-neutral-100" onClick={(e) => e.stopPropagation()}>
+          <InlineEventEditor event={task} language={language} onCancel={() => setShowExpanded(false)} onSave={() => { onEdit(task); setShowExpanded(false); }} onChange={(updated) => onEdit(updated)} onDelete={task.id ? (id) => { onEdit({ ...task, id }); setShowExpanded(false); } : undefined} expandedDefault />
+        </div>
+      )}
     </article>
   );
 }

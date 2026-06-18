@@ -46,7 +46,7 @@ describe('CalendarView UI', () => {
     render(<CalendarView />);
 
     expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
-    expect(screen.getAllByText('Today')).toHaveLength(1);
+    expect(screen.queryByText('Today')).not.toBeInTheDocument();
     expect(screen.queryByText('Calendar view')).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
     expect(screen.getByTestId('calendar-period-title')).toHaveTextContent(/2026/);
@@ -105,28 +105,27 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'week' } });
     expect(screen.getByTestId('calendar-week-time-grid')).toBeInTheDocument();
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
-    expect(screen.getAllByText('07:00')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('00:00')[0]).toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
     expect(screen.getByTestId('calendar-day-time-grid')).toBeInTheDocument();
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
   });
 
-  it('opens inline quick add on a day time slot and keeps details collapsed until requested', () => {
+  it('opens inline title input on a day time slot and creates task on Enter', () => {
     render(<CalendarView />);
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
     fireEvent.click(screen.getByTestId('calendar-slot-09'));
 
-    expect(screen.getByTestId('calendar-quick-add')).toBeInTheDocument();
-    expect((screen.getByLabelText(/Start/) as HTMLInputElement).value).toMatch(/T09:00$/);
-    expect(screen.queryByPlaceholderText('Event Title')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('New event…')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Location')).not.toBeInTheDocument();
+    // Google-style: inline text input appears at the slot, not the header quick-add form
+    const inlineInput = screen.getByPlaceholderText('New event…');
+    expect(inlineInput).toBeInTheDocument();
+    fireEvent.change(inlineInput, { target: { value: 'Quick task' } });
+    fireEvent.keyDown(inlineInput, { key: 'Enter' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'More details' }));
-    // After refactor, expanded section only has all-day checkbox, no Location field
-    expect(screen.getByRole('checkbox')).toBeInTheDocument();
+    // After Enter, the task should be added and input closed
+    expect(screen.queryByPlaceholderText('New event…')).not.toBeInTheDocument();
   });
 
   it('marks today in month view and shows tasks in agenda view', () => {
