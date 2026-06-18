@@ -1,7 +1,7 @@
 import { RRule, rrulestr } from 'rrule';
 import type { Task, RepeatInterval } from '../types';
 
-export type CalendarView = 'month' | 'week' | 'day' | 'agenda';
+export type CalendarView = 'month' | 'week' | 'workweek' | 'day' | 'agenda';
 
 export interface CalendarItem {
   id: string;
@@ -17,7 +17,7 @@ export interface CalendarItem {
   completed?: boolean;
 }
 
-const VALID_VIEWS: CalendarView[] = ['month', 'week', 'day', 'agenda'];
+const VALID_VIEWS: CalendarView[] = ['month', 'week', 'workweek', 'day', 'agenda'];
 
 export function getDefaultCalendarView(width = window.innerWidth, height = window.innerHeight): CalendarView {
   if (width < 640) return width > height ? 'week' : 'agenda';

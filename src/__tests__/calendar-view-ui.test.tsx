@@ -65,46 +65,18 @@ describe('CalendarView UI', () => {
     expect(screen.queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
   });
 
-  it('opens compact quick add using the header search field as title input and saves with an icon', () => {
+  it('creates a task immediately when clicking Add button', () => {
     render(<CalendarView />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    expect(screen.queryByTestId('calendar-event-modal')).not.toBeInTheDocument();
-    const quickAdd = screen.getByTestId('calendar-quick-add');
-    expect(quickAdd).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Event Title')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('New event…')).toBeInTheDocument();
-    expect(screen.getByTestId('calendar-time-row')).toHaveClass('grid-cols-2');
-    expect((screen.getByLabelText(/Start/) as HTMLInputElement).value).toMatch(/T09:00$/);
-
-    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Plan sprint' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
-    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Plan sprint' }));
-  });
-
-  it('preserves typed header text when plus starts quick add and validates save', async () => {
-    render(<CalendarView />);
-
-    fireEvent.change(screen.getByPlaceholderText('Search calendar…'), { target: { value: 'test' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-
-    expect(screen.getByPlaceholderText('New event…')).toHaveValue('test');
-    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: '' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
-    expect(addTask).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert')).toHaveTextContent('Title is required');
-  });
-
-  it('creates a task, closes quick add, and shows it immediately without refetch', async () => {
-    render(<CalendarView />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
-    fireEvent.change(screen.getByPlaceholderText('New event…'), { target: { value: 'Visible now' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save event' }));
-
-    expect(await screen.findByText('Visible now')).toBeInTheDocument();
+    // No quick-add form — addTask is called directly
     expect(screen.queryByTestId('calendar-quick-add')).not.toBeInTheDocument();
+    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
+      title: '',
+      status: 'todo',
+      showInCalendar: true,
+    }));
   });
 
   it('renders week and day as screen-filling time grids with a current-time line', () => {

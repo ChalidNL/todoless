@@ -330,6 +330,7 @@ interface TranslationStructure {
     eventDescription: string;
     month: string;
     week: string;
+    workweek: string;
     day: string;
     agenda: string;
     today: string;
@@ -724,6 +725,7 @@ export const translations: Record<Language, TranslationStructure> = {
       eventDescription: 'Event Description',
       month: 'Month',
       week: 'Week',
+      workweek: 'Work week',
       day: 'Day',
       agenda: 'Agenda',
       today: 'Today',
@@ -1116,6 +1118,7 @@ export const translations: Record<Language, TranslationStructure> = {
       eventDescription: 'Description de l\'événement',
       month: 'Mois',
       week: 'Semaine',
+      workweek: 'Semaine de travail',
       day: 'Jour',
       agenda: 'Agenda',
       today: 'Aujourd’hui',
@@ -1508,6 +1511,7 @@ export const translations: Record<Language, TranslationStructure> = {
       eventDescription: 'Evenement beschrijving',
       month: 'Maand',
       week: 'Week',
+      workweek: 'Werkweek',
       day: 'Dag',
       agenda: 'Agenda',
       today: 'Vandaag',
@@ -1900,6 +1904,7 @@ export const translations: Record<Language, TranslationStructure> = {
       eventDescription: 'Ereignisbeschreibung',
       month: 'Monat',
       week: 'Woche',
+      workweek: 'Arbeitswoche',
       day: 'Tag',
       agenda: 'Agenda',
       today: 'Heute',
