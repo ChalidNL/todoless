@@ -111,6 +111,10 @@ const entryToTask = (entry: Entry): Task => ({
   linkedTo: entry.linkedTo,
   linkedType: entry.linkedType,
   flag: entry.flag ?? false,
+  startTime: entry.startTime,
+  endTime: entry.endTime,
+  allDay: entry.allDay,
+  showInCalendar: entry.showInCalendar,
   createdAt: entry.createdAt,
   createdBy: entry.createdBy,
 });

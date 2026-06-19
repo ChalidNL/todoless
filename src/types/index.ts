@@ -307,6 +307,10 @@ export interface Entry {
   linkedTo?: string;
   linkedType?: 'task' | 'item' | 'note';
   flag?: boolean;
+  startTime?: number;
+  endTime?: number;
+  allDay?: boolean;
+  showInCalendar?: boolean;
   createdAt: number;
   createdBy?: string;
   // Item-specific fields
