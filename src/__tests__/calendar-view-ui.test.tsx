@@ -66,16 +66,25 @@ describe('CalendarView UI', () => {
   });
 
   it('creates a task immediately when clicking Add button', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
     render(<CalendarView />);
 
+    const search = screen.getByPlaceholderText('Search calendar…');
+    fireEvent.change(search, { target: { value: 'From search' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
     // No quick-add form — addTask is called directly
     expect(screen.queryByTestId('calendar-quick-add')).not.toBeInTheDocument();
     expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'From search',
       status: 'todo',
       showInCalendar: true,
+      allDay: false,
     }));
+    expect(addTask.mock.calls[0][0].startTime).toBe(new Date(2026, 5, 20, 10, 15, 0, 0).getTime());
+    expect(search).toHaveValue('');
+    vi.useRealTimers();
   });
 
   it('renders week and day as screen-filling time grids with a current-time line', () => {
@@ -89,6 +98,34 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
     expect(screen.getByTestId('calendar-day-time-grid')).toBeInTheDocument();
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
+  });
+
+  it('renders timed tasks in day view through the expandable CompactTaskCard', () => {
+    const now = new Date();
+    const taskStart = new Date(now);
+    taskStart.setHours(6, 0, 0, 0);
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'task-compact',
+        title: 'Teat',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: taskStart.getTime(),
+        showInCalendar: true,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
+
+    const slotCard = screen.getByTestId('calendar-timed-task-task-compact');
+    expect(within(slotCard).getByText('Teat')).toBeInTheDocument();
+    fireEvent.click(within(slotCard).getByRole('button', { name: 'Open Editor' }));
+    expect(within(slotCard).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
   });
 
   it('opens inline title input on a day time slot and creates task on Enter', () => {

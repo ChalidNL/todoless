@@ -25,6 +25,8 @@ interface CompactTaskCardProps {
   showCheckbox?: boolean;
   urgent?: boolean;
   startExpanded?: boolean;
+  compact?: boolean;
+  className?: string;
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
@@ -73,7 +75,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '' }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
@@ -312,6 +314,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
   const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
   const isRepeatFiltered = (repeatInterval?: RepeatInterval | null) => repeatInterval ? isChipFilterActive('repeat', repeatInterval) : false;
+  const cardPaddingClass = compact && !showMenu ? 'p-1.5' : 'p-2.5';
 
   const openEditor = (editor: TaskEditor) => {
     setShowMenu(true);
@@ -366,8 +369,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
-        <div className="p-2.5">
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${className}`}>
+        <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
@@ -405,13 +408,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   }
                 }}
                 autoFocus
-                className={`text-sm font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
+                className={`${compact ? 'text-xs' : 'text-sm'} font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
                   isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
                 }`}
                 aria-label={t('tasks.editTaskTitle')}
               />
             ) : (
-            <span className={`text-sm font-medium flex-1 truncate ${
+            <span className={`${compact ? 'text-xs' : 'text-sm'} font-medium flex-1 truncate ${
               isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
             }`}>
               {task.title}
@@ -446,7 +449,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
           {!isDone && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
-            <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
+            <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
                 return label ? (
