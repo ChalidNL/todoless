@@ -12,17 +12,39 @@ import {
 
 describe('calendar utilities', () => {
   it('keeps dated tasks in calendar as task items without duplicating events', () => {
-    const day = new Date('2026-06-16T10:00:00.000Z').getTime();
+    const day = new Date(2026, 5, 16, 0, 0, 0, 0).getTime();
+    const timed = new Date(2026, 5, 16, 10, 0, 0, 0).getTime();
     const tasks = [
       task({ id: 'task-1', title: 'Tandarts', dueDate: day }),
       task({ id: 'task-2', title: 'Verborgen', dueDate: day, showInCalendar: false }),
       task({ id: 'task-3', title: 'Geen datum' }),
-      task({ id: 'task-4', title: 'School', dueDate: day, startTime: day, endTime: day + 3600000 }),
+      task({ id: 'task-4', title: 'School', dueDate: timed, startTime: timed, endTime: timed + 3600000 }),
     ];
 
     const items = buildCalendarItems({ tasks, rangeStart: startOfDay(day), rangeEnd: endOfDay(day) });
 
     expect(items.map((item) => `${item.kind}:${item.id}`)).toEqual(['task:task-1', 'task:task-4']);
+  });
+
+  it('places Tasks-created dueDate-with-time records into the matching timed slot even when startTime is empty', () => {
+    const sixAM = new Date(2026, 5, 20, 6, 0, 0, 0).getTime();
+    const tasks = [task({ id: 'task-teat', title: 'Teat', dueDate: sixAM })];
+
+    const items = buildCalendarItems({ tasks, rangeStart: startOfDay(sixAM), rangeEnd: endOfDay(sixAM) });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ id: 'task-teat', title: 'Teat', allDay: false, startTime: sixAM });
+    expect(new Date(items[0].startTime!).getHours()).toBe(6);
+  });
+
+  it('keeps date-only tasks in the all-day row', () => {
+    const midnight = new Date(2026, 5, 20, 0, 0, 0, 0).getTime();
+    const tasks = [task({ id: 'task-all-day', title: 'All day', dueDate: midnight })];
+
+    const items = buildCalendarItems({ tasks, rangeStart: startOfDay(midnight), rangeEnd: endOfDay(midnight) });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ id: 'task-all-day', allDay: true, startTime: startOfDay(midnight) });
   });
 
   it('expands recurring tasks and skips EXDATE instances', () => {

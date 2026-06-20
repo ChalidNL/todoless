@@ -278,12 +278,17 @@ function TimedEvent({ item }: { item: CalendarItem }) {
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
   const durationMinutes = Math.max(30, (end.getTime() - start.getTime()) / 60000);
+  const timeLabel = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
 
   return (
     <div
-      className="absolute left-1 right-1 overflow-hidden rounded-lg border-l-2 shadow-sm"
-      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 4, height: Math.max(4, (durationMinutes / 60) * HOUR_HEIGHT), borderLeftColor: item.color || '#8B5CF6' }}
-    />
+      data-testid={`calendar-timed-task-${item.id}`}
+      className="absolute left-1 right-1 z-20 overflow-hidden rounded-lg border border-neutral-200 border-l-4 bg-white px-2 py-1 text-left shadow-sm"
+      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 28, height: Math.max(28, (durationMinutes / 60) * HOUR_HEIGHT), borderLeftColor: item.color || '#8B5CF6' }}
+    >
+      <div className="truncate text-[11px] font-semibold leading-tight text-neutral-900">{item.title}</div>
+      <div className="text-[10px] leading-tight text-neutral-500">{timeLabel}</div>
+    </div>
   );
 }
 

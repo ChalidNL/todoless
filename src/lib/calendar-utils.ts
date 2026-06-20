@@ -18,6 +18,7 @@ export interface CalendarItem {
 }
 
 const VALID_VIEWS: CalendarView[] = ['month', 'week', 'workweek', 'day', 'agenda'];
+const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 export function getDefaultCalendarView(width = window.innerWidth, height = window.innerHeight): CalendarView {
   if (width < 640) return width > height ? 'week' : 'agenda';
@@ -56,14 +57,10 @@ export function buildCalendarItems({
 
   const nonRecurringItems = nonRecurringTasks
     .filter((task) => {
-      if (task.startTime) {
-        const end = task.endTime || task.startTime + 3600000;
-        return overlaps(task.startTime, end, rangeStart, rangeEnd);
-      }
-      if (task.dueDate) {
-        return overlaps(startOfLocalDay(task.dueDate), endOfLocalDay(task.dueDate), rangeStart, rangeEnd);
-      }
-      return false;
+      const placement = getTaskCalendarPlacement(task);
+      if (!placement) return false;
+      if (!placement.allDay) return overlaps(placement.startTime, placement.endTime, rangeStart, rangeEnd);
+      return overlaps(startOfLocalDay(placement.startTime), endOfLocalDay(placement.startTime), rangeStart, rangeEnd);
     })
     .map(taskToItem);
 
@@ -155,15 +152,18 @@ export function toTimeLabel(timestamp: number, locale = 'en') {
 }
 
 function taskToItem(task: Task): CalendarItem {
-  // Respect explicit allDay flag even if startTime is present
-  if (task.allDay) {
-    const timestamp = task.startTime || task.dueDate!;
+  const placement = getTaskCalendarPlacement(task);
+  if (!placement) {
+    throw new Error(`Cannot build calendar item for undated task ${task.id}`);
+  }
+
+  if (placement.allDay) {
     return {
       id: task.id,
       kind: 'task',
       title: task.title,
-      startTime: startOfLocalDay(timestamp),
-      endTime: startOfLocalDay(timestamp),
+      startTime: startOfLocalDay(placement.startTime),
+      endTime: startOfLocalDay(placement.startTime),
       allDay: true,
       color: '#8B5CF6',
       source: task,
@@ -172,35 +172,39 @@ function taskToItem(task: Task): CalendarItem {
     };
   }
 
-  if (task.startTime) {
-    return {
-      id: task.id,
-      kind: 'task',
-      title: task.title,
-      startTime: task.startTime,
-      endTime: task.endTime || task.startTime + 3600000,
-      allDay: false,
-      color: '#8B5CF6',
-      source: task,
-      completed: task.status === 'done',
-      recurring: !!task.repeatInterval,
-    };
-  }
-
-  // dueDate but no startTime → all-day
-  const dueDate = task.dueDate!;
   return {
     id: task.id,
     kind: 'task',
     title: task.title,
-    startTime: startOfLocalDay(dueDate),
-    endTime: startOfLocalDay(dueDate),
-    allDay: true,
+    startTime: placement.startTime,
+    endTime: placement.endTime,
+    allDay: false,
     color: '#8B5CF6',
     source: task,
     completed: task.status === 'done',
     recurring: !!task.repeatInterval,
   };
+}
+
+function getTaskCalendarPlacement(task: Task): { startTime: number; endTime: number; allDay: boolean } | null {
+  const timestamp = task.startTime ?? task.dueDate;
+  if (!timestamp) return null;
+
+  const allDay = task.allDay === true || !hasClockTime(timestamp);
+  if (allDay) {
+    return { startTime: timestamp, endTime: timestamp, allDay: true };
+  }
+
+  return {
+    startTime: timestamp,
+    endTime: task.endTime && task.endTime > timestamp ? task.endTime : timestamp + DEFAULT_DURATION_MS,
+    allDay: false,
+  };
+}
+
+function hasClockTime(timestamp: number) {
+  const d = new Date(timestamp);
+  return d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0 || d.getMilliseconds() !== 0;
 }
 
 function overlaps(start: number, end: number, rangeStart: number, rangeEnd: number) {
