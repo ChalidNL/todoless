@@ -353,7 +353,8 @@
     "editShopTitle": "Edit Shop",
     "labelNamePlaceholder": "Label Name",
     "shopNamePlaceholder": "Shop Name",
-    "firstDayOfWeek": "First day of week"
+    "firstDayOfWeek": "First day of week",
+    "preferences": "Preferences"
   },
   "projects": {
     "title": "Projects",

@@ -91,12 +91,14 @@ describe('Calendar Google-inspired UX', () => {
 
     const search = screen.getByPlaceholderText('Search calendar…');
     fireEvent.change(search, { target: { value: 'Enter saved task' } });
-    fireEvent.keyDown(search, { key: 'Enter' });
+    search.focus();
+    expect(fireEvent.keyDown(search, { key: 'Enter' })).toBe(false);
     fireEvent.keyDown(search, { key: 'Enter' });
 
     expect(addTask).toHaveBeenCalledTimes(1);
     expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Enter saved task', showInCalendar: true }));
     expect(search).toHaveValue('');
+    expect(document.activeElement).toBe(search);
     vi.useRealTimers();
   });
 
@@ -106,7 +108,17 @@ describe('Calendar Google-inspired UX', () => {
     expect(options.map((option) => option.textContent)).toEqual(['Schedule', 'Day', '3 days', 'Week', 'Work week', 'Month']);
   });
 
-  it('renders overlapping timed tasks side-by-side across the full day column with duration height', () => {
+  it('draws the now line across the grid with the dot anchored left', () => {
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
+
+    const nowLine = screen.getByTestId('calendar-now-line');
+    expect(nowLine).toHaveClass('left-0');
+    expect(nowLine).toHaveClass('right-0');
+    expect(screen.getByTestId('calendar-now-dot')).toHaveClass('left-[36px]');
+  });
+
+  it('renders overlapping timed tasks side-by-side as compact cards that expand to edit', () => {
     const start = new Date();
     start.setHours(9, 0, 0, 0);
     const taskA = task({ id: 'a', title: 'A', dueDate: start.getTime(), startTime: start.getTime(), endTime: start.getTime() + 2 * 3600000 });
@@ -122,6 +134,10 @@ describe('Calendar Google-inspired UX', () => {
     expect(second).toHaveStyle({ width: '50%' });
     expect(first).toHaveStyle({ height: '112px' });
     expect(within(first).getByText(/09:00/)).toBeInTheDocument();
+    expect(within(first).queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(first.querySelector('.rounded-sm')).toBeTruthy();
+    fireEvent.click(within(first).getByText('A'));
+    expect(within(first).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
@@ -141,6 +157,7 @@ describe('Calendar Google-inspired UX', () => {
 
   it('persists first day of week from Settings', () => {
     render(<Settings />);
+    fireEvent.click(screen.getByRole('button', { name: /Preferences/i }));
     const select = screen.getByRole('combobox', { name: 'First day of week' });
     fireEvent.change(select, { target: { value: '0' } });
     expect(updateAppSettings).toHaveBeenCalledWith({ sprintStartDay: 0 });

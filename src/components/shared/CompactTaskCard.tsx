@@ -321,6 +321,17 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     setActiveEditor(editor);
   };
 
+  const expandFromCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    trackInteraction();
+    const target = event.target as HTMLElement;
+    if (target.closest('button, input, select, textarea, a, [role="button"]')) return;
+    if (!showMenu) {
+      setShowMenu(true);
+      setTitleDraft(task.title);
+      setActiveEditor(null);
+    }
+  };
+
   const resetParentPicker = () => {
     setShowParentPicker(false);
     setParentSearch('');
@@ -352,7 +363,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     <>
       <div
         ref={cardRef}
-        onClick={trackInteraction}
+        onClick={expandFromCardClick}
         className={`rounded-lg border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'

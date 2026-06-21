@@ -353,7 +353,8 @@
     "editShopTitle": "Winkel bewerken",
     "labelNamePlaceholder": "Labelnaam",
     "shopNamePlaceholder": "Winkelnaam",
-    "firstDayOfWeek": "Eerste dag van de week"
+    "firstDayOfWeek": "Eerste dag van de week",
+    "preferences": "Voorkeuren"
   },
   "projects": {
     "title": "Projecten",

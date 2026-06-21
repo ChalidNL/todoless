@@ -234,6 +234,7 @@ interface TranslationStructure {
     passwordUpdated: string;
     pendingCount: string;
     profile: string;
+    preferences: string;
     profileSaveFailed: string;
     reject: string;
     rejectAgentConfirm: string;
@@ -632,6 +633,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Password updated successfully',
       pendingCount: 'Pending',
       profile: 'Profile',
+      preferences: 'Preferences',
       profileSaveFailed: 'Failed to save profile',
       reject: 'Reject',
       rejectAgentConfirm: 'Are you sure you want to reject this agent?',
@@ -1028,6 +1030,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Mot de passe mis à jour avec succès',
       pendingCount: 'En attente',
       profile: 'Profil',
+      preferences: 'Préférences',
       profileSaveFailed: 'Échec de la sauvegarde du profil',
       reject: 'Rejeter',
       rejectAgentConfirm: 'Êtes-vous sûr de vouloir rejeter cet agent ?',
@@ -1424,6 +1427,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Wachtwoord succesvol bijgewerkt',
       pendingCount: 'In afwachting',
       profile: 'Profiel',
+      preferences: 'Voorkeuren',
       profileSaveFailed: 'Profiel opslaan mislukt',
       reject: 'Afwijzen',
       rejectAgentConfirm: 'Weet u zeker dat u deze agent wilt afwijzen?',
@@ -1820,6 +1824,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Passwort erfolgreich aktualisiert',
       pendingCount: 'Ausstehend',
       profile: 'Profil',
+      preferences: 'Einstellungen',
       profileSaveFailed: 'Profil speichern fehlgeschlagen',
       reject: 'Ablehnen',
       rejectAgentConfirm: 'Sind Sie sicher, dass Sie diesen Agenten ablehnen möchten?',
