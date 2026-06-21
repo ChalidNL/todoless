@@ -125,7 +125,7 @@ describe('Calendar Google-inspired UX', () => {
   it('renders overlapping timed tasks as opaque time-slot blocks that expand into a larger editor', () => {
     const start = new Date();
     start.setHours(9, 0, 0, 0);
-    const taskA = task({ id: 'a', title: 'A', dueDate: start.getTime(), startTime: start.getTime(), endTime: start.getTime() + 2 * 3600000 });
+    const taskA = task({ id: 'a', title: 'Alpha', dueDate: start.getTime(), startTime: start.getTime(), endTime: start.getTime() + 2 * 3600000 });
     const taskB = task({ id: 'b', title: 'B', dueDate: start.getTime() + 30 * 60000, startTime: start.getTime() + 30 * 60000, endTime: start.getTime() + 90 * 60000 });
     useAppMock.mockReturnValue({ ...baseAppValue, tasks: [taskA, taskB] });
 
@@ -139,15 +139,20 @@ describe('Calendar Google-inspired UX', () => {
     expect(first).toHaveStyle({ height: '112px' });
     expect(first).toHaveClass('bg-violet-100');
     expect(first).toHaveClass('rounded-sm');
-    expect(within(first).getByText(/09:00/)).toBeInTheDocument();
+    const title = within(first).getByText('Alpha');
+    const time = within(first).getByText(/09:00/);
+    expect(first.textContent?.indexOf('Alpha')).toBeLessThan(first.textContent?.indexOf('09:00') ?? -1);
+    expect(title).toHaveClass('text-[12px]');
+    expect(title).toHaveClass('font-bold');
+    expect(time).toHaveClass('text-[10px]');
     expect(within(first).queryByText(/Jun/)).not.toBeInTheDocument();
     expect(within(first).queryByRole('checkbox')).not.toBeInTheDocument();
     const calendarCard = within(first).getByTestId('compact-task-card-a');
     expect(calendarCard).toHaveAttribute('data-component', 'CompactTaskCard');
-    fireEvent.click(within(first).getByText('A'));
+    fireEvent.click(within(first).getByText('Alpha'));
     expect(calendarCard).toHaveClass('min-w-[280px]');
     const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
-    expect(titleEditor).toHaveValue('A');
+    expect(titleEditor).toHaveValue('Alpha');
   });
 
   it('uses the selected first day of week for week and month ranges', () => {

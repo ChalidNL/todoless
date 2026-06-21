@@ -387,9 +387,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   : 'bg-white'
         } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? 'relative z-50 min-w-[280px] max-w-[min(92vw,360px)] !rounded-sm !bg-white shadow-2xl' : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
-          {calendarTimeLabel && !showMenu && (
-            <div className="mb-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
-          )}
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
@@ -433,7 +430,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 aria-label={t('tasks.editTaskTitle')}
               />
             ) : (
-            <span className={`${compact ? 'text-xs' : 'text-sm'} font-medium flex-1 truncate ${
+            <span className={`${calendarBlock ? 'text-[12px] font-bold' : compact ? 'text-xs font-medium' : 'text-sm font-medium'} flex-1 truncate ${
               isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
             }`}>
               {task.title}
@@ -465,6 +462,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               }
             </button>
           </div>
+          {calendarTimeLabel && !showMenu && (
+            <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
+          )}
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
           {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
