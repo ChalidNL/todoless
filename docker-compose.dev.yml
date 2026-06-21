@@ -2,7 +2,7 @@ name: todoless
 
 services:
   todoless:
-    image: ghcr.io/chalidnl/todoless-ngx-frontend:dev
+    image: ghcr.io/chalidnl/todoless-frontend:dev
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -41,7 +41,7 @@ services:
             en_US: Web UI
 
   pocketbase:
-    image: ghcr.io/chalidnl/todoless-ngx-pocketbase:dev
+    image: ghcr.io/chalidnl/todoless-pocketbase:dev
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
