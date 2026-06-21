@@ -326,7 +326,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
           );
         })}
         {showNowLine && (
-          <div data-testid="calendar-now-line" className="pointer-events-none absolute left-0 right-0 z-40 h-0.5 bg-red-500" style={{ top: nowTop }}>
+          <div data-testid="calendar-now-line" className="pointer-events-none absolute left-0 right-0 z-[60] h-[2px] bg-red-500 shadow-[0_0_0_1px_rgba(239,68,68,0.15)]" style={{ top: nowTop }}>
             <span data-testid="calendar-now-time-chip" className="absolute left-0 -top-2.5 rounded-sm bg-red-500 px-1 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm">{formatNowTime(now)}</span>
           </div>
         )}

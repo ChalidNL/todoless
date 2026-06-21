@@ -385,7 +385,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? 'relative z-50 min-w-[280px] max-w-[min(92vw,360px)] !rounded-sm !bg-white shadow-2xl' : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? 'relative z-50 w-[min(430px,calc(100vw-24px))] max-w-none !rounded-sm !bg-white shadow-2xl' : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
@@ -670,7 +670,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div>
                 {/* Attribute buttons */}
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 ${calendarBlock ? 'flex-wrap' : ''}`}>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${

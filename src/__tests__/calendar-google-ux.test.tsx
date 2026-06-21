@@ -117,6 +117,8 @@ describe('Calendar Google-inspired UX', () => {
     const nowLine = screen.getByTestId('calendar-now-line');
     expect(nowLine).toHaveClass('left-0');
     expect(nowLine).toHaveClass('right-0');
+    expect(nowLine).toHaveClass('h-[2px]');
+    expect(nowLine).toHaveClass('z-[60]');
     expect(screen.getByTestId('calendar-now-time-chip')).toHaveTextContent('08:38');
     expect(screen.queryByTestId('calendar-now-dot')).not.toBeInTheDocument();
     vi.useRealTimers();
@@ -150,7 +152,8 @@ describe('Calendar Google-inspired UX', () => {
     const calendarCard = within(first).getByTestId('compact-task-card-a');
     expect(calendarCard).toHaveAttribute('data-component', 'CompactTaskCard');
     fireEvent.click(within(first).getByText('Alpha'));
-    expect(calendarCard).toHaveClass('min-w-[280px]');
+    expect(calendarCard).toHaveClass('w-[min(430px,calc(100vw-24px))]');
+    expect(calendarCard).toHaveClass('max-w-none');
     const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
     expect(titleEditor).toHaveValue('Alpha');
   });
