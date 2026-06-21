@@ -327,7 +327,8 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
         })}
         {showNowLine && (
           <div data-testid="calendar-now-line" className="pointer-events-none absolute left-0 right-0 z-40 h-0.5 bg-red-500" style={{ top: nowTop }}>
-            <span data-testid="calendar-now-dot" className="absolute left-[36px] -top-1.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white" />
+            <span data-testid="calendar-now-time-chip" className="absolute left-0 -top-2.5 rounded-sm bg-red-500 px-1 py-0.5 text-[10px] font-bold leading-none text-white shadow-sm">{formatNowTime(now)}</span>
+            <span data-testid="calendar-now-dot" className="absolute left-[42px] -top-1.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white" />
           </div>
         )}
       </div>
@@ -336,6 +337,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
 }
 
 function CalendarTaskSlot({ item, language }: { item: TimedLayout; language: Language }) {
+  const [expanded, setExpanded] = useState(false);
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
@@ -343,17 +345,43 @@ function CalendarTaskSlot({ item, language }: { item: TimedLayout; language: Lan
   const width = `${100 / item.columns}%`;
   const left = `${(100 / item.columns) * item.column}%`;
   const height = Math.max(42, (durationMinutes / 60) * HOUR_HEIGHT);
+  const timeLabel = `${toTimeLabel(item.startTime, language)}–${toTimeLabel(item.endTime, language)}`;
 
   return (
     <div
       data-testid={`calendar-timed-task-${item.id}`}
-      className="absolute z-10 pr-1"
+      className={`absolute z-20 rounded-sm border border-violet-300 bg-violet-100 text-left shadow-sm ring-1 ring-white/80 ${expanded ? 'overflow-visible' : 'overflow-hidden'}`}
       style={{ top: (startMinutes / 60) * HOUR_HEIGHT, left, width, height: `${height}px` }}
     >
-      <div className="h-full min-h-0 overflow-visible rounded-sm text-left">
-        <p className="mb-0.5 truncate rounded-sm bg-violet-700 px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-white">{toTimeLabel(item.startTime, language)}–{toTimeLabel(item.endTime, language)}</p>
-        <CompactTaskCard task={item.source} showCheckbox={false} compact className="!rounded-sm border-violet-300 bg-violet-100 shadow-sm ring-1 ring-white/70" />
-      </div>
+      <button
+        type="button"
+        data-testid={`calendar-compact-task-${item.id}`}
+        onClick={() => setExpanded(true)}
+        className="flex h-full w-full flex-col items-start overflow-hidden rounded-sm bg-violet-100 px-1.5 py-1 text-left"
+      >
+        <span className="w-full truncate text-[10px] font-bold leading-tight text-violet-700">{timeLabel}</span>
+        <span className="mt-0.5 w-full truncate text-[11px] font-bold leading-tight text-violet-950">{item.title}</span>
+      </button>
+
+      {expanded && (
+        <div
+          data-testid={`calendar-expanded-task-${item.id}`}
+          className="absolute left-0 top-0 z-50 min-w-[280px] max-w-[min(92vw,360px)] rounded-sm border border-violet-300 bg-white p-1.5 shadow-2xl"
+        >
+          <div className="mb-1 flex items-center justify-between gap-2 rounded-sm bg-violet-700 px-2 py-1 text-[10px] font-bold text-white">
+            <span className="truncate">{timeLabel}</span>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              className="rounded-sm px-1 text-white/90 hover:bg-white/15"
+              aria-label={t('common.close')}
+            >
+              ×
+            </button>
+          </div>
+          <CompactTaskCard task={item.source} showCheckbox={false} startExpanded className="!rounded-sm border-violet-200 bg-white" />
+        </div>
+      )}
     </div>
   );
 }
@@ -403,6 +431,11 @@ function roundToNextQuarterHour(timestamp: number) {
     d.setHours(d.getHours() + 1, 0, 0, 0);
   }
   return d.getTime();
+}
+
+function formatNowTime(timestamp: number) {
+  const d = new Date(timestamp);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: Language) {

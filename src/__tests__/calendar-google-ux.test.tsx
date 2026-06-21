@@ -108,17 +108,21 @@ describe('Calendar Google-inspired UX', () => {
     expect(options.map((option) => option.textContent)).toEqual(['Schedule', 'Day', '3 days', 'Week', 'Work week', 'Month']);
   });
 
-  it('draws the now line across the grid with the dot anchored left', () => {
+  it('draws the now line as a full-width line with a current-time chip on the time axis', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 20, 8, 38, 0, 0));
     render(<CalendarView />);
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
 
     const nowLine = screen.getByTestId('calendar-now-line');
     expect(nowLine).toHaveClass('left-0');
     expect(nowLine).toHaveClass('right-0');
-    expect(screen.getByTestId('calendar-now-dot')).toHaveClass('left-[36px]');
+    expect(screen.getByTestId('calendar-now-time-chip')).toHaveTextContent('08:38');
+    expect(screen.getByTestId('calendar-now-dot')).toHaveClass('left-[42px]');
+    vi.useRealTimers();
   });
 
-  it('renders overlapping timed tasks side-by-side as compact cards that expand to edit', () => {
+  it('renders overlapping timed tasks as opaque time-slot blocks that expand into a larger editor', () => {
     const start = new Date();
     start.setHours(9, 0, 0, 0);
     const taskA = task({ id: 'a', title: 'A', dueDate: start.getTime(), startTime: start.getTime(), endTime: start.getTime() + 2 * 3600000 });
@@ -133,11 +137,15 @@ describe('Calendar Google-inspired UX', () => {
     expect(first).toHaveStyle({ width: '50%' });
     expect(second).toHaveStyle({ width: '50%' });
     expect(first).toHaveStyle({ height: '112px' });
+    expect(first).toHaveClass('bg-violet-100');
+    expect(first).toHaveClass('rounded-sm');
     expect(within(first).getByText(/09:00/)).toBeInTheDocument();
+    expect(within(first).queryByText(/Jun/)).not.toBeInTheDocument();
     expect(within(first).queryByRole('checkbox')).not.toBeInTheDocument();
-    expect(first.querySelector('.rounded-sm')).toBeTruthy();
-    fireEvent.click(within(first).getByText('A'));
-    expect(within(first).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
+    fireEvent.click(within(first).getByTestId('calendar-compact-task-a'));
+    const editor = within(first).getByTestId('calendar-expanded-task-a');
+    expect(editor).toHaveClass('min-w-[280px]');
+    expect(within(editor).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
