@@ -13,13 +13,13 @@ Thanks for your interest in contributing! todoless is family data software — p
 
 1. **Issues** — Bug reports and feature ideas are welcome. Search existing issues first.
 2. **Pull requests** — Fork, branch, make your change, open a PR against `dev`. Keep PRs focused — one thing, well done.
-3. **Discussions** — For questions, ideas, or help, open a [discussion](https://github.com/ChalidNL/todoless-web/discussions).
+3. **Discussions** — For questions, ideas, or help, open a [discussion](https://github.com/ChalidNL/todoless/discussions).
 
 ## Development setup
 
 ```bash
-git clone https://github.com/ChalidNL/todoless-web.git
-cd todoless-web
+git clone https://github.com/ChalidNL/todoless.git
+cd todoless
 npm install
 cp .env.example .env  # edit as needed
 npm run dev            # frontend dev server

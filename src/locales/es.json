@@ -109,7 +109,7 @@
     "step4Title": "Crear Cuenta de Administrador",
     "stepUserDesc": "¿Listo para liberar tu mente y organizarte?",
     "stepUserTitle": "Empecemos",
-    "welcome": "Bienvenido a todoless-ngx",
+    "welcome": "Bienvenido a todoless",
     "workspaceName": "Nombre del espacio de trabajo",
     "workspaceNameMissing": "Falta el nombre del espacio de trabajo — vuelve atrás e introdúcelo",
     "exampleFamilyName": "Familia García"
@@ -433,8 +433,8 @@
     "generateMember": "Generar invitación de miembro",
     "memberInviteTitle": "Compartir invitación de miembro",
     "memberLabel": "Miembro",
-    "shareTitle": "Invitación a todoless-ngx",
-    "shareText": "Invitación de miembro a todoless-ngx\n\nCódigo: {code}\n\n{url}",
+    "shareTitle": "Invitación a todoless",
+    "shareText": "Invitación de miembro a todoless\n\nCódigo: {code}\n\n{url}",
     "copyText": "{url}\n\nCódigo: {code}"
   },
   "calendar": {
@@ -501,7 +501,7 @@
   "auth": {
     "appError": "Error de la app",
     "welcomeBack": "Bienvenido de nuevo",
-    "signInSubtitle": "Inicia sesión en tu cuenta de todoless-ngx",
+    "signInSubtitle": "Inicia sesión en tu cuenta de todoless",
     "email": "Correo electrónico",
     "password": "Contraseña",
     "logIn": "Iniciar sesión",
@@ -509,7 +509,7 @@
     "invalidCredentials": "Correo o contraseña no válidos",
     "noAccountInviteHint": "¿No tienes cuenta? Contacta con tu administrador para una invitación.",
     "iHaveInviteCode": "Tengo un código de invitación",
-    "joinTitle": "Únete a todoless-ngx",
+    "joinTitle": "Únete a todoless",
     "invitePrompt": "Introduce tu código de invitación de 6 dígitos para empezar",
     "inviteCode": "Código de invitación",
     "validateCode": "Validar código",

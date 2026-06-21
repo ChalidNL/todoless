@@ -109,7 +109,7 @@
     "step4Title": "Créer un Compte Administrateur",
     "stepUserDesc": "Prêt à libérer votre esprit et à vous organiser ?",
     "stepUserTitle": "C'est Parti",
-    "welcome": "Bienvenue sur todoless-ngx",
+    "welcome": "Bienvenue sur todoless",
     "workspaceName": "Nom de l'espace de travail",
     "workspaceNameMissing": "Le nom de l'espace de travail est manquant — revenez en arrière et saisissez-le",
     "exampleFamilyName": "Famille Dupont"
@@ -433,8 +433,8 @@
     "generateMember": "Générer une invitation membre",
     "memberInviteTitle": "Partager l’invitation membre",
     "memberLabel": "Membre",
-    "shareTitle": "Invitation à todoless-ngx",
-    "shareText": "Invitation membre à todoless-ngx\n\nCode : {code}\n\n{url}",
+    "shareTitle": "Invitation à todoless",
+    "shareText": "Invitation membre à todoless\n\nCode : {code}\n\n{url}",
     "copyText": "{url}\n\nCode : {code}"
   },
   "calendar": {
@@ -501,7 +501,7 @@
   "auth": {
     "appError": "Erreur de l’application",
     "welcomeBack": "Bon retour",
-    "signInSubtitle": "Connectez-vous à votre compte todoless-ngx",
+    "signInSubtitle": "Connectez-vous à votre compte todoless",
     "email": "E-mail",
     "password": "Mot de passe",
     "logIn": "Connexion",
@@ -509,7 +509,7 @@
     "invalidCredentials": "E-mail ou mot de passe invalide",
     "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
     "iHaveInviteCode": "J’ai un code d’invitation",
-    "joinTitle": "Rejoindre todoless-ngx",
+    "joinTitle": "Rejoindre todoless",
     "invitePrompt": "Saisissez votre code d’invitation à 6 caractères pour commencer",
     "inviteCode": "Code d’invitation",
     "validateCode": "Valider le code",

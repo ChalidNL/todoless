@@ -1,5 +1,5 @@
 /**
- * JQL-inspired Query Language Parser for Todoless
+ * JQL-inspired Query Language Parser for todoless
  * 
  * Supports:
  * - Field:value syntax (status:todo, priority:urgent, assignee:john)

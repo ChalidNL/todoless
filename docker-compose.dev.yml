@@ -1,9 +1,9 @@
-name: todoless-web
+name: todoless
 
 services:
-  todoless-web:
-    image: ghcr.io/chalidnl/todoless-web-frontend:dev
-    container_name: todoless-web
+  todoless:
+    image: ghcr.io/chalidnl/todoless:dev
+    container_name: todoless
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -41,8 +41,8 @@ services:
             en_US: Web UI
 
   pocketbase:
-    image: ghcr.io/chalidnl/todoless-web-pocketbase:dev
-    container_name: todoless-web-pocketbase
+    image: ghcr.io/chalidnl/todoless-pocketbase:dev
+    container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -59,9 +59,9 @@ services:
       COMMIT_SHA: ${COMMIT_SHA:-dev}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
-      - /DATA/AppData/todoless-web/pb_data:/pb_data
-      - /DATA/AppData/todoless-web/pb_migrations:/pb_migrations
-      - /DATA/AppData/todoless-web/pb_hooks:/pb_hooks
+      - /DATA/AppData/todoless/pb_data:/pb_data
+      - /DATA/AppData/todoless/pb_migrations:/pb_migrations
+      - /DATA/AppData/todoless/pb_hooks:/pb_hooks
     networks:
       - todoless-net
     healthcheck:
@@ -83,8 +83,8 @@ services:
             en_US: PocketBase server-side hooks
 
   mcp:
-    image: ghcr.io/chalidnl/todoless-web-mcp:dev
-    container_name: todoless-web-mcp
+    image: ghcr.io/chalidnl/todoless-mcp:dev
+    container_name: todoless-mcp
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -118,16 +118,16 @@ x-casaos:
   architectures:
     - amd64
     - arm64
-  main: todoless-web
+  main: todoless
   author: self-hosted
   category: Productivity
   description:
-    en_US: TodoLess — self-hosted multi-user task manager. Tasks, notes, calendar, brain dumps, real-time sync. Free forever.
-  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless-web@main/public/icons/icon-512.png
+    en_US: todoless — self-hosted multi-user task manager. Tasks, notes, calendar, brain dumps, real-time sync. Free forever.
+  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless@main/public/icons/icon-512.png
   tagline:
     en_US: Self-hosted productivity app
   title:
-    en_US: TodoLess
+    en_US: todoless
   port_map: "7070"
   scheme: http
   index: /

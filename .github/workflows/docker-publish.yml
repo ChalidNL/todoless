@@ -50,8 +50,8 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: |
-            ghcr.io/chalidnl/todoless-web-frontend:${{ steps.meta.outputs.fe_tag }}
-            ghcr.io/chalidnl/todoless-web-frontend:${{ github.sha }}
+            ghcr.io/chalidnl/todoless:${{ steps.meta.outputs.fe_tag }}
+            ghcr.io/chalidnl/todoless:${{ github.sha }}
           build-args: |
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ steps.meta.outputs.branch }}
@@ -64,7 +64,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/chalidnl/todoless-web-pocketbase:${{ steps.meta.outputs.pb_tag }}
-            ghcr.io/chalidnl/todoless-web-pocketbase:${{ github.sha }}
+            ghcr.io/chalidnl/todoless-pocketbase:${{ steps.meta.outputs.pb_tag }}
+            ghcr.io/chalidnl/todoless-pocketbase:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

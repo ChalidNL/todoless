@@ -1,7 +1,7 @@
 // pb_hooks/routes/paperless.js
 // Paperless-ngx integration: webhook handler and task auto-creation
 //
-// Flow: Paperless scans doc -> webhook hits Todoless -> checks configured tag
+// Flow: Paperless scans doc -> webhook hits todoless -> checks configured tag
 // (default 'todoless') + inbox exclusion -> creates task (simple or parent+subtasks).
 // Supports both webhook push (instant) and polling (fallback).
 
@@ -442,7 +442,7 @@ function processPaperlessDocument(docId) {
     }
   }
 
-  // Create task in Todoless
+  // Create task in todoless
   var taskCollection = $app.dao().findCollectionByNameOrId('tasks')
   var taskRecord = new Record(taskCollection)
   var taskForm = new RecordUpsertAction($app, taskRecord)

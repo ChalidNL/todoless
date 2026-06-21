@@ -1,4 +1,4 @@
-const CACHE_NAME = 'todoless-ngx-v2';
+const CACHE_NAME = 'todoless-v3';
 const CORE_ASSETS = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

@@ -109,7 +109,7 @@
     "step4Title": "Beheerdersaccount Aanmaken",
     "stepUserDesc": "Klaar om uw geest te ontlasten en georganiseerd te worden?",
     "stepUserTitle": "Laten We Beginnen",
-    "welcome": "Welkom bij todoless-ngx",
+    "welcome": "Welkom bij todoless",
     "workspaceName": "Werkruimte naam",
     "workspaceNameMissing": "Werkruimte naam ontbreekt — ga terug en voer het in",
     "exampleFamilyName": "Familie Jansen"
@@ -433,8 +433,8 @@
     "generateMember": "Genereer uitnodiging voor lid",
     "memberInviteTitle": "Deel uitnodiging voor lid",
     "memberLabel": "Lid",
-    "shareTitle": "Uitnodiging voor todoless-ngx",
-    "shareText": "Uitnodiging voor lid voor todoless-ngx\n\nCode: {code}\n\n{url}",
+    "shareTitle": "Uitnodiging voor todoless",
+    "shareText": "Uitnodiging voor lid voor todoless\n\nCode: {code}\n\n{url}",
     "copyText": "{url}\n\nCode: {code}"
   },
   "calendar": {
@@ -501,7 +501,7 @@
   "auth": {
     "appError": "App-fout",
     "welcomeBack": "Welkom terug",
-    "signInSubtitle": "Log in op je todoless-ngx account",
+    "signInSubtitle": "Log in op je todoless account",
     "email": "E-mail",
     "password": "Wachtwoord",
     "logIn": "Inloggen",
@@ -509,7 +509,7 @@
     "invalidCredentials": "Ongeldige e-mail of wachtwoord",
     "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
     "iHaveInviteCode": "Ik heb een invite-code",
-    "joinTitle": "Word lid van todoless-ngx",
+    "joinTitle": "Word lid van todoless",
     "invitePrompt": "Voer je 6-cijferige invite-code in om te starten",
     "inviteCode": "Invite-code",
     "validateCode": "Code valideren",

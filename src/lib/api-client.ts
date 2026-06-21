@@ -1,5 +1,5 @@
 /**
- * REST API client for Todoless.
+ * REST API client for todoless.
  * 
  * Provides a clean, typed interface over the PocketBase API.
  * All UI components should use this client instead of calling PocketBase directly.

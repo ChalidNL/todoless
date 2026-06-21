@@ -56,7 +56,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'todoless-ngx',
+        name: 'todoless',
         short_name: 'todoless',
         description: 'Self-hosted multi-user task manager',
         theme_color: '#fafafa',

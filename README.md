@@ -68,16 +68,16 @@ todoless runs as three Docker containers: **nginx frontend**, **PocketBase backe
 
 ### 1. Clone
 ```bash
-git clone https://github.com/ChalidNL/todoless-web.git
-cd todoless-web
+git clone https://github.com/ChalidNL/todoless.git
+cd todoless
 ```
 
 ### 2. Create data directories
 PocketBase needs persistent storage. Create the directories Docker will mount:
 ```bash
-sudo mkdir -p /DATA/AppData/todoless-web/pb_data
-sudo mkdir -p /DATA/AppData/todoless-web/pb_migrations
-sudo mkdir -p /DATA/AppData/todoless-web/pb_hooks
+sudo mkdir -p /DATA/AppData/todoless/pb_data
+sudo mkdir -p /DATA/AppData/todoless/pb_migrations
+sudo mkdir -p /DATA/AppData/todoless/pb_hooks
 ```
 
 > **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting.
@@ -119,7 +119,7 @@ ports:
 ```
 
 ### Volumes
-All persistent data lives in `/DATA/AppData/todoless-web/`:
+All persistent data lives in `/DATA/AppData/todoless/`:
 
 | Directory | Purpose |
 |---|---|
@@ -144,19 +144,19 @@ The `.env.example` file documents available variables. Not all are used by the p
 ## Updating
 
 ```bash
-cd todoless-web
+cd todoless
 git pull
 docker compose pull
 docker compose up -d
 ```
-PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless-web/releases) for breaking changes before updating.
+PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless/releases) for breaking changes before updating.
 
 ### Backups
 Your data lives in a single PocketBase directory. Back it up:
 ```bash
 # Stop PocketBase first for a clean backup
 docker compose stop pocketbase
-sudo cp -r /DATA/AppData/todoless-web/pb_data /backup/pb_data-$(date +%Y%m%d)
+sudo cp -r /DATA/AppData/todoless/pb_data /backup/pb_data-$(date +%Y%m%d)
 docker compose start pocketbase
 ```
 > **Your data, your responsibility — and your control.**
@@ -205,7 +205,7 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 - [ ] Push notifications (mobile)
 - [ ] Companion mobile app (Android)
 
-*See the [issues](https://github.com/ChalidNL/todoless-web/issues) for details.*
+*See the [issues](https://github.com/ChalidNL/todoless/issues) for details.*
 
 ---
 
