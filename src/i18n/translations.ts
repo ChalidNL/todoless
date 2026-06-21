@@ -2258,6 +2258,13 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Monthly",
       "shortYear": "Yearly",
       "shortMonthPrefix": "Mon ·"
+    },
+    "ics": {
+      "importTitle": "Import Calendar (.ics)",
+      "importDescription": "Import appointments from Google Calendar, Apple Calendar, or any .ics file.",
+      "chooseFile": "Choose .ics or .zip file",
+      "exportTitle": "Export Calendar",
+      "exportButton": "Export as .ics"
     }
   },
   "nl": {
@@ -2293,6 +2300,13 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Maandelijks",
       "shortYear": "Jaarlijks",
       "shortMonthPrefix": "Mnd ·"
+    },
+    "ics": {
+      "importTitle": "Agenda importeren (.ics)",
+      "importDescription": "Importeer afspraken van Google Agenda, Apple Agenda of elk .ics-bestand.",
+      "chooseFile": "Kies .ics of .zip bestand",
+      "exportTitle": "Agenda exporteren",
+      "exportButton": "Exporteren als .ics"
     }
   },
   "fr": {
@@ -2328,10 +2342,33 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Mensuel",
       "shortYear": "Annuel",
       "shortMonthPrefix": "Mois ·"
+    },
+    "ics": {
+      "importTitle": "Importer un agenda (.ics)",
+      "importDescription": "Importez des rendez-vous depuis Google Agenda, Apple Agenda ou tout fichier .ics.",
+      "chooseFile": "Choisir un fichier .ics ou .zip",
+      "exportTitle": "Exporter l'agenda",
+      "exportButton": "Exporter en .ics"
     }
   },
-  "de": {},
-  "es": {},
+  "de": {
+    "ics": {
+      "importTitle": "Kalender importieren (.ics)",
+      "importDescription": "Importiere Termine aus Google Kalender, Apple Kalender oder einer .ics-Datei.",
+      "chooseFile": ".ics oder .zip-Datei auswählen",
+      "exportTitle": "Kalender exportieren",
+      "exportButton": "Als .ics exportieren"
+    }
+  },
+  "es": {
+    "ics": {
+      "importTitle": "Importar calendario (.ics)",
+      "importDescription": "Importa citas desde Google Calendar, Apple Calendar o cualquier archivo .ics.",
+      "chooseFile": "Elegir archivo .ics o .zip",
+      "exportTitle": "Exportar calendario",
+      "exportButton": "Exportar como .ics"
+    }
+  },
 };
 const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
   "en": {

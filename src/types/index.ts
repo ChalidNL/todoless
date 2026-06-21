@@ -127,6 +127,16 @@ export interface Task {
   linkedTo?: string;              // ~linked — ID of linked entity
   linkedType?: 'task' | 'item' | 'note'; // ~linked — type of linked entity
   flag: boolean;                  // flag — visual reminder marker
+  // iCalendar / .ics import fields
+  description?: string;           // VEVENT DESCRIPTION
+  location?: string;              // VEVENT LOCATION
+  uid?: string;                   // VEVENT UID — unique per family for dedup
+  timezone?: string;              // VEVENT TZID
+  rrule?: string;                 // VEVENT RRULE (RFC 5545 string)
+  exdates?: string[];             // VEVENT EXDATE array
+  recurrenceId?: string;          // VEVENT RECURRENCE-ID (detached instance)
+  source?: 'local' | 'ics_import';   // origin of the record
+  externalId?: string;            // original external UID (for ics_import)
   createdAt: number;
   createdBy?: string;
 }
@@ -311,13 +321,22 @@ export interface Entry {
   endTime?: number;
   allDay?: boolean;
   showInCalendar?: boolean;
+  // iCalendar / .ics import fields
+  description?: string;
+  location?: string;
+  uid?: string;
+  timezone?: string;
+  rrule?: string;
+  exdates?: string[];
+  recurrenceId?: string;
+  source?: 'local' | 'ics_import';
+  externalId?: string;
   createdAt: number;
   createdBy?: string;
   // Item-specific fields
   shopId?: string;
   quantity?: number;
   category?: string;
-  location?: string;
 }
 
 export interface ApiToken {

@@ -46,6 +46,11 @@ const normalizeTask = (r: any): Task => ({
   subtaskIds: Array.isArray(r.subtask_ids) ? r.subtask_ids : [],
   focus: !!r.focus,
   linkedTo: r.linked_to, linkedType: r.linked_type, flag: !!r.flag,
+  // iCalendar fields
+  description: r.description, location: r.location, uid: r.uid,
+  timezone: r.timezone, rrule: r.rrule,
+  exdates: Array.isArray(r.exdates) ? r.exdates : (r.exdates ? [r.exdates] : undefined),
+  recurrenceId: r.recurrence_id, source: r.source, externalId: r.external_id,
   createdAt: r.created ? new Date(r.created).getTime() : Date.now(), createdBy: r.user,
 });
 
@@ -183,6 +188,10 @@ export const api = {
         repeat_interval: data.repeatInterval, labels: data.labels || [],
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
+        description: data.description, location: data.location,
+        uid: data.uid, timezone: data.timezone, rrule: data.rrule,
+        exdates: data.exdates, recurrence_id: data.recurrenceId,
+        source: data.source, external_id: data.externalId,
       } as any);
       return normalizeTask(record);
     },
@@ -198,6 +207,9 @@ export const api = {
         labels: data.labels, is_private: data.isPrivate, archived: data.archived,
         archived_at: toISO(data.archivedAt),
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
+        description: data.description, location: data.location,
+        rrule: data.rrule, exdates: data.exdates, recurrence_id: data.recurrenceId,
+        source: data.source,
       } as any);
       return normalizeTask(record);
     },
@@ -211,6 +223,36 @@ export const api = {
         sort: 'due_date',
       });
       return list.map(normalizeTask);
+    },
+    async icsImport(events: any[], options?: { assignee?: string; labels?: string[] }): Promise<any> {
+      const response = await fetch(`${pb.baseUrl}/api/ics-import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${pb.authStore.token}`,
+        },
+        body: JSON.stringify({ events, options: options || {} }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Import failed' }));
+        throw new Error(err?.error || `Import failed (${response.status})`);
+      }
+      return response.json();
+    },
+    async icsExport(start?: string, end?: string): Promise<{ ics: string; count: number }> {
+      const params = new URLSearchParams();
+      if (start) params.set('start', start);
+      if (end) params.set('end', end);
+      const qs = params.toString();
+      const url = `${pb.baseUrl}/api/ics-export${qs ? '?' + qs : ''}`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${pb.authStore.token}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Export failed' }));
+        throw new Error(err?.error || `Export failed (${response.status})`);
+      }
+      return response.json();
     },
   },
 
