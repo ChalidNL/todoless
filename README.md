@@ -35,8 +35,6 @@ todoless is a small gift back to people who just want to organise daily life, on
 
 ## Screenshots
 
-> *Replace these placeholders with real screenshots — see `docs/assets/`.*
-
 | Inbox | Tasks | Calendar |
 |---|---|---|
 | ![Inbox](docs/assets/screenshot-inbox.png) | ![Tasks](docs/assets/screenshot-tasks.png) | ![Calendar](docs/assets/screenshot-calendar.png) |
