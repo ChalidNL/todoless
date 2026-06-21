@@ -139,7 +139,7 @@ export function CalendarView() {
             value={mode}
             onChange={(value) => setMode(value as CalendarViewMode)}
             options={views.map((view) => ({ value: view, label: t(`calendar.${view}`, language) }))}
-            className="py-2 font-semibold text-neutral-800 shadow-sm focus:ring-violet-300"
+
           />
         </div>
       </header>

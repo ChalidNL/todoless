@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
+import { SharedSelect } from '../shared/SharedSelect';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
@@ -188,15 +189,15 @@ export const GroceriesView = () => {
           <h2 className="font-semibold text-sm text-neutral-600">
             {t('items.title')} ({sortedActiveItems.length})
           </h2>
-          <select
+          <SharedSelect<GrocerySortMode>
             value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as GrocerySortMode)}
-            className="text-xs px-2 py-1 border border-neutral-200 rounded bg-white text-neutral-600"
-            title={t('items.sortLabel')}
-          >
-            <option value="alpha">{t('items.sortAlpha')}</option>
-            <option value="category">{t('items.sortCategory')}</option>
-          </select>
+            onChange={setSortMode}
+            ariaLabel={t('items.sortLabel')}
+            options={[
+              { value: 'alpha', label: t('items.sortAlpha') },
+              { value: 'category', label: t('items.sortCategory') },
+            ]}
+          />
         </div>
         {sortedActiveItems.length === 0 ? (
           <div className="text-center py-16">
