@@ -1,6 +1,6 @@
 /// <reference path="../../pb_data/types.d.ts" />
 
-// OpenAPI 3.0.3 specification for the Todoless API
+// OpenAPI 3.0.3 specification for the todoless API
 // Served at: GET /api/v1/openapi.json
 
 routerAdd('GET', '/api/v1/openapi.json', (c) => {
@@ -718,7 +718,7 @@ routerAdd('GET', '/api/v1/openapi.json', (c) => {
     { name: "entity_type", in: "query", schema: { type: "string", enum: ["task", "grocery", "note"] } },
     { name: "sort", in: "query", schema: { type: "string", default: "-created" } },
   ], security: authRequired(), responses: { "200": { description: "List of external references" } } }; }
-  function createExternalRefSchema() { return { tags: ["External References"], summary: "Create external reference", operationId: "createExternalRef", description: "Links a TodoLess entity to an external system entity. Checks for duplicate (source + external_id).", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: {
+  function createExternalRefSchema() { return { tags: ["External References"], summary: "Create external reference", operationId: "createExternalRef", description: "Links a todoless entity to an external system entity. Checks for duplicate (source + external_id).", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: {
     source: { type: "string", enum: ["paperless", "home_assistant", "gmail", "custom"] },
     external_id: st(), external_url: sn(),
     entity_type: { type: "string", enum: ["task", "grocery", "note"] },
@@ -783,10 +783,10 @@ routerAdd('GET', '/api/v1/openapi.json', (c) => {
   var spec = {
     openapi: "3.0.3",
     info: {
-      title: "Todoless API",
+      title: "todoless API",
       version: "1.0.0",
-      description: "Todoless — self-hosted multi-user task and grocery manager.\n\nBase URL: https://[host]:7070/api\n\nAuthentication: PocketBase JWT token via Authorization: Bearer header or PB cookie.",
-      contact: { name: "Todoless" },
+      description: "todoless — self-hosted multi-user task and grocery manager.\n\nBase URL: https://[host]:7070/api\n\nAuthentication: PocketBase JWT token via Authorization: Bearer header or PB cookie.",
+      contact: { name: "todoless" },
     },
     servers: [
       { url: "/api", description: "Nginx proxy (port 7070)" },

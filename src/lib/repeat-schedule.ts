@@ -3,12 +3,16 @@ import { RepeatInterval } from '../types';
 const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth'] as const;
 const ORDINALS_NL = ['eerste', 'tweede', 'derde', 'vierde', 'vijfde'] as const;
 const ORDINALS_FR = ['premier', 'deuxième', 'troisième', 'quatrième', 'cinquième'] as const;
+const ORDINALS_DE = ['erste', 'zweite', 'dritte', 'vierte', 'fünfte'] as const;
+const ORDINALS_ES = ['primer', 'segundo', 'tercer', 'cuarto', 'quinto'] as const;
 const WEEKDAY_INDEX_TO_NAME_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
 const WEEKDAY_INDEX_TO_NAME_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'] as const;
 const WEEKDAY_INDEX_TO_NAME_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] as const;
+const WEEKDAY_INDEX_TO_NAME_DE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'] as const;
+const WEEKDAY_INDEX_TO_NAME_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const;
 const AMSTERDAM_TIME_ZONE = 'Europe/Amsterdam';
 
-type SupportedLanguage = 'nl' | 'en' | 'fr';
+type SupportedLanguage = 'nl' | 'en' | 'fr' | 'de' | 'es';
 
 type MonthlyWeekdayParts = {
   weekdayIndex: number;
@@ -147,35 +151,59 @@ export function getRepeatDescriptor(
     ? { day: 'Elke dag', week: 'Elke week', month: 'Elke maand', year: 'Elk jaar' }
     : language === 'fr'
       ? { day: 'Chaque jour', week: 'Chaque semaine', month: 'Chaque mois', year: 'Chaque année' }
-      : { day: 'Every day', week: 'Every week', month: 'Every month', year: 'Every year' };
+      : language === 'de'
+        ? { day: 'Jeden Tag', week: 'Jede Woche', month: 'Jeden Monat', year: 'Jedes Jahr' }
+        : language === 'es'
+          ? { day: 'Cada día', week: 'Cada semana', month: 'Cada mes', year: 'Cada año' }
+          : { day: 'Every day', week: 'Every week', month: 'Every month', year: 'Every year' };
 
   if (repeatInterval !== 'month_weekday') {
     return labels[repeatInterval];
   }
 
   if (!dueDate) {
-    return language === 'nl' ? 'Elke eerste maandag van de maand' : language === 'fr' ? 'Chaque premier lundi du mois' : 'Every first Monday of the month';
+    return language === 'nl' ? 'Elke eerste maandag van de maand'
+      : language === 'fr' ? 'Chaque premier lundi du mois'
+      : language === 'de' ? 'Jeden ersten Montag des Monats'
+      : language === 'es' ? 'Cada primer lunes del mes'
+      : 'Every first Monday of the month';
   }
 
   const date = toCalendarDate(dueDate);
   const { weekdayIndex, occurrenceIndex, isLastOccurrence } = getMonthlyWeekdayParts(date);
-  const weekday = language === 'nl' ? WEEKDAY_INDEX_TO_NAME_NL[weekdayIndex] : language === 'fr' ? WEEKDAY_INDEX_TO_NAME_FR[weekdayIndex] : WEEKDAY_INDEX_TO_NAME_EN[weekdayIndex];
+  const weekday = language === 'nl' ? WEEKDAY_INDEX_TO_NAME_NL[weekdayIndex]
+    : language === 'fr' ? WEEKDAY_INDEX_TO_NAME_FR[weekdayIndex]
+    : language === 'de' ? WEEKDAY_INDEX_TO_NAME_DE[weekdayIndex]
+    : language === 'es' ? WEEKDAY_INDEX_TO_NAME_ES[weekdayIndex]
+    : WEEKDAY_INDEX_TO_NAME_EN[weekdayIndex];
 
   if (isLastOccurrence) {
-    return language === 'nl' ? `Elke laatste ${weekday} van de maand` : language === 'fr' ? `Chaque dernier ${weekday} du mois` : `Every last ${weekday} of the month`;
+    return language === 'nl' ? `Elke laatste ${weekday} van de maand`
+      : language === 'fr' ? `Chaque dernier ${weekday} du mois`
+      : language === 'de' ? `Jeden letzten ${weekday} des Monats`
+      : language === 'es' ? `Cada último ${weekday} del mes`
+      : `Every last ${weekday} of the month`;
   }
 
   const ordinal = language === 'nl'
     ? ORDINALS_NL[Math.min(occurrenceIndex, ORDINALS_NL.length - 1)]
     : language === 'fr'
       ? ORDINALS_FR[Math.min(occurrenceIndex, ORDINALS_FR.length - 1)]
-      : ORDINALS[Math.min(occurrenceIndex, ORDINALS.length - 1)];
+      : language === 'de'
+        ? ORDINALS_DE[Math.min(occurrenceIndex, ORDINALS_DE.length - 1)]
+        : language === 'es'
+          ? ORDINALS_ES[Math.min(occurrenceIndex, ORDINALS_ES.length - 1)]
+          : ORDINALS[Math.min(occurrenceIndex, ORDINALS.length - 1)];
 
   return language === 'nl'
     ? `Elke ${ordinal} ${weekday} van de maand`
     : language === 'fr'
       ? `Chaque ${ordinal} ${weekday} du mois`
-      : `Every ${ordinal} ${weekday} of the month`;
+      : language === 'de'
+        ? `Jeden ${ordinal}n ${weekday} des Monats`
+        : language === 'es'
+          ? `Cada ${ordinal} ${weekday} del mes`
+          : `Every ${ordinal} ${weekday} of the month`;
 }
 
 export function getNextRecurringDueDate(repeatInterval: RepeatInterval, baseDateIso: string): string {

@@ -1,112 +1,231 @@
+<div align="center">
 
-# todoless-ngx
+<img src="docs/assets/logo.png" alt="todoless" width="120" />
 
-`todoless-ngx` is a self-hosted, multi-user productivity app built with React, Vite, and PocketBase.
-It is designed for a shared *family* workspace with invite-based onboarding, realtime sync, and a unified model for tasks and items.
+# todoless
 
-## What this project does
-- Shared family workspace with roles like owner, admin, member, and agent
-- Invite-based registration and onboarding flow
-- Unified inbox/backlog and task workflow
-- Grocery / item tracking with shops and quantities
-- Notes, labels, projects, goals, rewards, and reminders
-- Sprint support and calendar events
-- PocketBase-backed realtime updates and server-side hooks
-- API tokens, shared routes, and PocketBase migrations for the backend logic
+**The family organizer that keeps your data yours.**
 
-## Tech stack
-- Frontend: React 18 + Vite 6
-- Backend: PocketBase 0.35.x
-- UI: Tailwind CSS + Radix UI components
-- Runtime: Docker / Docker Compose
+Local-first · Self-hosted · Made in Europe · Free forever — no subscriptions, no paywalls.
 
-## Local development
+[Why todoless](#-why-todoless) · [Quick Start](#-quick-start) · [Configuration](#-configuration) · [Security](#-running-securely) · [Roadmap](#-roadmap)
 
-### Prerequisites
-- Node.js 20+ and npm
-- Docker + Docker Compose
+</div>
 
-### Environment
-Start from the example file:
+---
 
+## Why todoless?
+
+There are thousands of to-do apps. Almost none of them are built around **your privacy**. todoless is.
+
+Family life is full of appointments, reminders and recurring patterns — groceries, school runs, swimming lessons, doctor visits. No app made that calm and clear *without* shipping your family's data to someone else's servers.
+
+todoless is a small gift back to people who just want to organise daily life, on their own terms:
+
+- 🔒 **Your data stays yours.** Self-hosted on your own machine. No tracking, no ads, no profiling.
+- 🏠 **Local-first.** Runs on your own server — a Raspberry Pi, an old laptop, a NAS. You own the database.
+- 🇪🇺 **Designed and built in Europe**, with data sovereignty as a first principle — not an afterthought.
+- 🆓 **Free forever.** No subscriptions. No "premium" tier. Every feature is available to everyone, always.
+- 👨‍👩‍👧‍👦 **Made for families.** Shared tasks, groceries, a calendar of everyone's appointments, and recurring routines — in one calm, mobile-first interface.
+- 🧩 **Open and yours to shape.** Self-hosted and transparent; you can read the code that runs your family's data.
+
+> todoless was never meant to be a million-dollar business. It's a contribution back — software that respects the people who use it.
+
+---
+
+## Screenshots
+
+> *Replace these placeholders with real screenshots — see `docs/assets/`.*
+
+| Inbox | Tasks | Calendar |
+|---|---|---|
+| ![Inbox](docs/assets/screenshot-inbox.png) | ![Tasks](docs/assets/screenshot-tasks.png) | ![Calendar](docs/assets/screenshot-calendar.png) |
+
+| Groceries | Week view | Settings |
+|---|---|---|
+| ![Groceries](docs/assets/screenshot-groceries.png) | ![Week](docs/assets/screenshot-week.png) | ![Settings](docs/assets/screenshot-settings.png) |
+
+---
+
+## What you get
+
+- **Inbox** — capture anything quickly; sort it later.
+- **Tasks** — due dates, recurring patterns, labels, assignees, priorities, focus, subtasks.
+- **Calendar** — every task with a date, visualised. Day / 3-day / Week / Work week / Month / Schedule views.
+- **Groceries** — a shared shopping list with quantities and shops, for the whole household.
+- **Multi-member** — one household, multiple people, shared and personal items. Invite-based onboarding.
+- **Mobile-first** — built for phones, where family logistics actually happen.
+
+---
+
+## Quick Start
+
+todoless runs as three Docker containers: **nginx frontend**, **PocketBase backend** (database + auth + API), and an optional **MCP server**. All orchestrated with Docker Compose.
+
+### Requirements
+- A machine that can run **Docker** and **Docker Compose** (Linux, Raspberry Pi 4+, NAS, or any always-on computer).
+- ~5 minutes.
+
+### 1. Clone
+```bash
+git clone https://github.com/ChalidNL/todoless.git
+cd todoless
+```
+
+### 2. Create data directories
+PocketBase needs persistent storage. Create the directories Docker will mount:
+```bash
+sudo mkdir -p /DATA/AppData/todoless/pb_data
+sudo mkdir -p /DATA/AppData/todoless/pb_migrations
+sudo mkdir -p /DATA/AppData/todoless/pb_hooks
+```
+
+> **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting.
+
+### 3. (Optional) Set up the MCP server
+If you want the optional MCP integration, set the user token in your environment or `.env`:
+```bash
+export TODOLESS_USER_TOKEN="your-pocketbase-user-token"
+```
+Or create a `.env` file:
 ```bash
 cp .env.example .env
+# Edit .env and set TODOLESS_USER_TOKEN
+```
+> Skip this step if you don't need the MCP server — the app works without it.
+
+### 4. Run
+```bash
+docker compose up -d
+```
+This pulls the pre-built images from GitHub Container Registry and starts everything.
+
+### 5. Open
+Visit **http://your-server-ip:7070**. On first run, you'll see the onboarding:
+1. Choose your language
+2. Create your admin account and name your household
+3. Invite family members from Settings
+
+---
+
+## Configuration
+
+### Port
+The app is exposed on port **7070** by default. To change it, edit `docker-compose.yml`:
+```yaml
+ports:
+  - target: 80
+    published: 7070  # change this
 ```
 
-Then fill in the values you need for your local setup.
+### Volumes
+All persistent data lives in `/DATA/AppData/todoless/`:
 
-### Run the dev stack
-Use the development compose file:
+| Directory | Purpose |
+|---|---|
+| `pb_data/` | PocketBase database + file uploads |
+| `pb_migrations/` | Schema migration scripts |
+| `pb_hooks/` | Server-side API hooks |
+
+### Environment (.env.example)
+The `.env.example` file documents available variables. Not all are used by the production compose — the key ones for self-hosters:
+
+| Variable | What it does |
+|---|---|
+| `TODOLESS_USER_TOKEN` | PocketBase user token for the MCP server (required for MCP) |
+| `TODOLESS_MCP_READONLY` | Set to `false` to enable write tools in MCP (default: `true`) |
+| `TZ` | Timezone (default: `Europe/Amsterdam`) |
+| `WEBUI_PORT` | Port for the frontend (default: `7070`, must match compose) |
+
+> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
+
+---
+
+## Updating
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+cd todoless
+git pull
+docker compose pull
+docker compose up -d
 ```
+PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless/releases) for breaking changes before updating.
 
-This starts the frontend and PocketBase locally.
-
-### Frontend-only workflow
-If the backend is already running elsewhere, you can work on the frontend with Vite directly:
-
+### Backups
+Your data lives in a single PocketBase directory. Back it up:
 ```bash
-npm install
-npm run dev
+# Stop PocketBase first for a clean backup
+docker compose stop pocketbase
+sudo cp -r /DATA/AppData/todoless/pb_data /backup/pb_data-$(date +%Y%m%d)
+docker compose start pocketbase
 ```
+> **Your data, your responsibility — and your control.**
 
-## Quality checks
-- `npm run build`
-- `npm run lint`
-- `npm run typecheck`
-- `npm test`
-- `npm run mcp:build`
-- `npm run security:secrets`
+---
 
-## TodoLess MCP server
+## Running securely
 
-The MCP server is a thin TypeScript layer over the existing PocketBase API. It uses one PocketBase user token per instance; no admin token or service-account authority is required or used.
+todoless is meant to live on your own network. Here's how to access it safely:
 
-Environment:
-- `TODOLESS_PB_URL` — internal PocketBase URL, e.g. `http://pocketbase:8090`
-- `TODOLESS_USER_TOKEN` — PocketBase user auth token
-- `TODOLESS_MCP_TRANSPORT` — `stdio` or `http`
-- `TODOLESS_MCP_READONLY` — defaults to `true`; write tools are not registered when enabled
-- `TODOLESS_MCP_RATE_LIMIT` — mutating calls per minute
-- `TODOLESS_MCP_HTTP_PORT` — default `3333`
+### Option A: Tailscale (recommended for families)
+Install [Tailscale](https://tailscale.com) on your server and your devices. Access todoless at `http://your-server:7070` — private, encrypted, nothing exposed to the internet.
 
-Local stdio example:
+### Option B: Reverse proxy + HTTPS
+If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 
-```bash
-TODOLESS_PB_URL=http://127.0.0.1:8090 \
-TODOLESS_USER_TOKEN='<pb-user-token>' \
-TODOLESS_MCP_TRANSPORT=stdio \
-npm run mcp:build && npm run mcp:start
-```
+| Proxy | Setup |
+|---|---|
+| **Caddy** | `your.domain { reverse_proxy localhost:7070 }` |
+| **Traefik** | Add labels to the compose service |
+| **nginx + Let's Encrypt** | Standard reverse proxy with certbot |
 
-HTTP mode is intended for the compose stack behind the same TLS reverse proxy as the app. The compose service exposes port `3333` only on the internal Docker network; it does not publish the MCP server directly.
+> ⚠️ **Important:** If you use a reverse proxy, configure it to terminate TLS. The todoless container only serves HTTP — do not expose port 7070 directly to the internet without HTTPS in front of it.
 
-## Deployment
-- Production and development images are defined in `docker-compose.yml` and `docker-compose.dev.yml`
-- Backend hooks and migrations live in `pb_hooks/` and `pb_migrations/`
+### Security hardening
+- The PocketBase backend is not published to the host — only accessible internally via the nginx proxy.
+- Frontend container runs **read-only** with minimal privileges.
+- PocketBase container drops all capabilities except what it needs (`CHOWN`, `DAC_OVERRIDE`).
+- Use `:latest` or `:dev` tags for convenience; pin to specific digests in production.
+- Validate SMTP before going live (invite/password-reset emails).
 
-## Security baseline
-- Keep real secrets out of git; use `.env` locally or a secret manager
-- Use `.env.example` as the template for new environments
+---
 
-## Repository layout
-- `src/` — React app, views, components, context, and shared utilities
-- `pb_hooks/` — PocketBase server-side routes and business logic
-- `pb_migrations/` — schema and data migrations
-- `scripts/` — deployment and maintenance helpers
-- `e2e/` — end-to-end checks
+## Tech stack
+- **Frontend:** React 18 + Vite 6 + Tailwind CSS
+- **Backend:** PocketBase 0.35 (SQLite + auth + REST API + realtime)
+- **Deployment:** Docker Compose, pre-built GHCR images
+- **Privacy:** everything runs on your hardware
 
-## Notes
-- This repo is meant for self-hosted use
-- The app relies on PocketBase for auth, data storage, and realtime subscriptions
-  
+---
 
-## Live readiness notes
-- Terminate TLS in front of the app with a reverse proxy such as Caddy, Traefik, or Nginx Proxy Manager before exposing it publicly. The app container intentionally does not emit HSTS on plain HTTP; set HSTS only at the TLS terminator.
-- Keep the frontend production build same-origin: leave `VITE_POCKETBASE_URL` empty so API calls go through `/api`. Do not build customer-facing images with `localhost` PocketBase URLs.
-- PocketBase is intentionally not published directly; access it through the frontend nginx proxy. The proxy forwards `X-Forwarded-*` headers for logging/rate limiting.
-- Validate SMTP before go-live by running the invite/password-reset flow end-to-end.
-- Use PocketBase backup/export or a SQLite-safe backup method for `pb_data`; do not rely on raw file copies while the database is writing.
-- Pin release images or digests for production installs; `:latest`/`:dev` are for CasaOS/dev convenience and not reproducible release artifacts.
+## Roadmap
+- [x] Multilingual UI (NL / FR / EN / DE / ES)
+- [x] Calendar import/export (.ics)
+- [ ] Recurring "family run" weekly planning ritual
+- [ ] Push notifications (mobile)
+- [ ] Companion mobile app (Android)
+
+*See the [issues](https://github.com/ChalidNL/todoless/issues) for details.*
+
+---
+
+## Contributing
+todoless is built in the open. Issues, ideas and pull requests are welcome. Because this is family data software, please keep **privacy and simplicity** front of mind in any contribution.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## License
+todoless is licensed under the **[GNU Affero General Public License v3.0](LICENSE)** (AGPL-3.0).
+
+This keeps the code open and free — for everyone, forever. If you modify todoless and make it available over a network (including self-hosting modifications), you must share your changes under the same license. That's how we protect the community.
+
+---
+
+<div align="center">
+
+**todoless** — organise family life, keep your privacy.
+Made in Europe. Your data stays home.
+
+</div>

@@ -301,7 +301,7 @@ function callAiApi(settings, userContent, extraBody) {
   }
 
   var messages = [
-    { 'role': 'system', 'content': 'You are a helpful task management assistant for Todoless. You help users organize, categorize, and plan their tasks. Always respond with valid JSON when requested.' },
+    { 'role': 'system', 'content': 'You are a helpful task management assistant for todoless. You help users organize, categorize, and plan their tasks. Always respond with valid JSON when requested.' },
     { 'role': 'user', 'content': userContent }
   ]
 

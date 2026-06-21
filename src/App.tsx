@@ -91,20 +91,13 @@ function AppContent() {
         }
       }
 
-      // Force onboarding as completed — disable onboarding flow
-      localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser((user as any)?.id ?? null));
-
       const onboardingSeenValue = localStorage.getItem(ONBOARDING_SEEN_KEY);
       const expectedOnboardingSeenValue = getOnboardingSeenValueForUser((user as any)?.id ?? null);
       const hasCompletedOnboarding =
         onboardingSeenValue === expectedOnboardingSeenValue ||
         (onboardingSeenValue === 'true' && !user);
 
-      if (onboardingSeenValue && !hasCompletedOnboarding) {
-        localStorage.removeItem(ONBOARDING_SEEN_KEY);
-      }
-
-      // Fast path: if localStorage says onboarding already done, skip all checks
+      // Fast path: if localStorage says onboarding already done, skip all APi checks
       if (hasCompletedOnboarding) {
         const path = window.location.pathname.toLowerCase();
         if (path === '/register') {

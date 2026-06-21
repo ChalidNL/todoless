@@ -2,7 +2,7 @@
 migrate(
   (app) => {
     // Generic external reference model.
-    // Links any TodoLess entity (task, grocery, note) to an entity in an external system.
+    // Links any todoless entity (task, grocery, note) to an entity in an external system.
     // Polymorphic via entity_type + entity_id (text fields, not relations).
     const collection = new Collection({
       name: 'external_references',

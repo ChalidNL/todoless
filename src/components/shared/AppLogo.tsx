@@ -35,7 +35,7 @@ export const AppLogo = ({ size = 'md', showText = true, variant = 'dark' }: AppL
       <AppMark className={`${sizes[size]} ${colorClass} shrink-0`} />
       {showText && (
         <span className={`font-semibold ${colorClass} ${textSizes[size]}`}>
-          todoless-ngx
+          todoless
         </span>
       )}
     </div>

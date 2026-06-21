@@ -115,6 +115,16 @@ const entryToTask = (entry: Entry): Task => ({
   endTime: entry.endTime,
   allDay: entry.allDay,
   showInCalendar: entry.showInCalendar,
+  // iCalendar fields
+  description: entry.description,
+  location: entry.location,
+  uid: entry.uid,
+  timezone: entry.timezone,
+  rrule: entry.rrule,
+  exdates: entry.exdates,
+  recurrenceId: entry.recurrenceId,
+  source: entry.source,
+  externalId: entry.externalId,
   createdAt: entry.createdAt,
   createdBy: entry.createdBy,
 });

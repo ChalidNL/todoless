@@ -3,12 +3,16 @@ import { initReactI18next } from 'react-i18next';
 import en from '../locales/en.json';
 import fr from '../locales/fr.json';
 import nl from '../locales/nl.json';
+import de from '../locales/de.json';
+import es from '../locales/es.json';
 import { DEFAULT_UI_LANGUAGE, getStoredLanguage, setActiveLanguage, type Language } from './translations';
 
 export const resources = {
   nl: { translation: nl },
   fr: { translation: fr },
   en: { translation: en },
+  de: { translation: de },
+  es: { translation: es },
 };
 
 if (!i18n.isInitialized) {
@@ -26,7 +30,7 @@ if (!i18n.isInitialized) {
 }
 
 export async function changeAppLanguage(lang: Language) {
-  const next = lang === 'fr' || lang === 'en' || lang === 'nl' ? lang : DEFAULT_UI_LANGUAGE;
+  const next = (lang === 'fr' || lang === 'en' || lang === 'nl' || lang === 'de' || lang === 'es') ? lang : DEFAULT_UI_LANGUAGE;
   setActiveLanguage(next);
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('app_language', next);

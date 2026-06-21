@@ -1,5 +1,5 @@
 {
-  "name": "todoless-ngx",
+  "name": "todoless",
   "short_name": "todoless",
   "description": "Self-hosted productivity app",
   "start_url": "/",

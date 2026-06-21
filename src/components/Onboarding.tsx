@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Sparkles, ShoppingCart, Check, Eye, EyeOff, UserPlus, Users } from 'lucide-react';
+import { Sparkles, ShoppingCart, Check, Eye, EyeOff, UserPlus, Users, Globe } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { AppLogo } from './shared/AppLogo';
 import { useLanguage } from '../context/LanguageContext';
+import { SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 
 interface OnboardingProps {
   mode: 'admin' | 'user' | 'info';
@@ -14,7 +15,8 @@ interface OnboardingProps {
 
 export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const { updateAppSettings } = useApp();
-  const { t } = useLanguage();
+  const { t, setLanguage } = useLanguage();
+  const [languageSelected, setLanguageSelected] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,6 +29,9 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isAdmin = mode === 'admin';
   const isInfo = mode === 'info';
+
+  const getLanguageLabel = (lang: SupportedUiLanguage) =>
+    ({ nl: 'Nederlands', fr: 'Français', en: 'English', de: 'Deutsch', es: 'Español' })[lang];
 
   const infoSteps = [
     {
@@ -164,6 +169,58 @@ export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
     }
     handleUserOnboardingComplete();
   };
+
+  const handleSelectLanguage = (lang: SupportedUiLanguage) => {
+    setLanguage(lang);
+    setLanguageSelected(true);
+  };
+
+  // ── Language selection (first step) ──
+  if (!languageSelected) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex flex-col">
+        <div className="p-4 flex justify-end">
+          <button
+            onClick={handleSkip}
+            className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
+          >
+            {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
+          </button>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
+          <div className="w-full max-w-md">
+            <div className="flex items-center justify-center mb-8">
+              <AppLogo size="lg" showText={true} variant="dark" />
+            </div>
+
+            <h1 className="text-2xl mb-4 text-center text-neutral-900">
+              🌐 {t('onboarding.languageStepTitle')}
+            </h1>
+
+            <p className="text-center text-neutral-600 max-w-sm mx-auto mb-8">
+              {t('onboarding.languageStepDesc')}
+            </p>
+
+            <div className="space-y-3 bg-white p-6 rounded-lg shadow-sm">
+              {SUPPORTED_UI_LANGUAGES.map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => handleSelectLanguage(lang)}
+                  className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors text-left"
+                >
+                  <span className="text-neutral-800 font-medium">
+                    {getLanguageLabel(lang)}
+                  </span>
+                  <span className="text-xs text-neutral-400 uppercase">{lang}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const step = steps[currentStep];
 

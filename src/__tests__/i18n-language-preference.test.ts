@@ -25,13 +25,18 @@ describe('per-user UI language preferences', () => {
     expect(isSupportedUiLanguage('nl')).toBe(true);
     expect(isSupportedUiLanguage('fr')).toBe(true);
     expect(isSupportedUiLanguage('en')).toBe(true);
-    expect(isSupportedUiLanguage('de')).toBe(false);
+    expect(isSupportedUiLanguage('de')).toBe(true);
+    expect(isSupportedUiLanguage('es')).toBe(true);
+    expect(isSupportedUiLanguage('zh')).toBe(false);
 
     localStorage.setItem('app_language', 'fr');
     expect(getStoredLanguage()).toBe('fr');
 
     localStorage.setItem('app_language', 'de');
-    expect(getStoredLanguage()).toBe('en');
+    expect(getStoredLanguage()).toBe('de');
+
+    localStorage.setItem('app_language', 'es');
+    expect(getStoredLanguage()).toBe('es');
   });
 
   it('falls back to English and then the key when a translation is missing', () => {

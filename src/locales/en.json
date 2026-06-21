@@ -97,6 +97,9 @@
     "pleaseEnterWorkspaceName": "Please enter a workspace name",
     "prefilledWithWorkspace": "Pre-filled with your workspace name, you can change it",
     "skip": "Skip",
+    "selectLanguage": "Select your language",
+    "languageStepTitle": "Choose Your Language",
+    "languageStepDesc": "Pick your preferred language to get started.",
     "step1Desc": "Your daily assistant for quick, simple productivity without overwhelm.",
     "step2Desc": "Track groceries with quantities and stores. Keep your shopping list simple and organized.",
     "step2Title": "Simple Groceries",
@@ -106,7 +109,7 @@
     "step4Title": "Create Admin Account",
     "stepUserDesc": "Ready to unload your mind and get organized?",
     "stepUserTitle": "Let's Start",
-    "welcome": "Welcome to todoless-ngx",
+    "welcome": "Welcome to todoless",
     "workspaceName": "Workspace name",
     "workspaceNameMissing": "Workspace name is missing — go back and enter it",
     "exampleFamilyName": "Smith Family"
@@ -430,8 +433,8 @@
     "generateMember": "Generate member invite",
     "memberInviteTitle": "Share member invite",
     "memberLabel": "Member",
-    "shareTitle": "Invite to todoless-ngx",
-    "shareText": "Member invite to todoless-ngx\n\nCode: {code}\n\n{url}",
+    "shareTitle": "Invite to todoless",
+    "shareText": "Member invite to todoless\n\nCode: {code}\n\n{url}",
     "copyText": "{url}\n\nCode: {code}"
   },
   "calendar": {
@@ -498,7 +501,7 @@
   "auth": {
     "appError": "App Error",
     "welcomeBack": "Welcome back",
-    "signInSubtitle": "Sign in to your todoless-ngx account",
+    "signInSubtitle": "Sign in to your todoless account",
     "email": "Email",
     "password": "Password",
     "logIn": "Log In",
@@ -506,7 +509,7 @@
     "invalidCredentials": "Invalid email or password",
     "noAccountInviteHint": "Don't have an account? Contact your administrator for an invite.",
     "iHaveInviteCode": "I have an invite code",
-    "joinTitle": "Join todoless-ngx",
+    "joinTitle": "Join todoless",
     "invitePrompt": "Enter your 6-digit invite code to get started",
     "inviteCode": "Invite Code",
     "validateCode": "Validate Code",

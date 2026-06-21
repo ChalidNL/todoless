@@ -1,6 +1,6 @@
-export type Language = 'nl' | 'fr' | 'en' | 'de';
+export type Language = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
-export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en'] as const;
+export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en', 'de', 'es'] as const;
 export type SupportedUiLanguage = typeof SUPPORTED_UI_LANGUAGES[number];
 export const DEFAULT_UI_LANGUAGE: SupportedUiLanguage = 'en';
 const STORAGE_LANGUAGE_KEY = 'app_language';
@@ -110,6 +110,9 @@ interface TranslationStructure {
     pleaseEnterPassword: string;
     pleaseEnterWorkspaceName: string;
     prefilledWithWorkspace: string;
+    selectLanguage: string;
+    languageStepTitle: string;
+    languageStepDesc: string;
     skip: string;
     step1Desc: string;
     step2Desc: string;
@@ -123,6 +126,7 @@ interface TranslationStructure {
     welcome: string;
     workspaceName: string;
     workspaceNameMissing: string;
+    [key: string]: string;
   };
   tasks: {
     [key: string]: string;
@@ -271,6 +275,7 @@ interface TranslationStructure {
     version: string;
     wednesday: string;
     yourProfile: string;
+    [key: string]: string;
   };
   projects: {
     title: string;
@@ -351,6 +356,7 @@ interface TranslationStructure {
     titleRequired: string;
     timeRequired: string;
     saveFailed: string;
+    [key: string]: string;
   };
   inbox: {
     title: string;
@@ -485,6 +491,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Please enter a password',
       pleaseEnterWorkspaceName: 'Please enter a workspace name',
       prefilledWithWorkspace: 'Pre-filled with your workspace name, you can change it',
+      selectLanguage: 'Select your language',
+      languageStepTitle: 'Choose Your Language',
+      languageStepDesc: 'Pick your preferred language to get started.',
       skip: 'Skip',
       step1Desc: 'Your daily assistant for quick, simple productivity without overwhelm.',
       step2Desc: 'Track groceries with quantities and stores. Keep your shopping list simple and organized.',
@@ -495,7 +504,7 @@ export const translations: Record<Language, TranslationStructure> = {
       step4Title: 'Create Admin Account',
       stepUserDesc: 'Ready to unload your mind and get organized?',
       stepUserTitle: "Let's Start",
-      welcome: 'Welcome to todoless-ngx',
+      welcome: 'Welcome to todoless',
       workspaceName: 'Workspace name',
       workspaceNameMissing: 'Workspace name is missing — go back and enter it',
     },
@@ -882,6 +891,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Veuillez saisir un mot de passe',
       pleaseEnterWorkspaceName: 'Veuillez saisir un nom d\'espace de travail',
       prefilledWithWorkspace: 'Pré-rempli avec le nom de votre espace de travail, vous pouvez le modifier',
+      selectLanguage: 'Choisissez votre langue',
+      languageStepTitle: 'Choisissez Votre Langue',
+      languageStepDesc: 'Choisissez votre langue préférée pour commencer.',
       skip: 'Passer',
       step1Desc: 'Votre assistant quotidien pour une productivité rapide et simple sans surcharge.',
       step2Desc: 'Suivez les courses avec les quantités et les magasins. Gardez votre liste de courses simple et organisée.',
@@ -892,7 +904,7 @@ export const translations: Record<Language, TranslationStructure> = {
       step4Title: 'Créer un Compte Administrateur',
       stepUserDesc: 'Prêt à libérer votre esprit et à vous organiser ?',
       stepUserTitle: 'C\'est Parti',
-      welcome: 'Bienvenue sur todoless-ngx',
+      welcome: 'Bienvenue sur todoless',
       workspaceName: 'Nom de l\'espace de travail',
       workspaceNameMissing: 'Le nom de l\'espace de travail est manquant — revenez en arrière et saisissez-le',
     },
@@ -1279,6 +1291,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Voer een wachtwoord in',
       pleaseEnterWorkspaceName: 'Voer een workspace naam in',
       prefilledWithWorkspace: 'Vooringevuld met uw workspace naam, u kunt het wijzigen',
+      selectLanguage: 'Kies uw taal',
+      languageStepTitle: 'Kies Uw Taal',
+      languageStepDesc: 'Kies uw voorkeurstaal om te beginnen.',
       skip: 'Overslaan',
       step1Desc: 'Uw dagelijkse assistent voor snelle, eenvoudige productiviteit zonder overweldiging.',
       step2Desc: 'Volg boodschappen met hoeveelheden en winkels. Houd uw boodschappenlijst eenvoudig en georganiseerd.',
@@ -1289,7 +1304,7 @@ export const translations: Record<Language, TranslationStructure> = {
       step4Title: 'Beheerdersaccount Aanmaken',
       stepUserDesc: 'Klaar om uw geest te ontlasten en georganiseerd te worden?',
       stepUserTitle: 'Laten We Beginnen',
-      welcome: 'Welkom bij todoless-ngx',
+      welcome: 'Welkom bij todoless',
       workspaceName: 'Werkruimte naam',
       workspaceNameMissing: 'Werkruimte naam ontbreekt — ga terug en voer het in',
     },
@@ -1676,6 +1691,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Bitte geben Sie ein Passwort ein',
       pleaseEnterWorkspaceName: 'Bitte geben Sie einen Arbeitsbereichsnamen ein',
       prefilledWithWorkspace: 'Vorausgefüllt mit Ihrem Arbeitsbereichsnamen, Sie können ihn ändern',
+      selectLanguage: 'Sprache wählen',
+      languageStepTitle: 'Wähle Deine Sprache',
+      languageStepDesc: 'Wähle deine bevorzugte Sprache, um zu beginnen.',
       skip: 'Überspringen',
       step1Desc: 'Ihr täglicher Assistent für schnelle, einfache Produktivität ohne Überforderung.',
       step2Desc: 'Verfolgen Sie Einkäufe mit Mengen und Geschäften. Halten Sie Ihre Einkaufsliste einfach und organisiert.',
@@ -1686,7 +1704,7 @@ export const translations: Record<Language, TranslationStructure> = {
       step4Title: 'Admin-Konto Erstellen',
       stepUserDesc: 'Bereit, Ihren Kopf zu leeren und organisiert zu werden?',
       stepUserTitle: 'Los Geht\'s',
-      welcome: 'Willkommen bei todoless-ngx',
+      welcome: 'Willkommen bei todoless',
       workspaceName: 'Arbeitsbereichsname',
       workspaceNameMissing: 'Arbeitsbereichsname fehlt — gehen Sie zurück und geben Sie ihn ein',
     },
@@ -1988,6 +2006,221 @@ export const translations: Record<Language, TranslationStructure> = {
       revokeConfirm: 'Sind Sie sicher, dass Sie dieses Token widerrufen möchten?',
     },
   },
+  es: {
+    common: {
+      add: 'Añadir',
+      addTooltip: 'Añadir',
+      archive: 'Archivar',
+      calendar: 'Calendario',
+      cancel: 'Cancelar',
+      clearAllTooltip: 'Limpiar todo',
+      close: 'Cerrar',
+      closeEditor: 'Cerrar editor',
+      completed: 'Completado',
+      confirm: 'Confirmar',
+      confirmDeleteTitle: '¿Estás seguro de que quieres eliminar esto?',
+      copied: '¡Copiado!',
+      copiedToClipboard: 'Copiado al portapapeles',
+      copyToClipboard: 'Copiar al portapapeles',
+      create: 'Crear',
+      daysLeft: '{n} días restantes',
+      delete: 'Eliminar',
+      dueSoon: 'Próximo a vencer',
+      edit: 'Editar',
+      editTitle: 'Editar título',
+      error: 'Error',
+      export: 'Exportar',
+      filter: 'Filtrar',
+      filters: 'Filtros',
+      filtersTooltip: 'Filtros',
+      hoursLeft: '{n} horas restantes',
+      groceries: 'Compras',
+      import: 'Importar',
+      info: 'Info',
+      inbox: 'Bandeja de entrada',
+      items: 'Artículos',
+      loading: 'Cargando...',
+      logout: 'Cerrar sesión',
+      markAsDone: 'Marcar como completado',
+      markAsNotDone: 'Marcar como no completado',
+      minutesLeft: '{n} minutos restantes',
+      no: 'No',
+      noData: 'Sin datos',
+      notCompleted: 'No completado',
+      notes: 'Notas',
+      openEditor: 'Abrir editor',
+      overdue: 'Vencido',
+      print: 'Imprimir',
+      refresh: 'Actualizar',
+      restock: 'Reabastecer',
+      remove: 'Quitar',
+      retry: 'Reintentar',
+      save: 'Guardar',
+      search: 'Buscar',
+      searchDot: 'Buscar...',
+      searchTooltip: 'Buscar',
+      settings: 'Configuración',
+      share: 'Compartir',
+      success: 'Éxito',
+      swapType: 'Cambiar tipo',
+      tasks: 'Tareas',
+      typeHere: 'Escribe aquí...',
+      unknown: 'Desconocido',
+      warning: 'Advertencia',
+      yes: 'Sí',
+    },
+    onboarding: {
+      accountCreationFailed: 'Error al crear la cuenta.',
+      confirmPassword: 'Confirmar contraseña',
+      createAccount: 'Crear cuenta',
+      creatingAccount: 'Creando cuenta…',
+      email: 'Correo electrónico',
+      emailAlreadyInUse: 'Este correo ya está en uso.',
+      firstName: 'Nombre *',
+      getStarted: 'Comenzar',
+      goToLogin: 'Ir al inicio de sesión',
+      lastName: 'Apellido',
+      next: 'Siguiente',
+      password: 'Contraseña',
+      passwordDoesNotMeetRequirements: 'La contraseña no cumple los requisitos: mínimo 8 caracteres',
+      passwordMinLength: 'La contraseña debe tener al menos 8 caracteres',
+      passwordsDoNotMatch: 'Las contraseñas no coinciden',
+      pleaseConfirmPassword: 'Confirma tu contraseña',
+      pleaseEnterEmail: 'Introduce tu correo',
+      pleaseEnterFirstName: 'Introduce tu nombre',
+      pleaseEnterPassword: 'Introduce una contraseña',
+      pleaseEnterWorkspaceName: 'Introduce un nombre de espacio de trabajo',
+      prefilledWithWorkspace: 'Pre-rellenado con el nombre de tu espacio de trabajo',
+      selectLanguage: 'Selecciona tu idioma',
+      languageStepTitle: 'Elige Tu Idioma',
+      languageStepDesc: 'Elige tu idioma preferido para comenzar.',
+      skip: 'Saltar',
+      step1Desc: 'Tu asistente diario para una productividad rápida y sencilla.',
+      step2Desc: 'Gestiona la compra con cantidades y tiendas.',
+      step2Title: 'Compras Simples',
+      step3Desc: 'Dale un nombre a tu hogar.',
+      step3Title: 'Nombra tu Espacio de Trabajo',
+      step4Desc: 'Configura tu cuenta de administrador para comenzar.',
+      step4Title: 'Crear Cuenta de Administrador',
+      stepUserDesc: '¿Listo para liberar tu mente y organizarte?',
+      stepUserTitle: 'Empecemos',
+      welcome: 'Bienvenido a todoless',
+      workspaceName: 'Nombre del espacio de trabajo',
+      workspaceNameMissing: 'Falta el nombre del espacio de trabajo',
+      exampleFamilyName: 'Familia García',
+    },
+    tasks: {},
+    items: {
+      title: 'Artículos',
+      newItem: 'Nuevo artículo',
+      quantity: 'Cantidad',
+      category: 'Categoría',
+      searchPlaceholder: 'Buscar artículos...',
+      confirmDelete: '¿Eliminar este artículo?',
+      confirmRestock: '¿Reabastecer todos los artículos completados?',
+      empty: 'Vacío',
+      restocked: 'Compras reabastecidas',
+      sortLabel: 'Ordenar',
+      sortCategory: 'Por categoría',
+      sortCategoryAlpha: 'Categoría A-Z',
+      sortAlpha: 'A-Z',
+    },
+    notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
+    filters: { title: 'Filtros', noSavedFilters: 'Sin filtros guardados', manageFilters: 'Administra tus filtros guardados aquí.' },
+    groceries: { empty: 'Sin artículos' },
+    settings: {
+      account: 'Cuenta', active: 'Activo', addFilter: 'Añadir filtro', addLabel: 'Añadir etiqueta',
+      addShop: 'Añadir tienda', addedBy: 'Añadido por', adminCountWarning: 'Aviso: cambiando el número de administradores',
+      agentApproval: 'Aprobación de agente', agents: 'Agentes', apiDocumentation: 'Documentación API',
+      apiTokens: 'Tokens API', appInfo: 'Info de la app', approve: 'Aprobar', approvedCount: 'Aprobado',
+      approving: 'Aprobando...', archiveSettings: 'Configuración de archivo', autoCleanup: 'Limpieza automática',
+      blocked: 'Bloqueado', cancelEdit: 'Cancelar', changePassword: 'Cambiar contraseña', color: 'Color',
+      commit: 'Commit', confirmPassword: 'Confirmar contraseña', copyAppInfo: 'Copiar', copyFailed: 'Error al copiar',
+      createApiToken: 'Crear token API', created: 'Creado', currentPassword: 'Contraseña actual',
+      currentPasswordIncorrect: 'La contraseña actual es incorrecta', days30: '30 días', days60: '60 días',
+      days90: '90 días', deleteMember: 'Eliminar miembro', deleteMemberConfirm: '¿Eliminar este miembro?',
+      demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', editProfile: 'Editar perfil',
+      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro', filterName: 'Nombre del filtro',
+      filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
+      language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
+      newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
+      noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
+      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', openSwaggerDocs: 'Abrir documentación Swagger',
+      admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
+      autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',
+      firstAdmin: 'Primer admin', makeAdmin: 'Hacer admin', makeMember: 'Hacer miembro', owner: 'Propietario',
+      password: 'Contraseña', passwordMinLength: 'La contraseña debe tener al menos {n} caracteres',
+      passwordMismatch: 'Las contraseñas no coinciden', passwordRequired: 'La contraseña es obligatoria',
+      passwordSame: 'La nueva contraseña debe ser diferente', passwordUpdated: 'Contraseña actualizada',
+      pendingCount: 'Pendiente', profile: 'Perfil', preferences: 'Preferencias', profileSaveFailed: 'Error al guardar el perfil',
+      reject: 'Rechazar', rejectAgentConfirm: '¿Rechazar este agente?', rejecting: 'Rechazando...',
+      requested: 'Solicitado', retentionDays: 'Días de retención', retentionPeriod: 'Período de retención',
+      revokeToken: 'Revocar token', revokeTokenConfirm: '¿Revocar este token?', revoking: 'Revocando...',
+      role: 'Rol', saturday: 'Sábado', saveProfile: 'Guardar', selectDay: 'Seleccionar día',
+      selectLanguage: 'Seleccionar idioma', shops: 'Tiendas', sprintSettings: 'Configuración de sprint',
+      sprintStartDay: 'Día de inicio del sprint', firstDayOfWeek: 'Primer día de la semana', sunday: 'Domingo',
+      teamMembers: 'Miembros del equipo', theme: 'Tema', thursday: 'Jueves', title: 'Configuración',
+      tokenName: 'Nombre del token', tokenPermissions: 'Permisos del token', tuesday: 'Martes',
+      unblock: 'Desbloquear', unlimited: 'Ilimitado', unnamed: 'Sin nombre', update: 'Actualizar',
+      updateAvailable: 'Nueva versión disponible', updated: 'Actualizado', version: 'Versión',
+      wednesday: 'Miércoles', yourProfile: 'Tu perfil', adminUpdated: 'Admin actualizado',
+      memberUpdated: 'Miembro actualizado', memberUnblocked: 'Miembro desbloqueado', memberBlocked: 'Miembro bloqueado',
+      roleUpdated: 'Rol actualizado', memberDeleted: 'Miembro eliminado', addLabelTitle: 'Añadir etiqueta',
+      editLabelTitle: 'Editar etiqueta', addShopTitle: 'Añadir tienda', editShopTitle: 'Editar tienda',
+      labelNamePlaceholder: 'Nombre de etiqueta', shopNamePlaceholder: 'Nombre de la tienda',
+    },
+    projects: {
+      title: 'Proyectos', newProject: 'Nuevo proyecto', createProject: 'Crear proyecto',
+      projectName: 'Nombre del proyecto', description: 'Descripción', color: 'Color', progress: 'Progreso',
+      tasksCompleted: 'tareas completadas', tasks: 'tareas', subtasks: 'Subtareas',
+      noProjects: 'Aún no hay proyectos', noProjectsSub: 'Crea tu primer proyecto para comenzar',
+      noTasks: 'Sin subtareas en este proyecto', backToOverview: 'Volver a la vista general',
+      statusActive: 'Activo', statusCompleted: 'Completado', statusArchived: 'Archivado',
+    },
+    invite: {
+      agentApiToken: '🔑 Token API de Agente', agentInviteTitle: 'Invitación de Agente',
+      agentLabel: 'Agente', agentTokenAutoGenerated: 'Se generará un token API automáticamente.',
+      close: 'Cerrar', codeDeleted: 'Código de invitación eliminado', copyToken: 'Copiar token',
+      copyUrl: 'Copiar URL', delete: 'Eliminar', expired: 'Caducado', generate: 'Generar código de invitación',
+      generateAgent: 'Generar invitación de agente', generateFailed: 'Error al generar el código',
+      generateHuman: 'Generar invitación de persona', generated: '{type} generado', generating: 'Generando...',
+      humanInviteTitle: 'Compartir invitación de persona', humanLabel: 'Persona', inviteCode: 'Código de invitación',
+      inviteLink: 'Enlace de invitación', minutesRemaining: 'Quedan {n} minutos',
+      saveTokenWarning: 'Guarda este token ahora — no se mostrará de nuevo.',
+      share: 'Compartir', shareFailed: 'Error al compartir', shareInvite: 'Compartir invitación',
+      shareViaWhatsApp: 'Compartir por WhatsApp', urlCopied: '¡URL copiada!', usedOn: 'Usado el {date}',
+    },
+    calendar: {
+      title: 'Calendario', newEvent: 'Nuevo evento', allDay: 'Todo el día', startTime: 'Hora de inicio',
+      endTime: 'Hora de fin', description: 'Descripción', eventDescription: 'Descripción del evento',
+      schedule: 'Horario', day: 'Día', '3days': '3 días', threeDays: '3 días', week: 'Semana',
+      workweek: 'Semana laboral', month: 'Mes',
+      saveEvent: 'Guardar evento', today: 'Hoy', location: 'Ubicación', repeat: 'Repetir',
+      noEvents: 'Sin eventos', datedTask: 'Tarea con fecha', searchPlaceholder: 'Buscar en calendario...',
+      viewLabel: 'Vista', previous: 'Anterior', next: 'Siguiente', moreDetails: 'Más detalles',
+      fewerDetails: 'Menos detalles', titleRequired: 'Título obligatorio', timeRequired: 'Hora obligatoria',
+      saveFailed: 'Error al guardar',
+    },
+    inbox: {
+      title: 'Bandeja de entrada', todo: 'Por hacer', doneToday: 'Hecho hoy', blocked: 'Bloqueado',
+      inboxIsEmpty: 'La bandeja está vacía', selectAll: 'Seleccionar todo', deselectAll: 'Deseleccionar todo',
+      cancelSelection: 'Cancelar selección', pushSelected: 'Mover seleccionados',
+      searchPlaceholder: 'Buscar en la bandeja...', noTasksFound: 'No se encontraron tareas',
+      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío',
+    },
+    members: {
+      title: 'Miembros', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
+      noMembers: 'Sin miembros', role: 'Rol', manageMembers: 'Gestionar miembros', addMember: 'Añadir miembro',
+      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.',
+    },
+    agent: {
+      title: 'Agentes', createToken: 'Crear token', tokenCreated: 'Token creado', tokenRevoked: 'Token revocado',
+      tokenCopied: 'Token copiado al portapapeles', saveTokenNow: 'Guarda este token ahora',
+      pendingApproval: 'Pendiente de aprobación', approved: 'Aprobado', rejected: 'Rechazado',
+      noAgents: 'Sin agentes', agentName: 'Nombre del agente', agentEmail: 'Correo del agente',
+      permissions: 'Permisos', expiresAt: 'Caduca el', revokeConfirm: '¿Revocar este token?',
+    },
+  },
 };
 
 
@@ -2025,6 +2258,13 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Monthly",
       "shortYear": "Yearly",
       "shortMonthPrefix": "Mon ·"
+    },
+    "ics": {
+      "importTitle": "Import Calendar (.ics)",
+      "importDescription": "Import appointments from Google Calendar, Apple Calendar, or any .ics file.",
+      "chooseFile": "Choose .ics or .zip file",
+      "exportTitle": "Export Calendar",
+      "exportButton": "Export as .ics"
     }
   },
   "nl": {
@@ -2060,6 +2300,13 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Maandelijks",
       "shortYear": "Jaarlijks",
       "shortMonthPrefix": "Mnd ·"
+    },
+    "ics": {
+      "importTitle": "Agenda importeren (.ics)",
+      "importDescription": "Importeer afspraken van Google Agenda, Apple Agenda of elk .ics-bestand.",
+      "chooseFile": "Kies .ics of .zip bestand",
+      "exportTitle": "Agenda exporteren",
+      "exportButton": "Exporteren als .ics"
     }
   },
   "fr": {
@@ -2095,16 +2342,40 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortMonth": "Mensuel",
       "shortYear": "Annuel",
       "shortMonthPrefix": "Mois ·"
+    },
+    "ics": {
+      "importTitle": "Importer un agenda (.ics)",
+      "importDescription": "Importez des rendez-vous depuis Google Agenda, Apple Agenda ou tout fichier .ics.",
+      "chooseFile": "Choisir un fichier .ics ou .zip",
+      "exportTitle": "Exporter l'agenda",
+      "exportButton": "Exporter en .ics"
     }
-  }
+  },
+  "de": {
+    "ics": {
+      "importTitle": "Kalender importieren (.ics)",
+      "importDescription": "Importiere Termine aus Google Kalender, Apple Kalender oder einer .ics-Datei.",
+      "chooseFile": ".ics oder .zip-Datei auswählen",
+      "exportTitle": "Kalender exportieren",
+      "exportButton": "Als .ics exportieren"
+    }
+  },
+  "es": {
+    "ics": {
+      "importTitle": "Importar calendario (.ics)",
+      "importDescription": "Importa citas desde Google Calendar, Apple Calendar o cualquier archivo .ics.",
+      "chooseFile": "Elegir archivo .ics o .zip",
+      "exportTitle": "Exportar calendario",
+      "exportButton": "Exportar como .ics"
+    }
+  },
 };
-
 const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
   "en": {
     "auth": {
       "appError": "App Error",
       "welcomeBack": "Welcome back",
-      "signInSubtitle": "Sign in to your todoless-ngx account",
+      "signInSubtitle": "Sign in to your todoless account",
       "email": "Email",
       "password": "Password",
       "logIn": "Log In",
@@ -2112,7 +2383,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "invalidCredentials": "Invalid email or password",
       "noAccountInviteHint": "Don't have an account? Contact your administrator for an invite.",
       "iHaveInviteCode": "I have an invite code",
-      "joinTitle": "Join todoless-ngx",
+      "joinTitle": "Join todoless",
       "invitePrompt": "Enter your 6-digit invite code to get started",
       "inviteCode": "Invite Code",
       "validateCode": "Validate Code",
@@ -2223,8 +2494,8 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "generateMember": "Generate member invite",
       "memberInviteTitle": "Share member invite",
       "memberLabel": "Member",
-      "shareTitle": "Invite to todoless-ngx",
-      "shareText": "Member invite to todoless-ngx\n\nCode: {code}\n\n{url}",
+      "shareTitle": "Invite to todoless",
+      "shareText": "Member invite to todoless\n\nCode: {code}\n\n{url}",
       "copyText": "{url}\n\nCode: {code}"
     },
     "common": {
@@ -2238,7 +2509,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
     "auth": {
       "appError": "App-fout",
       "welcomeBack": "Welkom terug",
-      "signInSubtitle": "Log in op je todoless-ngx account",
+      "signInSubtitle": "Log in op je todoless account",
       "email": "E-mail",
       "password": "Wachtwoord",
       "logIn": "Inloggen",
@@ -2246,7 +2517,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "invalidCredentials": "Ongeldige e-mail of wachtwoord",
       "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
       "iHaveInviteCode": "Ik heb een invite-code",
-      "joinTitle": "Word lid van todoless-ngx",
+      "joinTitle": "Word lid van todoless",
       "invitePrompt": "Voer je 6-cijferige invite-code in om te starten",
       "inviteCode": "Invite-code",
       "validateCode": "Code valideren",
@@ -2357,8 +2628,8 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "generateMember": "Genereer uitnodiging voor lid",
       "memberInviteTitle": "Deel uitnodiging voor lid",
       "memberLabel": "Lid",
-      "shareTitle": "Uitnodiging voor todoless-ngx",
-      "shareText": "Uitnodiging voor lid voor todoless-ngx\n\nCode: {code}\n\n{url}",
+      "shareTitle": "Uitnodiging voor todoless",
+      "shareText": "Uitnodiging voor lid voor todoless\n\nCode: {code}\n\n{url}",
       "copyText": "{url}\n\nCode: {code}"
     },
     "common": {
@@ -2372,7 +2643,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
     "auth": {
       "appError": "Erreur de l’application",
       "welcomeBack": "Bon retour",
-      "signInSubtitle": "Connectez-vous à votre compte todoless-ngx",
+      "signInSubtitle": "Connectez-vous à votre compte todoless",
       "email": "E-mail",
       "password": "Mot de passe",
       "logIn": "Connexion",
@@ -2380,7 +2651,7 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "invalidCredentials": "E-mail ou mot de passe invalide",
       "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
       "iHaveInviteCode": "J’ai un code d’invitation",
-      "joinTitle": "Rejoindre todoless-ngx",
+      "joinTitle": "Rejoindre todoless",
       "invitePrompt": "Saisissez votre code d’invitation à 6 caractères pour commencer",
       "inviteCode": "Code d’invitation",
       "validateCode": "Valider le code",
@@ -2491,8 +2762,8 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "generateMember": "Générer une invitation membre",
       "memberInviteTitle": "Partager l’invitation membre",
       "memberLabel": "Membre",
-      "shareTitle": "Invitation à todoless-ngx",
-      "shareText": "Invitation membre à todoless-ngx\n\nCode : {code}\n\n{url}",
+      "shareTitle": "Invitation à todoless",
+      "shareText": "Invitation membre à todoless\n\nCode : {code}\n\n{url}",
       "copyText": "{url}\n\nCode : {code}"
     },
     "common": {
@@ -2501,7 +2772,9 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "more": "Plus",
       "morePages": "Plus de pages"
     }
-  }
+  },
+  "de": {},
+  "es": {},
 };
 
 function lookupNested(dict: unknown, key: string): string | undefined {
