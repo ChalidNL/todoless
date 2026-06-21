@@ -31,7 +31,7 @@ export type ReminderRepeatInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
 export type UserRole = 'owner' | 'admin' | 'member' | 'agent';
 export type MemberType = 'human' | 'agent';
 export type MemberStatus = 'pending_approval' | 'active' | 'blocked';
-export type UserLanguage = 'nl' | 'fr' | 'en';
+export type UserLanguage = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
 export interface User {
   id: string;

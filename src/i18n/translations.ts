@@ -1,6 +1,6 @@
-export type Language = 'nl' | 'fr' | 'en' | 'de';
+export type Language = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
-export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en'] as const;
+export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en', 'de', 'es'] as const;
 export type SupportedUiLanguage = typeof SUPPORTED_UI_LANGUAGES[number];
 export const DEFAULT_UI_LANGUAGE: SupportedUiLanguage = 'en';
 const STORAGE_LANGUAGE_KEY = 'app_language';
@@ -123,6 +123,7 @@ interface TranslationStructure {
     welcome: string;
     workspaceName: string;
     workspaceNameMissing: string;
+    [key: string]: string;
   };
   tasks: {
     [key: string]: string;
@@ -271,6 +272,7 @@ interface TranslationStructure {
     version: string;
     wednesday: string;
     yourProfile: string;
+    [key: string]: string;
   };
   projects: {
     title: string;
@@ -351,6 +353,7 @@ interface TranslationStructure {
     titleRequired: string;
     timeRequired: string;
     saveFailed: string;
+    [key: string]: string;
   };
   inbox: {
     title: string;
@@ -1988,6 +1991,218 @@ export const translations: Record<Language, TranslationStructure> = {
       revokeConfirm: 'Sind Sie sicher, dass Sie dieses Token widerrufen möchten?',
     },
   },
+  es: {
+    common: {
+      add: 'Añadir',
+      addTooltip: 'Añadir',
+      archive: 'Archivar',
+      calendar: 'Calendario',
+      cancel: 'Cancelar',
+      clearAllTooltip: 'Limpiar todo',
+      close: 'Cerrar',
+      closeEditor: 'Cerrar editor',
+      completed: 'Completado',
+      confirm: 'Confirmar',
+      confirmDeleteTitle: '¿Estás seguro de que quieres eliminar esto?',
+      copied: '¡Copiado!',
+      copiedToClipboard: 'Copiado al portapapeles',
+      copyToClipboard: 'Copiar al portapapeles',
+      create: 'Crear',
+      daysLeft: '{n} días restantes',
+      delete: 'Eliminar',
+      dueSoon: 'Próximo a vencer',
+      edit: 'Editar',
+      editTitle: 'Editar título',
+      error: 'Error',
+      export: 'Exportar',
+      filter: 'Filtrar',
+      filters: 'Filtros',
+      filtersTooltip: 'Filtros',
+      hoursLeft: '{n} horas restantes',
+      groceries: 'Compras',
+      import: 'Importar',
+      info: 'Info',
+      inbox: 'Bandeja de entrada',
+      items: 'Artículos',
+      loading: 'Cargando...',
+      logout: 'Cerrar sesión',
+      markAsDone: 'Marcar como completado',
+      markAsNotDone: 'Marcar como no completado',
+      minutesLeft: '{n} minutos restantes',
+      no: 'No',
+      noData: 'Sin datos',
+      notCompleted: 'No completado',
+      notes: 'Notas',
+      openEditor: 'Abrir editor',
+      overdue: 'Vencido',
+      print: 'Imprimir',
+      refresh: 'Actualizar',
+      restock: 'Reabastecer',
+      remove: 'Quitar',
+      retry: 'Reintentar',
+      save: 'Guardar',
+      search: 'Buscar',
+      searchDot: 'Buscar...',
+      searchTooltip: 'Buscar',
+      settings: 'Configuración',
+      share: 'Compartir',
+      success: 'Éxito',
+      swapType: 'Cambiar tipo',
+      tasks: 'Tareas',
+      typeHere: 'Escribe aquí...',
+      unknown: 'Desconocido',
+      warning: 'Advertencia',
+      yes: 'Sí',
+    },
+    onboarding: {
+      accountCreationFailed: 'Error al crear la cuenta.',
+      confirmPassword: 'Confirmar contraseña',
+      createAccount: 'Crear cuenta',
+      creatingAccount: 'Creando cuenta…',
+      email: 'Correo electrónico',
+      emailAlreadyInUse: 'Este correo ya está en uso.',
+      firstName: 'Nombre *',
+      getStarted: 'Comenzar',
+      goToLogin: 'Ir al inicio de sesión',
+      lastName: 'Apellido',
+      next: 'Siguiente',
+      password: 'Contraseña',
+      passwordDoesNotMeetRequirements: 'La contraseña no cumple los requisitos: mínimo 8 caracteres',
+      passwordMinLength: 'La contraseña debe tener al menos 8 caracteres',
+      passwordsDoNotMatch: 'Las contraseñas no coinciden',
+      pleaseConfirmPassword: 'Confirma tu contraseña',
+      pleaseEnterEmail: 'Introduce tu correo',
+      pleaseEnterFirstName: 'Introduce tu nombre',
+      pleaseEnterPassword: 'Introduce una contraseña',
+      pleaseEnterWorkspaceName: 'Introduce un nombre de espacio de trabajo',
+      prefilledWithWorkspace: 'Pre-rellenado con el nombre de tu espacio de trabajo',
+      skip: 'Saltar',
+      step1Desc: 'Tu asistente diario para una productividad rápida y sencilla.',
+      step2Desc: 'Gestiona la compra con cantidades y tiendas.',
+      step2Title: 'Compras Simples',
+      step3Desc: 'Dale un nombre a tu hogar.',
+      step3Title: 'Nombra tu Espacio de Trabajo',
+      step4Desc: 'Configura tu cuenta de administrador para comenzar.',
+      step4Title: 'Crear Cuenta de Administrador',
+      stepUserDesc: '¿Listo para liberar tu mente y organizarte?',
+      stepUserTitle: 'Empecemos',
+      welcome: 'Bienvenido a todoless-ngx',
+      workspaceName: 'Nombre del espacio de trabajo',
+      workspaceNameMissing: 'Falta el nombre del espacio de trabajo',
+      exampleFamilyName: 'Familia García',
+    },
+    tasks: {},
+    items: {
+      title: 'Artículos',
+      newItem: 'Nuevo artículo',
+      quantity: 'Cantidad',
+      category: 'Categoría',
+      searchPlaceholder: 'Buscar artículos...',
+      confirmDelete: '¿Eliminar este artículo?',
+      confirmRestock: '¿Reabastecer todos los artículos completados?',
+      empty: 'Vacío',
+      restocked: 'Compras reabastecidas',
+      sortLabel: 'Ordenar',
+      sortCategory: 'Por categoría',
+      sortCategoryAlpha: 'Categoría A-Z',
+      sortAlpha: 'A-Z',
+    },
+    notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
+    filters: { title: 'Filtros', noSavedFilters: 'Sin filtros guardados', manageFilters: 'Administra tus filtros guardados aquí.' },
+    groceries: { empty: 'Sin artículos' },
+    settings: {
+      account: 'Cuenta', active: 'Activo', addFilter: 'Añadir filtro', addLabel: 'Añadir etiqueta',
+      addShop: 'Añadir tienda', addedBy: 'Añadido por', adminCountWarning: 'Aviso: cambiando el número de administradores',
+      agentApproval: 'Aprobación de agente', agents: 'Agentes', apiDocumentation: 'Documentación API',
+      apiTokens: 'Tokens API', appInfo: 'Info de la app', approve: 'Aprobar', approvedCount: 'Aprobado',
+      approving: 'Aprobando...', archiveSettings: 'Configuración de archivo', autoCleanup: 'Limpieza automática',
+      blocked: 'Bloqueado', cancelEdit: 'Cancelar', changePassword: 'Cambiar contraseña', color: 'Color',
+      commit: 'Commit', confirmPassword: 'Confirmar contraseña', copyAppInfo: 'Copiar', copyFailed: 'Error al copiar',
+      createApiToken: 'Crear token API', created: 'Creado', currentPassword: 'Contraseña actual',
+      currentPasswordIncorrect: 'La contraseña actual es incorrecta', days30: '30 días', days60: '60 días',
+      days90: '90 días', deleteMember: 'Eliminar miembro', deleteMemberConfirm: '¿Eliminar este miembro?',
+      demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', editProfile: 'Editar perfil',
+      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro', filterName: 'Nombre del filtro',
+      filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
+      language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
+      newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
+      noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
+      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', openSwaggerDocs: 'Abrir documentación Swagger',
+      admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
+      autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',
+      firstAdmin: 'Primer admin', makeAdmin: 'Hacer admin', makeMember: 'Hacer miembro', owner: 'Propietario',
+      password: 'Contraseña', passwordMinLength: 'La contraseña debe tener al menos {n} caracteres',
+      passwordMismatch: 'Las contraseñas no coinciden', passwordRequired: 'La contraseña es obligatoria',
+      passwordSame: 'La nueva contraseña debe ser diferente', passwordUpdated: 'Contraseña actualizada',
+      pendingCount: 'Pendiente', profile: 'Perfil', preferences: 'Preferencias', profileSaveFailed: 'Error al guardar el perfil',
+      reject: 'Rechazar', rejectAgentConfirm: '¿Rechazar este agente?', rejecting: 'Rechazando...',
+      requested: 'Solicitado', retentionDays: 'Días de retención', retentionPeriod: 'Período de retención',
+      revokeToken: 'Revocar token', revokeTokenConfirm: '¿Revocar este token?', revoking: 'Revocando...',
+      role: 'Rol', saturday: 'Sábado', saveProfile: 'Guardar', selectDay: 'Seleccionar día',
+      selectLanguage: 'Seleccionar idioma', shops: 'Tiendas', sprintSettings: 'Configuración de sprint',
+      sprintStartDay: 'Día de inicio del sprint', firstDayOfWeek: 'Primer día de la semana', sunday: 'Domingo',
+      teamMembers: 'Miembros del equipo', theme: 'Tema', thursday: 'Jueves', title: 'Configuración',
+      tokenName: 'Nombre del token', tokenPermissions: 'Permisos del token', tuesday: 'Martes',
+      unblock: 'Desbloquear', unlimited: 'Ilimitado', unnamed: 'Sin nombre', update: 'Actualizar',
+      updateAvailable: 'Nueva versión disponible', updated: 'Actualizado', version: 'Versión',
+      wednesday: 'Miércoles', yourProfile: 'Tu perfil', adminUpdated: 'Admin actualizado',
+      memberUpdated: 'Miembro actualizado', memberUnblocked: 'Miembro desbloqueado', memberBlocked: 'Miembro bloqueado',
+      roleUpdated: 'Rol actualizado', memberDeleted: 'Miembro eliminado', addLabelTitle: 'Añadir etiqueta',
+      editLabelTitle: 'Editar etiqueta', addShopTitle: 'Añadir tienda', editShopTitle: 'Editar tienda',
+      labelNamePlaceholder: 'Nombre de etiqueta', shopNamePlaceholder: 'Nombre de la tienda',
+    },
+    projects: {
+      title: 'Proyectos', newProject: 'Nuevo proyecto', createProject: 'Crear proyecto',
+      projectName: 'Nombre del proyecto', description: 'Descripción', color: 'Color', progress: 'Progreso',
+      tasksCompleted: 'tareas completadas', tasks: 'tareas', subtasks: 'Subtareas',
+      noProjects: 'Aún no hay proyectos', noProjectsSub: 'Crea tu primer proyecto para comenzar',
+      noTasks: 'Sin subtareas en este proyecto', backToOverview: 'Volver a la vista general',
+      statusActive: 'Activo', statusCompleted: 'Completado', statusArchived: 'Archivado',
+    },
+    invite: {
+      agentApiToken: '🔑 Token API de Agente', agentInviteTitle: 'Invitación de Agente',
+      agentLabel: 'Agente', agentTokenAutoGenerated: 'Se generará un token API automáticamente.',
+      close: 'Cerrar', codeDeleted: 'Código de invitación eliminado', copyToken: 'Copiar token',
+      copyUrl: 'Copiar URL', delete: 'Eliminar', expired: 'Caducado', generate: 'Generar código de invitación',
+      generateAgent: 'Generar invitación de agente', generateFailed: 'Error al generar el código',
+      generateHuman: 'Generar invitación de persona', generated: '{type} generado', generating: 'Generando...',
+      humanInviteTitle: 'Compartir invitación de persona', humanLabel: 'Persona', inviteCode: 'Código de invitación',
+      inviteLink: 'Enlace de invitación', minutesRemaining: 'Quedan {n} minutos',
+      saveTokenWarning: 'Guarda este token ahora — no se mostrará de nuevo.',
+      share: 'Compartir', shareFailed: 'Error al compartir', shareInvite: 'Compartir invitación',
+      shareViaWhatsApp: 'Compartir por WhatsApp', urlCopied: '¡URL copiada!', usedOn: 'Usado el {date}',
+    },
+    calendar: {
+      title: 'Calendario', newEvent: 'Nuevo evento', allDay: 'Todo el día', startTime: 'Hora de inicio',
+      endTime: 'Hora de fin', description: 'Descripción', eventDescription: 'Descripción del evento',
+      schedule: 'Horario', day: 'Día', '3days': '3 días', threeDays: '3 días', week: 'Semana',
+      workweek: 'Semana laboral', month: 'Mes',
+      saveEvent: 'Guardar evento', today: 'Hoy', location: 'Ubicación', repeat: 'Repetir',
+      noEvents: 'Sin eventos', datedTask: 'Tarea con fecha', searchPlaceholder: 'Buscar en calendario...',
+      viewLabel: 'Vista', previous: 'Anterior', next: 'Siguiente', moreDetails: 'Más detalles',
+      fewerDetails: 'Menos detalles', titleRequired: 'Título obligatorio', timeRequired: 'Hora obligatoria',
+      saveFailed: 'Error al guardar',
+    },
+    inbox: {
+      title: 'Bandeja de entrada', todo: 'Por hacer', doneToday: 'Hecho hoy', blocked: 'Bloqueado',
+      inboxIsEmpty: 'La bandeja está vacía', selectAll: 'Seleccionar todo', deselectAll: 'Deseleccionar todo',
+      cancelSelection: 'Cancelar selección', pushSelected: 'Mover seleccionados',
+      searchPlaceholder: 'Buscar en la bandeja...', noTasksFound: 'No se encontraron tareas',
+      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío',
+    },
+    members: {
+      title: 'Miembros', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
+      noMembers: 'Sin miembros', role: 'Rol', manageMembers: 'Gestionar miembros', addMember: 'Añadir miembro',
+      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.',
+    },
+    agent: {
+      title: 'Agentes', createToken: 'Crear token', tokenCreated: 'Token creado', tokenRevoked: 'Token revocado',
+      tokenCopied: 'Token copiado al portapapeles', saveTokenNow: 'Guarda este token ahora',
+      pendingApproval: 'Pendiente de aprobación', approved: 'Aprobado', rejected: 'Rechazado',
+      noAgents: 'Sin agentes', agentName: 'Nombre del agente', agentEmail: 'Correo del agente',
+      permissions: 'Permisos', expiresAt: 'Caduca el', revokeConfirm: '¿Revocar este token?',
+    },
+  },
 };
 
 
@@ -2096,9 +2311,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "shortYear": "Annuel",
       "shortMonthPrefix": "Mois ·"
     }
-  }
+  },
+  "de": {},
+  "es": {},
 };
-
 const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
   "en": {
     "auth": {
@@ -2501,7 +2717,9 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "more": "Plus",
       "morePages": "Plus de pages"
     }
-  }
+  },
+  "de": {},
+  "es": {},
 };
 
 function lookupNested(dict: unknown, key: string): string | undefined {

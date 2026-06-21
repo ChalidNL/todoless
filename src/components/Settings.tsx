@@ -75,7 +75,7 @@ export const Settings = () => {
   const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
-  const getLanguageLabel = (lang: SupportedUiLanguage) => ({ nl: 'Nederlands', fr: 'Français', en: 'English' })[lang];
+  const getLanguageLabel = (lang: SupportedUiLanguage) => ({ nl: 'Nederlands', fr: 'Français', en: 'English', de: 'Deutsch', es: 'Español' })[lang];
   const weekDays = [
     { value: 0, label: t('settings.sunday') },
     { value: 1, label: t('settings.monday') },
