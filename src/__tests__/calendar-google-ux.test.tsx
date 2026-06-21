@@ -118,7 +118,7 @@ describe('Calendar Google-inspired UX', () => {
     expect(nowLine).toHaveClass('left-0');
     expect(nowLine).toHaveClass('right-0');
     expect(screen.getByTestId('calendar-now-time-chip')).toHaveTextContent('08:38');
-    expect(screen.getByTestId('calendar-now-dot')).toHaveClass('left-[42px]');
+    expect(screen.queryByTestId('calendar-now-dot')).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 
@@ -142,10 +142,12 @@ describe('Calendar Google-inspired UX', () => {
     expect(within(first).getByText(/09:00/)).toBeInTheDocument();
     expect(within(first).queryByText(/Jun/)).not.toBeInTheDocument();
     expect(within(first).queryByRole('checkbox')).not.toBeInTheDocument();
-    fireEvent.click(within(first).getByTestId('calendar-compact-task-a'));
-    const editor = within(first).getByTestId('calendar-expanded-task-a');
-    expect(editor).toHaveClass('min-w-[280px]');
-    expect(within(editor).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
+    const calendarCard = within(first).getByTestId('compact-task-card-a');
+    expect(calendarCard).toHaveAttribute('data-component', 'CompactTaskCard');
+    fireEvent.click(within(first).getByText('A'));
+    expect(calendarCard).toHaveClass('min-w-[280px]');
+    const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
+    expect(titleEditor).toHaveValue('A');
   });
 
   it('uses the selected first day of week for week and month ranges', () => {

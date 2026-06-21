@@ -27,6 +27,9 @@ interface CompactTaskCardProps {
   startExpanded?: boolean;
   compact?: boolean;
   className?: string;
+  calendarTimeLabel?: string;
+  hideDateChip?: boolean;
+  calendarBlock?: boolean;
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
@@ -75,7 +78,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '' }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
@@ -83,7 +86,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const [labelInput, setLabelInput] = useState('');
   const [isDeleteHover, setIsDeleteHover] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState(startExpanded ? task.title : '');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskEditMode, setSubtaskEditMode] = useState(false);
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
@@ -363,8 +366,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     <>
       <div
         ref={cardRef}
+        data-testid={`compact-task-card-${task.id}`}
+        data-component="CompactTaskCard"
         onClick={expandFromCardClick}
-        className={`rounded-lg border transition-colors ${
+        className={`${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'
             : isFocusTask
@@ -380,8 +385,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${className}`}>
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? 'relative z-50 min-w-[280px] max-w-[min(92vw,360px)] !rounded-sm !bg-white shadow-2xl' : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
+          {calendarTimeLabel && !showMenu && (
+            <div className="mb-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
+          )}
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
@@ -459,7 +467,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
           </div>
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
+          {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
             <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -483,7 +491,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
                 />
               )}
-              {dateStr && !isDone && (
+              {dateStr && !hideDateChip && !isDone && (
                 <AttributeChip
                   icon={<CalendarDays className="w-3.5 h-3.5" />}
                   label={dateStr}

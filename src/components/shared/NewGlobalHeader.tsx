@@ -102,9 +102,7 @@ export const AppHeader = ({
     if (e.key !== 'Enter') return;
     e.preventDefault();
     e.stopPropagation();
-    if (inputText.trim()) {
-      submitInput();
-    }
+    handleAdd();
   };
 
   const applySavedFilter = (filterId: string) => {
