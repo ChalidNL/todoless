@@ -152,7 +152,8 @@ describe('Calendar Google-inspired UX', () => {
     const calendarCard = within(first).getByTestId('compact-task-card-a');
     expect(calendarCard).toHaveAttribute('data-component', 'CompactTaskCard');
     fireEvent.click(within(first).getByText('Alpha'));
-    expect(calendarCard).toHaveClass('w-[min(430px,calc(100vw-24px))]');
+    expect(calendarCard).toHaveClass('w-[calc(100vw-24px)]');
+    expect(calendarCard).toHaveClass('sm:w-[430px]');
     expect(calendarCard).toHaveClass('max-w-none');
     const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
     expect(titleEditor).toHaveValue('Alpha');

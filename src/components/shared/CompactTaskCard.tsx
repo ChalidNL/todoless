@@ -386,7 +386,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 w-[min(430px,calc(100vw-24px))] max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 w-[calc(100vw-24px)] max-w-none sm:w-[430px] !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
