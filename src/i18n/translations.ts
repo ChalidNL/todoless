@@ -110,6 +110,9 @@ interface TranslationStructure {
     pleaseEnterPassword: string;
     pleaseEnterWorkspaceName: string;
     prefilledWithWorkspace: string;
+    selectLanguage: string;
+    languageStepTitle: string;
+    languageStepDesc: string;
     skip: string;
     step1Desc: string;
     step2Desc: string;
@@ -488,6 +491,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Please enter a password',
       pleaseEnterWorkspaceName: 'Please enter a workspace name',
       prefilledWithWorkspace: 'Pre-filled with your workspace name, you can change it',
+      selectLanguage: 'Select your language',
+      languageStepTitle: 'Choose Your Language',
+      languageStepDesc: 'Pick your preferred language to get started.',
       skip: 'Skip',
       step1Desc: 'Your daily assistant for quick, simple productivity without overwhelm.',
       step2Desc: 'Track groceries with quantities and stores. Keep your shopping list simple and organized.',
@@ -885,6 +891,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Veuillez saisir un mot de passe',
       pleaseEnterWorkspaceName: 'Veuillez saisir un nom d\'espace de travail',
       prefilledWithWorkspace: 'Pré-rempli avec le nom de votre espace de travail, vous pouvez le modifier',
+      selectLanguage: 'Choisissez votre langue',
+      languageStepTitle: 'Choisissez Votre Langue',
+      languageStepDesc: 'Choisissez votre langue préférée pour commencer.',
       skip: 'Passer',
       step1Desc: 'Votre assistant quotidien pour une productivité rapide et simple sans surcharge.',
       step2Desc: 'Suivez les courses avec les quantités et les magasins. Gardez votre liste de courses simple et organisée.',
@@ -1282,6 +1291,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Voer een wachtwoord in',
       pleaseEnterWorkspaceName: 'Voer een workspace naam in',
       prefilledWithWorkspace: 'Vooringevuld met uw workspace naam, u kunt het wijzigen',
+      selectLanguage: 'Kies uw taal',
+      languageStepTitle: 'Kies Uw Taal',
+      languageStepDesc: 'Kies uw voorkeurstaal om te beginnen.',
       skip: 'Overslaan',
       step1Desc: 'Uw dagelijkse assistent voor snelle, eenvoudige productiviteit zonder overweldiging.',
       step2Desc: 'Volg boodschappen met hoeveelheden en winkels. Houd uw boodschappenlijst eenvoudig en georganiseerd.',
@@ -1679,6 +1691,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Bitte geben Sie ein Passwort ein',
       pleaseEnterWorkspaceName: 'Bitte geben Sie einen Arbeitsbereichsnamen ein',
       prefilledWithWorkspace: 'Vorausgefüllt mit Ihrem Arbeitsbereichsnamen, Sie können ihn ändern',
+      selectLanguage: 'Sprache wählen',
+      languageStepTitle: 'Wähle Deine Sprache',
+      languageStepDesc: 'Wähle deine bevorzugte Sprache, um zu beginnen.',
       skip: 'Überspringen',
       step1Desc: 'Ihr täglicher Assistent für schnelle, einfache Produktivität ohne Überforderung.',
       step2Desc: 'Verfolgen Sie Einkäufe mit Mengen und Geschäften. Halten Sie Ihre Einkaufsliste einfach und organisiert.',
@@ -2076,6 +2091,9 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterPassword: 'Introduce una contraseña',
       pleaseEnterWorkspaceName: 'Introduce un nombre de espacio de trabajo',
       prefilledWithWorkspace: 'Pre-rellenado con el nombre de tu espacio de trabajo',
+      selectLanguage: 'Selecciona tu idioma',
+      languageStepTitle: 'Elige Tu Idioma',
+      languageStepDesc: 'Elige tu idioma preferido para comenzar.',
       skip: 'Saltar',
       step1Desc: 'Tu asistente diario para una productividad rápida y sencilla.',
       step2Desc: 'Gestiona la compra con cantidades y tiendas.',
