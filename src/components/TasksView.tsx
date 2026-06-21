@@ -275,8 +275,6 @@ export const TasksView = () => {
         </div>
       )}
 
-      <DueDateNotifications />
-
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {/* Empty state */}
         {isEmpty ? (
@@ -286,7 +284,7 @@ export const TasksView = () => {
           </div>
         ) : (
           <>
-            {/* Tasks header with sort */}
+            {/* Tasks header with sort — always at top-right */}
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-sm text-neutral-600">
                 {t('common.tasks')} ({activeTasks.length})
@@ -302,6 +300,9 @@ export const TasksView = () => {
                 ]}
               />
             </div>
+
+            {/* OVERDUE section — always below sort header */}
+            <DueDateNotifications />
 
             {/* FOCUS section */}
             {sortedFocusTasks.length > 0 && (
