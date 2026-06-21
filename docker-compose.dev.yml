@@ -2,7 +2,7 @@ name: todoless
 
 services:
   todoless:
-    image: ghcr.io/chalidnl/todoless:dev
+    image: ghcr.io/chalidnl/todoless-frontend:dev
     container_name: todoless
     restart: unless-stopped
     security_opt:
