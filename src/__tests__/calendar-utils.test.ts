@@ -69,11 +69,11 @@ describe('calendar utilities', () => {
 
   it('persists the last selected view per user with a safe fallback', () => {
     localStorage.clear();
-    expect(getDefaultCalendarView(390, 844)).toBe('agenda');
+    expect(getDefaultCalendarView(390, 844)).toBe('schedule');
     expect(getDefaultCalendarView(1280, 900)).toBe('month');
 
     storeCalendarView('user-a', 'week');
-    expect(getStoredCalendarView('user-a', 'agenda')).toBe('week');
+    expect(getStoredCalendarView('user-a', 'schedule')).toBe('week');
 
     localStorage.setItem('todoless_calendar_view_user-a', 'bad-value');
     expect(getStoredCalendarView('user-a', 'month')).toBe('month');

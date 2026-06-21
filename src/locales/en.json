@@ -352,7 +352,8 @@
     "addShopTitle": "Add Shop",
     "editShopTitle": "Edit Shop",
     "labelNamePlaceholder": "Label Name",
-    "shopNamePlaceholder": "Shop Name"
+    "shopNamePlaceholder": "Shop Name",
+    "firstDayOfWeek": "First day of week"
   },
   "projects": {
     "title": "Projects",
@@ -417,7 +418,14 @@
     "startTime": "Start Time",
     "endTime": "End Time",
     "description": "Description",
-    "eventDescription": "Event Description"
+    "eventDescription": "Event Description",
+    "schedule": "Schedule",
+    "day": "Day",
+    "3days": "3 days",
+    "threeDays": "3 days",
+    "week": "Week",
+    "workweek": "Work week",
+    "month": "Month"
   },
   "inbox": {
     "title": "Inbox",

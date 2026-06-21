@@ -100,7 +100,7 @@ describe('CalendarView UI', () => {
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
   });
 
-  it('renders timed tasks in day view through the expandable CompactTaskCard', () => {
+  it('renders timed tasks in day view as readable full-width blocks', () => {
     const now = new Date();
     const taskStart = new Date(now);
     taskStart.setHours(6, 0, 0, 0);
@@ -124,8 +124,7 @@ describe('CalendarView UI', () => {
 
     const slotCard = screen.getByTestId('calendar-timed-task-task-compact');
     expect(within(slotCard).getByText('Teat')).toBeInTheDocument();
-    fireEvent.click(within(slotCard).getByRole('button', { name: 'Open Editor' }));
-    expect(within(slotCard).getByLabelText('tasks.editTaskTitle')).toBeInTheDocument();
+    expect(within(slotCard).getByText(/06:00/)).toBeInTheDocument();
   });
 
   it('opens inline title input on a day time slot and creates task on Enter', () => {
@@ -173,7 +172,7 @@ describe('CalendarView UI', () => {
     const todayCell = screen.getByTestId('calendar-today');
     expect(todayCell).toHaveClass('border-black');
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'agenda' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'schedule' } });
     const agenda = screen.getByTestId('calendar-agenda-list');
     expect(within(agenda).getByText('Dentist')).toBeInTheDocument();
     expect(within(agenda).queryByText('No calendar items')).not.toBeInTheDocument();

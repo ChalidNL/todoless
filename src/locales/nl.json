@@ -352,7 +352,8 @@
     "addShopTitle": "Winkel toevoegen",
     "editShopTitle": "Winkel bewerken",
     "labelNamePlaceholder": "Labelnaam",
-    "shopNamePlaceholder": "Winkelnaam"
+    "shopNamePlaceholder": "Winkelnaam",
+    "firstDayOfWeek": "Eerste dag van de week"
   },
   "projects": {
     "title": "Projecten",
@@ -417,7 +418,14 @@
     "startTime": "Starttijd",
     "endTime": "Eindtijd",
     "description": "Beschrijving",
-    "eventDescription": "Evenement beschrijving"
+    "eventDescription": "Evenement beschrijving",
+    "schedule": "Schedule",
+    "day": "Dag",
+    "3days": "3 dagen",
+    "threeDays": "3 dagen",
+    "week": "Week",
+    "workweek": "Werkweek",
+    "month": "Maand"
   },
   "inbox": {
     "title": "Inbox",

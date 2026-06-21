@@ -17,13 +17,15 @@ import {
   sameLocalDay,
   startOfLocalDay,
   startOfMonthGrid,
+  startOfWeek,
   storeCalendarView,
+  toTimeLabel,
   type CalendarItem,
   type CalendarView as CalendarViewMode,
 } from '../../lib/calendar-utils';
 
 export function CalendarView() {
-  const { tasks, addTask, showCompletionMessage } = useApp();
+  const { tasks, addTask, appSettings, showCompletionMessage } = useApp();
   const { user } = useAuth();
   const { language } = useLanguage();
   const [anchor, setAnchor] = useState(() => startOfLocalDay(Date.now()));
@@ -31,6 +33,7 @@ export function CalendarView() {
   const [mode, setMode] = useState<CalendarViewMode>(() => getStoredCalendarView((user as any)?.id, getDefaultCalendarView()));
   const [searchQuery, setSearchQuery] = useState('');
   const creatingRef = useRef(false);
+  const firstDayOfWeek = (appSettings?.sprintStartDay ?? 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
   useEffect(() => {
     storeCalendarView((user as any)?.id, mode);
@@ -38,11 +41,22 @@ export function CalendarView() {
 
   const range = useMemo(() => {
     if (mode === 'day') return { start: startOfLocalDay(anchor), end: endOfLocalDay(anchor) };
-    if (mode === 'week') return { start: startOfLocalDay(addDays(anchor, -((new Date(anchor).getDay() + 6) % 7))), end: endOfLocalDay(addDays(anchor, 6 - ((new Date(anchor).getDay() + 6) % 7))) };
-    if (mode === 'month') return { start: startOfMonthGrid(anchor), end: endOfLocalDay(addDays(startOfMonthGrid(anchor), 41)) };
-    if (mode === 'workweek') return { start: startOfLocalDay(addDays(anchor, -((new Date(anchor).getDay() + 6) % 7))), end: endOfLocalDay(addDays(anchor, 4 - ((new Date(anchor).getDay() + 6) % 7))) };
+    if (mode === '3days') return { start: startOfLocalDay(anchor), end: endOfLocalDay(addDays(anchor, 2)) };
+    if (mode === 'week') {
+      const start = startOfWeek(anchor, firstDayOfWeek);
+      return { start, end: endOfLocalDay(addDays(start, 6)) };
+    }
+    if (mode === 'month') {
+      const start = startOfMonthGrid(anchor, firstDayOfWeek);
+      return { start, end: endOfLocalDay(addDays(start, 41)) };
+    }
+    if (mode === 'workweek') {
+      const weekStart = startOfWeek(anchor, firstDayOfWeek);
+      const start = firstDayOfWeek === 0 ? addDays(weekStart, 1) : weekStart;
+      return { start: startOfLocalDay(start), end: endOfLocalDay(addDays(start, 4)) };
+    }
     return { start: startOfLocalDay(anchor), end: endOfLocalDay(addDays(anchor, 27)) };
-  }, [anchor, mode]);
+  }, [anchor, firstDayOfWeek, mode]);
 
   const allItems = useMemo(() => buildCalendarItems({ tasks, rangeStart: range.start, rangeEnd: range.end }), [tasks, range]);
   const items = useMemo(() => {
@@ -51,7 +65,7 @@ export function CalendarView() {
     return allItems.filter((item) => item.title.toLowerCase().includes(query));
   }, [allItems, searchQuery]);
   const selectedDayItems = useMemo(() => items.filter((item) => sameLocalDay(item.startTime, selectedDay)), [items, selectedDay]);
-  const views: CalendarViewMode[] = ['month', 'week', 'workweek', 'day', 'agenda'];
+  const views: CalendarViewMode[] = ['schedule', 'day', '3days', 'week', 'workweek', 'month'];
 
   const periodTitle = getPeriodTitle(mode, anchor, range.start, range.end, language);
   const isTodayAnchor = sameLocalDay(anchor, Date.now());
@@ -89,6 +103,14 @@ export function CalendarView() {
     showCompletionMessage?.(t('inbox.taskAdded'));
   };
 
+  const jump = (delta: number) => {
+    if (mode === 'month') return setAnchor(addDays(anchor, delta * 28));
+    if (mode === 'schedule') return setAnchor(addDays(anchor, delta * 7));
+    if (mode === 'week' || mode === 'workweek') return setAnchor(addDays(anchor, delta * 7));
+    if (mode === '3days') return setAnchor(addDays(anchor, delta * 3));
+    setAnchor(addDays(anchor, delta));
+  };
+
   return (
     <div className="h-full min-h-0 flex flex-col bg-neutral-50">
       <div className="sticky top-0 z-40">
@@ -107,9 +129,9 @@ export function CalendarView() {
       <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`p-2 rounded-xl ${isTodayAnchor ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700'}`}><CalendarDays className="w-4 h-4" /></button>
-          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? -28 : (mode === 'agenda' || mode === 'workweek') ? -7 : -1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
+          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
           <p data-testid="calendar-period-title" className="min-w-0 flex-1 text-center text-sm font-bold text-neutral-900">{periodTitle}</p>
-          <button type="button" aria-label={t('calendar.next', language)} onClick={() => setAnchor(addDays(anchor, mode === 'month' ? 28 : (mode === 'agenda' || mode === 'workweek') ? 7 : 1))} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
+          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
           <SharedSelect
             id="calendar-view-select"
             ariaLabel={t('calendar.viewLabel', language)}
@@ -122,40 +144,41 @@ export function CalendarView() {
       </header>
 
       <main className="flex-1 min-h-0 overflow-y-auto p-2">
-        {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} />}
+        {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} onSelect={setSelectedDay} onCreate={openCreate} language={language} firstDayOfWeek={firstDayOfWeek} />}
         {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onCreate={openCreate} language={language} />}
         {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={items} onCreate={openCreate} language={language} />}
+        {mode === '3days' && <TimeGrid mode="3days" start={startOfLocalDay(anchor)} items={items} onCreate={openCreate} language={language} />}
         {mode === 'workweek' && <TimeGrid mode="workweek" start={range.start} items={items} onCreate={openCreate} language={language} />}
-        {mode === 'agenda' && <AgendaList items={items} language={language} />}
+        {mode === 'schedule' && <AgendaList items={items} language={language} />}
         {mode === 'month' && <AgendaList items={selectedDayItems} language={language} compact />}
       </main>
     </div>
   );
 }
 
-function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }: { anchor: number; items: CalendarItem[]; selectedDay: number; onSelect: (day: number) => void; onCreate: (day: number) => void; language: Language }) {
-  const start = startOfMonthGrid(anchor);
+function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language, firstDayOfWeek }: { anchor: number; items: CalendarItem[]; selectedDay: number; onSelect: (day: number) => void; onCreate: (day: number) => void; language: Language; firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 }) {
+  const start = startOfMonthGrid(anchor, firstDayOfWeek);
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
   const month = new Date(anchor).getMonth();
   return (
     <section className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
-      <div className="grid grid-cols-7 text-[10px] font-semibold text-neutral-500 border-b border-neutral-100">
-        {days.slice(0, 7).map((day) => <div key={day} className="p-1 text-center">{new Intl.DateTimeFormat(language, { weekday: 'short' }).format(new Date(day))}</div>)}
+      <div className="grid grid-cols-7 text-[10px] font-semibold text-neutral-500 border-b border-neutral-100 bg-neutral-50">
+        {days.slice(0, 7).map((day) => <div data-testid="calendar-month-weekday" key={day} className="p-1.5 text-center uppercase tracking-wide">{new Intl.DateTimeFormat(language, { weekday: 'short' }).format(new Date(day))}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {days.map((day) => {
           const dayItems = items.filter((item) => sameLocalDay(item.startTime, day));
           const active = sameLocalDay(day, selectedDay);
           return (
-            <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[clamp(64px,11vh,112px)] border-r border-b border-neutral-100 p-1 text-left ${active ? 'bg-violet-50' : ''}`}>
-              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full border px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border-2 border-black bg-white text-black ring-2 ring-black' : new Date(day).getMonth() === month ? 'border-transparent text-neutral-800' : 'border-transparent text-neutral-300'}`}>{new Date(day).getDate()}</span>
+            <button key={day} onDoubleClick={() => onCreate(day)} onClick={() => onSelect(startOfLocalDay(day))} className={`min-h-[clamp(78px,12vh,120px)] border-r border-b border-neutral-100 p-1 text-left align-top ${active ? 'bg-violet-50' : 'bg-white'} ${new Date(day).getMonth() === month ? '' : 'bg-neutral-50/70'}`}>
+              <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border border-black bg-black text-white' : new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
               <div className="mt-1 space-y-0.5 overflow-hidden">
-                {dayItems.slice(0, 2).map((item) => (
-                  <span key={item.kind + item.id} className="block truncate rounded border border-neutral-200 bg-white px-1 py-0.5 text-[9px] font-medium leading-tight text-neutral-700 shadow-sm">
+                {dayItems.slice(0, 3).map((item) => (
+                  <span key={item.kind + item.id} className="block truncate rounded-sm bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold leading-tight text-violet-800">
                     {item.title}
                   </span>
                 ))}
-                {dayItems.length > 2 && <span className="block text-[9px] font-medium text-neutral-400">+{dayItems.length - 2}</span>}
+                {dayItems.length > 3 && <span className="block text-[9px] font-semibold text-neutral-500">+{dayItems.length - 3} more</span>}
               </div>
             </button>
           );
@@ -168,21 +191,24 @@ function MonthGrid({ anchor, items, selectedDay, onSelect, onCreate, language }:
 const HOURS = Array.from({ length: 24 }, (_, index) => index);
 const HOUR_HEIGHT = 56;
 
-function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | 'workweek' | 'day'; start: number; items: CalendarItem[]; onCreate: (day: number, hour?: number) => void; language: Language }) {
+type TimedLayout = CalendarItem & { column: number; columns: number };
+
+function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | 'workweek' | 'day' | '3days'; start: number; items: CalendarItem[]; onCreate: (day: number, hour?: number) => void; language: Language }) {
   const containerRef = useRef<HTMLElement>(null);
   const scrolledRef = useRef(false);
   const { addTask } = useApp();
   const [inlineSlot, setInlineSlot] = useState<{ day: number; hour: number } | null>(null);
   const [inlineTitle, setInlineTitle] = useState('');
   const inlineCreatingRef = useRef(false);
-  const days = Array.from({ length: mode === 'day' ? 1 : mode === 'workweek' ? 5 : 7 }, (_, index) => addDays(start, index));
+  const days = Array.from({ length: mode === 'day' ? 1 : mode === 'workweek' ? 5 : mode === '3days' ? 3 : 7 }, (_, index) => addDays(start, index));
   const allDayItems = items.filter((item) => item.allDay);
   const timedItems = items.filter((item) => !item.allDay);
   const now = Date.now();
   const nowDate = new Date(now);
   const nowHours = nowDate.getHours() + nowDate.getMinutes() / 60;
-  const showNowLine = nowHours >= 0 && nowHours <= 24;
+  const showNowLine = days.some((day) => sameLocalDay(day, now));
   const nowTop = Math.min(Math.max(nowHours * HOUR_HEIGHT, 0), 24 * HOUR_HEIGHT);
+  const dayMinWidth = mode === 'week' || mode === 'workweek' ? '112px' : '160px';
 
   const handleInlineCreate = (day: number, hour: number) => {
     const title = inlineTitle.trim();
@@ -191,7 +217,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
     window.setTimeout(() => { inlineCreatingRef.current = false; }, 600);
     const startMs = new Date(day);
     startMs.setHours(hour, 0, 0, 0);
-    const task: Omit<Task, 'id' | 'createdAt' | 'completedAt'> = {
+    addTask({
       title,
       status: 'todo',
       blocked: false,
@@ -202,8 +228,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
       endTime: startMs.getTime() + 60 * 60 * 1000,
       allDay: false,
       showInCalendar: true,
-    };
-    addTask(task);
+    } as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
     setInlineSlot(null);
     setInlineTitle('');
   };
@@ -223,22 +248,20 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
   }, [nowTop]);
 
   return (
-    <section ref={containerRef} data-testid={mode === 'week' ? 'calendar-week-time-grid' : mode === 'workweek' ? 'calendar-workweek-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
-      <div className="sticky top-0 z-10 grid bg-white/95 backdrop-blur border-b border-neutral-100" style={{ gridTemplateColumns: `44px repeat(${days.length}, minmax(${(mode === 'week' || mode === 'workweek') ? '112px' : '180px'}, 1fr))` }}>
+    <section ref={containerRef} data-testid={mode === 'week' ? 'calendar-week-time-grid' : mode === 'workweek' ? 'calendar-workweek-time-grid' : mode === '3days' ? 'calendar-3days-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
+      <div className="sticky top-0 z-30 grid bg-white/95 backdrop-blur border-b border-neutral-100" style={{ gridTemplateColumns: `42px repeat(${days.length}, minmax(${dayMinWidth}, 1fr))` }}>
         <div className="border-r border-neutral-100" />
         {days.map((day) => {
           const today = sameLocalDay(day, now);
           return (
             <div key={day} className={`px-1 py-2 text-center text-[11px] font-bold ${today ? 'bg-violet-50 text-violet-700' : 'text-neutral-700'}`}>
-              {(mode === 'week' || mode === 'workweek') && (
-                <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 ${today ? 'border-black bg-white text-black' : 'border-transparent'}`}>
-                  {new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric' }).format(new Date(day))}
-                </span>
-              )}
+              <span className={`inline-flex items-center justify-center rounded-full border px-2 py-1 ${today ? 'border-black bg-white text-black' : 'border-transparent'}`}>
+                {new Intl.DateTimeFormat(language, { day: 'numeric', weekday: 'short' }).format(new Date(day))}
+              </span>
             </div>
           );
         })}
-        <div className="col-start-2 col-end-[-1] grid border-t border-neutral-100" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${(mode === 'week' || mode === 'workweek') ? '112px' : '180px'}, 1fr))` }}>
+        <div className="col-start-2 col-end-[-1] grid border-t border-neutral-100" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(${dayMinWidth}, 1fr))` }}>
           {days.map((day) => (
             <div key={day} className="min-h-7 border-r border-neutral-100 px-1 py-1">
               {allDayItems
@@ -249,71 +272,113 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
           ))}
         </div>
       </div>
-      <div className="relative grid" style={{ gridTemplateColumns: `44px repeat(${days.length}, minmax(${(mode === 'week' || mode === 'workweek') ? '112px' : '180px'}, 1fr))`, minHeight: HOURS.length * HOUR_HEIGHT }}>
+      <div className="relative grid" style={{ gridTemplateColumns: `42px repeat(${days.length}, minmax(${dayMinWidth}, 1fr))`, minHeight: HOURS.length * HOUR_HEIGHT }}>
         <div className="border-r border-neutral-100 bg-neutral-50">
           {HOURS.map((hour) => <div key={hour} className="h-14 pr-1 text-right text-[10px] font-medium text-neutral-400">{String(hour).padStart(2, '0')}:00</div>)}
         </div>
-        {days.map((day) => (
-          <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
-            {HOURS.map((hour) => {
-              const isActive = inlineSlot?.day === day && inlineSlot?.hour === hour;
-              if (isActive) {
+        {days.map((day) => {
+          const dayTimedItems = layoutOverlappingItems(timedItems.filter((item) => sameLocalDay(item.startTime, day)));
+          return (
+            <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
+              {HOURS.map((hour) => {
+                const isActive = inlineSlot?.day === day && inlineSlot?.hour === hour;
+                if (isActive) {
+                  return (
+                    <div key={hour} className="absolute left-1 right-1 z-20" style={{ top: hour * HOUR_HEIGHT }}>
+                      <input
+                        autoFocus
+                        type="text"
+                        value={inlineTitle}
+                        onChange={(e) => setInlineTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleInlineCreate(day, hour);
+                          if (e.key === 'Escape') clearInline();
+                        }}
+                        onBlur={() => {
+                          if (!inlineTitle.trim()) clearInline();
+                        }}
+                        placeholder={t('calendar.newEvent', language)}
+                        className="w-full rounded-lg border border-violet-400 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 shadow-lg outline-none ring-2 ring-violet-300 placeholder:text-neutral-400"
+                      />
+                    </div>
+                  );
+                }
                 return (
-                  <div key={hour} className="absolute left-1 right-1 z-10" style={{ top: hour * HOUR_HEIGHT }}>
-                    <input
-                      autoFocus
-                      type="text"
-                      value={inlineTitle}
-                      onChange={(e) => setInlineTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleInlineCreate(day, hour);
-                        if (e.key === 'Escape') clearInline();
-                      }}
-                      onBlur={() => {
-                        if (!inlineTitle.trim()) clearInline();
-                      }}
-                      placeholder={t('calendar.newEvent', language)}
-                      className="w-full rounded-lg border border-violet-400 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 shadow-lg outline-none ring-2 ring-violet-300 placeholder:text-neutral-400"
-                    />
-                  </div>
+                  <button
+                    key={hour}
+                    type="button"
+                    data-testid={`calendar-slot-${String(hour).padStart(2, '0')}`}
+                    onClick={() => { setInlineSlot({ day, hour }); setInlineTitle(''); }}
+                    className="block h-14 w-full border-b border-neutral-100 text-left focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  />
                 );
-              }
-              return (
-                <button
-                  key={hour}
-                  type="button"
-                  data-testid={`calendar-slot-${String(hour).padStart(2, '0')}`}
-                  onClick={() => { setInlineSlot({ day, hour }); setInlineTitle(''); }}
-                  className="block h-14 w-full border-b border-neutral-100 text-left focus:outline-none focus:ring-2 focus:ring-violet-300"
-                />
-              );
-            })}
-            {timedItems
-              .filter((item) => sameLocalDay(item.startTime, day))
-              .map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} />)}
+              })}
+              {dayTimedItems.map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} language={language} />)}
+            </div>
+          );
+        })}
+        {showNowLine && (
+          <div data-testid="calendar-now-line" className="pointer-events-none absolute left-[42px] right-0 z-40 h-0.5 bg-red-500" style={{ top: nowTop }}>
+            <span className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-red-500 ring-2 ring-white" />
           </div>
-        ))}
-        {showNowLine && <div data-testid="calendar-now-line" className="pointer-events-none absolute left-11 right-0 z-30 h-0.5 bg-red-500" style={{ top: nowTop }} />}
+        )}
       </div>
     </section>
   );
 }
 
-function CalendarTaskSlot({ item }: { item: CalendarItem }) {
+function CalendarTaskSlot({ item, language }: { item: TimedLayout; language: Language }) {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
   const durationMinutes = Math.max(30, (end.getTime() - start.getTime()) / 60000);
+  const width = `${100 / item.columns}%`;
+  const left = `${(100 / item.columns) * item.column}%`;
+  const height = Math.max(42, (durationMinutes / 60) * HOUR_HEIGHT);
 
   return (
     <div
       data-testid={`calendar-timed-task-${item.id}`}
-      className="absolute left-1 right-1 z-20 overflow-visible"
-      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, minHeight: 42, height: Math.max(42, (durationMinutes / 60) * HOUR_HEIGHT) }}
+      className="absolute z-10 pr-1"
+      style={{ top: (startMinutes / 60) * HOUR_HEIGHT, left, width, height: `${height}px` }}
     >
-      <CompactTaskCard task={item.source} showCheckbox={false} compact className="shadow-sm" />
+      <div className="h-full min-h-0 overflow-hidden rounded-lg border border-violet-300 bg-violet-100 px-2 py-1 text-left shadow-sm ring-1 ring-white/70">
+        <p className="truncate text-[11px] font-bold leading-tight text-violet-950">{item.title}</p>
+        <p className="truncate text-[10px] font-semibold leading-tight text-violet-700">{toTimeLabel(item.startTime, language)}–{toTimeLabel(item.endTime, language)}</p>
+      </div>
     </div>
   );
+}
+
+function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {
+  const sorted = [...items].sort((a, b) => a.startTime - b.startTime || a.endTime - b.endTime || a.title.localeCompare(b.title));
+  const groups: CalendarItem[][] = [];
+  let activeGroup: CalendarItem[] = [];
+  let groupEnd = 0;
+
+  for (const item of sorted) {
+    if (!activeGroup.length || item.startTime < groupEnd) {
+      activeGroup.push(item);
+      groupEnd = Math.max(groupEnd, item.endTime);
+    } else {
+      groups.push(activeGroup);
+      activeGroup = [item];
+      groupEnd = item.endTime;
+    }
+  }
+  if (activeGroup.length) groups.push(activeGroup);
+
+  return groups.flatMap((group) => {
+    const columnsEnd: number[] = [];
+    const placed = group.map((item) => {
+      const column = columnsEnd.findIndex((end) => end <= item.startTime);
+      const useColumn = column === -1 ? columnsEnd.length : column;
+      columnsEnd[useColumn] = item.endTime;
+      return { ...item, column: useColumn, columns: 1 };
+    });
+    const columns = Math.max(1, columnsEnd.length);
+    return placed.map((item) => ({ ...item, columns }));
+  });
 }
 
 function AgendaList({ items, language, compact }: { items: CalendarItem[]; language: Language; compact?: boolean }) {
@@ -334,7 +399,7 @@ function roundToNextQuarterHour(timestamp: number) {
 
 function getPeriodTitle(mode: CalendarViewMode, anchor: number, rangeStart: number, rangeEnd: number, language: Language) {
   if (mode === 'month') return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(anchor));
-  if (mode === 'week' || mode === 'workweek') {
+  if (mode === 'week' || mode === 'workweek' || mode === '3days') {
     const start = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(rangeStart));
     const end = new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(rangeEnd));
     return `${start}–${end}`;

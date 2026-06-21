@@ -75,6 +75,15 @@ export const Settings = () => {
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
   const getLanguageLabel = (lang: SupportedUiLanguage) => ({ nl: 'Nederlands', fr: 'Français', en: 'English' })[lang];
+  const weekDays = [
+    { value: 0, label: t('settings.sunday') },
+    { value: 1, label: t('settings.monday') },
+    { value: 2, label: t('settings.tuesday') },
+    { value: 3, label: t('settings.wednesday') },
+    { value: 4, label: t('settings.thursday') },
+    { value: 5, label: t('settings.friday') },
+    { value: 6, label: t('settings.saturday') },
+  ] as const;
   const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
   const familyMembershipView = useMemo(
     () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
@@ -706,6 +715,22 @@ export const Settings = () => {
               </div>
             </div>
           )}
+        </div>
+
+        <div className="bg-white rounded-lg border border-neutral-200 p-6">
+          <h2 className="text-lg font-semibold mb-4">{t('settings.title')}</h2>
+          <label className="block text-sm text-neutral-600 mb-1" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
+          <select
+            id="first-day-of-week"
+            aria-label={t('settings.firstDayOfWeek')}
+            value={appSettings.sprintStartDay ?? 1}
+            onChange={(event) => updateAppSettings({ sprintStartDay: Number(event.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })}
+            className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
+          >
+            {weekDays.map((day) => (
+              <option key={day.value} value={day.value}>{day.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Team Members */}

@@ -252,6 +252,7 @@ interface TranslationStructure {
     shops: string;
     sprintSettings: string;
     sprintStartDay: string;
+    firstDayOfWeek: string;
     sunday: string;
     teamMembers: string;
     theme: string;
@@ -328,11 +329,13 @@ interface TranslationStructure {
     description: string;
     saveEvent: string;
     eventDescription: string;
-    month: string;
+    schedule: string;
+    day: string;
+    threeDays: string;
+    '3days': string;
     week: string;
     workweek: string;
-    day: string;
-    agenda: string;
+    month: string;
     today: string;
     location: string;
     repeat: string;
@@ -647,6 +650,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Shops',
       sprintSettings: 'Sprint Settings',
       sprintStartDay: 'Sprint Start Day',
+      firstDayOfWeek: 'First day of week',
       sunday: 'Sunday',
       teamMembers: 'Team Members',
       theme: 'Theme',
@@ -723,11 +727,13 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Description',
       saveEvent: 'Save event',
       eventDescription: 'Event Description',
-      month: 'Month',
+      schedule: 'Schedule',
+      day: 'Day',
+      threeDays: '3 days',
+      '3days': '3 days',
       week: 'Week',
       workweek: 'Work week',
-      day: 'Day',
-      agenda: 'Agenda',
+      month: 'Month',
       today: 'Today',
       location: 'Location',
       repeat: 'Repeat',
@@ -1040,6 +1046,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Magasins',
       sprintSettings: 'Paramètres de sprint',
       sprintStartDay: 'Jour de début du sprint',
+      firstDayOfWeek: 'Premier jour de la semaine',
       sunday: 'Dimanche',
       teamMembers: 'Membres de l\'équipe',
       theme: 'Thème',
@@ -1116,11 +1123,13 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Description',
       saveEvent: 'Enregistrer l\'événement',
       eventDescription: 'Description de l\'événement',
-      month: 'Mois',
+      schedule: 'Planning',
+      day: 'Jour',
+      threeDays: '3 jours',
+      '3days': '3 jours',
       week: 'Semaine',
       workweek: 'Semaine de travail',
-      day: 'Jour',
-      agenda: 'Agenda',
+      month: 'Mois',
       today: 'Aujourd’hui',
       location: 'Lieu',
       repeat: 'Répéter',
@@ -1433,6 +1442,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Winkels',
       sprintSettings: 'Sprint instellingen',
       sprintStartDay: 'Sprint startdag',
+      firstDayOfWeek: 'Eerste dag van de week',
       sunday: 'Zondag',
       teamMembers: 'Teamleden',
       theme: 'Thema',
@@ -1509,11 +1519,13 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Beschrijving',
       saveEvent: 'Evenement opslaan',
       eventDescription: 'Evenement beschrijving',
-      month: 'Maand',
+      schedule: 'Schedule',
+      day: 'Dag',
+      threeDays: '3 dagen',
+      '3days': '3 dagen',
       week: 'Week',
       workweek: 'Werkweek',
-      day: 'Dag',
-      agenda: 'Agenda',
+      month: 'Maand',
       today: 'Vandaag',
       location: 'Locatie',
       repeat: 'Herhalen',
@@ -1826,6 +1838,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Geschäfte',
       sprintSettings: 'Sprint-Einstellungen',
       sprintStartDay: 'Sprint-Starttag',
+      firstDayOfWeek: 'Erster Wochentag',
       sunday: 'Sonntag',
       teamMembers: 'Teammitglieder',
       theme: 'Design',
@@ -1902,11 +1915,13 @@ export const translations: Record<Language, TranslationStructure> = {
       description: 'Beschreibung',
       saveEvent: 'Ereignis speichern',
       eventDescription: 'Ereignisbeschreibung',
-      month: 'Monat',
+      schedule: 'Terminplan',
+      day: 'Tag',
+      threeDays: '3 Tage',
+      '3days': '3 Tage',
       week: 'Woche',
       workweek: 'Arbeitswoche',
-      day: 'Tag',
-      agenda: 'Agenda',
+      month: 'Monat',
       today: 'Heute',
       location: 'Ort',
       repeat: 'Wiederholen',

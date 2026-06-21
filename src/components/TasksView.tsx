@@ -275,6 +275,8 @@ export const TasksView = () => {
         </div>
       )}
 
+      <DueDateNotifications />
+
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {/* Empty state */}
         {isEmpty ? (
@@ -425,7 +427,6 @@ export const TasksView = () => {
           </>
         )}
       </div>
-      <DueDateNotifications />
     </>
   );
 };

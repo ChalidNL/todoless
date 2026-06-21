@@ -1,7 +1,7 @@
 import { RRule, rrulestr } from 'rrule';
 import type { Task, RepeatInterval } from '../types';
 
-export type CalendarView = 'month' | 'week' | 'workweek' | 'day' | 'agenda';
+export type CalendarView = 'schedule' | 'day' | '3days' | 'week' | 'workweek' | 'month';
 
 export interface CalendarItem {
   id: string;
@@ -17,11 +17,11 @@ export interface CalendarItem {
   completed?: boolean;
 }
 
-const VALID_VIEWS: CalendarView[] = ['month', 'week', 'workweek', 'day', 'agenda'];
+const VALID_VIEWS: CalendarView[] = ['schedule', 'day', '3days', 'week', 'workweek', 'month'];
 const DEFAULT_DURATION_MS = 60 * 60 * 1000;
 
 export function getDefaultCalendarView(width = window.innerWidth, height = window.innerHeight): CalendarView {
-  if (width < 640) return width > height ? 'week' : 'agenda';
+  if (width < 640) return width > height ? 'week' : 'schedule';
   if (width < 1024) return 'week';
   return 'month';
 }
@@ -118,11 +118,19 @@ export function endOfLocalDay(timestamp: number) {
   return d.getTime();
 }
 
-export function startOfMonthGrid(timestamp: number) {
+export function startOfWeek(timestamp: number, firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1) {
+  const day = new Date(timestamp);
+  day.setHours(0, 0, 0, 0);
+  const offset = (day.getDay() - firstDayOfWeek + 7) % 7;
+  day.setDate(day.getDate() - offset);
+  return day.getTime();
+}
+
+export function startOfMonthGrid(timestamp: number, firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1) {
   const first = new Date(timestamp);
   first.setDate(1);
   first.setHours(0, 0, 0, 0);
-  const offset = (first.getDay() + 6) % 7;
+  const offset = (first.getDay() - firstDayOfWeek + 7) % 7;
   first.setDate(first.getDate() - offset);
   return first.getTime();
 }
