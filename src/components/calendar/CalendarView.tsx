@@ -299,7 +299,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
                         value={inlineTitle}
                         onChange={(e) => setInlineTitle(e.target.value)}
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleInlineCreate(day, hour);
+                          if (e.key === 'Enter') { e.preventDefault(); handleInlineCreate(day, hour); }
                           if (e.key === 'Escape') clearInline();
                         }}
                         onBlur={() => {

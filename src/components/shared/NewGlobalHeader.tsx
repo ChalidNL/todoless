@@ -78,6 +78,8 @@ export const AppHeader = ({
     if (!trimmed) return;
     if (onSubmitInput) {
       onSubmitInput(trimmed);
+      setInputText('');
+      if (onSearch) onSearch('');
       return;
     }
     if (onAdd) {

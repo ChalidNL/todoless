@@ -46,7 +46,7 @@ export function buildCalendarItems({
   rangeStart: number;
   rangeEnd: number;
 }): CalendarItem[] {
-  const visibleTasks = tasks.filter((task) => task.showInCalendar !== false);
+  const visibleTasks = tasks.filter((task) => task.showInCalendar !== false && task.status !== 'done');
 
   const recurringTasks = visibleTasks.filter((task) => task.repeatInterval);
   const nonRecurringTasks = visibleTasks.filter((task) => !task.repeatInterval);
