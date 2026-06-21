@@ -352,7 +352,9 @@
     "addShopTitle": "Ajouter un magasin",
     "editShopTitle": "Modifier le magasin",
     "labelNamePlaceholder": "Nom de l’étiquette",
-    "shopNamePlaceholder": "Nom du magasin"
+    "shopNamePlaceholder": "Nom du magasin",
+    "firstDayOfWeek": "Premier jour de la semaine",
+    "preferences": "Préférences"
   },
   "projects": {
     "title": "Projets",
@@ -417,8 +419,14 @@
     "startTime": "Heure de début",
     "endTime": "Heure de fin",
     "description": "Description",
-    "eventTitle": "Titre de l'événement",
-    "eventDescription": "Description de l'événement"
+    "eventDescription": "Description de l'événement",
+    "schedule": "Planning",
+    "day": "Jour",
+    "3days": "3 jours",
+    "threeDays": "3 jours",
+    "week": "Semaine",
+    "workweek": "Semaine de travail",
+    "month": "Mois"
   },
   "inbox": {
     "title": "Boîte de réception",

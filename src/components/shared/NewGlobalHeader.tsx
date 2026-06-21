@@ -4,9 +4,17 @@ import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AppMark } from './AppLogo';
 
-interface NewGlobalHeaderProps {
+interface AppHeaderProps {
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
+  onAddEmpty?: (value?: string) => void;
+  onInputValueChange?: (value: string) => void;
+  onSubmitInput?: (value: string) => void;
+  onCancelInput?: () => void;
+  inputValue?: string;
+  submitAriaLabel?: string;
+  cancelAriaLabel?: string;
+  showInputActions?: boolean;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
   type?: 'task' | 'item' | 'note' | 'calendar';
@@ -15,39 +23,86 @@ interface NewGlobalHeaderProps {
   showAdd?: boolean;
 }
 
-export const NewGlobalHeader = ({ 
-  onSearch, 
-  onAdd, 
+export function AddButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
+      title={t('common.addTooltip')}
+      aria-label={t('common.addTooltip')}
+    >
+      <Plus className="w-4 h-4" />
+    </button>
+  );
+}
+
+export const AppHeader = ({
+  onSearch,
+  onAdd,
+  onAddEmpty,
+  onInputValueChange,
+  onSubmitInput,
+  onCancelInput,
+  inputValue,
+  submitAriaLabel = t('common.save'),
+  cancelAriaLabel = t('common.cancel'),
+  showInputActions = true,
   onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
   showFilters = true,
   showSearch = true,
   showAdd = true
-}: NewGlobalHeaderProps) => {
-  const [inputValue, setInputValue] = useState('');
+}: AppHeaderProps) => {
+  const [internalInputValue, setInternalInputValue] = useState('');
+  const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage } = useApp();
 
   const typeFilters = filters.filter(f => f.type === type);
 
+  const setInputText = (value: string) => {
+    if (onInputValueChange) onInputValueChange(value);
+    else setInternalInputValue(value);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value);
+    setInputText(value);
     if (onSearch) onSearch(value);
   };
 
+  const submitInput = () => {
+    const trimmed = inputText.trim();
+    if (!trimmed) return;
+    if (onSubmitInput) {
+      onSubmitInput(trimmed);
+      return;
+    }
+    if (onAdd) {
+      onAdd(trimmed);
+      setInputText('');
+      if (onSearch) onSearch('');
+    }
+  };
+
   const handleAdd = () => {
-    if (!inputValue.trim() || !onAdd) return;
-    onAdd(inputValue.trim());
-    setInputValue('');
-    if (onSearch) onSearch('');
+    const trimmed = inputText.trim();
+    if (trimmed && (onAdd || onSubmitInput)) {
+      submitInput();
+      return;
+    }
+    if (onAddEmpty) {
+      onAddEmpty(trimmed || undefined);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && inputValue.trim()) {
-      handleAdd();
-    }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation();
+    handleAdd();
   };
 
   const applySavedFilter = (filterId: string) => {
@@ -170,7 +225,7 @@ export const NewGlobalHeader = ({
               <div className="flex-1 relative">
                 <input
                   type="text"
-                  value={inputValue}
+                  value={inputText}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
                   placeholder={searchPlaceholder}
@@ -179,18 +234,36 @@ export const NewGlobalHeader = ({
               </div>
             )}
 
-            {showAdd && (
+            {showInputActions && onSubmitInput && (
               <button
-                onClick={handleAdd}
-                className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
-                title={t('common.addTooltip')}
+                type="button"
+                onClick={submitInput}
+                className="p-2 rounded-md flex-shrink-0 bg-white text-black hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white/60"
+                title={submitAriaLabel}
+                aria-label={submitAriaLabel}
               >
-                <Plus className="w-4 h-4" />
+                <Save className="w-4 h-4" />
               </button>
             )}
+
+            {showInputActions && onCancelInput && (
+              <button
+                type="button"
+                onClick={onCancelInput}
+                className="p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-white/50"
+                title={cancelAriaLabel}
+                aria-label={cancelAriaLabel}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+
+            {showAdd && <AddButton onClick={handleAdd} />}
           </div>
         </div>
       </div>
     </>
   );
 };
+
+export const NewGlobalHeader = AppHeader;

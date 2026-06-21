@@ -24,6 +24,13 @@ interface CompactTaskCardProps {
   task: Task;
   showCheckbox?: boolean;
   urgent?: boolean;
+  startExpanded?: boolean;
+  compact?: boolean;
+  className?: string;
+  calendarTimeLabel?: string;
+  hideDateChip?: boolean;
+  calendarBlock?: boolean;
+  calendarPopoverAlign?: 'left' | 'right';
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
@@ -72,15 +79,15 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false, calendarPopoverAlign = 'left' }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
-  const [showMenu, setShowMenu] = useState(false);
+  const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [labelInput, setLabelInput] = useState('');
   const [isDeleteHover, setIsDeleteHover] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
+  const [titleDraft, setTitleDraft] = useState(startExpanded ? task.title : '');
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [subtaskEditMode, setSubtaskEditMode] = useState(false);
   const [editingSubtaskId, setEditingSubtaskId] = useState<string | null>(null);
@@ -311,10 +318,22 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
   const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
   const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
   const isRepeatFiltered = (repeatInterval?: RepeatInterval | null) => repeatInterval ? isChipFilterActive('repeat', repeatInterval) : false;
+  const cardPaddingClass = compact && !showMenu ? 'p-1.5' : 'p-2.5';
 
   const openEditor = (editor: TaskEditor) => {
     setShowMenu(true);
     setActiveEditor(editor);
+  };
+
+  const expandFromCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    trackInteraction();
+    const target = event.target as HTMLElement;
+    if (target.closest('button, input, select, textarea, a, [role="button"]')) return;
+    if (!showMenu) {
+      setShowMenu(true);
+      setTitleDraft(task.title);
+      setActiveEditor(null);
+    }
   };
 
   const resetParentPicker = () => {
@@ -348,8 +367,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
     <>
       <div
         ref={cardRef}
-        onClick={trackInteraction}
-        className={`rounded-lg border transition-colors ${
+        data-testid={`compact-task-card-${task.id}`}
+        data-component="CompactTaskCard"
+        onClick={expandFromCardClick}
+        style={calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : undefined}
+        className={`${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'
             : isFocusTask
@@ -365,8 +387,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''}`}>
-        <div className="p-2.5">
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
@@ -404,13 +426,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   }
                 }}
                 autoFocus
-                className={`text-sm font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
+                className={`${compact ? 'text-xs' : 'text-sm'} font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
                   isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
                 }`}
                 aria-label={t('tasks.editTaskTitle')}
               />
             ) : (
-            <span className={`text-sm font-medium flex-1 truncate ${
+            <span className={`${calendarBlock ? 'text-[12px] font-bold' : compact ? 'text-xs font-medium' : 'text-sm font-medium'} flex-1 truncate ${
               isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
             }`}>
               {task.title}
@@ -442,10 +464,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
               }
             </button>
           </div>
+          {calendarTimeLabel && !showMenu && (
+            <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
+          )}
 
           {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || dateStr || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
-            <div className="flex flex-wrap items-center gap-1 mt-1.5 ml-0.5">
+          {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
+            <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
                 return label ? (
@@ -468,7 +493,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
                   onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
                 />
               )}
-              {dateStr && !isDone && (
+              {dateStr && !hideDateChip && !isDone && (
                 <AttributeChip
                   icon={<CalendarDays className="w-3.5 h-3.5" />}
                   label={dateStr}
@@ -647,7 +672,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false }: C
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div>
                 {/* Attribute buttons */}
-              <div className="flex items-center gap-2">
+              <div className={`flex items-center gap-2 ${calendarBlock ? 'flex-wrap' : ''}`}>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
                   className={`p-1.5 rounded transition-colors ${

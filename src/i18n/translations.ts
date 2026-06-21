@@ -234,6 +234,7 @@ interface TranslationStructure {
     passwordUpdated: string;
     pendingCount: string;
     profile: string;
+    preferences: string;
     profileSaveFailed: string;
     reject: string;
     rejectAgentConfirm: string;
@@ -252,6 +253,7 @@ interface TranslationStructure {
     shops: string;
     sprintSettings: string;
     sprintStartDay: string;
+    firstDayOfWeek: string;
     sunday: string;
     teamMembers: string;
     theme: string;
@@ -326,8 +328,29 @@ interface TranslationStructure {
     startTime: string;
     endTime: string;
     description: string;
-    eventTitle: string;
+    saveEvent: string;
     eventDescription: string;
+    schedule: string;
+    day: string;
+    threeDays: string;
+    '3days': string;
+    week: string;
+    workweek: string;
+    month: string;
+    today: string;
+    location: string;
+    repeat: string;
+    noEvents: string;
+    datedTask: string;
+    searchPlaceholder: string;
+    viewLabel: string;
+    previous: string;
+    next: string;
+    moreDetails: string;
+    fewerDetails: string;
+    titleRequired: string;
+    timeRequired: string;
+    saveFailed: string;
   };
   inbox: {
     title: string;
@@ -479,6 +502,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Tasks',
       newTask: 'New Task',
+      searchPlaceholder: 'Search tasks…',
       dueDate: 'Due Date',
       assignee: 'Assignee',
       labels: 'Labels',
@@ -507,7 +531,7 @@ export const translations: Record<Language, TranslationStructure> = {
       newItem: 'New Item',
       quantity: 'Quantity',
       category: 'Category',
-      searchPlaceholder: 'Search items...',
+      searchPlaceholder: 'Search items…',
       confirmDelete: 'Delete this item?',
       confirmRestock: 'Restock all completed groceries?',
       empty: 'Empty',
@@ -609,6 +633,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Password updated successfully',
       pendingCount: 'Pending',
       profile: 'Profile',
+      preferences: 'Preferences',
       profileSaveFailed: 'Failed to save profile',
       reject: 'Reject',
       rejectAgentConfirm: 'Are you sure you want to reject this agent?',
@@ -627,6 +652,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Shops',
       sprintSettings: 'Sprint Settings',
       sprintStartDay: 'Sprint Start Day',
+      firstDayOfWeek: 'First day of week',
       sunday: 'Sunday',
       teamMembers: 'Team Members',
       theme: 'Theme',
@@ -696,13 +722,34 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Calendar',
-      newEvent: 'New Event',
+      newEvent: 'New event…',
       allDay: 'All Day',
       startTime: 'Start Time',
       endTime: 'End Time',
       description: 'Description',
-      eventTitle: 'Event Title',
+      saveEvent: 'Save event',
       eventDescription: 'Event Description',
+      schedule: 'Schedule',
+      day: 'Day',
+      threeDays: '3 days',
+      '3days': '3 days',
+      week: 'Week',
+      workweek: 'Work week',
+      month: 'Month',
+      today: 'Today',
+      location: 'Location',
+      repeat: 'Repeat',
+      noEvents: 'No calendar items',
+      datedTask: 'Task',
+      searchPlaceholder: 'Search calendar…',
+      viewLabel: 'Calendar view',
+      previous: 'Previous',
+      next: 'Next',
+      moreDetails: 'More details',
+      fewerDetails: 'Fewer details',
+      titleRequired: 'Title is required',
+      timeRequired: 'Start and end time are required',
+      saveFailed: 'Could not save event',
     },
     inbox: {
       title: 'Inbox',
@@ -714,7 +761,7 @@ export const translations: Record<Language, TranslationStructure> = {
       deselectAll: 'Deselect All',
       cancelSelection: 'Cancel Selection',
       pushSelected: 'Push Selected',
-      searchPlaceholder: 'Search inbox...',
+      searchPlaceholder: 'Search inbox…',
       noTasksFound: 'No tasks found',
       noResults: 'No results',
       markAllDone: 'Mark All Done',
@@ -852,6 +899,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Tâches',
       newTask: 'Nouvelle tâche',
+      searchPlaceholder: 'Rechercher des tâches…',
       dueDate: "Date d'échéance",
       assignee: 'Assigné à',
       labels: 'Étiquettes',
@@ -982,6 +1030,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Mot de passe mis à jour avec succès',
       pendingCount: 'En attente',
       profile: 'Profil',
+      preferences: 'Préférences',
       profileSaveFailed: 'Échec de la sauvegarde du profil',
       reject: 'Rejeter',
       rejectAgentConfirm: 'Êtes-vous sûr de vouloir rejeter cet agent ?',
@@ -1000,6 +1049,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Magasins',
       sprintSettings: 'Paramètres de sprint',
       sprintStartDay: 'Jour de début du sprint',
+      firstDayOfWeek: 'Premier jour de la semaine',
       sunday: 'Dimanche',
       teamMembers: 'Membres de l\'équipe',
       theme: 'Thème',
@@ -1069,13 +1119,34 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Calendrier',
-      newEvent: 'Nouvel événement',
+      newEvent: 'Nouvel événement…',
       allDay: 'Toute la journée',
       startTime: 'Heure de début',
       endTime: 'Heure de fin',
       description: 'Description',
-      eventTitle: 'Titre de l\'événement',
+      saveEvent: 'Enregistrer l\'événement',
       eventDescription: 'Description de l\'événement',
+      schedule: 'Planning',
+      day: 'Jour',
+      threeDays: '3 jours',
+      '3days': '3 jours',
+      week: 'Semaine',
+      workweek: 'Semaine de travail',
+      month: 'Mois',
+      today: 'Aujourd’hui',
+      location: 'Lieu',
+      repeat: 'Répéter',
+      noEvents: 'Aucun élément d’agenda',
+      datedTask: 'Tâche',
+      searchPlaceholder: 'Rechercher dans l’agenda...',
+      viewLabel: 'Vue calendrier',
+      previous: 'Précédent',
+      next: 'Suivant',
+      moreDetails: 'Plus de détails',
+      fewerDetails: 'Moins de détails',
+      titleRequired: 'Le titre est requis',
+      timeRequired: 'Le début et la fin sont requis',
+      saveFailed: 'Impossible d’enregistrer l’événement',
     },
     inbox: {
       title: 'Boîte de réception',
@@ -1225,6 +1296,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Taken',
       newTask: 'Nieuwe taak',
+      searchPlaceholder: 'Taken zoeken…',
       dueDate: 'Verloopdatum',
       assignee: 'Toegewezen aan',
       labels: 'Labels',
@@ -1355,6 +1427,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Wachtwoord succesvol bijgewerkt',
       pendingCount: 'In afwachting',
       profile: 'Profiel',
+      preferences: 'Voorkeuren',
       profileSaveFailed: 'Profiel opslaan mislukt',
       reject: 'Afwijzen',
       rejectAgentConfirm: 'Weet u zeker dat u deze agent wilt afwijzen?',
@@ -1373,6 +1446,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Winkels',
       sprintSettings: 'Sprint instellingen',
       sprintStartDay: 'Sprint startdag',
+      firstDayOfWeek: 'Eerste dag van de week',
       sunday: 'Zondag',
       teamMembers: 'Teamleden',
       theme: 'Thema',
@@ -1442,13 +1516,34 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Kalender',
-      newEvent: 'Nieuw evenement',
+      newEvent: 'Nieuw event…',
       allDay: 'Hele dag',
       startTime: 'Starttijd',
       endTime: 'Eindtijd',
       description: 'Beschrijving',
-      eventTitle: 'Evenement titel',
+      saveEvent: 'Evenement opslaan',
       eventDescription: 'Evenement beschrijving',
+      schedule: 'Schedule',
+      day: 'Dag',
+      threeDays: '3 dagen',
+      '3days': '3 dagen',
+      week: 'Week',
+      workweek: 'Werkweek',
+      month: 'Maand',
+      today: 'Vandaag',
+      location: 'Locatie',
+      repeat: 'Herhalen',
+      noEvents: 'Geen agenda-items',
+      datedTask: 'Taak',
+      searchPlaceholder: 'Agenda zoeken...',
+      viewLabel: 'Agendaweergave',
+      previous: 'Vorige',
+      next: 'Volgende',
+      moreDetails: 'Meer details',
+      fewerDetails: 'Minder details',
+      titleRequired: 'Titel is verplicht',
+      timeRequired: 'Start- en eindtijd zijn verplicht',
+      saveFailed: 'Evenement opslaan mislukt',
     },
     inbox: {
       title: 'Inbox',
@@ -1598,6 +1693,7 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       title: 'Aufgaben',
       newTask: 'Neue Aufgabe',
+      searchPlaceholder: 'Aufgaben suchen…',
       dueDate: 'Fälligkeitsdatum',
       assignee: 'Zugewiesen an',
       labels: 'Etiketten',
@@ -1728,6 +1824,7 @@ export const translations: Record<Language, TranslationStructure> = {
       passwordUpdated: 'Passwort erfolgreich aktualisiert',
       pendingCount: 'Ausstehend',
       profile: 'Profil',
+      preferences: 'Einstellungen',
       profileSaveFailed: 'Profil speichern fehlgeschlagen',
       reject: 'Ablehnen',
       rejectAgentConfirm: 'Sind Sie sicher, dass Sie diesen Agenten ablehnen möchten?',
@@ -1746,6 +1843,7 @@ export const translations: Record<Language, TranslationStructure> = {
       shops: 'Geschäfte',
       sprintSettings: 'Sprint-Einstellungen',
       sprintStartDay: 'Sprint-Starttag',
+      firstDayOfWeek: 'Erster Wochentag',
       sunday: 'Sonntag',
       teamMembers: 'Teammitglieder',
       theme: 'Design',
@@ -1815,13 +1913,34 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     calendar: {
       title: 'Kalender',
-      newEvent: 'Neues Ereignis',
+      newEvent: 'Neues Ereignis…',
       allDay: 'Ganztägig',
       startTime: 'Startzeit',
       endTime: 'Endzeit',
       description: 'Beschreibung',
-      eventTitle: 'Ereignistitel',
+      saveEvent: 'Ereignis speichern',
       eventDescription: 'Ereignisbeschreibung',
+      schedule: 'Terminplan',
+      day: 'Tag',
+      threeDays: '3 Tage',
+      '3days': '3 Tage',
+      week: 'Woche',
+      workweek: 'Arbeitswoche',
+      month: 'Monat',
+      today: 'Heute',
+      location: 'Ort',
+      repeat: 'Wiederholen',
+      noEvents: 'Keine Kalendereinträge',
+      datedTask: 'Aufgabe',
+      searchPlaceholder: 'Kalender suchen...',
+      viewLabel: 'Kalenderansicht',
+      previous: 'Zurück',
+      next: 'Weiter',
+      moreDetails: 'Mehr Details',
+      fewerDetails: 'Weniger Details',
+      titleRequired: 'Titel ist erforderlich',
+      timeRequired: 'Start- und Endzeit sind erforderlich',
+      saveFailed: 'Ereignis konnte nicht gespeichert werden',
     },
     inbox: {
       title: 'Posteingang',

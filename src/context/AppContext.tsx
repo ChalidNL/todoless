@@ -50,7 +50,6 @@ import type {
   Note,
   Label,
   Shop,
-  CalendarEvent,
   Filter,
   AppSettings,
   ProgressStats,
@@ -112,6 +111,10 @@ const entryToTask = (entry: Entry): Task => ({
   linkedTo: entry.linkedTo,
   linkedType: entry.linkedType,
   flag: entry.flag ?? false,
+  startTime: entry.startTime,
+  endTime: entry.endTime,
+  allDay: entry.allDay,
+  showInCalendar: entry.showInCalendar,
   createdAt: entry.createdAt,
   createdBy: entry.createdBy,
 });
@@ -122,7 +125,6 @@ interface AppContextType {
   notes: Note[];
   labels: Label[];
   shops: Shop[];
-  calendarEvents: CalendarEvent[];
   filters: Filter[];
   sprints: Sprint[];
   users: User[];
@@ -152,7 +154,6 @@ interface AppContextType {
   createLabel: (label: Omit<Label, 'id'>) => void;
   addShop: (shop: Omit<Shop, 'id'>) => void;
   createShop: (shop: Omit<Shop, 'id'>) => void;
-  addCalendarEvent: (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => void;
   addFilter: (filter: Omit<Filter, 'id'>) => void;
   addSprint: (sprint: Omit<Sprint, 'id'>) => void;
   addUser: (user: User) => void;
@@ -161,7 +162,6 @@ interface AppContextType {
   updateNote: (id: string, updates: Partial<Note>) => void;
   updateLabel: (id: string, updates: Partial<Label>) => void;
   updateShop: (id: string, updates: Partial<Shop>) => void;
-  updateCalendarEvent: (id: string, updates: Partial<CalendarEvent>) => void;
   updateAppSettings: (settings: Partial<AppSettings>) => void;
   updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
@@ -170,7 +170,6 @@ interface AppContextType {
   deleteNote: (id: string) => void;
   deleteLabel: (id: string) => void;
   deleteShop: (id: string) => void;
-  deleteCalendarEvent: (id: string) => void;
   deleteFilter: (id: string) => void;
   deleteSprint: (id: string) => void;
   updateSprint: (id: string, updates: Partial<Sprint>) => void;
@@ -258,7 +257,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [filters, setFilters] = useState<Filter[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -294,7 +292,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const refreshNotes = async () => setNotes(await api.getNotes());
   const refreshLabels = async () => setLabels(await api.getLabels());
   const refreshShops = async () => setShops(await api.getShops());
-  const refreshCalendarEvents = async () => setCalendarEvents(await api.getCalendarEvents());
   const refreshSprints = async () => setSprints(await api.getSprints());
   const refreshUsers = async () => setUsers(await api.getUsers());
   const refreshInvites = async () => setInviteCodes(await api.getInvites());
@@ -395,7 +392,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setNotes([]);
       setLabels([]);
       setShops([]);
-      setCalendarEvents([]);
       setSprints([]);
       setUsers([]);
       setInviteCodes([]);
@@ -414,7 +410,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       refreshNotes(),
       refreshLabels(),
       refreshShops(),
-      refreshCalendarEvents(),
       refreshSprints(),
       refreshUsers(),
       refreshInvites(),
@@ -511,8 +506,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         await api.createTask(task);
         await refreshEntries();
-      } catch (error) {
-        console.error('addTask failed:', error);
+      } catch (error: any) {
+        const detail = error?.response?.data || error?.data || error?.message || error;
+        console.error('addTask failed — full error:', JSON.stringify(detail, null, 2));
+        console.error('addTask payload:', JSON.stringify(task));
       }
     })();
   };
@@ -541,13 +538,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createShop = addShop;
-
-  const addCalendarEvent = (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
-    void (async () => {
-      await api.createCalendarEvent(event);
-      await refreshCalendarEvents();
-    })();
-  };
 
   const addFilter = (filter: Omit<Filter, 'id'>) => {
     const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
@@ -597,13 +587,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     void (async () => {
       await api.updateShop(id, updates);
       await refreshShops();
-    })();
-  };
-
-  const updateCalendarEvent = (id: string, updates: Partial<CalendarEvent>) => {
-    void (async () => {
-      await api.updateCalendarEvent(id, updates);
-      await refreshCalendarEvents();
     })();
   };
 
@@ -677,13 +660,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     void (async () => {
       await api.deleteShop(id);
       await refreshShops();
-    })();
-  };
-
-  const deleteCalendarEvent = (id: string) => {
-    void (async () => {
-      await api.deleteCalendarEvent(id);
-      await refreshCalendarEvents();
     })();
   };
 
@@ -1039,7 +1015,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       notes,
       labels,
       shops,
-      calendarEvents,
       filters,
       sprints,
       users,
@@ -1065,7 +1040,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       createLabel,
       addShop,
       createShop,
-      addCalendarEvent,
       addFilter,
       addSprint,
       addUser,
@@ -1074,7 +1048,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateNote,
       updateLabel,
       updateShop,
-      updateCalendarEvent,
       updateAppSettings,
       updateUser,
       deleteUser,
@@ -1083,7 +1056,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteNote,
       deleteLabel,
       deleteShop,
-      deleteCalendarEvent,
       deleteFilter,
       deleteSprint,
       updateSprint: updateSprintFn,
@@ -1142,7 +1114,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       notes,
       labels,
       shops,
-      calendarEvents,
       filters,
       sprints,
       users,

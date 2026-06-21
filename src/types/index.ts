@@ -107,7 +107,12 @@ export interface Task {
   sprintId?: string;
   projectId?: string;
   dueDate?: number;
+  startTime?: number;
+  endTime?: number;
+  allDay?: boolean;
+  showInCalendar?: boolean;
   repeatInterval?: RepeatInterval;
+  recurrenceRule?: string;
   completedAt?: number;
   completedBy?: string;
   archived?: boolean;
@@ -161,12 +166,23 @@ export interface Sprint {
 
 export interface CalendarEvent {
   id: string;
+  uid?: string;
   title: string;
   description?: string;
+  location?: string;
   startTime: number;
   endTime: number;
   allDay?: boolean;
+  timezone?: string;
+  rrule?: string;
+  exdates?: string[];
+  recurrenceId?: string;
+  color?: string;
+  attendees?: Array<{ id?: string; email?: string; name?: string; rsvp?: 'yes' | 'no' | 'maybe' | 'pending' }>;
+  source?: 'local' | 'ics_import' | 'caldav';
+  externalId?: string;
   taskId?: string;
+  reminders?: number[];
   createdAt: number;
   createdBy?: string;
 }
@@ -291,6 +307,10 @@ export interface Entry {
   linkedTo?: string;
   linkedType?: 'task' | 'item' | 'note';
   flag?: boolean;
+  startTime?: number;
+  endTime?: number;
+  allDay?: boolean;
+  showInCalendar?: boolean;
   createdAt: number;
   createdBy?: string;
   // Item-specific fields

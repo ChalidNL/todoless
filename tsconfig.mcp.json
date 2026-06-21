@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "dist/mcp",
+    "rootDir": "src/mcp",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "declaration": false,
+    "sourceMap": true
+  },
+  "include": ["src/mcp/**/*.ts"]
+}

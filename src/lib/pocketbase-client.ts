@@ -46,6 +46,7 @@ const normalizeTask = (record: any): Task => ({
   sprintId: record.sprint_id || undefined,
   projectId: record.project_id || undefined,
   dueDate: toTimestamp(record.due_date),
+  showInCalendar: typeof record.show_in_calendar === 'boolean' ? record.show_in_calendar : true,
   repeatInterval: record.repeat_interval || undefined,
   completedAt: toTimestamp(record.completed_at),
   archived: !!record.archived,
@@ -131,14 +132,25 @@ const normalizeSprint = (record: any): Sprint => ({
 
 const normalizeCalendarEvent = (record: any): CalendarEvent => ({
   id: record.id,
+  uid: record.uid || undefined,
   title: record.title,
   description: record.description || undefined,
+  location: record.location || undefined,
   startTime: toTimestamp(record.start_time) || Date.now(),
-  endTime: toTimestamp(record.end_time) || Date.now(),
+  endTime: toTimestamp(record.end_time) || toTimestamp(record.start_time) || Date.now(),
   allDay: !!record.all_day,
+  timezone: record.timezone || undefined,
+  rrule: record.rrule || undefined,
+  exdates: Array.isArray(record.exdates) ? record.exdates : [],
+  recurrenceId: record.recurrence_id || undefined,
+  color: record.color || '#8B5CF6',
+  attendees: Array.isArray(record.attendees) ? record.attendees : [],
+  source: record.source || 'local',
+  externalId: record.external_id || undefined,
   taskId: record.task_id || undefined,
+  reminders: Array.isArray(record.reminders) ? record.reminders : [],
   createdAt: toTimestamp(record.created) || Date.now(),
-  createdBy: record.user,
+  createdBy: record.owner || record.user,
 });
 
 const normalizeInvite = (record: any): InviteCode => ({
@@ -370,6 +382,7 @@ class PocketBaseClient {
         sprint_id: task.sprintId,
         project_id: task.projectId,
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+        show_in_calendar: task.showInCalendar !== false,
         repeat_interval: task.repeatInterval,
         labels: task.labels || [],
         is_private: task.isPrivate || false,
@@ -434,6 +447,7 @@ class PocketBaseClient {
       if (has('projectId')) payload.project_id = updates.projectId;
       if (has('assignedTo')) payload.assigned_to = updates.assignedTo;
       if (has('dueDate')) payload.due_date = updates.dueDate != null ? new Date(updates.dueDate).toISOString() : null;
+      if (has('showInCalendar')) payload.show_in_calendar = updates.showInCalendar;
       if (has('repeatInterval')) payload.repeat_interval = updates.repeatInterval;
       if (has('isPrivate')) payload.is_private = updates.isPrivate;
       if (has('archivedAt')) payload.archived_at = updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined;
@@ -677,29 +691,59 @@ class PocketBaseClient {
 
   async getCalendarEvents(): Promise<CalendarEvent[]> {
     if (!pb.authStore.isValid) return [];
+    const familyId = pb.authStore.record?.family_id;
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('calendar_events').getFullList({ filter: `user.id = "${userId}"`, sort: 'start_time' });
+    const filter = familyId
+      ? `(family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}")`
+      : `(user = "${userId}" || owner = "${userId}")`;
+    const list = await pb.collection('calendar_events').getFullList({ filter, sort: 'start_time' });
     return list.map(normalizeCalendarEvent);
   }
 
   async createCalendarEvent(event: Partial<CalendarEvent>) {
+    const userId = pb.authStore.record?.id;
+    const familyId = pb.authStore.record?.family_id;
     return pb.collection('calendar_events').create({
+      uid: event.uid || `todoless-${crypto.randomUUID()}@todoless`,
       title: event.title,
       description: event.description,
+      location: event.location,
       start_time: event.startTime ? new Date(event.startTime).toISOString() : null,
       end_time: event.endTime ? new Date(event.endTime).toISOString() : null,
       all_day: event.allDay || false,
+      timezone: event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      rrule: event.rrule,
+      exdates: event.exdates || [],
+      recurrence_id: event.recurrenceId,
+      color: event.color || '#8B5CF6',
+      attendees: event.attendees || [],
+      source: event.source || 'local',
+      external_id: event.externalId,
+      reminders: event.reminders || [],
       task_id: event.taskId,
-      user: pb.authStore.record?.id,
+      owner: userId,
+      family: familyId || undefined,
+      user: userId,
     });
   }
 
   async updateCalendarEvent(id: string, updates: Partial<CalendarEvent>) {
     return pb.collection('calendar_events').update(id, {
-      ...updates,
+      title: updates.title,
+      description: updates.description,
+      location: updates.location,
       start_time: updates.startTime ? new Date(updates.startTime).toISOString() : undefined,
       end_time: updates.endTime ? new Date(updates.endTime).toISOString() : undefined,
       all_day: updates.allDay,
+      timezone: updates.timezone,
+      rrule: updates.rrule,
+      exdates: updates.exdates,
+      recurrence_id: updates.recurrenceId,
+      color: updates.color,
+      attendees: updates.attendees,
+      source: updates.source,
+      external_id: updates.externalId,
+      reminders: updates.reminders,
       task_id: updates.taskId,
     });
   }

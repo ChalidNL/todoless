@@ -57,7 +57,31 @@ npm run dev
 - `npm run lint`
 - `npm run typecheck`
 - `npm test`
+- `npm run mcp:build`
 - `npm run security:secrets`
+
+## TodoLess MCP server
+
+The MCP server is a thin TypeScript layer over the existing PocketBase API. It uses one PocketBase user token per instance; no admin token or service-account authority is required or used.
+
+Environment:
+- `TODOLESS_PB_URL` — internal PocketBase URL, e.g. `http://pocketbase:8090`
+- `TODOLESS_USER_TOKEN` — PocketBase user auth token
+- `TODOLESS_MCP_TRANSPORT` — `stdio` or `http`
+- `TODOLESS_MCP_READONLY` — defaults to `true`; write tools are not registered when enabled
+- `TODOLESS_MCP_RATE_LIMIT` — mutating calls per minute
+- `TODOLESS_MCP_HTTP_PORT` — default `3333`
+
+Local stdio example:
+
+```bash
+TODOLESS_PB_URL=http://127.0.0.1:8090 \
+TODOLESS_USER_TOKEN='<pb-user-token>' \
+TODOLESS_MCP_TRANSPORT=stdio \
+npm run mcp:build && npm run mcp:start
+```
+
+HTTP mode is intended for the compose stack behind the same TLS reverse proxy as the app. The compose service exposes port `3333` only on the internal Docker network; it does not publish the MCP server directly.
 
 ## Deployment
 - Production and development images are defined in `docker-compose.yml` and `docker-compose.dev.yml`

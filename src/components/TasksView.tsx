@@ -5,6 +5,7 @@ import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
+import { SharedSelect } from './shared/SharedSelect';
 import { t, formatDate } from '../i18n/translations';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
@@ -171,7 +172,7 @@ export const TasksView = () => {
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
-          searchPlaceholder={t('inbox.searchPlaceholder')}
+          searchPlaceholder={t('tasks.searchPlaceholder')}
         />
       </div>
 
@@ -283,22 +284,25 @@ export const TasksView = () => {
           </div>
         ) : (
           <>
-            {/* Tasks header with sort */}
+            {/* Tasks header with sort — always at top-right */}
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-semibold text-sm text-neutral-600">
                 {t('common.tasks')} ({activeTasks.length})
               </h2>
-              <select
+              <SharedSelect<SortMode>
                 value={sortMode}
-                onChange={(e) => setSortMode(e.target.value as SortMode)}
-                className="text-xs px-2 py-1 border border-neutral-200 rounded bg-white text-neutral-600"
-                aria-label={t('filters.sortTasks')}
-              >
-                <option value="alpha">A-Z</option>
-                <option value="priority">{t('filters.priority')}</option>
-                <option value="dueDate">{t('filters.dueDate')}</option>
-              </select>
+                onChange={setSortMode}
+                ariaLabel={t('filters.sortTasks')}
+                options={[
+                  { value: 'alpha', label: 'A-Z' },
+                  { value: 'priority', label: t('filters.priority') },
+                  { value: 'dueDate', label: t('filters.dueDate') },
+                ]}
+              />
             </div>
+
+            {/* OVERDUE section — always below sort header */}
+            <DueDateNotifications />
 
             {/* FOCUS section */}
             {sortedFocusTasks.length > 0 && (
@@ -424,7 +428,6 @@ export const TasksView = () => {
           </>
         )}
       </div>
-      <DueDateNotifications />
     </>
   );
 };
