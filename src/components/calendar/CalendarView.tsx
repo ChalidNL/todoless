@@ -284,7 +284,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
         <div className="border-r border-neutral-100 bg-neutral-50">
           {HOURS.map((hour) => <div key={hour} className="h-14 pr-1 text-right text-[10px] font-medium text-neutral-400">{String(hour).padStart(2, '0')}:00</div>)}
         </div>
-        {days.map((day) => {
+        {days.map((day, dayIndex) => {
           const dayTimedItems = layoutOverlappingItems(timedItems.filter((item) => sameLocalDay(item.startTime, day)));
           return (
             <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
@@ -321,7 +321,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
                   />
                 );
               })}
-              {dayTimedItems.map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} language={language} />)}
+              {dayTimedItems.map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} language={language} align={dayIndex >= Math.ceil(days.length / 2) ? 'right' : 'left'} />)}
             </div>
           );
         })}
@@ -335,7 +335,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
   );
 }
 
-function CalendarTaskSlot({ item, language }: { item: TimedLayout; language: Language }) {
+function CalendarTaskSlot({ item, language, align }: { item: TimedLayout; language: Language; align: 'left' | 'right' }) {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
@@ -358,6 +358,7 @@ function CalendarTaskSlot({ item, language }: { item: TimedLayout; language: Lan
         calendarBlock
         hideDateChip
         calendarTimeLabel={timeLabel}
+        calendarPopoverAlign={align}
         className="!rounded-sm !border-violet-300 !bg-violet-100 shadow-sm ring-1 ring-white/80"
       />
     </div>

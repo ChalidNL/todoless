@@ -30,6 +30,7 @@ interface CompactTaskCardProps {
   calendarTimeLabel?: string;
   hideDateChip?: boolean;
   calendarBlock?: boolean;
+  calendarPopoverAlign?: 'left' | 'right';
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
@@ -78,7 +79,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false, calendarPopoverAlign = 'left' }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
@@ -385,7 +386,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? 'relative z-50 w-[min(430px,calc(100vw-24px))] max-w-none !rounded-sm !bg-white shadow-2xl' : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 w-[min(430px,calc(100vw-24px))] max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
