@@ -82,25 +82,13 @@ sudo mkdir -p /DATA/AppData/todoless/pb_hooks
 
 > **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting.
 
-### 3. (Optional) Set up the MCP server
-If you want the optional MCP integration, set the user token in your environment or `.env`:
-```bash
-export TODOLESS_USER_TOKEN="your-pocketbase-user-token"
-```
-Or create a `.env` file:
-```bash
-cp .env.example .env
-# Edit .env and set TODOLESS_USER_TOKEN
-```
-> Skip this step if you don't need the MCP server — the app works without it.
-
-### 4. Run
+### 3. Run
 ```bash
 docker compose up -d
 ```
 This pulls the pre-built images from GitHub Container Registry and starts everything.
 
-### 5. Open
+### 4. Open
 Visit **http://your-server-ip:7070**. On first run, you'll see the onboarding:
 1. Choose your language
 2. Create your admin account and name your household
