@@ -3,7 +3,6 @@
   "version": "0.3.0-beta",
   "private": true,
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
@@ -52,8 +51,7 @@
     "rrule": "^2.8.1",
     "sonner": "^2.0.3",
     "tailwind-merge": "3.5.0",
-    "vaul": "^1.1.2",
-    "zod": "^4.4.3"
+    "vaul": "^1.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
@@ -84,8 +82,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "mcp:build": "tsc -p tsconfig.mcp.json",
-    "mcp:start": "node dist/mcp/cli.js",
     "security:secrets": "bash scripts/security/scan-secrets.sh"
   }
 }

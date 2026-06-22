@@ -132,8 +132,6 @@ The `.env.example` file documents available variables. Not all are used by the p
 
 | Variable | What it does |
 |---|---|
-| `TODOLESS_USER_TOKEN` | PocketBase user token for the MCP server (required for MCP) |
-| `TODOLESS_MCP_READONLY` | Set to `false` to enable write tools in MCP (default: `true`) |
 | `TZ` | Timezone (default: `Europe/Amsterdam`) |
 | `WEBUI_PORT` | Port for the frontend (default: `7070`, must match compose) |
 
