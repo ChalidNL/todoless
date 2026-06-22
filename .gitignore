@@ -74,3 +74,15 @@ compose-local.yml
 *.orig
 *.disabled
 scripts/test-collaboration.sh
+
+# Additional generated/temp artifacts
+.output/
+*.tsbuildinfo
+.eslintcache
+.parcel-cache/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+Thumbs.db
