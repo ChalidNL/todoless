@@ -1,4 +1,4 @@
-title = "agentix/todoless-ngx gitleaks config"
+title = "todoless gitleaks config"
 
 [allowlist]
 description = "Global allowlist for non-secret files and false positives"
