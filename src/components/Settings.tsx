@@ -14,6 +14,7 @@ import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
+import { CalendarImportExport } from './CalendarImportExport';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
@@ -745,6 +746,7 @@ export const Settings = () => {
                   <option key={day.value} value={day.value}>{day.label}</option>
                 ))}
               </select>
+              <CalendarImportExport />
             </div>
           )}
         </div>

@@ -18,7 +18,12 @@ vi.mock('../components/AuthProvider', () => ({
 }));
 
 vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({ language: 'en' }),
+  useLanguage: () => ({ language: 'en', t: (key: string) => ({
+    'ics.importTitle': 'Import Calendar (.ics)',
+    'ics.importDescription': 'Import appointments from Google Calendar, Apple Calendar, or any .ics file.',
+    'ics.exportTitle': 'Export Calendar',
+    'ics.exportButton': 'Export as .ics',
+  }[key] || key) }),
 }));
 
 vi.mock('../lib/pocketbase-client', () => ({
@@ -38,6 +43,15 @@ vi.mock('../lib/app-update', () => ({
   forceRefreshApp: vi.fn(),
   getNormalizedAppVersion: vi.fn().mockReturnValue('dev'),
   shouldShowUpdateButton: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('../lib/api-client', () => ({
+  api: {
+    tasks: {
+      icsExport: vi.fn().mockResolvedValue({ ics: 'BEGIN:VCALENDAR\nEND:VCALENDAR', count: 0 }),
+      icsImport: vi.fn().mockResolvedValue({ created: 0, updated: 0, skipped: 0 }),
+    },
+  },
 }));
 
 const baseAppValue = {
@@ -179,6 +193,18 @@ describe('Calendar Google-inspired UX', () => {
     const select = screen.getByRole('combobox', { name: 'First day of week' });
     fireEvent.change(select, { target: { value: '0' } });
     expect(updateAppSettings).toHaveBeenCalledWith({ sprintStartDay: 0 });
+  });
+
+  it('places calendar import/export actions in Settings preferences instead of the calendar toolbar', () => {
+    const { unmount } = render(<Settings />);
+    fireEvent.click(screen.getByRole('button', { name: /Preferences/i }));
+    expect(screen.getByRole('button', { name: 'Import Calendar (.ics)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export as .ics' })).toBeInTheDocument();
+    unmount();
+
+    render(<CalendarView />);
+    expect(screen.queryByRole('button', { name: 'Import Calendar (.ics)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export as .ics' })).not.toBeInTheDocument();
   });
 });
 

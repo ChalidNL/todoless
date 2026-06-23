@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, Upload, Download } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,8 +7,6 @@ import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { CompactTaskCard } from '../shared/CompactTaskCard';
-import { ImportDialog } from '../ImportDialog';
-import { api } from '../../lib/api-client';
 import type { Task } from '../../types';
 import {
   addDays,
@@ -35,8 +33,6 @@ export function CalendarView() {
   const [mode, setMode] = useState<CalendarViewMode>(() => getStoredCalendarView((user as any)?.id, getDefaultCalendarView()));
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCalendarTaskId, setExpandedCalendarTaskId] = useState<string | null>(null);
-  const [showImport, setShowImport] = useState(false);
-  const [exporting, setExporting] = useState(false);
   const creatingRef = useRef(false);
   const firstDayOfWeek = (appSettings?.sprintStartDay ?? 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -116,24 +112,6 @@ export function CalendarView() {
     setAnchor(addDays(anchor, delta));
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const result = await api.tasks.icsExport();
-      const blob = new Blob([result.ics], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `todoless-export-${new Date().toISOString().slice(0, 10)}.ics`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e: any) {
-      showCompletionMessage?.(e?.message || 'Export failed');
-    } finally {
-      setExporting(false);
-    }
-  };
-
   return (
     <div className="h-full min-h-0 flex flex-col bg-neutral-50">
       <div className="sticky top-0 z-40">
@@ -162,23 +140,6 @@ export function CalendarView() {
             onChange={(value) => { setMode(value as CalendarViewMode); setAnchor(startOfLocalDay(Date.now())); }}
             options={views.map((v) => ({ value: v, label: t(`calendar.${v}`, language) }))}
           />
-          <button
-            type="button"
-            onClick={() => setShowImport(true)}
-            className="p-2 rounded-xl bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors"
-            title={t('ics.importTitle') as string}
-          >
-            <Upload className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="p-2 rounded-xl bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors disabled:opacity-50"
-            title={t('ics.exportButton') as string}
-          >
-            <Download className={`w-4 h-4 ${exporting ? 'animate-pulse' : ''}`} />
-          </button>
         </div>
       </header>
 
@@ -191,13 +152,6 @@ export function CalendarView() {
         {mode === 'schedule' && <AgendaList items={items} language={language} />}
         {mode === 'month' && <AgendaList items={selectedDayItems} language={language} compact expandedTaskId={expandedCalendarTaskId} />}
       </main>
-      <ImportDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        onImported={({ created, updated }) => {
-          showCompletionMessage?.(`Imported: ${created} new, ${updated} updated`);
-        }}
-      />
     </div>
   );
 }
