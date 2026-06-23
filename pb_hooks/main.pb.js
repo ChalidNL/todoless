@@ -280,6 +280,7 @@ routerAdd('POST', '/api/register', (c) => {
     var u = $app.unsafeWithoutHooks();
     var rec = new Record(col);
     rec.set('id', $security.randomString(15));
+    rec.set('tokenKey', $security.randomString(50));
     rec.set('verified', false);
     rec.set('email', data.email);
     rec.set('password', data.password);

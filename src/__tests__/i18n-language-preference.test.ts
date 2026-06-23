@@ -51,6 +51,7 @@ describe('per-user UI language preferences', () => {
       expect(followUpMigration).toContain(`'${lang}'`);
       expect(registerHook).toContain(`'${lang}'`);
     }
+    expect(registerHook).toContain("rec.set('tokenKey'");
   });
 
   it('falls back to English and then the key when a translation is missing', () => {
