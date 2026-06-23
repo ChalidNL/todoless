@@ -1,4 +1,5 @@
 import { pb } from './pocketbase';
+import { getActiveLanguage } from '../i18n/translations';
 import type {
   AppSettings,
   CalendarEvent,
@@ -283,6 +284,7 @@ class PocketBaseClient {
         name,
         family_name: familyName || 'My Family',
         user_type: 'family_member',
+        language: getActiveLanguage(),
       }),
     });
 
@@ -309,6 +311,7 @@ class PocketBaseClient {
       lastName,
       name,
       user_type: userType,
+      language: getActiveLanguage(),
     };
 
     const normalizedInviteCode = inviteCode?.trim().toUpperCase();

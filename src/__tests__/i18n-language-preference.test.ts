@@ -1,4 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   DEFAULT_UI_LANGUAGE,
   formatDate,
@@ -37,6 +39,18 @@ describe('per-user UI language preferences', () => {
 
     localStorage.setItem('app_language', 'es');
     expect(getStoredLanguage()).toBe('es');
+  });
+
+  it('keeps backend user language allow-lists in sync with frontend launch languages', () => {
+    const migration = readFileSync(resolve(__dirname, '../../pb_migrations/055_user_language_preference.js'), 'utf8');
+    const followUpMigration = readFileSync(resolve(__dirname, '../../pb_migrations/059_allow_de_es_user_languages.js'), 'utf8');
+    const registerHook = readFileSync(resolve(__dirname, '../../pb_hooks/main.pb.js'), 'utf8');
+
+    for (const lang of ['nl', 'fr', 'en', 'de', 'es']) {
+      expect(migration).toContain(`'${lang}'`);
+      expect(followUpMigration).toContain(`'${lang}'`);
+      expect(registerHook).toContain(`'${lang}'`);
+    }
   });
 
   it('falls back to English and then the key when a translation is missing', () => {

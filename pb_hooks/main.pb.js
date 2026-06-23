@@ -290,7 +290,7 @@ routerAdd('POST', '/api/register', (c) => {
     rec.set('family_id', data.family_id || '');
     rec.set('member_status', data.member_status || 'active');
     rec.set('member_type', data.member_type || 'family_member');
-    rec.set('language', ['nl', 'fr', 'en'].indexOf(String(data.language || '')) !== -1 ? data.language : 'en');
+    rec.set('language', ['nl', 'fr', 'en', 'de', 'es'].indexOf(String(data.language || '')) !== -1 ? data.language : 'en');
     u.save(rec);
     return rec;
   };
@@ -338,7 +338,8 @@ routerAdd('POST', '/api/register', (c) => {
         role: (memberType === 'agent') ? 'member' : 'admin',
         family_id: '',
         member_status: 'active',
-        member_type: memberType
+        member_type: memberType,
+        language: d.language
       });
 
       var fam = createFamily(d.family_name || 'My Family', rec.id);
@@ -373,7 +374,8 @@ routerAdd('POST', '/api/register', (c) => {
       role: role,
       family_id: fid,
       member_status: 'active',
-      member_type: memberType
+      member_type: memberType,
+      language: d.language
     });
 
     // Mark invite as used

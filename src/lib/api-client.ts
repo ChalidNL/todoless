@@ -6,6 +6,7 @@
  */
 
 import { pb } from './pocketbase';
+import { getActiveLanguage } from '../i18n/translations';
 import type {
   Task,
   Item,
@@ -149,7 +150,7 @@ export const api = {
     async register(email: string, password: string, name: string, inviteCode?: string) {
       await pb.collection('users').create({
         email, password, passwordConfirm: password, name,
-        username: email.split('@')[0], role: 'member',
+        username: email.split('@')[0], role: 'member', language: getActiveLanguage(),
       });
       if (inviteCode) {
         const invites = await pb.collection('invite_codes').getFullList({
