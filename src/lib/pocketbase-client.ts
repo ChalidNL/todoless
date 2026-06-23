@@ -937,7 +937,7 @@ class PocketBaseClient {
     }
 
     // Self profile/password updates still use SDK directly.
-    return pb.collection('users').update(id, {
+    const updated = await pb.collection('users').update(id, {
       name: updates.name,
       first_name: updates.firstName,
       last_name: updates.lastName,
@@ -946,6 +946,12 @@ class PocketBaseClient {
       password: updates.password,
       passwordConfirm: updates.password,
     });
+
+    if (id === pb.authStore.record?.id) {
+      pb.authStore.save(pb.authStore.token, updated);
+    }
+
+    return updated;
   }
 
   async deleteUser(id: string) {

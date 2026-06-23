@@ -440,7 +440,17 @@ export const api = {
       return list.map(normalizeUser);
     },
     async update(id: string, data: Partial<User>): Promise<User> {
-      return normalizeUser(await pb.collection('users').update(id, { name: data.name, role: data.role }));
+      const updated = await pb.collection('users').update(id, {
+        name: data.name,
+        role: data.role,
+        language: data.language,
+        first_name: data.firstName,
+        last_name: data.lastName,
+      });
+      if (id === pb.authStore.record?.id) {
+        pb.authStore.save(pb.authStore.token, updated);
+      }
+      return normalizeUser(updated);
     },
   },
 
