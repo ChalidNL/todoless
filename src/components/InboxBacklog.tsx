@@ -2,8 +2,62 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck } from 'lucide-react';
+import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck, type LucideIcon } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
+
+type InboxStatColor = 'blue' | 'emerald' | 'rose' | 'violet';
+
+const inboxStatColorClasses: Record<InboxStatColor, string> = {
+  blue: 'from-blue-600 via-blue-500 to-sky-500 hover:from-blue-700 hover:via-blue-600 hover:to-sky-600 dark:from-blue-700 dark:via-blue-600 dark:to-sky-700',
+  emerald: 'from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-700 hover:via-emerald-600 hover:to-teal-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-700',
+  rose: 'from-rose-600 via-red-500 to-orange-500 hover:from-rose-700 hover:via-red-600 hover:to-orange-600 dark:from-rose-700 dark:via-red-600 dark:to-orange-700',
+  violet: 'from-violet-600 via-purple-500 to-fuchsia-500 hover:from-violet-700 hover:via-purple-600 hover:to-fuchsia-600 dark:from-violet-700 dark:via-purple-600 dark:to-fuchsia-700',
+};
+
+function InboxStatCard({
+  statKey,
+  label,
+  value,
+  icon: Icon,
+  color,
+  active,
+  onClick,
+}: {
+  statKey: string;
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  color: InboxStatColor;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid={`inbox-stat-card-${statKey}`}
+      onClick={onClick}
+      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br ${inboxStatColorClasses[color]} px-3 py-3 text-left text-white shadow-sm shadow-black/10 transition-all duration-200 active:scale-[0.97] min-h-[82px] hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
+        active ? 'ring-2 ring-white ring-offset-2 ring-offset-neutral-50 dark:ring-offset-neutral-950' : ''
+      }`}
+    >
+      <span className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.35),transparent_38%)]" />
+      <Icon
+        data-testid="inbox-stat-watermark"
+        className="pointer-events-none absolute -right-2 -bottom-3 h-14 w-14 text-white/10"
+        strokeWidth={1.75}
+      />
+      <div className="relative z-10 flex h-full flex-col justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-white/90">
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
+            <Icon className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
+          </span>
+          <span className="min-w-0 truncate text-[11px] font-semibold leading-tight tracking-wide text-white/90">{label}</span>
+        </div>
+        <p className="text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
+      </div>
+    </button>
+  );
+}
 
 export const InboxBacklog = () => {
   const { tasks, updateTask, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
@@ -102,10 +156,10 @@ export const InboxBacklog = () => {
 
   const displayedTasks = getFilteredTasks();
   const statusSections = [
-    { key: 'backlog', label: t('inbox.title'), value: backlogCount, icon: <Inbox className="w-3.5 h-3.5 text-blue-500" /> },
-    { key: 'todo', label: 'Todo Sprint', value: todoCount, icon: <Rows2 className="w-3.5 h-3.5 text-green-500" /> },
-    { key: 'blocked', label: t('inbox.blocked'), value: blockedCount, icon: <AlertTriangle className="w-3.5 h-3.5 text-red-500" /> },
-    { key: 'done-today', label: 'Done Sprint', value: doneToday, icon: <CheckCheck className="w-3.5 h-3.5 text-emerald-500" /> },
+    { key: 'backlog', label: t('inbox.title'), value: backlogCount, icon: Inbox, color: 'blue' as const },
+    { key: 'todo', label: 'Todo Sprint', value: todoCount, icon: Rows2, color: 'emerald' as const },
+    { key: 'blocked', label: t('inbox.blocked'), value: blockedCount, icon: AlertTriangle, color: 'rose' as const },
+    { key: 'done-today', label: 'Done Sprint', value: doneToday, icon: CheckCheck, color: 'violet' as const },
   ];
 
   const hasAnyFilter = activeStatusFilter || activeChipFilters.some((f) => f.type !== 'status');
@@ -209,8 +263,14 @@ export const InboxBacklog = () => {
           {/* Stat boxes — clickable as filters */}
           <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {statusSections.map((stat) => (
-              <button
+              <InboxStatCard
                 key={stat.key}
+                statKey={stat.key}
+                label={stat.label}
+                value={stat.value}
+                icon={stat.icon}
+                color={stat.color}
+                active={activeStatusFilter === stat.key}
                 onClick={() => {
                   if (activeStatusFilter === stat.key) {
                     clearChipFilters();
@@ -219,18 +279,7 @@ export const InboxBacklog = () => {
                     toggleChipFilter('status', stat.key, stat.label);
                   }
                 }}
-                className={`w-full min-w-0 bg-white rounded-md border px-2.5 py-2 text-left transition-all active:scale-95 min-h-[68px] ${
-                  activeStatusFilter === stat.key
-                    ? 'border-neutral-900 ring-1 ring-neutral-900'
-                    : 'border-neutral-200 hover:border-neutral-400'
-                }`}
-              >
-                <div className="flex items-center gap-1 mb-1">
-                  {stat.icon}
-                  <span className="text-[10px] leading-tight text-neutral-500">{stat.label}</span>
-                </div>
-                <p className="text-base leading-none font-bold">{stat.value}</p>
-              </button>
+              />
             ))}
           </div>
 
