@@ -37,22 +37,23 @@ describe('Inbox stat cards', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the four status cards as a calm filled color set with light text', () => {
+  it('renders the four status cards as tight icon-count filled buttons with accessible labels', () => {
     render(<InboxBacklog />);
 
     for (const key of ['backlog', 'todo', 'blocked', 'done-today']) {
       const card = screen.getByTestId(`inbox-stat-card-${key}`);
-      expect(card).toHaveClass('bg-gradient-to-br');
       expect(card).toHaveClass('text-white');
       expect(card).toHaveClass('shadow-sm');
+      expect(card).toHaveClass('min-h-[56px]');
       expect(card).not.toHaveClass('bg-white');
-      expect(card.querySelector('[data-testid="inbox-stat-watermark"]')).toBeInTheDocument();
+      expect(card.querySelector('[data-testid="inbox-stat-watermark"]')).not.toBeInTheDocument();
     }
 
-    expect(screen.getByTestId('inbox-stat-card-backlog').className).toContain('from-blue-600');
-    expect(screen.getByTestId('inbox-stat-card-todo').className).toContain('from-emerald-600');
-    expect(screen.getByTestId('inbox-stat-card-blocked').className).toContain('from-rose-600');
-    expect(screen.getByTestId('inbox-stat-card-done-today').className).toContain('from-violet-600');
+    expect(screen.getByTestId('inbox-stat-card-backlog').className).toContain('bg-blue-600');
+    expect(screen.getByTestId('inbox-stat-card-todo').className).toContain('bg-emerald-600');
+    expect(screen.getByTestId('inbox-stat-card-blocked').className).toContain('bg-rose-600');
+    expect(screen.getByTestId('inbox-stat-card-done-today').className).toContain('bg-violet-600');
+    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('aria-label', 'Todo Sprint: 2');
   });
 
   it('keeps the existing tap behavior for status filters', () => {

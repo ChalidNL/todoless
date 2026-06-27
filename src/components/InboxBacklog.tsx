@@ -8,10 +8,10 @@ import { t, formatDate } from '../i18n/translations';
 type InboxStatColor = 'blue' | 'emerald' | 'rose' | 'violet';
 
 const inboxStatColorClasses: Record<InboxStatColor, string> = {
-  blue: 'from-blue-600 via-blue-500 to-sky-500 hover:from-blue-700 hover:via-blue-600 hover:to-sky-600 dark:from-blue-700 dark:via-blue-600 dark:to-sky-700',
-  emerald: 'from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-700 hover:via-emerald-600 hover:to-teal-600 dark:from-emerald-700 dark:via-emerald-600 dark:to-teal-700',
-  rose: 'from-rose-600 via-red-500 to-orange-500 hover:from-rose-700 hover:via-red-600 hover:to-orange-600 dark:from-rose-700 dark:via-red-600 dark:to-orange-700',
-  violet: 'from-violet-600 via-purple-500 to-fuchsia-500 hover:from-violet-700 hover:via-purple-600 hover:to-fuchsia-600 dark:from-violet-700 dark:via-purple-600 dark:to-fuchsia-700',
+  blue: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600',
+  emerald: 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600',
+  rose: 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600',
+  violet: 'bg-violet-600 hover:bg-violet-700 dark:bg-violet-700 dark:hover:bg-violet-600',
 };
 
 function InboxStatCard({
@@ -36,23 +36,17 @@ function InboxStatCard({
       type="button"
       data-testid={`inbox-stat-card-${statKey}`}
       onClick={onClick}
-      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br ${inboxStatColorClasses[color]} px-3 py-3 text-left text-white shadow-sm shadow-black/10 transition-all duration-200 active:scale-[0.97] min-h-[82px] hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
+      aria-label={`${label}: ${value}`}
+      title={`${label}: ${value}`}
+      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/15 ${inboxStatColorClasses[color]} px-3.5 py-2.5 text-white shadow-sm shadow-black/10 transition-all duration-150 active:scale-[0.98] min-h-[56px] hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
         active ? 'ring-2 ring-white ring-offset-2 ring-offset-neutral-50 dark:ring-offset-neutral-950' : ''
       }`}
     >
-      <span className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.35),transparent_38%)]" />
-      <Icon
-        data-testid="inbox-stat-watermark"
-        className="pointer-events-none absolute -right-2 -bottom-3 h-14 w-14 text-white/10"
-        strokeWidth={1.75}
-      />
-      <div className="relative z-10 flex h-full flex-col justify-between gap-3">
-        <div className="flex items-center gap-1.5 text-white/90">
-          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
-            <Icon className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
-          </span>
-          <span className="min-w-0 truncate text-[11px] font-semibold leading-tight tracking-wide text-white/90">{label}</span>
-        </div>
+      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/35" />
+      <div className="relative z-10 flex h-full items-center justify-between gap-3">
+        <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm" aria-hidden="true">
+          <Icon className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
+        </span>
         <p className="text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
       </div>
     </button>
@@ -261,7 +255,7 @@ export const InboxBacklog = () => {
 
         <div className="max-w-lg mx-auto px-4 pt-4 space-y-6 pb-20">
           {/* Stat boxes — clickable as filters */}
-          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
             {statusSections.map((stat) => (
               <InboxStatCard
                 key={stat.key}
