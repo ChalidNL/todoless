@@ -49,10 +49,10 @@ describe('Inbox stat cards', () => {
       expect(card.querySelector('[data-testid="inbox-stat-watermark"]')).not.toBeInTheDocument();
     }
 
-    expect(screen.getByTestId('inbox-stat-card-backlog').className).toContain('bg-blue-600');
-    expect(screen.getByTestId('inbox-stat-card-todo').className).toContain('bg-emerald-600');
-    expect(screen.getByTestId('inbox-stat-card-blocked').className).toContain('bg-rose-600');
-    expect(screen.getByTestId('inbox-stat-card-done-today').className).toContain('bg-violet-600');
+    expect(screen.getByTestId('inbox-stat-card-backlog')).toHaveStyle({ backgroundColor: '#2563eb' });
+    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveStyle({ backgroundColor: '#059669' });
+    expect(screen.getByTestId('inbox-stat-card-blocked')).toHaveStyle({ backgroundColor: '#e11d48' });
+    expect(screen.getByTestId('inbox-stat-card-done-today')).toHaveStyle({ backgroundColor: '#7c3aed' });
     expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('aria-label', 'Todo Sprint: 2');
   });
 

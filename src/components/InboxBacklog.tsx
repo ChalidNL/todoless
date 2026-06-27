@@ -7,11 +7,11 @@ import { t, formatDate } from '../i18n/translations';
 
 type InboxStatColor = 'blue' | 'emerald' | 'rose' | 'violet';
 
-const inboxStatColorClasses: Record<InboxStatColor, string> = {
-  blue: 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600',
-  emerald: 'bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600',
-  rose: 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600',
-  violet: 'bg-violet-600 hover:bg-violet-700 dark:bg-violet-700 dark:hover:bg-violet-600',
+const inboxStatColors: Record<InboxStatColor, string> = {
+  blue: '#2563eb',
+  emerald: '#059669',
+  rose: '#e11d48',
+  violet: '#7c3aed',
 };
 
 function InboxStatCard({
@@ -38,7 +38,8 @@ function InboxStatCard({
       onClick={onClick}
       aria-label={`${label}: ${value}`}
       title={`${label}: ${value}`}
-      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/15 ${inboxStatColorClasses[color]} px-3.5 py-2.5 text-white shadow-sm shadow-black/10 transition-all duration-150 active:scale-[0.98] min-h-[56px] hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
+      style={{ backgroundColor: inboxStatColors[color] }}
+      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/15 px-3.5 py-2.5 text-white shadow-sm shadow-black/10 transition-all duration-150 active:scale-[0.98] min-h-[56px] hover:-translate-y-0.5 hover:brightness-95 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
         active ? 'ring-2 ring-white ring-offset-2 ring-offset-neutral-50 dark:ring-offset-neutral-950' : ''
       }`}
     >
