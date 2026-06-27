@@ -65,7 +65,7 @@ describe('CalendarView UI', () => {
     expect(screen.queryByRole('button', { name: 'Month' })).not.toBeInTheDocument();
   });
 
-  it('creates a task immediately when clicking Add button', () => {
+  it('creates a selected-day task immediately when clicking Add button', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
     render(<CalendarView />);
@@ -80,9 +80,29 @@ describe('CalendarView UI', () => {
       title: 'From search',
       status: 'todo',
       showInCalendar: true,
-      allDay: false,
+      allDay: true,
     }));
-    expect(addTask.mock.calls[0][0].startTime).toBe(new Date(2026, 5, 20, 10, 15, 0, 0).getTime());
+    expect(addTask.mock.calls[0][0].dueDate).toBe(new Date(2026, 5, 20, 0, 0, 0, 0).getTime());
+    expect(addTask.mock.calls[0][0].startTime).toBeUndefined();
+    expect(search).toHaveValue('');
+    vi.useRealTimers();
+  });
+
+  it('creates a selected-day task from the calendar search input on Enter', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
+    render(<CalendarView />);
+
+    const search = screen.getByPlaceholderText('Search calendar…');
+    fireEvent.change(search, { target: { value: 'EnterAgenda' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+
+    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'EnterAgenda',
+      dueDate: new Date(2026, 5, 20, 0, 0, 0, 0).getTime(),
+      allDay: true,
+      showInCalendar: true,
+    }));
     expect(search).toHaveValue('');
     vi.useRealTimers();
   });
@@ -139,7 +159,15 @@ describe('CalendarView UI', () => {
     fireEvent.change(inlineInput, { target: { value: 'Quick task' } });
     fireEvent.keyDown(inlineInput, { key: 'Enter' });
 
-    // After Enter, the task should be added and input closed
+    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Quick task',
+      startTime: expect.any(Number),
+      endTime: expect.any(Number),
+      allDay: false,
+      showInCalendar: true,
+    }));
+    expect(new Date(addTask.mock.calls[0][0].startTime).getHours()).toBe(9);
+    // After Enter, the task should be added through the same CalendarView create path and input closed
     expect(screen.queryByPlaceholderText('New event…')).not.toBeInTheDocument();
   });
 
@@ -176,5 +204,38 @@ describe('CalendarView UI', () => {
     const agenda = screen.getByTestId('calendar-agenda-list');
     expect(within(agenda).getByText('Dentist')).toBeInTheDocument();
     expect(within(agenda).queryByText('No calendar items')).not.toBeInTheDocument();
+  });
+
+  it('keeps dated tasks visible across day, 3-day, week, month, and schedule views', () => {
+    const now = new Date();
+    const taskStart = new Date(now);
+    taskStart.setHours(11, 0, 0, 0);
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'calendar-regression',
+        title: 'Calendar regression task',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: taskStart.getTime(),
+        startTime: taskStart.getTime(),
+        endTime: taskStart.getTime() + 60 * 60 * 1000,
+        showInCalendar: false,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    const viewSelect = screen.getByRole('combobox', { name: 'Calendar view' });
+
+    for (const view of ['day', '3days', 'week', 'month', 'schedule']) {
+      fireEvent.change(viewSelect, { target: { value: view } });
+      expect(screen.getAllByText('Calendar regression task').length).toBeGreaterThan(0);
+    }
+    fireEvent.change(viewSelect, { target: { value: '3days' } });
+    expect(screen.getByTestId('calendar-3days-time-grid')).toBeInTheDocument();
+    expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
   });
 });

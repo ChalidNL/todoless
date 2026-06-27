@@ -309,7 +309,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowFocus(!showFocus)}
-                  className="flex items-center gap-2 w-full mb-2 px-1"
+                  className="flex items-center gap-2 w-full mb-2 px-0 text-left"
                 >
                   <Target className="w-4 h-4 text-orange-500" />
                   <h3 className="text-sm font-semibold text-orange-600">
@@ -341,7 +341,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowBlocked(!showBlocked)}
-                  className="flex items-center gap-2 w-full mb-2 px-1"
+                  className="flex items-center gap-2 w-full mb-2 px-0 text-left"
                 >
                   <Lock className="w-4 h-4 text-red-500" />
                   <h3 className="text-sm font-semibold text-red-600">

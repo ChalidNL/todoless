@@ -20,11 +20,11 @@ export const DueDateNotifications = () => {
   if (overdueTasks.length === 0) return null;
 
   return (
-    <section data-testid="overdue-section" className="max-w-lg mx-auto px-4 pt-4">
+    <section data-testid="overdue-section" className="pt-0">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
-        className="flex items-center gap-2 w-full mb-2 px-1"
+        className="flex items-center gap-2 w-full mb-2 px-0 text-left"
       >
         <AlertCircle className="w-4 h-4 text-orange-500" />
         <h3 className="text-sm font-semibold text-orange-600">

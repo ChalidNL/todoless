@@ -78,11 +78,7 @@ export function CalendarView() {
 
     const title = (titleOverride ?? searchQuery).trim() || t('calendar.newEvent', language);
     const hasTimeContext = typeof hour === 'number';
-    const start = hasTimeContext
-      ? new Date(day)
-      : titleOverride
-        ? new Date(roundToNextQuarterHour(Date.now()))
-        : new Date(day);
+    const start = new Date(day);
     if (hasTimeContext) {
       start.setHours(hour, 0, 0, 0);
     }
@@ -95,9 +91,9 @@ export function CalendarView() {
       flag: false,
       labels: [],
       dueDate: startMs,
-      startTime: hasTimeContext || titleOverride ? startMs : undefined,
-      endTime: hasTimeContext || titleOverride ? startMs + 60 * 60 * 1000 : undefined,
-      allDay: !hasTimeContext && !titleOverride,
+      startTime: hasTimeContext ? startMs : undefined,
+      endTime: hasTimeContext ? startMs + 60 * 60 * 1000 : undefined,
+      allDay: !hasTimeContext,
       showInCalendar: true,
     } as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
     setSearchQuery('');
@@ -200,10 +196,9 @@ const HOUR_HEIGHT = 56;
 
 type TimedLayout = CalendarItem & { column: number; columns: number };
 
-function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | 'workweek' | 'day' | '3days'; start: number; items: CalendarItem[]; onCreate: (day: number, hour?: number) => void; language: Language }) {
+function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | 'workweek' | 'day' | '3days'; start: number; items: CalendarItem[]; onCreate: (day: number, hour?: number, titleOverride?: string) => void; language: Language }) {
   const containerRef = useRef<HTMLElement>(null);
   const scrolledRef = useRef(false);
-  const { addTask } = useApp();
   const [inlineSlot, setInlineSlot] = useState<{ day: number; hour: number } | null>(null);
   const [inlineTitle, setInlineTitle] = useState('');
   const inlineCreatingRef = useRef(false);
@@ -222,20 +217,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
     if (!title || inlineCreatingRef.current) return;
     inlineCreatingRef.current = true;
     window.setTimeout(() => { inlineCreatingRef.current = false; }, 600);
-    const startMs = new Date(day);
-    startMs.setHours(hour, 0, 0, 0);
-    addTask({
-      title,
-      status: 'todo',
-      blocked: false,
-      flag: false,
-      labels: [],
-      dueDate: startMs.getTime(),
-      startTime: startMs.getTime(),
-      endTime: startMs.getTime() + 60 * 60 * 1000,
-      allDay: false,
-      showInCalendar: true,
-    } as Omit<Task, 'id' | 'createdAt' | 'completedAt'>);
+    onCreate(day, hour, title);
     setInlineSlot(null);
     setInlineTitle('');
   };
@@ -400,16 +382,6 @@ function AgendaList({ items, language, compact, expandedTaskId }: { items: Calen
   return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <CompactTaskCard key={`${item.kind}-${item.id}-${expandedTaskId === item.id ? 'expanded' : 'compact'}`} task={item.source} showCheckbox={false} startExpanded={expandedTaskId === item.id} />)}</div>;
 }
 
-function roundToNextQuarterHour(timestamp: number) {
-  const d = new Date(timestamp);
-  const minutes = d.getMinutes();
-  const nextQuarter = Math.ceil(minutes / 15) * 15;
-  d.setMinutes(nextQuarter, 0, 0);
-  if (nextQuarter === 60) {
-    d.setHours(d.getHours() + 1, 0, 0, 0);
-  }
-  return d.getTime();
-}
 
 function formatNowTime(timestamp: number) {
   const d = new Date(timestamp);
