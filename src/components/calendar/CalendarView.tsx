@@ -329,18 +329,17 @@ function CalendarTaskSlot({ item, language, align }: { item: TimedLayout; langua
   return (
     <div
       data-testid={`calendar-timed-task-${item.id}`}
-      className="absolute z-20 overflow-visible rounded-sm bg-violet-100 text-left"
+      className="absolute z-20 overflow-visible text-left"
       style={{ top: (startMinutes / 60) * HOUR_HEIGHT, left, width, height: `${height}px` }}
     >
       <CompactTaskCard
         task={item.source}
         showCheckbox={false}
         compact
-        calendarBlock
         hideDateChip
         calendarTimeLabel={timeLabel}
         calendarPopoverAlign={align}
-        className="!rounded-sm !border-violet-300 !bg-violet-100 shadow-sm ring-1 ring-white/80"
+        className="h-full"
       />
     </div>
   );
