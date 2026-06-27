@@ -2265,6 +2265,28 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Choose .ics or .zip file",
       "exportTitle": "Export Calendar",
       "exportButton": "Export as .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Private",
+      "visibilityFamily": "Family",
+      "visibilityShared": "Shared",
+      "visibilityPrivateDescription": "Only you see tasks with this label.",
+      "visibilityFamilyDescription": "Everyone in the family sees tasks with this label.",
+      "visibilitySharedDescription": "Only you and selected members see these tasks.",
+      "sharedMembers": "Shared members"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Blocked",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Tasks",
+      "calendar": "Cal.",
+      "groceries": "Shop",
+      "settings": "Settings"
     }
   },
   "nl": {
@@ -2307,6 +2329,28 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Kies .ics of .zip bestand",
       "exportTitle": "Agenda exporteren",
       "exportButton": "Exporteren als .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privé",
+      "visibilityFamily": "Familie",
+      "visibilityShared": "Gedeeld",
+      "visibilityPrivateDescription": "Alleen jij ziet taken met dit label.",
+      "visibilityFamilyDescription": "Iedereen in het gezin ziet taken met dit label.",
+      "visibilitySharedDescription": "Alleen jij en geselecteerde leden zien deze taken.",
+      "sharedMembers": "Gedeelde leden"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Geblokkeerd",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Taken",
+      "calendar": "Agenda",
+      "groceries": "Shop",
+      "settings": "Inst."
     }
   },
   "fr": {
@@ -2349,6 +2393,28 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Choisir un fichier .ics ou .zip",
       "exportTitle": "Exporter l'agenda",
       "exportButton": "Exporter en .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privé",
+      "visibilityFamily": "Famille",
+      "visibilityShared": "Partagé",
+      "visibilityPrivateDescription": "Vous seul voyez les tâches avec ce label.",
+      "visibilityFamilyDescription": "Toute la famille voit les tâches avec ce label.",
+      "visibilitySharedDescription": "Seuls vous et les membres sélectionnés voyez ces tâches.",
+      "sharedMembers": "Membres partagés"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Sprint todo",
+      "blocked": "Bloqué",
+      "doneSprint": "Sprint fait"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Tâches",
+      "calendar": "Agenda",
+      "groceries": "Courses",
+      "settings": "Régl."
     }
   },
   "de": {
@@ -2358,6 +2424,28 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": ".ics oder .zip-Datei auswählen",
       "exportTitle": "Kalender exportieren",
       "exportButton": "Als .ics exportieren"
+    },
+    "labels": {
+      "visibilityPrivate": "Privat",
+      "visibilityFamily": "Familie",
+      "visibilityShared": "Geteilt",
+      "visibilityPrivateDescription": "Nur du siehst Aufgaben mit diesem Label.",
+      "visibilityFamilyDescription": "Alle in der Familie sehen Aufgaben mit diesem Label.",
+      "visibilitySharedDescription": "Nur du und ausgewählte Mitglieder sehen diese Aufgaben.",
+      "sharedMembers": "Geteilte Mitglieder"
+    },
+    "dashboard": {
+      "inbox": "Eingang",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Blockiert",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Eingang",
+      "tasks": "Aufgaben",
+      "calendar": "Kal.",
+      "groceries": "Einkauf",
+      "settings": "Einst."
     }
   },
   "es": {
@@ -2367,6 +2455,28 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Elegir archivo .ics o .zip",
       "exportTitle": "Exportar calendario",
       "exportButton": "Exportar como .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privado",
+      "visibilityFamily": "Familia",
+      "visibilityShared": "Compartido",
+      "visibilityPrivateDescription": "Solo tú ves las tareas con esta etiqueta.",
+      "visibilityFamilyDescription": "Toda la familia ve las tareas con esta etiqueta.",
+      "visibilitySharedDescription": "Solo tú y los miembros seleccionados ven estas tareas.",
+      "sharedMembers": "Miembros compartidos"
+    },
+    "dashboard": {
+      "inbox": "Entrada",
+      "todoSprint": "Sprint todo",
+      "blocked": "Bloqueado",
+      "doneSprint": "Sprint hecho"
+    },
+    "nav": {
+      "inbox": "Entrada",
+      "tasks": "Tareas",
+      "calendar": "Cal.",
+      "groceries": "Compra",
+      "settings": "Ajustes"
     }
   },
 };

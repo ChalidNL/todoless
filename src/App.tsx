@@ -211,11 +211,11 @@ function AppContent() {
   }
 
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
-    { to: '/', label: t('common.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: t('common.tasks', language), icon: <AppMark className="w-5 h-5" /> },
-    { to: '/calendar', label: t('common.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
-    { to: '/groceries', label: t('common.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
-    { to: '/settings', label: t('common.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
+    { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
+    { to: '/tasks', label: t('nav.tasks', language), icon: <AppMark className="w-5 h-5" /> },
+    { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
+    { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
+    { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
   return (
@@ -242,13 +242,13 @@ function AppContent() {
       <nav className="flex-shrink-0 bg-white border-t border-neutral-200 z-40"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
       >
-        <div className="max-w-xl mx-auto flex justify-around items-center">
+        <div className="mx-auto flex max-w-xl items-center px-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] transition-all active:scale-95 ${
+                `min-w-0 flex-1 flex flex-col items-center justify-center gap-0 py-1.5 px-0.5 min-h-[52px] transition-all active:scale-95 ${
                   isActive
                     ? 'text-neutral-900'
                     : 'text-neutral-400 hover:text-neutral-600'
@@ -258,7 +258,7 @@ function AppContent() {
               <div className="relative">
                 {item.icon}
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="block w-full truncate whitespace-nowrap text-center text-[9px] font-medium leading-tight sm:text-[10px]">{item.label}</span>
             </NavLink>
           ))}
         </div>

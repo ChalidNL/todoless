@@ -15,6 +15,7 @@ import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { CalendarImportExport } from './CalendarImportExport';
+import { sortLabelsByVisibility } from '../lib/label-utils';
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
@@ -93,11 +94,12 @@ export const Settings = () => {
   const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
   const humanFamilyMembers = users.filter((user) => user.id !== currentUser?.id && (user.member_type || 'human') === 'human');
   const labelVisibilityOptions: Array<{ value: LabelVisibility; label: string; description: string; icon: React.ElementType }> = [
-    { value: 'private', label: 'Privé', description: 'Alleen jij ziet taken met dit label.', icon: Lock },
-    { value: 'family', label: 'Familie', description: 'Iedereen in het gezin ziet taken met dit label.', icon: Home },
-    { value: 'shared', label: 'Gedeeld', description: 'Alleen jij en geselecteerde leden zien deze taken.', icon: Users },
+    { value: 'family', label: t('labels.visibilityFamily'), description: t('labels.visibilityFamilyDescription'), icon: Home },
+    { value: 'shared', label: t('labels.visibilityShared'), description: t('labels.visibilitySharedDescription'), icon: Users },
+    { value: 'private', label: t('labels.visibilityPrivate'), description: t('labels.visibilityPrivateDescription'), icon: Lock },
   ];
-  const getVisibilityLabel = (visibility?: LabelVisibility) => labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.label || 'Familie';
+  const getVisibilityLabel = (visibility?: LabelVisibility) => labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.label || t('labels.visibilityFamily');
+  const sortedLabels = useMemo(() => sortLabelsByVisibility(labels), [labels]);
   const VisibilityIcon = ({ visibility, className = 'w-3.5 h-3.5' }: { visibility?: LabelVisibility; className?: string }) => {
     const Icon = labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.icon || Home;
     return <Icon className={className} />;
@@ -976,7 +978,7 @@ export const Settings = () => {
               </button>
 
               <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:divide-neutral-800">
-                {labels.map(label => (
+                {sortedLabels.map(label => (
                   <div
                     key={label.id}
                     data-testid={`settings-label-row-${label.id}`}
@@ -995,7 +997,7 @@ export const Settings = () => {
                     <div className="min-w-0 flex-1">
                       <AttributeChip label={label.name} color={label.color} maxWidthClassName="max-w-[150px]" />
                     </div>
-                    <div className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300" title={getVisibilityLabel(label.visibility)}>
+                    <div className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-xs font-medium leading-none text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300" title={getVisibilityLabel(label.visibility)}>
                       <VisibilityIcon visibility={label.visibility} className="w-3 h-3" />
                       <span>{getVisibilityLabel(label.visibility)}</span>
                     </div>
@@ -1279,7 +1281,7 @@ export const Settings = () => {
                 })}
                 {newLabelVisibility === 'shared' && (
                   <div className="space-y-2 border-t border-neutral-100 pt-3">
-                    <p className="text-xs font-medium text-neutral-500">Gedeelde leden</p>
+                    <p className="text-xs font-medium text-neutral-500">{t('labels.sharedMembers')}</p>
                     {humanFamilyMembers.map((member) => (
                       <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
                         <input type="checkbox" checked={newLabelSharedWith.includes(member.id)} onChange={(e) => setNewLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />
@@ -1418,7 +1420,7 @@ export const Settings = () => {
                 })}
                 {editingLabelVisibility === 'shared' && (
                   <div className="space-y-2 border-t border-neutral-100 pt-3">
-                    <p className="text-xs font-medium text-neutral-500">Gedeelde leden</p>
+                    <p className="text-xs font-medium text-neutral-500">{t('labels.sharedMembers')}</p>
                     {humanFamilyMembers.map((member) => (
                       <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
                         <input type="checkbox" checked={editingLabelSharedWith.includes(member.id)} onChange={(e) => setEditingLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />

@@ -7,6 +7,7 @@ import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -559,7 +560,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   aria-label={t('tasks.labelInputAria')}
                 />
                 <div className="flex flex-wrap gap-1">
-                  {labels.map(label => (
+                  {sortLabelsByVisibility(labels).map(label => (
                     <button
                       key={label.id}
                       onClick={() => {

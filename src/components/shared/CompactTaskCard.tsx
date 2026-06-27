@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
 import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
 import { t, formatDate } from '../../i18n/translations';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
@@ -297,9 +298,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     userDisplayName(u).toLowerCase().includes(assigneeSearch.toLowerCase()) ||
     u.email?.toLowerCase().includes(assigneeSearch.toLowerCase())
   );
-  const visibleLabels = labels.filter((l) =>
+  const visibleLabels = sortLabelsByVisibility(labels.filter((l) =>
     l.name.toLowerCase().includes(labelInput.trim().toLowerCase())
-  );
+  ));
   const hasLabels = task.labels.length > 0;
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;

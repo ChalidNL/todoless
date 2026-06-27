@@ -43,11 +43,12 @@ function InboxStatCard({
       }`}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/35" />
-      <div className="relative z-10 flex h-full items-center justify-between gap-3">
+      <div className="relative z-10 flex h-full items-center gap-2.5">
         <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm" aria-hidden="true">
           <Icon className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
         </span>
-        <p className="text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
+        <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-xs font-semibold leading-none text-white/90">{label}</span>
+        <p className="flex-shrink-0 text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
       </div>
     </button>
   );
@@ -150,10 +151,10 @@ export const InboxBacklog = () => {
 
   const displayedTasks = getFilteredTasks();
   const statusSections = [
-    { key: 'backlog', label: t('inbox.title'), value: backlogCount, icon: Inbox, color: 'blue' as const },
-    { key: 'todo', label: 'Todo Sprint', value: todoCount, icon: Rows2, color: 'emerald' as const },
-    { key: 'blocked', label: t('inbox.blocked'), value: blockedCount, icon: AlertTriangle, color: 'rose' as const },
-    { key: 'done-today', label: 'Done Sprint', value: doneToday, icon: CheckCheck, color: 'violet' as const },
+    { key: 'backlog', label: t('dashboard.inbox'), value: backlogCount, icon: Inbox, color: 'blue' as const },
+    { key: 'todo', label: t('dashboard.todoSprint'), value: todoCount, icon: Rows2, color: 'emerald' as const },
+    { key: 'blocked', label: t('dashboard.blocked'), value: blockedCount, icon: AlertTriangle, color: 'rose' as const },
+    { key: 'done-today', label: t('dashboard.doneSprint'), value: doneToday, icon: CheckCheck, color: 'violet' as const },
   ];
 
   const hasAnyFilter = activeStatusFilter || activeChipFilters.some((f) => f.type !== 'status');

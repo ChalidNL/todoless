@@ -223,7 +223,7 @@ describe('Calendar Google-inspired UX', () => {
     expect(cafRow).toHaveClass('min-h-11');
     expect(cafRow).toHaveClass('py-1.5');
     expect(within(cafRow).getAllByText('CAF')).toHaveLength(1);
-    expect(within(cafRow).getByTitle('Familie')).toHaveClass('text-[10px]');
+    expect(within(cafRow).getByTitle('Family')).toHaveClass('text-xs');
     expect(within(cafRow).getByRole('button', { name: 'Edit CAF' })).toHaveClass('h-8');
     expect(within(cafRow).getByRole('button', { name: 'Delete CAF' })).toHaveClass('h-8');
   });

@@ -5,6 +5,7 @@ import { LabelBadge } from './LabelBadge';
 import { Label, Filter, userDisplayName } from '../../types';
 import { entityColor, entityBg } from '../../lib/entity-colors';
 import { getCompactUserName } from '../../lib/member-role-utils';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
 
 interface FilterPanelProps {
   type: 'task' | 'item';
@@ -138,7 +139,7 @@ export const FilterPanel = ({
 
           {/* Label list with edit/delete */}
           <div className="flex flex-wrap gap-2 mb-2">
-            {labels.map(label => (
+            {sortLabelsByVisibility(labels).map(label => (
               <div key={label.id} className="flex items-center gap-1 group">
                 <button
                   onClick={() => toggleLabelFilter(label.id)}
