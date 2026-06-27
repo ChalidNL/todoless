@@ -811,10 +811,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                           const existing = labels.find((l) => l.name.toLowerCase() === name.toLowerCase());
                           if (existing) {
                             if (!task.labels.includes(existing.id)) {
-                              updateTask(task.id, { labels: [...task.labels, existing.id] });
+                              updateTask(task.id, { labels: [existing.id], labelId: existing.id });
                             }
                           } else {
-                            addLabel({ name, color: '#3b82f6' });
+                            addLabel({ name, color: '#3b82f6', visibility: 'family', isPrivate: false, sharedWith: [] });
                           }
                           setLabelInput('');
                         }
@@ -841,7 +841,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         onClick={() => {
                           const has = task.labels.includes(label.id);
                           updateTask(task.id, {
-                            labels: has ? task.labels.filter((id) => id !== label.id) : [...task.labels, label.id],
+                            labels: has ? [] : [label.id],
+                            labelId: has ? null : label.id,
                           });
                         }}
                       >

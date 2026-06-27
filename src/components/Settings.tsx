@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { User, ApiToken, userDisplayName, Agent } from '../types';
+import { User, ApiToken, userDisplayName, Agent, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
@@ -39,6 +39,8 @@ export const Settings = () => {
   const [showPreferences, setShowPreferences] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('#3b82f6');
+  const [newLabelVisibility, setNewLabelVisibility] = useState<LabelVisibility>('family');
+  const [newLabelSharedWith, setNewLabelSharedWith] = useState<string[]>([]);
   const [newShopName, setNewShopName] = useState('');
   const [newShopColor, setNewShopColor] = useState('#3b82f6');
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
@@ -46,6 +48,8 @@ export const Settings = () => {
   const [editingLabelName, setEditingLabelName] = useState('');
   const [editingLabelColor, setEditingLabelColor] = useState('');
   const [editingLabelPrivate, setEditingLabelPrivate] = useState(false);
+  const [editingLabelVisibility, setEditingLabelVisibility] = useState<LabelVisibility>('family');
+  const [editingLabelSharedWith, setEditingLabelSharedWith] = useState<string[]>([]);
   const [editingShopId, setEditingShopId] = useState<string | null>(null);
   const [editingShopName, setEditingShopName] = useState('');
   const [editingShopColor, setEditingShopColor] = useState('');
@@ -87,6 +91,17 @@ export const Settings = () => {
     { value: 6, label: t('settings.saturday') },
   ] as const;
   const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const humanFamilyMembers = users.filter((user) => user.id !== currentUser?.id && (user.member_type || 'human') === 'human');
+  const labelVisibilityOptions: Array<{ value: LabelVisibility; label: string; description: string; icon: React.ElementType }> = [
+    { value: 'private', label: 'Privé', description: 'Alleen jij ziet taken met dit label.', icon: Lock },
+    { value: 'family', label: 'Familie', description: 'Iedereen in het gezin ziet taken met dit label.', icon: Home },
+    { value: 'shared', label: 'Gedeeld', description: 'Alleen jij en geselecteerde leden zien deze taken.', icon: Users },
+  ];
+  const getVisibilityLabel = (visibility?: LabelVisibility) => labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.label || 'Familie';
+  const VisibilityIcon = ({ visibility, className = 'w-3.5 h-3.5' }: { visibility?: LabelVisibility; className?: string }) => {
+    const Icon = labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.icon || Home;
+    return <Icon className={className} />;
+  };
   const familyMembershipView = useMemo(
     () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
     [currentUser?.family_id, familyName, users]
@@ -305,6 +320,8 @@ export const Settings = () => {
   const openAddLabelModal = () => {
     setNewLabelColor(generateRandomColor());
     setNewLabelName('');
+    setNewLabelVisibility('family');
+    setNewLabelSharedWith([]);
     setShowAddLabelModal(true);
   };
 
@@ -316,19 +333,35 @@ export const Settings = () => {
 
   const handleAddLabel = () => {
     if (!newLabelName) return;
-    addLabel({ name: newLabelName, color: newLabelColor });
+    addLabel({
+      name: newLabelName,
+      color: newLabelColor,
+      visibility: newLabelVisibility,
+      isPrivate: newLabelVisibility === 'private',
+      sharedWith: newLabelVisibility === 'shared' ? newLabelSharedWith : [],
+    });
     setNewLabelName('');
     setNewLabelColor('#3b82f6');
+    setNewLabelVisibility('family');
+    setNewLabelSharedWith([]);
     setShowAddLabelModal(false);
   };
 
   const handleEditLabel = () => {
     if (!editingLabelId || !editingLabelName) return;
-    updateLabel(editingLabelId, { name: editingLabelName, color: editingLabelColor, isPrivate: editingLabelPrivate });
+    updateLabel(editingLabelId, {
+      name: editingLabelName,
+      color: editingLabelColor,
+      visibility: editingLabelVisibility,
+      isPrivate: editingLabelVisibility === 'private',
+      sharedWith: editingLabelVisibility === 'shared' ? editingLabelSharedWith : [],
+    });
     setEditingLabelId(null);
     setEditingLabelName('');
     setEditingLabelColor('');
     setEditingLabelPrivate(false);
+    setEditingLabelVisibility('family');
+    setEditingLabelSharedWith([]);
     setShowLabels(false);
   };
 
@@ -939,6 +972,10 @@ export const Settings = () => {
                     <AttributeChip label={label.name} color={label.color} />
                     <div className="flex-1">
                       <p className="font-medium text-sm">{label.name}</p>
+                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
+                        <VisibilityIcon visibility={label.visibility} />
+                        {getVisibilityLabel(label.visibility)}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -947,6 +984,8 @@ export const Settings = () => {
                           setEditingLabelName(label.name);
                           setEditingLabelColor(label.color);
                           setEditingLabelPrivate(label.isPrivate || false);
+                          setEditingLabelVisibility(label.visibility || (label.isPrivate ? 'private' : 'family'));
+                          setEditingLabelSharedWith(label.sharedWith || []);
                         }}
                         className="p-1 hover:bg-neutral-100 rounded"
                         title={t('common.edit')}
@@ -1202,6 +1241,31 @@ export const Settings = () => {
                   />
                 </div>
               </div>
+
+              <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
+                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                {labelVisibilityOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <label key={option.value} className="flex items-start gap-3 rounded-lg p-2 hover:bg-neutral-50">
+                      <input type="radio" name="new-label-visibility" value={option.value} checked={newLabelVisibility === option.value} onChange={() => setNewLabelVisibility(option.value)} className="mt-1" />
+                      <Icon className="mt-0.5 h-4 w-4 text-neutral-600" />
+                      <span><span className="block text-sm font-medium text-neutral-800">{option.label}</span><span className="block text-xs text-neutral-500">{option.description}</span></span>
+                    </label>
+                  );
+                })}
+                {newLabelVisibility === 'shared' && (
+                  <div className="space-y-2 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium text-neutral-500">Gedeelde leden</p>
+                    {humanFamilyMembers.map((member) => (
+                      <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input type="checkbox" checked={newLabelSharedWith.includes(member.id)} onChange={(e) => setNewLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />
+                        {userDisplayName(member)}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="flex gap-2 pt-2">
                 <button
                   onClick={() => setShowAddLabelModal(false)}
@@ -1315,6 +1379,31 @@ export const Settings = () => {
                   <input id="edit-label-color" type="color" value={editingLabelColor} onChange={(e) => setEditingLabelColor(e.target.value)} className="sr-only" />
                   <input type="text" value={editingLabelColor} onChange={(e) => setEditingLabelColor(e.target.value)} placeholder="#3b82f6" className="flex-1 px-3 py-2 border border-neutral-200 rounded font-mono text-sm" />
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
+                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                {labelVisibilityOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <label key={option.value} className="flex items-start gap-3 rounded-lg p-2 hover:bg-neutral-50">
+                      <input type="radio" name="edit-label-visibility" value={option.value} checked={editingLabelVisibility === option.value} onChange={() => setEditingLabelVisibility(option.value)} className="mt-1" />
+                      <Icon className="mt-0.5 h-4 w-4 text-neutral-600" />
+                      <span><span className="block text-sm font-medium text-neutral-800">{option.label}</span><span className="block text-xs text-neutral-500">{option.description}</span></span>
+                    </label>
+                  );
+                })}
+                {editingLabelVisibility === 'shared' && (
+                  <div className="space-y-2 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium text-neutral-500">Gedeelde leden</p>
+                    {humanFamilyMembers.map((member) => (
+                      <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input type="checkbox" checked={editingLabelSharedWith.includes(member.id)} onChange={(e) => setEditingLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />
+                        {userDisplayName(member)}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">

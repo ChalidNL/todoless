@@ -43,7 +43,7 @@ const normalizeTask = (r: any): Task => ({
   repeatInterval: r.repeat_interval, completedAt: r.completed_at ? new Date(r.completed_at).getTime() : undefined,
   archived: !!r.archived, archivedAt: r.archived_at ? new Date(r.archived_at).getTime() : undefined,
   deleteAfter: r.delete_after ? new Date(r.delete_after).getTime() : undefined,
-  isPrivate: !!r.is_private, labels: Array.isArray(r.labels) ? r.labels : [],
+  isPrivate: !!r.is_private, labels: r.label ? [r.label] : (Array.isArray(r.labels) ? r.labels : []), labelId: r.label || undefined,
   subtaskIds: Array.isArray(r.subtask_ids) ? r.subtask_ids : [],
   focus: !!r.focus,
   linkedTo: r.linked_to, linkedType: r.linked_type, flag: !!r.flag,
@@ -78,7 +78,12 @@ const normalizeNote = (r: any): Note => ({
 });
 
 const normalizeLabel = (r: any): Label => ({
-  id: r.id, name: r.name, color: r.color, isPrivate: !!r.is_private,
+  id: r.id, name: r.name, color: r.color,
+  visibility: r.visibility || (r.is_private ? 'private' : 'family'),
+  isPrivate: !!r.is_private,
+  owner: r.owner || r.user || undefined,
+  sharedWith: Array.isArray(r.shared_with) ? r.shared_with : [],
+  family: r.family || undefined,
   createdBy: r.user,
 });
 
@@ -186,7 +191,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         show_in_calendar: data.showInCalendar,
-        repeat_interval: data.repeatInterval, labels: data.labels || [],
+        repeat_interval: data.repeatInterval, labels: data.labelId ? [data.labelId] : (data.labels || []), label: data.labelId || data.labels?.[0] || null,
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,
@@ -205,7 +210,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         repeat_interval: data.repeatInterval, completed_at: toISO(data.completedAt),
-        labels: data.labels, is_private: data.isPrivate, archived: data.archived,
+        labels: data.labelId ? [data.labelId] : data.labels, label: data.labelId ?? data.labels?.[0] ?? undefined, is_private: data.isPrivate, archived: data.archived,
         archived_at: toISO(data.archivedAt),
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,
@@ -320,18 +325,21 @@ export const api = {
   labels: {
     async list(): Promise<Label[]> {
       const userId = requireAuth().id;
-      const list = await pb.collection('labels').getFullList({ filter: `user = "${userId}" || is_private = false`, sort: 'name' });
+      const familyId = (requireAuth() as any).family_id;
+      const list = await pb.collection('labels').getFullList({ filter: familyId ? `family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}"` : `user = "${userId}" || owner = "${userId}"`, sort: 'name' });
       return list.map(normalizeLabel);
     },
     async create(data: Partial<Label>): Promise<Label> {
+      const auth = requireAuth() as any;
       const record = await pb.collection('labels').create({
-        name: data.name, color: data.color, is_private: data.isPrivate, user: requireAuth().id,
+        name: data.name, color: data.color, visibility: data.visibility || 'family', is_private: (data.visibility || 'family') === 'private', shared_with: data.sharedWith || [], owner: auth.id, family: auth.family_id || '', user: auth.id,
       } as any);
       return normalizeLabel(record);
     },
     async update(id: string, data: Partial<Label>): Promise<Label> {
+      const visibility = data.visibility || (data.isPrivate ? 'private' : undefined);
       const record = await pb.collection('labels').update(id, {
-        name: data.name, color: data.color, is_private: data.isPrivate,
+        name: data.name, color: data.color, visibility, is_private: visibility ? visibility === 'private' : data.isPrivate, shared_with: data.sharedWith,
       } as any);
       return normalizeLabel(record);
     },

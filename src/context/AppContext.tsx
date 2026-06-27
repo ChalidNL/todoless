@@ -104,6 +104,7 @@ const entryToTask = (entry: Entry): Task => ({
   deleteAfter: entry.deleteAfter,
   isPrivate: entry.isPrivate ?? false,
   labels: entry.labels,
+  labelId: entry.labelId,
   linkedItemIds: entry.linkedItemIds,
   linkedNoteIds: entry.linkedNoteIds,
   subtaskIds: entry.subtaskIds,

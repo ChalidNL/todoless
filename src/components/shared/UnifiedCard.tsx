@@ -547,10 +547,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     const existing = labels.find(l => l.name.toLowerCase() === name.toLowerCase());
                     if (existing) {
                       if (!entity.labels.includes(existing.id)) {
-                        setValue({ labels: [...entity.labels, existing.id] });
+                        setValue({ labels: [existing.id], labelId: existing.id });
                       }
                     } else {
-                      addLabel({ name, color: '#3b82f6' });
+                      addLabel({ name, color: '#3b82f6', visibility: 'family', isPrivate: false, sharedWith: [] });
                     }
                     e.target.value = '';
                   }}
@@ -564,7 +564,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       key={label.id}
                       onClick={() => {
                         const has = entity.labels.includes(label.id);
-                        setValue({ labels: has ? entity.labels.filter(id => id !== label.id) : [...entity.labels, label.id] });
+                        setValue({ labels: has ? [] : [label.id], labelId: has ? null : label.id });
                       }}
                       className={entity.labels.includes(label.id) ? 'ring-2 ring-neutral-900 rounded' : ''}
                     >

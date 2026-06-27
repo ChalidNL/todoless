@@ -6,11 +6,17 @@ export interface Family {
   updated: string;
 }
 
+export type LabelVisibility = 'private' | 'shared' | 'family';
+
 export interface Label {
   id: string;
   name: string;
   color: string;
+  visibility: LabelVisibility;
   isPrivate?: boolean;
+  owner?: string;
+  sharedWith?: string[];
+  family?: string;
   createdBy?: string;
 }
 
@@ -120,6 +126,7 @@ export interface Task {
   deleteAfter?: number;
   isPrivate?: boolean;
   labels: string[];
+  labelId?: string | null;
   linkedItemIds?: string[];
   linkedNoteIds?: string[];
   subtaskIds?: string[];
@@ -311,6 +318,7 @@ export interface Entry {
   deleteAfter?: number;
   isPrivate?: boolean;
   labels: string[];
+  labelId?: string | null;
   linkedItemIds?: string[];
   linkedNoteIds?: string[];
   subtaskIds?: string[];

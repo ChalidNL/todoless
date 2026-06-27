@@ -54,7 +54,8 @@ const normalizeTask = (record: any): Task => ({
   archivedAt: toTimestamp(record.archived_at),
   deleteAfter: toTimestamp(record.delete_after),
   isPrivate: !!record.is_private,
-  labels: Array.isArray(record.labels) ? record.labels : [],
+  labels: record.label ? [record.label] : (Array.isArray(record.labels) ? record.labels : []),
+  labelId: record.label || undefined,
   linkedItemIds: Array.isArray(record.linked_item_ids) ? record.linked_item_ids : [],
   linkedNoteIds: Array.isArray(record.linked_note_ids) ? record.linked_note_ids : [],
   subtaskIds: Array.isArray(record.subtask_ids) ? record.subtask_ids : [],
@@ -108,7 +109,11 @@ const normalizeLabel = (record: any): Label => ({
   id: record.id,
   name: record.name,
   color: record.color,
+  visibility: record.visibility || (record.is_private ? 'private' : 'family'),
   isPrivate: !!record.is_private,
+  owner: record.owner || record.user || undefined,
+  sharedWith: Array.isArray(record.shared_with) ? record.shared_with : [],
+  family: record.family || undefined,
   createdBy: record.user,
 });
 
@@ -387,7 +392,8 @@ class PocketBaseClient {
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         show_in_calendar: task.showInCalendar !== false,
         repeat_interval: task.repeatInterval,
-        labels: task.labels || [],
+        labels: task.labelId ? [task.labelId] : (task.labels || []),
+        label: task.labelId || task.labels?.[0] || null,
         is_private: task.isPrivate || false,
         archived: task.archived || false,
         archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
@@ -444,6 +450,9 @@ class PocketBaseClient {
       for (const key of ['title', 'status', 'blocked', 'priority', 'horizon', 'labels', 'archived'] as const) {
         if (has(key)) payload[key] = updates[key];
       }
+
+      if (has('labelId')) payload.label = updates.labelId || null;
+      if (has('labels')) payload.label = updates.labels?.[0] || null;
 
       if (has('blockedComment')) payload.blocked_comment = updates.blockedComment;
       if (has('sprintId')) payload.sprint_id = updates.sprintId;
@@ -607,25 +616,33 @@ class PocketBaseClient {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
     const familyId = (pb.authStore.record as any)?.family_id;
-    const filter = familyId ? `user.family_id = "${familyId}"` : `user.id = "${userId}"`;
+    const filter = familyId ? `family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}"` : `user.id = "${userId}" || owner = "${userId}"`;
     const list = await pb.collection('labels').getFullList({ filter, sort: 'name' });
     return list.map(normalizeLabel);
   }
 
   async createLabel(label: Partial<Label>) {
+    const auth = pb.authStore.record as any;
     return pb.collection('labels').create({
       name: label.name,
       color: label.color,
-      is_private: label.isPrivate || false,
-      user: pb.authStore.record?.id,
+      visibility: label.visibility || 'family',
+      is_private: (label.visibility || 'family') === 'private',
+      shared_with: label.sharedWith || [],
+      owner: auth?.id,
+      family: auth?.family_id || '',
+      user: auth?.id,
     });
   }
 
   async updateLabel(id: string, updates: Partial<Label>) {
+    const visibility = updates.visibility || (updates.isPrivate ? 'private' : undefined);
     return pb.collection('labels').update(id, {
       name: updates.name,
       color: updates.color,
-      is_private: updates.isPrivate,
+      visibility,
+      is_private: visibility ? visibility === 'private' : updates.isPrivate,
+      shared_with: updates.sharedWith,
     });
   }
 

@@ -41,7 +41,9 @@ export const FilterPanel = ({
       addLabel({
         name: newLabelName.trim(),
         color: newLabelColor,
+        visibility: 'family',
         isPrivate: false,
+        sharedWith: [],
       });
       setNewLabelName('');
       setShowNewLabel(false);
