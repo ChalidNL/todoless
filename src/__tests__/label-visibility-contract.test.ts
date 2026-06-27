@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('label based visibility contract', () => {
-  const migration = readFileSync(resolve(__dirname, '../../pb_migrations/061_label_visibility.js'), 'utf8');
+  const migration = readFileSync(resolve(__dirname, '../../pb_migrations/z061_label_visibility.js'), 'utf8');
   const types = readFileSync(resolve(__dirname, '../types/index.ts'), 'utf8');
   const pbClient = readFileSync(resolve(__dirname, '../lib/pocketbase-client.ts'), 'utf8');
   const apiClient = readFileSync(resolve(__dirname, '../lib/api-client.ts'), 'utf8');

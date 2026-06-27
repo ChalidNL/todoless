@@ -56,8 +56,16 @@ migrate(
       if (task.get('label')) continue;
       const legacyLabels = task.get('labels') || [];
       if (legacyLabels && legacyLabels.length > 0) {
-        task.set('label', String(legacyLabels[0]));
-        app.save(task);
+        const candidate = String(legacyLabels[0] || '');
+        if (!candidate) continue;
+        try {
+          app.findRecordById('labels', candidate);
+          task.set('label', candidate);
+          app.save(task);
+        } catch (_) {
+          // Older tasks may contain free-text label names or stale ids in the legacy JSON array.
+          // Leave those tasks unlabeled; unlabeled tasks are intentionally family-visible.
+        }
       }
     }
 
