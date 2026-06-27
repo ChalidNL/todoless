@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { User, ApiToken, userDisplayName, Agent, type LabelVisibility } from '../types';
+import { User, ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
 import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home } from 'lucide-react';
@@ -363,6 +363,15 @@ export const Settings = () => {
     setEditingLabelVisibility('family');
     setEditingLabelSharedWith([]);
     setShowLabels(false);
+  };
+
+  const startEditingLabel = (label: Label) => {
+    setEditingLabelId(label.id);
+    setEditingLabelName(label.name);
+    setEditingLabelColor(label.color);
+    setEditingLabelPrivate(label.isPrivate || false);
+    setEditingLabelVisibility(label.visibility || (label.isPrivate ? 'private' : 'family'));
+    setEditingLabelSharedWith(label.sharedWith || []);
   };
 
   const handleDeleteLabel = (id: string) => {
@@ -966,38 +975,52 @@ export const Settings = () => {
                 {t('settings.addLabel')}
               </button>
 
-              <div className="space-y-3">
+              <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:divide-neutral-800">
                 {labels.map(label => (
-                  <div key={label.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <AttributeChip label={label.name} color={label.color} />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{label.name}</p>
-                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                        <VisibilityIcon visibility={label.visibility} />
-                        {getVisibilityLabel(label.visibility)}
-                      </div>
+                  <div
+                    key={label.id}
+                    data-testid={`settings-label-row-${label.id}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => startEditingLabel(label)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        startEditingLabel(label);
+                      }
+                    }}
+                    className="flex min-h-11 items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-300 dark:hover:bg-neutral-900 dark:focus-visible:bg-neutral-900 dark:focus-visible:ring-neutral-700"
+                    aria-label={`Label ${label.name}`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <AttributeChip label={label.name} color={label.color} maxWidthClassName="max-w-[150px]" />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium leading-none text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300" title={getVisibilityLabel(label.visibility)}>
+                      <VisibilityIcon visibility={label.visibility} className="w-3 h-3" />
+                      <span>{getVisibilityLabel(label.visibility)}</span>
+                    </div>
+                    <div className="ml-0.5 flex flex-shrink-0 items-center gap-0.5">
                       <button
-                        onClick={() => {
-                          setEditingLabelId(label.id);
-                          setEditingLabelName(label.name);
-                          setEditingLabelColor(label.color);
-                          setEditingLabelPrivate(label.isPrivate || false);
-                          setEditingLabelVisibility(label.visibility || (label.isPrivate ? 'private' : 'family'));
-                          setEditingLabelSharedWith(label.sharedWith || []);
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          startEditingLabel(label);
                         }}
-                        className="p-1 hover:bg-neutral-100 rounded"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
                         title={t('common.edit')}
+                        aria-label={`${t('common.edit')} ${label.name}`}
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteLabel(label.id)}
-                        className="p-1 hover:bg-neutral-100 rounded text-red-500"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteLabel(label.id);
+                        }}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                         title={t('common.delete')}
+                        aria-label={`${t('common.delete')} ${label.name}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>

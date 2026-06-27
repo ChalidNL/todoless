@@ -206,6 +206,27 @@ describe('Calendar Google-inspired UX', () => {
     expect(screen.queryByRole('button', { name: 'Import Calendar (.ics)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Export as .ics' })).not.toBeInTheDocument();
   });
+
+  it('renders Settings labels as compact single-row items without duplicate label names', () => {
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      labels: [
+        { id: 'label-1', name: 'CAF', color: '#2563eb', visibility: 'family' },
+        { id: 'label-2', name: 'Personal', color: '#dc2626', visibility: 'private' },
+      ],
+    });
+
+    render(<Settings />);
+    fireEvent.click(screen.getByRole('button', { name: /Labels/i }));
+
+    const cafRow = screen.getByTestId('settings-label-row-label-1');
+    expect(cafRow).toHaveClass('min-h-11');
+    expect(cafRow).toHaveClass('py-1.5');
+    expect(within(cafRow).getAllByText('CAF')).toHaveLength(1);
+    expect(within(cafRow).getByTitle('Familie')).toHaveClass('text-[10px]');
+    expect(within(cafRow).getByRole('button', { name: 'Edit CAF' })).toHaveClass('h-8');
+    expect(within(cafRow).getByRole('button', { name: 'Delete CAF' })).toHaveClass('h-8');
+  });
 });
 
 function task(overrides: Partial<Task>): Task {
