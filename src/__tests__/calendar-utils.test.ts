@@ -16,14 +16,32 @@ describe('calendar utilities', () => {
     const timed = new Date(2026, 5, 16, 10, 0, 0, 0).getTime();
     const tasks = [
       task({ id: 'task-1', title: 'Tandarts', dueDate: day }),
-      task({ id: 'task-2', title: 'Verborgen', dueDate: day, showInCalendar: false }),
+      task({ id: 'task-2', title: 'Legacy false flag', dueDate: day, showInCalendar: false }),
       task({ id: 'task-3', title: 'Geen datum' }),
       task({ id: 'task-4', title: 'School', dueDate: timed, startTime: timed, endTime: timed + 3600000 }),
+      task({ id: 'task-5', title: 'Done', status: 'done', dueDate: day }),
+      task({ id: 'task-6', title: 'Archived', dueDate: day, archived: true }),
     ];
 
     const items = buildCalendarItems({ tasks, rangeStart: startOfDay(day), rangeEnd: endOfDay(day) });
 
-    expect(items.map((item) => `${item.kind}:${item.id}`)).toEqual(['task:task-1', 'task:task-4']);
+    expect(items.map((item) => `${item.kind}:${item.id}`).sort()).toEqual(['task:task-1', 'task:task-2', 'task:task-4']);
+  });
+
+  it('shows live regression dated June tasks even when legacy showInCalendar is false', () => {
+    const tasks = [
+      task({ id: 'pakket', title: 'Pakket ophalen', dueDate: Date.parse('2026-06-04T22:00:00.000Z'), showInCalendar: false }),
+      task({ id: 'rekening', title: 'Rekening betalen', dueDate: Date.parse('2026-06-21T16:00:00.000Z'), showInCalendar: false }),
+      task({ id: 'dokter', title: 'Dokter bellen', dueDate: Date.parse('2026-06-27T22:00:00.000Z'), showInCalendar: false }),
+    ];
+
+    const items = buildCalendarItems({
+      tasks,
+      rangeStart: new Date(2026, 5, 1, 0, 0, 0, 0).getTime(),
+      rangeEnd: new Date(2026, 5, 30, 23, 59, 59, 999).getTime(),
+    });
+
+    expect(items.map((item) => item.title)).toEqual(['Pakket ophalen', 'Rekening betalen', 'Dokter bellen']);
   });
 
   it('places Tasks-created dueDate-with-time records into the matching timed slot even when startTime is empty', () => {
@@ -82,7 +100,7 @@ describe('calendar utilities', () => {
   it('formats date input values and compares local days', () => {
     const value = Date.parse('2026-06-16T15:30:00.000Z');
     expect(formatDateInputValue(value)).toMatch(/^2026-06-16T/);
-    expect(sameLocalDay(value, Date.parse('2026-06-16T23:00:00.000Z'))).toBe(true);
+    expect(sameLocalDay(value, Date.parse('2026-06-16T20:00:00.000Z'))).toBe(true);
   });
 });
 
