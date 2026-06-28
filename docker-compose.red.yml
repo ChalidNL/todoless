@@ -1,0 +1,82 @@
+name: todoless-red
+
+services:
+  todoless:
+    image: todoless-frontend:red-local
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_APP_VERSION: red
+        VITE_GIT_COMMIT: ${COMMIT_SHA:-red-local}
+        # Empty = frontend uses same origin; nginx proxies /api to PocketBase.
+        VITE_POCKETBASE_URL: ""
+    container_name: todoless-red
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    environment:
+      TZ: Europe/Amsterdam
+      DEPLOY_ENV: red
+    ports:
+      - target: 80
+        published: 7080
+        protocol: tcp
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - todoless-red-net
+
+  pocketbase:
+    image: todoless-pocketbase:red-local
+    build:
+      context: .
+      dockerfile: Dockerfile.pocketbase
+    container_name: todoless-red-pocketbase
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+    entrypoint: ["/entrypoint.sh"]
+    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
+    environment:
+      TZ: Europe/Amsterdam
+      DEPLOY_ENV: red
+      COMMIT_SHA: ${COMMIT_SHA:-red-local}
+    volumes:
+      - red-pb-data:/pb_data
+      - red-pb-migrations:/pb_migrations
+      - red-pb-hooks:/pb_hooks
+    networks:
+      - todoless-red-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8090/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  todoless-red-net:
+    driver: bridge
+
+volumes:
+  red-pb-data:
+  red-pb-migrations:
+  red-pb-hooks:
