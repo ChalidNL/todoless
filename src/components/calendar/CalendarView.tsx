@@ -111,10 +111,8 @@ export function CalendarView() {
     <div className="h-full min-h-0 flex flex-col bg-neutral-50">
       <div className="sticky top-0 z-40">
         <AppHeader
+          onAdd={(value) => openCreate(undefined, undefined, value)}
           onSearch={setSearchQuery}
-          inputValue={searchQuery}
-          onInputValueChange={setSearchQuery}
-          onSubmitInput={(value) => openCreate(undefined, undefined, value)}
           onAddEmpty={(value) => value ? openCreate(undefined, undefined, value) : openCreate(selectedDay)}
           showInputActions={false}
           showAdd={true}
