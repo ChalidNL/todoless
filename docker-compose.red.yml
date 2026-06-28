@@ -60,9 +60,15 @@ services:
       DEPLOY_ENV: red
       COMMIT_SHA: ${COMMIT_SHA:-red-local}
     volumes:
-      - red-pb-data:/pb_data
-      - red-pb-migrations:/pb_migrations
-      - red-pb-hooks:/pb_hooks
+      - type: bind
+        source: /DATA/AppData/todoless-red/pb_data
+        target: /pb_data
+      - type: bind
+        source: /DATA/AppData/todoless-red/pb_migrations
+        target: /pb_migrations
+      - type: bind
+        source: /DATA/AppData/todoless-red/pb_hooks
+        target: /pb_hooks
     networks:
       - todoless-red-net
     healthcheck:
@@ -75,8 +81,3 @@ services:
 networks:
   todoless-red-net:
     driver: bridge
-
-volumes:
-  red-pb-data:
-  red-pb-migrations:
-  red-pb-hooks:
