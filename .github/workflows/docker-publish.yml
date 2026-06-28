@@ -2,7 +2,7 @@ name: Build & Publish Docker Images
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, red]
   workflow_dispatch:
 
 env:
@@ -26,6 +26,9 @@ jobs:
           if [ "${{ github.ref_name }}" = "main" ]; then
             echo "fe_tag=latest" >> $GITHUB_OUTPUT
             echo "pb_tag=latest" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "red" ]; then
+            echo "fe_tag=red" >> $GITHUB_OUTPUT
+            echo "pb_tag=red" >> $GITHUB_OUTPUT
           else
             echo "fe_tag=dev" >> $GITHUB_OUTPUT
             echo "pb_tag=dev" >> $GITHUB_OUTPUT

@@ -2,15 +2,7 @@ name: todoless-red
 
 services:
   todoless:
-    image: todoless-frontend:red-local
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-      args:
-        VITE_APP_VERSION: red
-        VITE_GIT_COMMIT: ${COMMIT_SHA:-red-local}
-        # Empty = frontend uses same origin; nginx proxies /api to PocketBase.
-        VITE_POCKETBASE_URL: ""
+    image: ghcr.io/chalidnl/todoless-frontend:red
     container_name: todoless-red
     restart: unless-stopped
     security_opt:
@@ -40,10 +32,7 @@ services:
       - todoless-red-net
 
   pocketbase:
-    image: todoless-pocketbase:red-local
-    build:
-      context: .
-      dockerfile: Dockerfile.pocketbase
+    image: ghcr.io/chalidnl/todoless-pocketbase:red
     container_name: todoless-red-pocketbase
     restart: unless-stopped
     security_opt:
