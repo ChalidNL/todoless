@@ -17,7 +17,7 @@ export const AppMark = ({ className = '' }: AppMarkProps) => (
     src={APP_ICON_SRC}
     alt=""
     aria-hidden="true"
-    className={`inline-block rounded-[0.35em] object-cover ${className}`}
+    className={`inline-block object-contain ${className}`}
     draggable={false}
   />
 );
