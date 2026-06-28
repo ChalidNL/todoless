@@ -1,5 +1,6 @@
 import React from 'react';
-import { CheckSquare } from 'lucide-react';
+
+const APP_ICON_SRC = '/icons/icon-512.png';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -12,7 +13,13 @@ interface AppMarkProps {
 }
 
 export const AppMark = ({ className = '' }: AppMarkProps) => (
-  <CheckSquare className={className} strokeWidth={2.5} aria-hidden="true" />
+  <img
+    src={APP_ICON_SRC}
+    alt=""
+    aria-hidden="true"
+    className={`inline-block rounded-[0.35em] object-cover ${className}`}
+    draggable={false}
+  />
 );
 
 export const AppLogo = ({ size = 'md', showText = true, variant = 'dark' }: AppLogoProps) => {
@@ -32,7 +39,7 @@ export const AppLogo = ({ size = 'md', showText = true, variant = 'dark' }: AppL
 
   return (
     <div className="flex items-center gap-2">
-      <AppMark className={`${sizes[size]} ${colorClass} shrink-0`} />
+      <AppMark className={`${sizes[size]} shrink-0`} />
       {showText && (
         <span className={`font-semibold ${colorClass} ${textSizes[size]}`}>
           todoless

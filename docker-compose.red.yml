@@ -70,3 +70,21 @@ services:
 networks:
   todoless-red-net:
     driver: bridge
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: todoless
+  author: self-hosted
+  category: Productivity
+  description:
+    en_US: todoless RED — visual redesign test build.
+  icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless@red/public/icons/icon-512.png
+  tagline:
+    en_US: RED visual test build
+  title:
+    en_US: todoless RED
+  port_map: "7080"
+  scheme: http
+  index: /
