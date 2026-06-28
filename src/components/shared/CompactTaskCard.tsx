@@ -372,7 +372,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
         data-component="CompactTaskCard"
         onClick={expandFromCardClick}
         style={calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : undefined}
-        className={`${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
+        className={`app-card ${showMenu ? 'app-card-expanded' : ''} ${calendarBlock ? 'app-calendar-event' : ''} ${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'
             : isFocusTask

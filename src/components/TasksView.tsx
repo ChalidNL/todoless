@@ -180,7 +180,7 @@ export const TasksView = () => {
 
       {/* Filter bar — count ABOVE now */}
       {(hasAnyFilter || hasSavedFilters) && (
-        <div className="bg-white border-b border-neutral-200 shadow-sm">
+        <div className="app-surface mx-3 my-2 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-2">
             {/* Count above */}
             <div className="text-xs font-semibold text-neutral-600 mb-1.5">

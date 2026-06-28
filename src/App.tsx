@@ -219,7 +219,7 @@ function AppContent() {
   ];
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-neutral-50">
+    <div className="app-shell-bg fixed inset-0 flex flex-col">
       <main className="flex-1 min-h-0 overflow-y-auto">
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
@@ -233,25 +233,25 @@ function AppContent() {
 
       {completionMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="bg-white px-4 py-2 rounded-lg shadow-lg border border-neutral-200">
-            <p className="text-sm text-neutral-600">{completionMessage}</p>
+          <div className="app-surface px-4 py-2">
+            <p className="text-sm text-[var(--app-text-muted)]">{completionMessage}</p>
           </div>
         </div>
       )}
 
-      <nav className="flex-shrink-0 bg-white border-t border-neutral-200 z-40"
+      <nav className="app-bottom-nav mx-auto w-full max-w-xl flex-shrink-0 z-40"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
       >
-        <div className="mx-auto flex max-w-xl items-center px-1">
+        <div className="mx-auto flex justify-around items-center px-2 pt-2">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `min-w-0 flex-1 flex flex-col items-center justify-center gap-0 py-1.5 px-0.5 min-h-[52px] transition-all active:scale-95 ${
+                `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] rounded-2xl transition-all active:scale-95 ${
                   isActive
-                    ? 'text-neutral-900'
-                    : 'text-neutral-400 hover:text-neutral-600'
+                    ? 'text-[var(--app-primary)] bg-[var(--app-primary)]/10'
+                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-primary)]'
                 }`
               }
             >

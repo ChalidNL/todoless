@@ -118,7 +118,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
     <div
       ref={cardRef}
       onClick={trackInteraction}
-      className={`rounded-lg border transition-colors ${
+      className={`app-card ${showMenu ? 'app-card-expanded' : ''} rounded-lg border transition-colors ${
         isDone
           ? 'border-neutral-200 opacity-75'
           : isFocusHighlighted

@@ -108,7 +108,7 @@ export function CalendarView() {
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col bg-neutral-50">
+    <div className="app-shell-bg h-full min-h-0 flex flex-col">
       <div className="sticky top-0 z-40">
         <AppHeader
           onAdd={(value) => openCreate(undefined, undefined, value)}
@@ -120,12 +120,12 @@ export function CalendarView() {
           type="calendar"
         />
       </div>
-      <header className="flex-shrink-0 bg-white border-b border-neutral-200 px-3 py-2">
+      <header className="flex-shrink-0 px-3 py-2">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`p-2 rounded-xl ${isTodayAnchor ? 'bg-violet-600 text-white' : 'bg-neutral-100 text-neutral-700'}`}><CalendarDays className="w-4 h-4" /></button>
-          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronLeft className="w-4 h-4" /></button>
-          <p data-testid="calendar-period-title" className="min-w-0 flex-1 text-center text-sm font-bold text-neutral-900">{periodTitle}</p>
-          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="p-2 rounded-xl bg-neutral-100 text-neutral-700"><ChevronRight className="w-4 h-4" /></button>
+          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`app-icon-button h-10 w-10 ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-4 h-4" /></button>
+          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="app-icon-button h-10 w-10 bg-[var(--app-surface-2)]"><ChevronLeft className="w-4 h-4" /></button>
+          <p data-testid="calendar-period-title" className="min-w-0 flex-1 text-center text-sm font-bold text-[var(--app-text)]">{periodTitle}</p>
+          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="app-icon-button h-10 w-10 bg-[var(--app-surface-2)]"><ChevronRight className="w-4 h-4" /></button>
           <SharedSelect
             id="calendar-view-select"
             ariaLabel={t('calendar.viewLabel', language)}
@@ -136,7 +136,7 @@ export function CalendarView() {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 overflow-y-auto p-2">
+      <main className="flex-1 min-h-0 overflow-y-auto p-3">
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} expandedTaskId={expandedCalendarTaskId} onExpandTask={setExpandedCalendarTaskId} onSelect={setSelectedDay} onCreate={openCreate} language={language} firstDayOfWeek={firstDayOfWeek} />}
         {mode === 'week' && <TimeGrid mode="week" start={range.start} items={items} onCreate={openCreate} language={language} />}
         {mode === 'day' && <TimeGrid mode="day" start={startOfLocalDay(anchor)} items={items} onCreate={openCreate} language={language} />}
@@ -154,7 +154,7 @@ function MonthGrid({ anchor, items, selectedDay, expandedTaskId, onExpandTask, o
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
   const month = new Date(anchor).getMonth();
   return (
-    <section className="bg-white rounded-2xl border border-neutral-200 overflow-hidden">
+    <section className="app-surface overflow-hidden">
       <div className="grid grid-cols-7 text-[10px] font-semibold text-neutral-500 border-b border-neutral-100 bg-neutral-50">
         {days.slice(0, 7).map((day) => <div data-testid="calendar-month-weekday" key={day} className="p-1.5 text-center uppercase tracking-wide">{new Intl.DateTimeFormat(language, { weekday: 'short' }).format(new Date(day))}</div>)}
       </div>
@@ -163,7 +163,7 @@ function MonthGrid({ anchor, items, selectedDay, expandedTaskId, onExpandTask, o
           const dayItems = items.filter((item) => sameLocalDay(item.startTime, day));
           const active = sameLocalDay(day, selectedDay);
           return (
-            <div key={day} onDoubleClick={() => onCreate(day)} className={`min-h-[clamp(78px,12vh,120px)] border-r border-b border-neutral-100 p-1 text-left align-top ${active ? 'bg-violet-50' : 'bg-white'} ${new Date(day).getMonth() === month ? '' : 'bg-neutral-50/70'}`}>
+            <div key={day} onDoubleClick={() => onCreate(day)} className={`min-h-[clamp(78px,12vh,120px)] border-r border-b border-neutral-100/70 p-1 text-left align-top ${active ? 'bg-[var(--app-primary)]/10' : 'bg-[var(--app-surface)]'} ${new Date(day).getMonth() === month ? '' : 'opacity-60'}`}>
               <button type="button" onClick={() => onSelect(startOfLocalDay(day))} className="block text-left">
                 <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border border-black bg-black text-white' : new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
               </button>
@@ -232,7 +232,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
   }, [nowTop]);
 
   return (
-    <section ref={containerRef} data-testid={mode === 'week' ? 'calendar-week-time-grid' : mode === 'workweek' ? 'calendar-workweek-time-grid' : mode === '3days' ? 'calendar-3days-time-grid' : 'calendar-day-time-grid'} className="h-full min-h-[70vh] overflow-auto rounded-2xl border border-neutral-200 bg-white">
+    <section ref={containerRef} data-testid={mode === 'week' ? 'calendar-week-time-grid' : mode === 'workweek' ? 'calendar-workweek-time-grid' : mode === '3days' ? 'calendar-3days-time-grid' : 'calendar-day-time-grid'} className="app-surface h-full min-h-[70vh] overflow-auto">
       <div className="sticky top-0 z-30 grid bg-white/95 backdrop-blur border-b border-neutral-100" style={{ gridTemplateColumns: `42px repeat(${days.length}, minmax(${dayMinWidth}, 1fr))` }}>
         <div className="border-r border-neutral-100" />
         {days.map((day) => {
@@ -332,7 +332,7 @@ function CalendarTaskSlot({ item }: { item: TimedLayout; language: Language; ali
 }
 
 function AgendaTaskCard({ item, startExpanded = false }: { item: CalendarItem; startExpanded?: boolean }) {
-  return <CompactTaskCard task={item.source} showCheckbox={false} compact startExpanded={startExpanded} />;
+  return <CompactTaskCard task={item.source} showCheckbox={false} compact calendarBlock startExpanded={startExpanded} />;
 }
 
 function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {

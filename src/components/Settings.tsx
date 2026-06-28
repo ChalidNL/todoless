@@ -571,7 +571,7 @@ export const Settings = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="app-shell-bg min-h-screen flex items-center justify-center">
         <p className="text-neutral-600">{t('common.noData')}</p>
       </div>
     );
@@ -587,7 +587,7 @@ export const Settings = () => {
 
               <div className="max-w-2xl mx-auto px-4 pt-6 pb-20 space-y-6">
         {/* User Profile */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-6">
+        <div className="app-surface p-6">
           <h2 className="text-lg font-semibold mb-4">{t('settings.yourProfile')}</h2>
           
           {profileError && (

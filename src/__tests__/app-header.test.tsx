@@ -30,7 +30,7 @@ describe('AppHeader', () => {
     expect(screen.getByText('todoless')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search calendar…')).toBeInTheDocument();
     expect(screen.getByTitle('Filters')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('bg-white', 'text-black', 'rounded-md');
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('app-fab');
   });
 
   it('uses the same AddButton component for empty calendar add action', () => {
@@ -60,6 +60,6 @@ describe('AddButton', () => {
   it('has one shared visual shape', () => {
     render(<AddButton onClick={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('bg-white', 'text-black', 'rounded-md');
+    expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('app-fab');
   });
 });

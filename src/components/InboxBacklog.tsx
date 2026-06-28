@@ -7,11 +7,11 @@ import { t, formatDate } from '../i18n/translations';
 
 type InboxStatColor = 'blue' | 'emerald' | 'rose' | 'violet';
 
-const inboxStatColors: Record<InboxStatColor, string> = {
-  blue: '#2563eb',
-  emerald: '#059669',
-  rose: '#e11d48',
-  violet: '#7c3aed',
+const inboxStatGradients: Record<InboxStatColor, string> = {
+  blue: 'var(--app-status-inbox)',
+  emerald: 'var(--app-status-todo)',
+  rose: 'var(--app-status-blocked)',
+  violet: 'var(--app-status-done)',
 };
 
 function InboxStatCard({
@@ -38,15 +38,15 @@ function InboxStatCard({
       onClick={onClick}
       aria-label={`${label}: ${value}`}
       title={`${label}: ${value}`}
-      style={{ backgroundColor: inboxStatColors[color] }}
-      className={`relative isolate w-full min-w-0 overflow-hidden rounded-2xl border border-white/15 px-3.5 py-2.5 text-white shadow-sm shadow-black/10 transition-all duration-150 active:scale-[0.98] min-h-[56px] hover:-translate-y-0.5 hover:brightness-95 hover:shadow-md dark:border-white/10 dark:shadow-black/30 ${
+      style={{ background: inboxStatGradients[color] }}
+      className={`app-status-card relative isolate w-full min-w-0 overflow-hidden text-white ${
         active ? 'ring-2 ring-white ring-offset-2 ring-offset-neutral-50 dark:ring-offset-neutral-950' : ''
       }`}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/35" />
       <div className="relative z-10 flex h-full items-center gap-2.5">
         <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm" aria-hidden="true">
-          <Icon className="h-4.5 w-4.5 text-white" strokeWidth={2.25} />
+          <Icon className="h-4 w-4 text-white" strokeWidth={2.25} />
         </span>
         <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-xs font-semibold leading-none text-white/90">{label}</span>
         <p className="flex-shrink-0 text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
@@ -208,7 +208,7 @@ export const InboxBacklog = () => {
 
         {/* Filter bar — show when any filter is active */}
         {hasAnyFilter && (
-          <div className="bg-white border-b border-neutral-200 shadow-sm">
+          <div className="app-surface mx-3 my-2 shadow-sm">
             <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
               <span className="text-xs font-semibold text-neutral-600">
                 {displayedTasks.length > 0
@@ -375,7 +375,7 @@ export const InboxBacklog = () => {
 
       {/* Floating bottom bar — batch push */}
       {isSelecting && selectedIds.size > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 shadow-lg pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="fixed bottom-0 left-0 right-0 z-50 app-bottom-nav pb-[env(safe-area-inset-bottom,0px)]">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium text-neutral-600">
               {selectedIds.size} {t('inbox.selectAll').toLowerCase()}

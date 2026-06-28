@@ -90,7 +90,7 @@ export const GroceriesView = () => {
       </div>
               {/* Filter bar */}
         {hasAnyFilter && (
-        <div className="bg-white border-b border-neutral-200 shadow-sm">
+        <div className="app-surface mx-3 my-2 shadow-sm">
           <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
             <span className="text-xs font-semibold text-neutral-600">
               {sortedActiveItems.length > 0
