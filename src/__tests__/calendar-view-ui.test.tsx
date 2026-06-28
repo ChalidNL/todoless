@@ -120,7 +120,7 @@ describe('CalendarView UI', () => {
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
   });
 
-  it('renders timed tasks in day view as readable full-width blocks', () => {
+  it('renders timed tasks with the same agenda task card view as all-day tasks', () => {
     const now = new Date();
     const taskStart = new Date(now);
     taskStart.setHours(6, 0, 0, 0);
@@ -143,8 +143,10 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'day' } });
 
     const slotCard = screen.getByTestId('calendar-timed-task-task-compact');
-    expect(within(slotCard).getByText('Teat')).toBeInTheDocument();
-    expect(within(slotCard).getByText(/06:00/)).toBeInTheDocument();
+    const agendaCard = within(slotCard).getByTestId('compact-task-card-task-compact');
+    expect(within(agendaCard).getByText('Teat')).toBeInTheDocument();
+    expect(within(agendaCard).getByRole('button', { name: /editor/i })).toBeInTheDocument();
+    expect(within(agendaCard).queryByText(/06:00/)).not.toBeInTheDocument();
   });
 
   it('opens inline title input on a day time slot and creates task on Enter', () => {

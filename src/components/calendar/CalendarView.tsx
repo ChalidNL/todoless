@@ -19,7 +19,6 @@ import {
   startOfMonthGrid,
   startOfWeek,
   storeCalendarView,
-  toTimeLabel,
   type CalendarItem,
   type CalendarView as CalendarViewMode,
 } from '../../lib/calendar-utils';
@@ -256,7 +255,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
               {allDayItems
                 .filter((item) => sameLocalDay(item.startTime, day))
                 .slice(0, 2)
-                .map((item) => <CompactTaskCard key={item.kind + item.id} task={item.source} showCheckbox={false} compact />)}
+                .map((item) => <AgendaTaskCard key={item.kind + item.id} item={item} />)}
             </div>
           ))}
         </div>
@@ -316,7 +315,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
   );
 }
 
-function CalendarTaskSlot({ item, language, align }: { item: TimedLayout; language: Language; align: 'left' | 'right' }) {
+function CalendarTaskSlot({ item }: { item: TimedLayout; language: Language; align: 'left' | 'right' }) {
   const start = new Date(item.startTime);
   const end = new Date(item.endTime || item.startTime + 60 * 60 * 1000);
   const startMinutes = Math.max(0, start.getHours() * 60 + start.getMinutes());
@@ -324,7 +323,6 @@ function CalendarTaskSlot({ item, language, align }: { item: TimedLayout; langua
   const width = `${100 / item.columns}%`;
   const left = `${(100 / item.columns) * item.column}%`;
   const height = Math.max(42, (durationMinutes / 60) * HOUR_HEIGHT);
-  const timeLabel = `${toTimeLabel(item.startTime, language)}–${toTimeLabel(item.endTime, language)}`;
 
   return (
     <div
@@ -332,17 +330,13 @@ function CalendarTaskSlot({ item, language, align }: { item: TimedLayout; langua
       className="absolute z-20 overflow-visible text-left"
       style={{ top: (startMinutes / 60) * HOUR_HEIGHT, left, width, height: `${height}px` }}
     >
-      <CompactTaskCard
-        task={item.source}
-        showCheckbox={false}
-        compact
-        hideDateChip
-        calendarTimeLabel={timeLabel}
-        calendarPopoverAlign={align}
-        className="h-full"
-      />
+      <AgendaTaskCard item={item} />
     </div>
   );
+}
+
+function AgendaTaskCard({ item, startExpanded = false }: { item: CalendarItem; startExpanded?: boolean }) {
+  return <CompactTaskCard task={item.source} showCheckbox={false} compact startExpanded={startExpanded} />;
 }
 
 function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {
@@ -378,7 +372,7 @@ function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {
 
 function AgendaList({ items, language, compact, expandedTaskId }: { items: CalendarItem[]; language: Language; compact?: boolean; expandedTaskId?: string | null }) {
   if (!items.length) return <div data-testid="calendar-agenda-list" className="mt-2 rounded-2xl border border-dashed border-neutral-200 bg-white/70 p-3 text-center text-xs text-neutral-400">{t('calendar.noEvents', language)}</div>;
-  return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <CompactTaskCard key={`${item.kind}-${item.id}-${expandedTaskId === item.id ? 'expanded' : 'compact'}`} task={item.source} showCheckbox={false} startExpanded={expandedTaskId === item.id} />)}</div>;
+  return <div data-testid="calendar-agenda-list" className={`space-y-1 ${compact ? 'mt-2' : ''}`}>{items.map((item) => <AgendaTaskCard key={`${item.kind}-${item.id}-${expandedTaskId === item.id ? 'expanded' : 'compact'}`} item={item} startExpanded={expandedTaskId === item.id} />)}</div>;
 }
 
 
