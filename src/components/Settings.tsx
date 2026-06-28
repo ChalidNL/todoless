@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { User, ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home } from 'lucide-react';
-import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home } from 'lucide-react';
+import { PageHeader } from './shared/PageHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
@@ -579,16 +580,31 @@ export const Settings = () => {
 
   return (
     <>
-      
-      {/* Header */}
-      <div className="sticky top-0 z-40">
-        <NewGlobalHeader />
-      </div>
+      <PageHeader title={t('nav.settings')} subtitle={currentUser.email} />
 
-              <div className="max-w-2xl mx-auto px-4 pt-6 pb-20 space-y-6">
+      <div className="max-w-2xl mx-auto px-4 pt-4 pb-20 space-y-5">
+        <div className="grid gap-2">
+          <a href="/settings/members" className="app-surface flex items-center gap-3 px-4 py-3 text-left">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-50 text-violet-700"><Users className="h-5 w-5" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-extrabold text-[var(--app-text)]">{t('settings.teamMembers')}</span>
+              <span className="block truncate text-xs font-medium text-[var(--app-text-muted)]">{users.length} {t('members.title').toLowerCase()}</span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-neutral-400" />
+          </a>
+          <a href="/settings/labels" className="app-surface flex items-center gap-3 px-4 py-3 text-left">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-50 text-blue-700"><Shield className="h-5 w-5" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-extrabold text-[var(--app-text)]">{t('settings.labels')}</span>
+              <span className="block truncate text-xs font-medium text-[var(--app-text-muted)]">{labels.length} labels</span>
+            </span>
+            <ChevronRight className="h-5 w-5 text-neutral-400" />
+          </a>
+        </div>
+
         {/* User Profile */}
-        <div className="app-surface p-6">
-          <h2 className="text-lg font-semibold mb-4">{t('settings.yourProfile')}</h2>
+        <div className="overflow-hidden rounded-[28px] bg-[var(--app-primary-grad)] p-0 text-white shadow-[0_18px_46px_rgba(124,92,252,.28)]">
+          <div className="px-6 pt-5"><h2 className="text-lg font-bold mb-4 text-white">{t('settings.yourProfile')}</h2></div>
           
           {profileError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
@@ -597,38 +613,38 @@ export const Settings = () => {
           )}
 
           {!editingProfile ? (
-            <div className="space-y-4">
+            <div className="space-y-4 px-6 pb-6">
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
+                <div className="w-16 h-16 rounded-full bg-white/20 ring-1 ring-white/30 flex items-center justify-center text-2xl font-black text-white shadow-lg shrink-0">
                   {userDisplayName(currentUser).charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold truncate">{userDisplayName(currentUser)}</p>
+                    <p className="font-bold text-white truncate">{userDisplayName(currentUser)}</p>
                     <button
                       onClick={handleProfileEdit}
-                      className="p-1.5 hover:bg-neutral-100 rounded transition-colors shrink-0"
+                      className="p-1.5 hover:bg-white/20 rounded-full transition-colors shrink-0"
                       title={t('settings.editProfile')}
                     >
-                      <Edit2 className="w-4 h-4 text-neutral-500" />
+                      <Edit2 className="w-4 h-4 text-white" />
                     </button>
                   </div>
-                  <p className="text-sm text-neutral-500">{currentUser.firstName || currentUser.lastName
+                  <p className="text-sm text-white/75">{currentUser.firstName || currentUser.lastName
                     ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ')
                     : t('common.unknown')}</p>
-                  <p className="text-sm text-neutral-600 truncate">{currentUser.email}</p>
-                  <p className="text-xs text-neutral-500 capitalize mt-1">
+                  <p className="text-sm text-white/90 truncate">{currentUser.email}</p>
+                  <p className="mt-2 inline-flex rounded-full bg-white/18 px-2.5 py-1 text-xs font-bold capitalize text-white">
                     {t('settings.role')}: {currentUser.role || t('settings.member')}
                   </p>
-                  <p className="text-xs text-neutral-500 mt-1">
+                  <p className="ml-2 mt-2 inline-flex rounded-full bg-white/18 px-2.5 py-1 text-xs font-bold text-white">
                     {t('settings.language')}: {getLanguageLabel(currentUser.language || 'en')}
                   </p>
                 </div>
               </div>
 
               {/* Password Change */}
-              <div>
-                <label className="block text-sm text-neutral-600 mb-2">{t('settings.password')}</label>
+              <div className="rounded-2xl bg-white/14 p-3 ring-1 ring-white/15">
+                <label className="block text-sm font-semibold text-white/85 mb-2">{t('settings.password')}</label>
                 {passwordError && (
                   <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
                     {passwordError}
@@ -637,7 +653,7 @@ export const Settings = () => {
                 {!editingPassword ? (
                   <button
                     onClick={() => { setEditingPassword(true); setPasswordError(''); }}
-                    className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-2"
+                    className="text-sm font-semibold text-white hover:text-white/80 flex items-center gap-2"
                   >
                     {t('settings.changePassword')}
                   </button>
@@ -766,13 +782,13 @@ export const Settings = () => {
         <div className="mb-6 border-b border-neutral-200 pb-6">
           <button
             onClick={() => setShowPreferences(!showPreferences)}
-            className="flex items-center justify-between w-full mb-3"
+            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
           >
             <h2 className="text-lg font-semibold">{t('settings.preferences')}</h2>
             {showPreferences ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
+              <ChevronRight className="w-5 h-5 text-neutral-400" />
             )}
           </button>
 
@@ -799,13 +815,13 @@ export const Settings = () => {
         <div className="mb-6 border-b border-neutral-200 pb-6">
           <button
             onClick={() => setShowTeamMembers(!showTeamMembers)}
-            className="flex items-center justify-between w-full mb-3"
+            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
           >
             <h2 className="text-lg font-semibold">{t('members.title')}</h2>
             {showTeamMembers ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
+              <ChevronRight className="w-5 h-5 text-neutral-400" />
             )}
           </button>
 
@@ -955,7 +971,7 @@ export const Settings = () => {
         <div className="mb-6 border-b border-neutral-200 pb-6">
           <button
             onClick={() => setShowLabels(!showLabels)}
-            className="flex items-center justify-between w-full mb-3"
+            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
               {t('settings.labels')}
@@ -963,7 +979,7 @@ export const Settings = () => {
             {showLabels ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
+              <ChevronRight className="w-5 h-5 text-neutral-400" />
             )}
           </button>
 
@@ -1036,7 +1052,7 @@ export const Settings = () => {
         <div className="mb-6 border-b border-neutral-200 pb-6">
           <button
             onClick={() => setShowShops(!showShops)}
-            className="flex items-center justify-between w-full mb-3"
+            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
           >
             <h2 className="text-lg font-semibold flex items-center gap-2">
               {t('settings.shops')}
@@ -1044,7 +1060,7 @@ export const Settings = () => {
             {showShops ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
+              <ChevronRight className="w-5 h-5 text-neutral-400" />
             )}
           </button>
 
@@ -1096,13 +1112,13 @@ export const Settings = () => {
         <div className="mb-6 border-b border-neutral-200 pb-6">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center justify-between w-full mb-3"
+            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
           >
             <h2 className="text-lg font-semibold">{t('filters.title')}</h2>
             {showFilters ? (
               <ChevronUp className="w-5 h-5 text-neutral-500" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
+              <ChevronRight className="w-5 h-5 text-neutral-400" />
             )}
           </button>
 
@@ -1149,7 +1165,7 @@ export const Settings = () => {
           <div className="mb-6 border-b border-neutral-200 pb-6">
             <button
               onClick={toggleIntegrationsSection}
-              className="flex items-center justify-between w-full mb-3"
+              className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
             >
               <h2 className="text-lg font-semibold">
                 {t('settings.integration')}
@@ -1157,7 +1173,7 @@ export const Settings = () => {
               {showIntegrations ? (
                 <ChevronUp className="w-5 h-5 text-neutral-500" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-500" />
+                <ChevronRight className="w-5 h-5 text-neutral-400" />
               )}
             </button>
 

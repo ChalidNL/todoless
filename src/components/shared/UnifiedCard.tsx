@@ -26,7 +26,7 @@ interface UnifiedCardProps {
   type: 'task' | 'item';
 }
 
-type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | 'priority' | null;
+type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | 'priority' | 'comment' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, tasks, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
@@ -143,10 +143,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           {/* Checkbox (button) */}
           <button
             onClick={handleToggle}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-              isDone
-                ? 'bg-neutral-900 border-neutral-900 text-white'
-                : 'border-neutral-300 hover:border-neutral-500'
+            className={`app-checkbox flex items-center justify-center flex-shrink-0 transition-colors ${
+              isDone ? 'app-checkbox-checked' : 'hover:border-[var(--app-primary)]'
             }`}
             aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
           >
@@ -195,20 +193,20 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
           {/* Quantity [+][-] controls (items) — replaces static badge */}
           {!isTask && !isDone && (
-            <div className="flex items-center gap-0.5 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0 rounded-full bg-[var(--app-surface-2)] p-1 shadow-inner">
               <button
                 onClick={() => setQuantity(quantity - 1)}
-                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm font-black text-[var(--app-primary)] shadow-sm hover:scale-105"
                 aria-label={t('items.decreaseQuantity')}
               >
                 -
               </button>
-              <span className="text-xs font-medium text-neutral-600 border border-neutral-200 rounded px-2 py-0.5 min-w-[28px] text-center">
+              <span className="min-w-[30px] text-center text-sm font-extrabold text-[var(--app-text)]">
                 {quantity}
               </span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                className="grid h-7 w-7 place-items-center rounded-full bg-[var(--app-primary)] text-sm font-black text-white shadow-sm hover:scale-105"
                 aria-label={t('items.increaseQuantity')}
               >
                 +

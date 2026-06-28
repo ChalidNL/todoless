@@ -146,7 +146,7 @@ describe('CalendarView UI', () => {
     const agendaCard = within(slotCard).getByTestId('compact-task-card-task-compact');
     expect(within(agendaCard).getByText('Teat')).toBeInTheDocument();
     expect(within(agendaCard).getByRole('button', { name: /editor/i })).toBeInTheDocument();
-    expect(within(agendaCard).queryByText(/06:00/)).not.toBeInTheDocument();
+    expect(within(agendaCard).getByText(/06:00/)).toBeInTheDocument();
   });
 
   it('opens inline title input on a day time slot and creates task on Enter', () => {

@@ -395,10 +395,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             {showCheckbox && (
               <button
                 onClick={handleToggle}
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  isDone
-                    ? 'bg-neutral-900 border-neutral-900 text-white'
-                    : 'border-neutral-300 hover:border-neutral-500'
+                className={`app-checkbox flex items-center justify-center flex-shrink-0 transition-colors ${
+                  isDone ? 'app-checkbox-checked' : 'hover:border-[var(--app-primary)]'
                 }`}
                 aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
               >
@@ -557,7 +555,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       setEditingSubtaskTitle('');
                     }
                   }}
-                  className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'}`}
                   title={t('tasks.subtasksEditTitle')}
                   aria-label={t('tasks.subtasksEditAria')}
                 >
@@ -673,13 +671,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div>
                 {/* Attribute buttons */}
-              <div className={`flex items-center gap-2 ${calendarBlock ? 'flex-wrap' : ''}`}>
+              <div className={`flex flex-wrap items-center gap-1.5 ${calendarBlock ? 'flex-wrap' : ''}`}>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     hasLabels || activeEditor === 'labels'
                       ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.labelTooltip')}
                   aria-label={t('tasks.editLabels')}
@@ -692,10 +690,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                     setActiveEditor(next);
                     if (next) setAssigneeSearch('');
                   }}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     hasAssignee || activeEditor === 'assignee'
                       ? 'bg-green-100 text-green-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.assigneeTooltip')}
                   aria-label={t('tasks.editAssignee')}
@@ -704,10 +702,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     hasSchedule || activeEditor === 'schedule'
                       ? 'bg-orange-100 text-orange-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.scheduleTooltip')}
                   aria-label={t('tasks.editSchedule')}
@@ -716,10 +714,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks')}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     subtaskCount > 0 || activeEditor === 'subtasks'
                       ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.subtasksTooltip')}
                   aria-label={t('tasks.viewSubtasks')}
@@ -728,10 +726,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     task.priority && PRIORITY_COLORS[task.priority]
                       ? 'text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   style={
                     task.priority && PRIORITY_COLORS[task.priority]
@@ -746,8 +744,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 {/* Focus toggle */}
                 <button
                   onClick={() => updateTask(task.id, { focus: !task.focus })}
-                  className={`p-1.5 rounded transition-colors ${
-                    task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-neutral-100 text-neutral-500'
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
+                    task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={task.focus ? 'Remove focus' : 'Add focus'}
                   aria-label={t('tasks.toggleFocus')}
@@ -756,10 +754,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={() => openCommentEditor()}
-                  className={`p-1.5 rounded transition-colors ${
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
                     getCommentButtonActive(task) || activeEditor === 'comment'
                       ? 'bg-neutral-900 text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
+                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.comment')}
                   aria-label={t('tasks.comment')}
@@ -768,7 +766,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={handleToggleFlag}
-                  className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'}`}
                   title={t('tasks.flagTooltip')}
                   aria-label={t('tasks.toggleFlag')}
                 >
@@ -776,8 +774,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </button>
                 <button
                   onClick={() => setActiveEditor(activeEditor === 'others' ? null : 'others')}
-                  className={`p-1.5 rounded transition-colors ${
-                    activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-neutral-100 text-neutral-500'
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
+                    activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
                   }`}
                   title={t('tasks.otherActions')}
                   aria-label={t('tasks.otherActions')}
@@ -789,7 +787,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   onClick={() => setShowDeleteConfirm(true)}
                   onMouseEnter={() => setIsDeleteHover(true)}
                   onMouseLeave={() => setIsDeleteHover(false)}
-                  className={`p-1.5 rounded transition-colors ${isDeleteHover ? 'bg-red-100 text-red-700' : 'text-red-600 hover:bg-red-50'}`}
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${isDeleteHover ? 'bg-red-100 text-red-700' : 'text-red-600 hover:bg-red-50'}`}
                   title={t('common.delete')}
                   aria-label={t('tasks.deleteTask')}
                 >

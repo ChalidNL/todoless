@@ -11,9 +11,12 @@ import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
+import { FocusView } from './components/FocusView';
+import { MembersView } from './components/MembersView';
+import { LabelsView } from './components/LabelsView';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays } from 'lucide-react';
+import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, Target } from 'lucide-react';
 import { AppMark } from './components/shared/AppLogo';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
@@ -213,6 +216,7 @@ function AppContent() {
   const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
     { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: t('nav.tasks', language), icon: <AppMark className="w-5 h-5" /> },
+    { to: '/focus', label: t('tasks.focus', language), icon: <Target className="w-5 h-5" /> },
     { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
     { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
     { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
@@ -224,9 +228,12 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
+          <Route path="/focus" element={<FocusView />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/members" element={<MembersView />} />
+          <Route path="/settings/labels" element={<LabelsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -250,7 +257,7 @@ function AppContent() {
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] rounded-2xl transition-all active:scale-95 ${
                   isActive
-                    ? 'text-[var(--app-primary)] bg-[var(--app-primary)]/10'
+                    ? 'app-nav-active'
                     : 'text-[var(--app-text-muted)] hover:text-[var(--app-primary)]'
                 }`
               }

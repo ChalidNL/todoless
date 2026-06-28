@@ -5,6 +5,7 @@ import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
+import { PageHeader } from '../shared/PageHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { CompactTaskCard } from '../shared/CompactTaskCard';
 import type { Task } from '../../types';
@@ -109,6 +110,7 @@ export function CalendarView() {
 
   return (
     <div className="app-shell-bg h-full min-h-0 flex flex-col">
+      <PageHeader title={t('nav.calendar', language)} subtitle={periodTitle} />
       <div className="sticky top-0 z-40">
         <AppHeader
           onAdd={(value) => openCreate(undefined, undefined, value)}
@@ -121,11 +123,11 @@ export function CalendarView() {
         />
       </div>
       <header className="flex-shrink-0 px-3 py-2">
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`app-icon-button h-10 w-10 ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-4 h-4" /></button>
-          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="app-icon-button h-10 w-10 bg-[var(--app-surface-2)]"><ChevronLeft className="w-4 h-4" /></button>
-          <p data-testid="calendar-period-title" className="min-w-0 flex-1 text-center text-sm font-bold text-[var(--app-text)]">{periodTitle}</p>
-          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="app-icon-button h-10 w-10 bg-[var(--app-surface-2)]"><ChevronRight className="w-4 h-4" /></button>
+        <div className="app-surface flex items-center gap-1.5 rounded-full px-2 py-1.5">
+          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`app-icon-button h-8 w-8 rounded-full ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-3.5 h-3.5" /></button>
+          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="app-icon-button h-8 w-8 rounded-full bg-[var(--app-surface-2)]"><ChevronLeft className="w-3.5 h-3.5" /></button>
+          <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-extrabold text-[var(--app-text)]">{periodTitle}</p>
+          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="app-icon-button h-8 w-8 rounded-full bg-[var(--app-surface-2)]"><ChevronRight className="w-3.5 h-3.5" /></button>
           <SharedSelect
             id="calendar-view-select"
             ariaLabel={t('calendar.viewLabel', language)}
@@ -323,16 +325,17 @@ function CalendarTaskSlot({ item }: { item: TimedLayout; language: Language; ali
   return (
     <div
       data-testid={`calendar-timed-task-${item.id}`}
-      className="absolute z-20 overflow-visible text-left"
+      className="absolute z-20 overflow-visible text-left rounded-sm bg-violet-100"
       style={{ top: (startMinutes / 60) * HOUR_HEIGHT, left, width, height: `${height}px` }}
     >
-      <AgendaTaskCard item={item} />
+      <AgendaTaskCard item={item} showTimeLabel />
     </div>
   );
 }
 
-function AgendaTaskCard({ item, startExpanded = false }: { item: CalendarItem; startExpanded?: boolean }) {
-  return <CompactTaskCard task={item.source} showCheckbox={false} compact calendarBlock startExpanded={startExpanded} />;
+function AgendaTaskCard({ item, startExpanded = false, showTimeLabel = false }: { item: CalendarItem; startExpanded?: boolean; showTimeLabel?: boolean }) {
+  const timeLabel = showTimeLabel && !item.allDay ? formatNowTime(item.startTime) : undefined;
+  return <CompactTaskCard task={item.source} showCheckbox={false} compact calendarBlock startExpanded={startExpanded} calendarTimeLabel={timeLabel} hideDateChip />;
 }
 
 function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {

@@ -24,10 +24,11 @@ describe('AppHeader', () => {
     useAppMock.mockReturnValue(baseAppValue);
   });
 
-  it('renders the shared todoless logo header with filter, search and one standard add button', () => {
-    render(<AppHeader searchPlaceholder="Search calendar…" onAddEmpty={vi.fn()} type="calendar" />);
+  it('renders the page-level search card with filter, search and one standard add button', () => {
+    const { container } = render(<AppHeader searchPlaceholder="Search calendar…" onAddEmpty={vi.fn()} type="calendar" />);
 
-    expect(screen.getByText('todoless')).toBeInTheDocument();
+    expect(screen.queryByText('todoless')).not.toBeInTheDocument();
+    expect(container.querySelector('.app-search-card')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search calendar…')).toBeInTheDocument();
     expect(screen.getByTitle('Filters')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('app-fab');

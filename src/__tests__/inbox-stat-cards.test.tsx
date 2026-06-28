@@ -37,22 +37,22 @@ describe('Inbox stat cards', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the four status cards as tight icon-count filled buttons with accessible labels', () => {
+  it('renders the four status cards as large gradient buttons with accessible labels', () => {
     render(<InboxBacklog />);
 
     for (const key of ['backlog', 'todo', 'blocked', 'done-today']) {
       const card = screen.getByTestId(`inbox-stat-card-${key}`);
+      expect(card).toHaveClass('app-status-card');
       expect(card).toHaveClass('text-white');
-      expect(card).toHaveClass('shadow-sm');
-      expect(card).toHaveClass('min-h-[56px]');
       expect(card).not.toHaveClass('bg-white');
       expect(card.querySelector('[data-testid="inbox-stat-watermark"]')).not.toBeInTheDocument();
+      expect(card.querySelector('p')).toHaveClass('text-[32px]');
     }
 
-    expect(screen.getByTestId('inbox-stat-card-backlog')).toHaveStyle({ backgroundColor: '#2563eb' });
-    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveStyle({ backgroundColor: '#059669' });
-    expect(screen.getByTestId('inbox-stat-card-blocked')).toHaveStyle({ backgroundColor: '#e11d48' });
-    expect(screen.getByTestId('inbox-stat-card-done-today')).toHaveStyle({ backgroundColor: '#7c3aed' });
+    expect(screen.getByTestId('inbox-stat-card-backlog')).toHaveAttribute('data-status', 'backlog');
+    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('data-status', 'todo');
+    expect(screen.getByTestId('inbox-stat-card-blocked')).toHaveAttribute('data-status', 'blocked');
+    expect(screen.getByTestId('inbox-stat-card-done-today')).toHaveAttribute('data-status', 'done-today');
     expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('aria-label', 'Todo Sprint: 2');
   });
 

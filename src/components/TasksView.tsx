@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { PageHeader } from './shared/PageHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
 import { SharedSelect } from './shared/SharedSelect';
@@ -97,6 +98,12 @@ export const TasksView = () => {
         case 'priority':
           filtered = filtered.filter((t) => t.priority === f.id);
           break;
+        case 'status':
+          if (f.id === 'focus') filtered = filtered.filter((t) => !!t.focus || (isDueWithin24h(t.dueDate) && t.priority === 'high'));
+          if (f.id === 'blocked') filtered = filtered.filter((t) => !!t.blocked);
+          if (f.id === 'todo') filtered = filtered.filter((t) => t.status === 'todo' && !t.blocked);
+          if (f.id === 'done') filtered = filtered.filter((t) => t.status === 'done');
+          break;
       }
     }
 
@@ -167,9 +174,16 @@ export const TasksView = () => {
   const hasSavedFilters = taskFilters.length > 0;
 
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
+  const statusQuickFilters = [
+    { id: 'todo', label: t('dashboard.todoSprint'), count: regularTasks.length, color: '#16a34a' },
+    { id: 'focus', label: t('tasks.focus'), count: focusTasks.length, color: '#f97316' },
+    { id: 'blocked', label: t('dashboard.blocked'), count: blockedTasks.length, color: '#e11d48' },
+    { id: 'done', label: t('dashboard.doneSprint'), count: completedTasks.length, color: '#7c3aed' },
+  ];
 
   return (
     <>
+      <PageHeader title={t('nav.tasks')} subtitle={`${activeTasks.length} ${t('common.tasks').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}
@@ -278,6 +292,23 @@ export const TasksView = () => {
       )}
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+          {statusQuickFilters.map((filter) => {
+            const active = activeChipFilters.some((f) => f.type === 'status' && f.id === filter.id);
+            return (
+              <button
+                key={filter.id}
+                type="button"
+                onClick={() => toggleChipFilter('status', filter.id, filter.label, filter.color)}
+                className={`app-chip inline-flex h-9 flex-shrink-0 items-center gap-2 px-3 text-xs font-bold ${active ? 'text-white shadow-sm' : 'bg-white text-[var(--app-text-muted)] shadow-sm'}`}
+                style={active ? { backgroundColor: filter.color } : undefined}
+              >
+                <span>{filter.label}</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{filter.count}</span>
+              </button>
+            );
+          })}
+        </div>
         {/* Empty state */}
         {isEmpty ? (
           <div className="text-center py-16">

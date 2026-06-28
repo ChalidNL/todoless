@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { PageHeader } from './shared/PageHeader';
 import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck, type LucideIcon } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
 
@@ -35,6 +36,7 @@ function InboxStatCard({
     <button
       type="button"
       data-testid={`inbox-stat-card-${statKey}`}
+      data-status={statKey}
       onClick={onClick}
       aria-label={`${label}: ${value}`}
       title={`${label}: ${value}`}
@@ -44,12 +46,12 @@ function InboxStatCard({
       }`}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/35" />
-      <div className="relative z-10 flex h-full items-center gap-2.5">
-        <span className="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm" aria-hidden="true">
-          <Icon className="h-4 w-4 text-white" strokeWidth={2.25} />
+      <div className="relative z-10 flex h-full items-center gap-3">
+        <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/25 backdrop-blur-sm" aria-hidden="true">
+          <Icon className="h-5 w-5 text-white" strokeWidth={2.25} />
         </span>
-        <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-xs font-semibold leading-none text-white/90">{label}</span>
-        <p className="flex-shrink-0 text-2xl font-extrabold leading-none tracking-tight text-white drop-shadow-sm">{value}</p>
+        <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-[13px] font-bold leading-none text-white/90">{label}</span>
+        <p className="flex-shrink-0 text-[32px] font-black leading-none tracking-[-0.05em] text-white drop-shadow-sm">{value}</p>
       </div>
     </button>
   );
@@ -198,6 +200,7 @@ export const InboxBacklog = () => {
 
   return (
     <>
+      <PageHeader title={t('inbox.title')} subtitle={`${displayedTasks.length} ${t('common.tasks').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}

@@ -2,13 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
+import { PageHeader } from '../shared/PageHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
 
 export const GroceriesView = () => {
-  const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
+  const { items, shops = [], addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
   const [showSavedFilters, setShowSavedFilters] = useState(false);
@@ -80,6 +81,7 @@ export const GroceriesView = () => {
 
   return (
     <>
+      <PageHeader title={t('nav.groceries')} subtitle={`${sortedActiveItems.length} ${t('common.items').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onSearch={setSearchQuery}
@@ -185,6 +187,25 @@ export const GroceriesView = () => {
 
       {/* Active items */}
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
+        {shops.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            {shops.map((shop) => {
+              const active = activeChipFilters.some((f) => f.type === 'shop' && f.id === shop.id);
+              return (
+                <button
+                  key={shop.id}
+                  type="button"
+                  onClick={() => toggleChipFilter('shop', shop.id, shop.name, shop.color)}
+                  className={`app-chip inline-flex h-9 flex-shrink-0 items-center gap-2 px-3 text-xs font-bold shadow-sm ${active ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
+                  style={active ? { backgroundColor: shop.color } : { color: shop.color }}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active ? 'rgba(255,255,255,.8)' : shop.color }} />
+                  {shop.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold text-sm text-neutral-600">
             {t('items.title')} ({sortedActiveItems.length})

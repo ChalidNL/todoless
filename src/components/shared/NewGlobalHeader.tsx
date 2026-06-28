@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Filter, X, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
-import { AppMark } from './AppLogo';
+
 
 interface AppHeaderProps {
   onSearch?: (query: string) => void;
@@ -139,15 +139,8 @@ export const AppHeader = ({
   return (
     <>
       <div className="app-shell-bg sticky top-0 z-40 safe-top">
-        <div className="max-w-2xl mx-auto px-4 pt-3 pb-3 space-y-3">
-          <div className="flex items-center justify-center gap-2 w-full" style={{ color: 'var(--app-text)' }}>
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white shadow-sm dark:bg-[var(--app-surface-2)]">
-              <AppMark className="w-6 h-6 text-[var(--app-primary)]" />
-            </span>
-            <span className="text-[22px] font-bold tracking-tight">todoless</span>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <div className="max-w-2xl mx-auto px-4 pt-2 pb-3">
+          <div className="app-search-card flex items-center gap-2">
             {showFilters && (
               <div className="relative">
                 <button

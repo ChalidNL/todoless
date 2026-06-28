@@ -374,6 +374,7 @@ interface TranslationStructure {
     markAllDone: string;
     clearAll: string;
     empty: string;
+    taskAdded: string;
   };
   members: {
     title: string;
@@ -776,6 +777,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Mark All Done',
       clearAll: 'Clear All',
       empty: 'Empty',
+      taskAdded: 'Task added',
     },
     members: {
       title: 'Members',
@@ -1176,6 +1178,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Tout marquer comme fait',
       clearAll: 'Tout effacer',
       empty: 'Vide',
+      taskAdded: 'Tâche ajoutée',
     },
     members: {
       title: 'Membres',
@@ -1576,6 +1579,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Alles als gedaan markeren',
       clearAll: 'Alles wissen',
       empty: 'Leeg',
+      taskAdded: 'Taak toegevoegd',
     },
     members: {
       title: 'Leden',
@@ -1976,6 +1980,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Alle als erledigt markieren',
       clearAll: 'Alles löschen',
       empty: 'Leer',
+      taskAdded: 'Aufgabe hinzugefügt',
     },
     members: {
       title: 'Mitglieder',
@@ -2206,7 +2211,7 @@ export const translations: Record<Language, TranslationStructure> = {
       inboxIsEmpty: 'La bandeja está vacía', selectAll: 'Seleccionar todo', deselectAll: 'Deseleccionar todo',
       cancelSelection: 'Cancelar selección', pushSelected: 'Mover seleccionados',
       searchPlaceholder: 'Buscar en la bandeja...', noTasksFound: 'No se encontraron tareas',
-      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío',
+      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío', taskAdded: 'Tarea añadida',
     },
     members: {
       title: 'Miembros', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
