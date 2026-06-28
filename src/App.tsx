@@ -18,6 +18,7 @@ import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, Target } from 'lucide-react';
 import { AppMark } from './components/shared/AppLogo';
+import { SplashScreen } from './components/shared/SplashScreen';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
 import { t } from './i18n/translations';
@@ -177,13 +178,7 @@ function AppContent() {
   }, [loading, user]);
 
   if (appScreen === 'checking') {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-sm border border-neutral-200">
-          <AppMark className="w-8 h-8 text-neutral-900 animate-pulse" />
-        </div>
-      </div>
-    );
+    return <SplashScreen />;
   }
 
   if (appScreen === 'onboarding') {
