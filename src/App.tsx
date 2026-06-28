@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -21,6 +21,8 @@ import { AppMark } from './components/shared/AppLogo';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
 import { t } from './i18n/translations';
+import { AppShell } from './components/layout/AppShell';
+import { BottomNavigation, type BottomNavItem } from './components/layout/BottomNavigation';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -213,7 +215,7 @@ function AppContent() {
     return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
-  const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
+  const navItems: BottomNavItem[] = [
     { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
     { to: '/tasks', label: t('nav.tasks', language), icon: <AppMark className="w-5 h-5" /> },
     { to: '/focus', label: t('tasks.focus', language), icon: <Target className="w-5 h-5" /> },
@@ -222,9 +224,16 @@ function AppContent() {
     { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
   ];
 
+  const toast = completionMessage ? (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+      <div className="app-surface px-4 py-2">
+        <p className="text-sm text-[var(--app-text-muted)]">{completionMessage}</p>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="app-shell-bg fixed inset-0 flex flex-col">
-      <main className="flex-1 min-h-0 overflow-y-auto">
+    <AppShell toast={toast} bottomNav={<BottomNavigation items={navItems} />}>
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
@@ -236,41 +245,7 @@ function AppContent() {
           <Route path="/settings/labels" element={<LabelsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
-
-      {completionMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="app-surface px-4 py-2">
-            <p className="text-sm text-[var(--app-text-muted)]">{completionMessage}</p>
-          </div>
-        </div>
-      )}
-
-      <nav className="app-bottom-nav mx-auto w-full max-w-xl flex-shrink-0 z-40"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
-      >
-        <div className="mx-auto flex justify-around items-center px-2 pt-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] rounded-2xl transition-all active:scale-95 ${
-                  isActive
-                    ? 'app-nav-active'
-                    : 'text-[var(--app-text-muted)] hover:text-[var(--app-primary)]'
-                }`
-              }
-            >
-              <div className="relative">
-                {item.icon}
-              </div>
-              <span className="block w-full truncate whitespace-nowrap text-center text-[9px] font-medium leading-tight sm:text-[10px]">{item.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-    </div>
+    </AppShell>
   );
 }
 
