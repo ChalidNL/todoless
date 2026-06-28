@@ -201,6 +201,8 @@ describe('CalendarView UI', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
     const todayCell = screen.getByTestId('calendar-today');
     expect(todayCell).toHaveClass('border-black');
+    expect(screen.getAllByTestId('compact-task-card-task-1').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: 'Dentist' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'schedule' } });
     const agenda = screen.getByTestId('calendar-agenda-list');

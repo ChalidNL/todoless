@@ -36,8 +36,9 @@ export const TasksView = () => {
   const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
 
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
+    if (!value.trim()) return;
     addTask({
-      title: value,
+      title: value.trim(),
       status: 'todo',
       blocked: false,
       labels: metadata?.labels || [],
@@ -45,6 +46,7 @@ export const TasksView = () => {
       dueDate: metadata?.dueDate,
       flag: false,
     });
+    showCompletionMessage(t('inbox.taskAdded'));
   };
 
   const applySavedFilter = (f: typeof filters[0]) => {

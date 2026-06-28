@@ -41,6 +41,19 @@ describe('AppHeader', () => {
 
     expect(onAddEmpty).toHaveBeenCalledTimes(1);
   });
+
+  it('uses the same add path for Enter as the plus button and clears the input', () => {
+    const onAdd = vi.fn();
+
+    render(<AppHeader searchPlaceholder="Search…" onAdd={onAdd} />);
+    const input = screen.getByPlaceholderText('Search…');
+    fireEvent.change(input, { target: { value: 'EnterTaken' } });
+    const prevented = !fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(prevented).toBe(true);
+    expect(onAdd).toHaveBeenCalledWith('EnterTaken');
+    expect(input).toHaveValue('');
+  });
 });
 
 describe('AddButton', () => {

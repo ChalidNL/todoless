@@ -167,18 +167,16 @@ function MonthGrid({ anchor, items, selectedDay, expandedTaskId, onExpandTask, o
               <button type="button" onClick={() => onSelect(startOfLocalDay(day))} className="block text-left">
                 <span data-testid={sameLocalDay(day, Date.now()) ? 'calendar-today' : undefined} className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-xs font-semibold ${sameLocalDay(day, Date.now()) ? 'border border-black bg-black text-white' : new Date(day).getMonth() === month ? 'text-neutral-800' : 'text-neutral-300'}`}>{new Date(day).getDate()}</span>
               </button>
-              <div className="mt-1 space-y-0.5 overflow-hidden">
-                {dayItems.slice(0, 3).map((item) => (
-                  <button
+              <div className="mt-1 space-y-1 overflow-visible">
+                {dayItems.slice(0, 2).map((item) => (
+                  <div
                     key={item.kind + item.id}
-                    type="button"
                     onClick={() => { onSelect(startOfLocalDay(day)); onExpandTask(item.id); }}
-                    className={`block w-full truncate rounded-sm px-1.5 py-0.5 text-left text-[9px] font-semibold leading-tight ${expandedTaskId === item.id ? 'bg-violet-700 text-white' : 'bg-violet-100 text-violet-800'}`}
                   >
-                    {item.title}
-                  </button>
+                    <AgendaTaskCard item={item} startExpanded={expandedTaskId === item.id} />
+                  </div>
                 ))}
-                {dayItems.length > 3 && <span className="block text-[9px] font-semibold text-neutral-500">+{dayItems.length - 3} more</span>}
+                {dayItems.length > 2 && <span className="block text-[9px] font-semibold text-neutral-500">+{dayItems.length - 2} more</span>}
               </div>
             </div>
           );
