@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Plus, Filter, X, Save } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
-
+import { AppLogo } from './AppLogo';
 
 interface AppHeaderProps {
   onSearch?: (query: string) => void;
@@ -28,11 +28,11 @@ export function AddButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="app-fab flex flex-shrink-0 items-center justify-center"
+      className="app-fab flex h-[var(--app-touch-target)] w-[var(--app-touch-target)] flex-shrink-0 items-center justify-center rounded-[16px]"
       title={t('common.addTooltip')}
       aria-label={t('common.addTooltip')}
     >
-      <Plus className="w-5 h-5" strokeWidth={2.4} />
+      <Plus className="h-5 w-5" strokeWidth={2.6} />
     </button>
   );
 }
@@ -48,7 +48,6 @@ export const AppHeader = ({
   submitAriaLabel = t('common.save'),
   cancelAriaLabel = t('common.cancel'),
   showInputActions = true,
-  onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
   showFilters = true,
@@ -130,6 +129,7 @@ export const AppHeader = ({
       name,
       type: type === 'item' ? 'item' : 'task',
       labelIds: [],
+      showCompleted: false,
       chipFilters: activeChipFilters.map(f => ({ type: f.type, id: f.id, label: f.label, color: f.color })),
     });
     setShowFilterDropdown(false);
@@ -137,129 +137,135 @@ export const AppHeader = ({
   };
 
   return (
-    <>
-      <div className="app-shell-bg sticky top-0 z-40 safe-top">
-        <div className="max-w-2xl mx-auto px-4 pt-2 pb-3">
-          <div className="app-search-card flex items-center gap-2">
-            {showFilters && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className={`app-icon-button relative h-[42px] w-[42px] flex-shrink-0 hover:bg-white/70 dark:hover:bg-white/10 ${
-                    activeChipFilters.length > 0 ? 'bg-white text-[var(--app-primary)] shadow-sm dark:bg-white/10' : ''
-                  }`}
-                  title={t('common.filtersTooltip')}
-                >
-                  <Filter className="w-4 h-4" />
-                  {activeChipFilters.length > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[var(--app-primary)] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {activeChipFilters.length}
-                    </span>
-                  )}
-                </button>
+    <div className="app-shell-bg sticky top-0 z-40 safe-top">
+      <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
+        <div className="mb-5 flex min-h-[34px] items-center justify-center">
+          <AppLogo size="lg" />
+        </div>
 
-                {showFilterDropdown && (
-                  <div className="app-surface absolute left-0 top-full mt-2 w-64 z-50 max-h-80 overflow-y-auto">
-                    <div className="p-2 border-b border-neutral-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-600">{t('filters.title')}</span>
-                        <button onClick={() => setShowFilterDropdown(false)} className="p-0.5 hover:bg-neutral-100 rounded">
-                          <X className="w-3.5 h-3.5 text-neutral-400" />
+        <div className="app-search-card flex items-center gap-3 bg-transparent p-0 shadow-none">
+          {showFilters && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className={`app-icon-button relative h-[var(--app-touch-target)] w-[var(--app-touch-target)] flex-shrink-0 bg-[var(--app-surface-glass)] shadow-[var(--app-shadow-card)] backdrop-blur-md hover:bg-[var(--app-surface)] ${activeChipFilters.length > 0 ? 'text-[var(--app-primary)]' : ''}`}
+                title={t('common.filtersTooltip')}
+                aria-label={t('common.filtersTooltip')}
+              >
+                <Filter className="h-4 w-4" />
+                {activeChipFilters.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--app-primary)] text-[10px] font-bold text-white">
+                    {activeChipFilters.length}
+                  </span>
+                )}
+              </button>
+
+              {showFilterDropdown && (
+                <div className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto">
+                  <div className="border-b border-[var(--app-border-subtle)] p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[var(--app-text-muted)]">{t('filters.title')}</span>
+                      <button type="button" onClick={() => setShowFilterDropdown(false)} className="rounded p-0.5 hover:bg-[var(--app-surface-2)]" aria-label={t('common.close')}>
+                        <X className="h-3.5 w-3.5 text-[var(--app-text-soft)]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {activeChipFilters.length > 0 && (
+                    <div className="border-b border-[var(--app-border-subtle)] p-2">
+                      <div className="flex flex-wrap gap-1">
+                        {activeChipFilters.map(f => (
+                          <span
+                            key={`${f.type}-${f.id}`}
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{ backgroundColor: f.color ? `${f.color}20` : 'var(--app-surface-2)', color: f.color || 'var(--app-text-muted)' }}
+                          >
+                            {f.label || f.id}
+                            <button type="button" onClick={() => toggleChipFilter(f.type, f.id)} className="hover:opacity-70" aria-label={t('common.remove')}>
+                              <X className="h-2.5 w-2.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="mt-2 flex gap-2">
+                        <button type="button" onClick={saveCurrentFilter} className="flex flex-1 items-center justify-center gap-1 rounded py-1 text-[10px] font-medium text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
+                          <Save className="h-3 w-3" /> {t('common.save')}
+                        </button>
+                        <button type="button" onClick={clearChipFilters} className="flex-1 rounded py-1 text-[10px] font-medium text-[var(--app-primary)] hover:bg-[var(--app-surface-2)]">
+                          {t('common.clearAllTooltip')}
                         </button>
                       </div>
                     </div>
+                  )}
 
-                    {activeChipFilters.length > 0 && (
-                      <div className="p-2 border-b border-neutral-100">
-                        <div className="flex flex-wrap gap-1">
-                          {activeChipFilters.map(f => (
-                            <span key={`${f.type}-${f.id}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                              style={{ backgroundColor: f.color ? `${f.color}20` : '#f3f4f6', color: f.color || '#6b7280' }}
-                            >
-                              {f.label || f.id}
-                              <button onClick={() => toggleChipFilter(f.type, f.id)} className="hover:opacity-70">
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                          <button onClick={saveCurrentFilter} className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100 py-1 rounded">
-                            <Save className="w-3 h-3" /> {t('common.save')}
-                          </button>
-                          <button onClick={clearChipFilters} className="flex-1 text-[10px] font-medium text-red-500 hover:bg-red-50 py-1 rounded">
-                            {t('common.clearAllTooltip')}
-                          </button>
-                        </div>
-                      </div>
+                  <div className="p-1">
+                    {typeFilters.length === 0 ? (
+                      <p className="p-3 text-center text-xs text-[var(--app-text-soft)]">
+                        {t('filters.noSavedFiltersHint')}
+                      </p>
+                    ) : (
+                      typeFilters.map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => applySavedFilter(f.id)}
+                          className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-2)]"
+                        >
+                          <span className="truncate">{f.name}</span>
+                          <span className="ml-2 shrink-0 text-[10px] text-[var(--app-text-soft)]">
+                            {f.chipFilters?.length || 0}
+                          </span>
+                        </button>
+                      ))
                     )}
-
-                    <div className="p-1">
-                      {typeFilters.length === 0 ? (
-                        <p className="text-xs text-neutral-400 p-3 text-center">
-                          {t('filters.noSavedFiltersHint')}
-                        </p>
-                      ) : (
-                        typeFilters.map(f => (
-                          <button key={f.id} onClick={() => applySavedFilter(f.id)}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 rounded flex items-center justify-between"
-                          >
-                            <span className="truncate">{f.name}</span>
-                            <span className="text-[10px] text-neutral-400 ml-2 shrink-0">
-                              {f.chipFilters?.length || 0}
-                            </span>
-                          </button>
-                        ))
-                      )}
-                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
+          )}
 
-            {showSearch && (
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder={searchPlaceholder}
-                  className="app-input w-full px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20 text-sm"
-                />
-              </div>
-            )}
+          {showSearch && (
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={searchPlaceholder}
+                className="app-input min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-pill)] bg-[var(--app-surface-glass)] px-4 py-2.5 text-sm shadow-[var(--app-shadow-card)] backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              />
+            </div>
+          )}
 
-            {showInputActions && onSubmitInput && (
-              <button
-                type="button"
-                onClick={submitInput}
-                className="app-icon-button h-[42px] w-[42px] flex-shrink-0 bg-white text-[var(--app-primary)] shadow-sm hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20 dark:bg-white/10"
-                title={submitAriaLabel}
-                aria-label={submitAriaLabel}
-              >
-                <Save className="w-4 h-4" />
-              </button>
-            )}
+          {showInputActions && onSubmitInput && (
+            <button
+              type="button"
+              onClick={submitInput}
+              className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] flex-shrink-0 bg-[var(--app-surface-glass)] text-[var(--app-primary)] shadow-[var(--app-shadow-card)] hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              title={submitAriaLabel}
+              aria-label={submitAriaLabel}
+            >
+              <Save className="h-4 w-4" />
+            </button>
+          )}
 
-            {showInputActions && onCancelInput && (
-              <button
-                type="button"
-                onClick={onCancelInput}
-                className="app-icon-button h-[42px] w-[42px] flex-shrink-0 hover:bg-white/70 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20 dark:hover:bg-white/10"
-                title={cancelAriaLabel}
-                aria-label={cancelAriaLabel}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+          {showInputActions && onCancelInput && (
+            <button
+              type="button"
+              onClick={onCancelInput}
+              className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] flex-shrink-0 bg-[var(--app-surface-glass)] shadow-[var(--app-shadow-card)] hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              title={cancelAriaLabel}
+              aria-label={cancelAriaLabel}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
 
-            {showAdd && <AddButton onClick={handleAdd} />}
-          </div>
+          {showAdd && <AddButton onClick={handleAdd} />}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

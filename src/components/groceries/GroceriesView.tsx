@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
-import { PageHeader } from '../shared/PageHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
@@ -106,7 +105,6 @@ export const GroceriesView = () => {
 
   return (
     <>
-      <PageHeader title={t('nav.groceries')} subtitle={`${sortedActiveItems.length} ${t('common.items').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onSearch={setSearchQuery}

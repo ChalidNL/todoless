@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { PageHeader } from './shared/PageHeader';
+
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
 import { SharedSelect } from './shared/SharedSelect';
@@ -222,7 +222,6 @@ export const TasksView = () => {
 
   return (
     <>
-      <PageHeader title={t('nav.tasks')} subtitle={`${activeTasks.length} ${t('common.tasks').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}

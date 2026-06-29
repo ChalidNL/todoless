@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { PageHeader } from './shared/PageHeader';
 import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
 import { StatCard } from './shared/StatCard';
@@ -152,7 +151,6 @@ export const InboxBacklog = () => {
 
   return (
     <>
-      <PageHeader title={t('inbox.title')} subtitle={`${displayedTasks.length} ${t('common.tasks').toLowerCase()}`} />
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
           onAdd={handleAddTaskWithValue}

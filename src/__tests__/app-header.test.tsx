@@ -27,7 +27,7 @@ describe('AppHeader', () => {
   it('renders the page-level search card with filter, search and one standard add button', () => {
     const { container } = render(<AppHeader searchPlaceholder="Search calendar…" onAddEmpty={vi.fn()} type="calendar" />);
 
-    expect(screen.queryByText('todoless')).not.toBeInTheDocument();
+    expect(screen.getByText('todoless')).toBeInTheDocument();
     expect(container.querySelector('.app-search-card')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search calendar…')).toBeInTheDocument();
     expect(screen.getByTitle('Filters')).toBeInTheDocument();

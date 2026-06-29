@@ -5,7 +5,6 @@ import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
-import { PageHeader } from '../shared/PageHeader';
 import { SharedSelect } from '../shared/SharedSelect';
 import { TaskCard } from '../shared/TaskCard';
 import type { Task } from '../../types';
@@ -110,7 +109,6 @@ export function CalendarView() {
 
   return (
     <div className="app-shell-bg h-full min-h-0 flex flex-col">
-      <PageHeader title={t('nav.calendar', language)} subtitle={periodTitle} />
       <div className="sticky top-0 z-40">
         <AppHeader
           onAdd={(value) => openCreate(undefined, undefined, value)}
