@@ -7,6 +7,31 @@ import { SharedSelect } from '../shared/SharedSelect';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
+import { EmptyState } from '../shared/EmptyState';
+import { SectionHeader } from '../shared/SectionHeader';
+
+function StoreFilterChips({ shops, activeIds, onToggle }: { shops: Array<{ id: string; name: string; color?: string }>; activeIds: string[]; onToggle: (shop: { id: string; name: string; color?: string }) => void }) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" aria-label="Store filters">
+      {shops.map((shop) => {
+        const active = activeIds.includes(shop.id);
+        const color = shop.color || 'var(--app-primary)';
+        return (
+          <button
+            key={shop.id}
+            type="button"
+            onClick={() => onToggle(shop)}
+            className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black shadow-sm ${active ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
+            style={active ? { backgroundColor: color } : { color }}
+          >
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active ? 'rgba(255,255,255,.85)' : color }} />
+            {shop.name}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export const GroceriesView = () => {
   const { items, shops = [], addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
@@ -188,28 +213,14 @@ export const GroceriesView = () => {
       {/* Active items */}
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {shops.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {shops.map((shop) => {
-              const active = activeChipFilters.some((f) => f.type === 'shop' && f.id === shop.id);
-              return (
-                <button
-                  key={shop.id}
-                  type="button"
-                  onClick={() => toggleChipFilter('shop', shop.id, shop.name, shop.color)}
-                  className={`app-chip inline-flex h-9 flex-shrink-0 items-center gap-2 px-3 text-xs font-bold shadow-sm ${active ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
-                  style={active ? { backgroundColor: shop.color } : { color: shop.color }}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active ? 'rgba(255,255,255,.8)' : shop.color }} />
-                  {shop.name}
-                </button>
-              );
-            })}
-          </div>
+          <StoreFilterChips
+            shops={shops}
+            activeIds={activeChipFilters.filter((f) => f.type === 'shop').map((f) => f.id)}
+            onToggle={(shop) => toggleChipFilter('shop', shop.id, shop.name, shop.color)}
+          />
         )}
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="font-semibold text-sm text-neutral-600">
-            {t('items.title')} ({sortedActiveItems.length})
-          </h2>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <SectionHeader title={t('items.title')} count={sortedActiveItems.length} />
           <SharedSelect<GrocerySortMode>
             value={sortMode}
             onChange={setSortMode}
@@ -221,10 +232,7 @@ export const GroceriesView = () => {
           />
         </div>
         {sortedActiveItems.length === 0 ? (
-          <div className="text-center py-16">
-            <ShoppingCart className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-            <p className="text-neutral-400 text-sm">{t('groceries.empty') || 'No items yet'}</p>
-          </div>
+          <EmptyState title={t('groceries.empty') || 'No items yet'} icon={<ShoppingCart className="h-7 w-7" />} />
         ) : (
           <div className="space-y-4">
             {focusedActiveItems.length > 0 && (
@@ -233,7 +241,7 @@ export const GroceriesView = () => {
                   <Target className="w-4 h-4 text-orange-500" />
                   {t('tasks.focus')} ({focusedActiveItems.length})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-[10px]">
                   {focusedActiveItems.map((item) => (
                     <UnifiedCard key={item.id} entity={item} type="item" />
                   ))}
@@ -242,7 +250,7 @@ export const GroceriesView = () => {
             )}
 
             {sortMode === 'alpha' ? (
-              <div className="space-y-2">
+              <div className="space-y-[10px]">
                 {regularActiveItems.map((item) => (
                   <UnifiedCard key={item.id} entity={item} type="item" />
                 ))}
@@ -250,10 +258,8 @@ export const GroceriesView = () => {
             ) : (
               groupedActive.map(([category, catItems]) => (
                 <div key={category}>
-                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2 px-1">
-                    {category} ({catItems.length})
-                  </h3>
-                  <div className="space-y-2">
+                  <SectionHeader title={category} count={catItems.length} />
+                  <div className="space-y-[10px]">
                     {catItems.map((item) => (
                       <UnifiedCard key={item.id} entity={item} type="item" />
                     ))}
@@ -288,7 +294,7 @@ export const GroceriesView = () => {
             </div>
 
             {showBought && (
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-[10px]">
                 {sortedBoughtItems.map((item) => (
                   <UnifiedCard key={item.id} entity={item} type="item" />
                 ))}
