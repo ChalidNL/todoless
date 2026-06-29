@@ -36,6 +36,40 @@ interface CompactTaskCardProps {
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
 
+const parseMaybeJsonArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string' && item.length > 0) : [];
+  } catch {
+    return value ? [value] : [];
+  }
+};
+
+const uniqueIds = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+
+const getTaskLabelIds = (task: Task) => uniqueIds([
+  ...parseMaybeJsonArray(task.labels),
+  ...parseMaybeJsonArray((task as any).labelId),
+  ...parseMaybeJsonArray((task as any).label),
+]);
+
+const getTaskSubtaskIds = (task: Task) => uniqueIds([
+  ...parseMaybeJsonArray(task.subtaskIds),
+  ...parseMaybeJsonArray((task as any).subtask_ids),
+]);
+
+const getTaskDueDate = (task: Task) => {
+  const value = task.dueDate ?? (task as any).due_date;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+};
+
 const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
     <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
@@ -128,21 +162,25 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   }, [task.blockedComment, task.flag]);
 
   const isDone = task.status === 'done';
-  const assignedUser = task.assignedTo ? users.find((u) => u.id === task.assignedTo) : null;
+  const labelIds = getTaskLabelIds(task);
+  const subtaskIds = getTaskSubtaskIds(task);
+  const dueDate = getTaskDueDate(task);
+  const assignedTo = task.assignedTo || (task as any).assigned_to;
+  const assignedUser = assignedTo ? users.find((u) => u.id === assignedTo) : null;
   const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
   const isFlagged = task.flag && !isDone;
   const isFocusTask = !!task.focus && !isDone;
-  const isOverdue = !!task.dueDate && task.dueDate < Date.now() && !isDone;
-  const dateStr = task.dueDate
-    ? formatDate(task.dueDate, { month: 'short', day: 'numeric' })
+  const isOverdue = !!dueDate && dueDate < Date.now() && !isDone;
+  const dateStr = dueDate
+    ? formatDate(dueDate, { month: 'short', day: 'numeric' })
     : null;
 
-  const repeatLabel = getRepeatLabel(task.repeatInterval, task.dueDate);
-  const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, task.dueDate);
+  const repeatLabel = getRepeatLabel(task.repeatInterval, dueDate);
+  const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, dueDate);
   const hasComment = !!task.blockedComment?.trim();
 
   // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
-  const subtasks = (task.subtaskIds || [])
+  const subtasks = subtaskIds
     .map(id => tasks.find(t => t.id === id))
     .filter(Boolean) as Task[];
   const subtaskCount = subtasks.length;
@@ -152,7 +190,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     if (task.status === 'done') {
       updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
     } else {
-      updateTask(task.id, { status: 'done', completedAt: Date.now(), completedBy: users.find(u => u.id === (task.assignedTo || ''))?.id || undefined });
+      updateTask(task.id, { status: 'done', completedAt: Date.now(), completedBy: users.find(u => u.id === (assignedTo || ''))?.id || undefined });
     }
   };
 
@@ -232,7 +270,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
 
   const removeLabel = (labelId: string) => {
     updateTask(task.id, {
-      labels: task.labels.filter((id) => id !== labelId),
+      labels: labelIds.filter((id) => id !== labelId),
     });
   };
 
@@ -292,8 +330,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     }
   };
 
-  const dateValue = formatLocalDateInputValue(task.dueDate);
-  const timeValue = formatLocalTimeInputValue(task.dueDate);
+  const dateValue = formatLocalDateInputValue(dueDate);
+  const timeValue = formatLocalTimeInputValue(dueDate);
   const filteredUsers = users.filter((u) =>
     userDisplayName(u).toLowerCase().includes(assigneeSearch.toLowerCase()) ||
     u.email?.toLowerCase().includes(assigneeSearch.toLowerCase())
@@ -301,9 +339,9 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const visibleLabels = sortLabelsByVisibility(labels.filter((l) =>
     l.name.toLowerCase().includes(labelInput.trim().toLowerCase())
   ));
-  const hasLabels = task.labels.length > 0;
-  const hasAssignee = !!task.assignedTo;
-  const hasSchedule = !!task.dueDate || !!task.repeatInterval;
+  const hasLabels = labelIds.length > 0;
+  const hasAssignee = !!assignedTo;
+  const hasSchedule = !!dueDate || !!task.repeatInterval;
   const parentTaskMatches = useMemo(() => {
     const query = parentSearch.trim().toLowerCase();
     return tasks
@@ -345,17 +383,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const detachFromParentTask = (parentTaskId?: string | null) => {
     if (!parentTaskId) return;
     const parentTask = tasks.find((candidate) => candidate.id === parentTaskId);
-    if (!parentTask?.subtaskIds?.includes(task.id)) return;
+    const parentSubtaskIds = getTaskSubtaskIds(parentTask);
+    if (!parentSubtaskIds.includes(task.id)) return;
 
     updateTask(parentTask.id, {
-      subtaskIds: parentTask.subtaskIds.filter((subtaskId) => subtaskId !== task.id),
+      subtaskIds: parentSubtaskIds.filter((subtaskId) => subtaskId !== task.id),
     });
   };
 
   const linkToParentTask = (parentTask: Task) => {
     detachFromParentTask(task.linkedTo);
     updateTask(task.id, { linkedTo: parentTask.id, linkedType: 'task' });
-    const current = parentTask.subtaskIds || [];
+    const current = getTaskSubtaskIds(parentTask);
     if (!current.includes(task.id)) {
       updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
     }
@@ -444,7 +483,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
           {/* Line 2: attribute chips — always visible in collapsed and expanded read mode */}
           {(hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
             <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
-              {task.labels.map((labelId) => {
+              {labelIds.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
                 return label ? (
                   <AttributeChip

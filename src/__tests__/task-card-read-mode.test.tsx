@@ -75,6 +75,29 @@ describe('CompactTaskCard read-mode attributes', () => {
     expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 
+  it('shows attribute chips for live PocketBase/raw field shapes', () => {
+    const rawTask = {
+      ...parentTask,
+      id: 'raw-task-1',
+      labels: '[]',
+      label: 'label-1',
+      labelId: undefined,
+      dueDate: undefined,
+      due_date: '2026-06-29 09:00:00.000Z',
+      assignedTo: undefined,
+      assigned_to: 'user-1',
+      subtaskIds: undefined,
+      subtask_ids: '["subtask-1"]',
+    } as unknown as Task;
+
+    render(<CompactTaskCard task={rawTask} />);
+
+    expect(screen.getByText('Teat')).toBeInTheDocument();
+    expect(screen.getByText('Chalid')).toBeInTheDocument();
+    expect(screen.getByText('Jun 29')).toBeInTheDocument();
+    expect(screen.getByText('0/1')).toBeInTheDocument();
+  });
+
   it('expanded state stays read-only: no list edit inputs or label placeholder', () => {
     const { container } = render(<CompactTaskCard task={parentTask} />);
 
