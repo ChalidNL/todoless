@@ -574,19 +574,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   ))}
                 </div>
               )}
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    showCompletionMessage(t('common.openEditor'));
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]"
-                >
-                  {t('common.edit')}
-                </button>
-              </div>
             </div>
           )}
         </div>
