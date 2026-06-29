@@ -14,6 +14,7 @@ import { Settings } from './components/Settings';
 import { FocusView } from './components/FocusView';
 import { MembersView } from './components/MembersView';
 import { LabelsView } from './components/LabelsView';
+import { ProfileView } from './components/ProfileView';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, Target } from 'lucide-react';
@@ -236,6 +237,7 @@ function AppContent() {
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/profile" element={<ProfileView />} />
           <Route path="/settings/members" element={<MembersView />} />
           <Route path="/settings/labels" element={<LabelsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
