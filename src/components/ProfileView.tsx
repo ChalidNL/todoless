@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Camera, ChevronLeft, Save } from 'lucide-react';
+import { Camera, ChevronLeft, Lock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t, SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
 import { userDisplayName } from '../types';
+import { Button } from './ui/Button';
 
 const languageLabel = (language: SupportedUiLanguage) => {
   const labels: Record<SupportedUiLanguage, string> = { en: 'English', nl: 'Nederlands', fr: 'Français', de: 'Deutsch', es: 'Español' };
@@ -36,7 +37,7 @@ export function ProfileView() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const displayName = currentUser ? userDisplayName(currentUser) : '';
-  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || displayName[0]?.toUpperCase() || '?';
+  const initials = `${currentUser?.firstName?.[0] || ''}${currentUser?.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
 
   if (!currentUser) {
     return <div className="app-shell-bg min-h-full p-4 text-sm text-[var(--app-text-muted)]">{t('common.noData')}</div>;
@@ -98,19 +99,18 @@ export function ProfileView() {
           <ProfileField label={t('settings.language')} value={language} onChange={(value) => setLanguage(value as SupportedUiLanguage)} type="select" options={SUPPORTED_UI_LANGUAGES.map((lang) => ({ value: lang, label: languageLabel(lang) }))} />
         </section>
 
-        <button type="button" onClick={saveProfile} className="mx-4 mt-3 flex min-h-[54px] w-[calc(100%-32px)] items-center justify-center gap-2 rounded-[var(--app-radius-xl)] bg-[var(--app-primary-grad)] px-4 text-[15px] font-bold text-white shadow-[0_4px_16px_rgba(99,102,241,0.35)] active:scale-[0.97]">
-          <Save className="h-[17px] w-[17px]" />
-          {t('common.save')}
-        </button>
+        <div className="px-4 pb-2 pt-4">
+          <Button label={t('common.save')} icon={Save} onClick={saveProfile} />
+        </div>
 
         <section className="mx-4 mt-4 overflow-hidden rounded-[var(--app-radius-xl)] bg-white shadow-[var(--app-shadow-card)]">
           <ProfileField label={t('settings.newPassword')} type="password" value={password} onChange={setPassword} />
           <ProfileField label={t('settings.confirmPassword')} type="password" value={passwordConfirm} onChange={setPasswordConfirm} />
         </section>
 
-        <button type="button" onClick={savePassword} className="mx-4 mb-8 mt-3 flex min-h-[52px] w-[calc(100%-32px)] items-center justify-center rounded-[var(--app-radius-xl)] border-[1.5px] border-[var(--app-border-subtle)] bg-white px-4 text-[15px] font-bold text-[var(--app-text)] shadow-sm active:scale-[0.97]">
-          {t('settings.changePassword')}
-        </button>
+        <div className="px-4 pb-8 pt-3">
+          <Button label={t('settings.changePassword')} icon={Lock} onClick={savePassword} variant="secondary" />
+        </div>
       </main>
     </div>
   );

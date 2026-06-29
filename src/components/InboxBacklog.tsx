@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck } from 'lucide-react';
+import { Inbox, Rows2, AlertTriangle, Check, ArrowRight, CheckCheck } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
 import { StatCard } from './shared/StatCard';
 import { SectionHeader } from './shared/SectionHeader';
@@ -111,8 +111,6 @@ export const InboxBacklog = () => {
     { key: 'done-today', label: t('dashboard.doneSprint'), value: doneToday, icon: CheckCheck, tone: 'done' as const },
   ];
 
-  const hasAnyFilter = activeStatusFilter || activeChipFilters.some((f) => f.type !== 'status');
-
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
     if (!value.trim()) return;
     addTask({
@@ -161,58 +159,9 @@ export const InboxBacklog = () => {
         />
       </div>
 
-        {/* Filter bar — show when any filter is active */}
-        {hasAnyFilter && (
-          <div className="app-surface mx-3 my-2 shadow-sm">
-            <div className="max-w-lg mx-auto px-4 py-2 flex items-center gap-2">
-              <span className="text-xs font-semibold text-neutral-600">
-                {displayedTasks.length > 0
-                  ? `${t('common.tasks')} (${displayedTasks.length})`
-                  : t('inbox.noResults')}
-              </span>
-              <div className="flex gap-1 flex-1 flex-wrap">
-                {activeChipFilters.map((f) => (
-                  <span
-                    key={`${f.type}-${f.id}`}
-                    className="inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border select-none"
-                    style={{
-                      backgroundColor: f.color ? `${f.color}20` : undefined,
-                      color: f.color ? f.color : undefined,
-                      borderColor: f.color ? `${f.color}40` : '#e5e7eb',
-                    }}
-                  >
-                    {f.label || f.id}
-                    <button
-                      onClick={() => toggleChipFilter(f.type, f.id)}
-                      className="ml-0.5 hover:opacity-70"
-                    >
-                      <XIcon className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearChipFilters}
-                className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title={t('common.clearAllTooltip')}
-              >
-                <XIcon className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => showCompletionMessage(t('filters.saveUnavailable'))}
-                className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title={t('common.save')}
-                aria-label={t('common.save')}
-              >
-                <Save className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="max-w-lg mx-auto px-4 pt-3 space-y-4 pb-20">
           {/* Stat boxes — clickable as filters */}
-          <div className="grid grid-cols-2 gap-[10px]">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '8px 16px 16px' }} className="-mx-4">
             {statusSections.map((stat) => (
               <StatCard
                 key={stat.key}

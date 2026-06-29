@@ -350,7 +350,7 @@
     "sprintSettings": "Configuración de sprint",
     "sprintStartDay": "Día de inicio del sprint",
     "sunday": "Domingo",
-    "teamMembers": "Miembros del equipo",
+    "teamMembers": "Familia",
     "theme": "Tema",
     "thursday": "Jueves",
     "title": "Configuración",
@@ -471,12 +471,12 @@
     "empty": "Vacío"
   },
   "members": {
-    "title": "Miembros",
+    "title": "Familia",
     "inviteMember": "Invitar miembro",
     "pendingInvites": "Invitaciones pendientes",
     "noMembers": "Sin miembros",
     "role": "Rol",
-    "manageMembers": "Gestionar miembros",
+    "manageMembers": "Administrar familia",
     "addMember": "Añadir miembro",
     "familyLabel": "Familia",
     "sameFamilyHint": "Solo se muestran aquí los miembros de la misma familia."

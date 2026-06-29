@@ -8,6 +8,7 @@ import { changeAppLanguage } from '../i18n';
 import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
+import { Button } from './ui/Button';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { entityBg, entityBorder, entityColor } from '../lib/entity-colors';
@@ -592,10 +593,10 @@ export const Settings = () => {
   }
 
   const displayName = userDisplayName(currentUser);
-  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+  const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
-    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('settings.teamMembers'), sub: `${users.length} ${t('members.title').toLowerCase()}` },
+    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} leden` },
     { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} labels` },
     { href: '/settings/shops', icon: Store, color: '#ec4899', label: 'Winkels', sub: `${shops.length} winkels` },
     { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
@@ -665,10 +666,9 @@ export const Settings = () => {
           )}
         </div>
 
-        <button onClick={handleLogout} className="mx-4 mb-8 flex min-h-[54px] w-[calc(100%-32px)] items-center justify-center gap-2.5 rounded-[var(--app-radius-xl)] border-[1.5px] border-red-200 bg-white px-4 text-base font-semibold text-red-500 shadow-[0_2px_8px_rgba(239,68,68,0.12)] active:scale-[0.97]">
-          <LogOut className="h-[18px] w-[18px]" />
-          {t('settings.logOut')}
-        </button>
+        <div className="mx-4 mb-8">
+          <Button label={t('settings.logOut')} icon={LogOut} onClick={handleLogout} variant="destructive" />
+        </div>
       </div>
 
       {/* Add Label Modal */}

@@ -350,7 +350,7 @@
     "sprintSettings": "Sprint instellingen",
     "sprintStartDay": "Sprint startdag",
     "sunday": "Zondag",
-    "teamMembers": "Teamleden",
+    "teamMembers": "Familie",
     "theme": "Thema",
     "thursday": "Donderdag",
     "title": "Instellingen",
@@ -471,12 +471,12 @@
     "empty": "Leeg"
   },
   "members": {
-    "title": "Leden",
+    "title": "Familie",
     "inviteMember": "Lid uitnodigen",
     "pendingInvites": "Openstaande uitnodigingen",
     "noMembers": "Geen leden",
     "role": "Rol",
-    "manageMembers": "Leden beheren",
+    "manageMembers": "Familie beheren",
     "addMember": "Lid toevoegen",
     "familyLabel": "Familie",
     "sameFamilyHint": "Hier zie je alleen leden uit dezelfde familie."

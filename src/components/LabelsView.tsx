@@ -5,6 +5,7 @@ import { t } from '../i18n/translations';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { EmptyState } from './shared/EmptyState';
+import { Button } from './ui/Button';
 import type { Label } from '../types';
 
 const COLOR_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#ef4444', '#14b8a6', '#f43f5e', '#a855f7'];
@@ -12,7 +13,8 @@ const VISIBILITY_ICON = { private: Lock, shared: Users, family: Home } as const;
 
 export function LabelsView() {
   const { labels, addLabel, updateLabel } = useApp();
-  const sortedLabels = sortLabelsByVisibility(labels);
+  const [search, setSearch] = useState('');
+  const sortedLabels = sortLabelsByVisibility(labels).filter((label) => !search.trim() || label.name.toLowerCase().includes(search.trim().toLowerCase()));
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Label | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -31,7 +33,7 @@ export function LabelsView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <AppHeader screen="labels" searchPlaceholder="Zoek labels..." showSearch={false} showFilters={false} onAddEmpty={openCreate} count={labels.length} sortValue="alpha" onSortChange={() => {}} sortOptions={[{ value: 'alpha', label: 'A-Z' }]} />
+      <AppHeader screen="labels" searchPlaceholder="Zoek labels..." onSearch={setSearch} onAddEmpty={openCreate} count={sortedLabels.length} sortValue="alpha" onSortChange={() => {}} sortOptions={[{ value: 'alpha', label: 'A-Z' }]} />
       <div className="mx-auto max-w-lg space-y-2 px-4 pt-4">
         {sortedLabels.length === 0 ? (
           <EmptyState title={t('settings.noLabels')} description={t('settings.noLabelsHint')} icon={<Tag className="h-7 w-7" />} />
@@ -54,7 +56,7 @@ export function LabelsView() {
             <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-black text-[var(--app-text)]">{editing ? t('settings.editLabelTitle') : t('settings.addLabelTitle')}</h2><button type="button" onClick={closeModal} className="grid h-9 w-9 place-items-center rounded-full bg-[var(--app-bg)]"><X className="h-4 w-4" /></button></div>
             <input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus />
             <div className="flex flex-wrap gap-2.5 py-4">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-9 w-9 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }} aria-label={color} />)}</div>
-            <button type="button" onClick={saveLabel} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-xl)] bg-[var(--app-primary-grad)] text-sm font-black text-white shadow-[var(--app-shadow-fab)]">{t('common.save')}</button>
+            <Button label={t('common.save')} onClick={saveLabel} />
           </div>
         </div>
       )}

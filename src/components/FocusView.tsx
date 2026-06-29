@@ -5,6 +5,7 @@ import { t, formatDate } from '../i18n/translations';
 import { PageHeader } from './shared/PageHeader';
 import { TaskCard } from './shared/TaskCard';
 import { EmptyState } from './shared/EmptyState';
+import { Button } from './ui/Button';
 
 export function FocusView() {
   const { tasks, showCompletionMessage } = useApp();
@@ -53,7 +54,9 @@ function FocusCard({ total, due, blocked, onStart }: { total: number; due: numbe
           <h2 className="mt-1 text-[34px] font-black leading-none tracking-[-0.06em]">{total}</h2>
           <p className="mt-2 max-w-[220px] text-sm font-semibold text-white/85">Ademruimte voor de belangrijkste taken van vandaag.</p>
         </div>
-        <FocusStartButton onClick={onStart} />
+        <div className="min-w-[128px]">
+          <Button label="Focus starten" icon={Play} onClick={onStart} fullWidth={false} className="bg-white text-[var(--app-primary)] shadow-[0_0_36px_rgba(255,255,255,.7)]" />
+        </div>
       </div>
       <div className="relative z-10 mt-5 grid grid-cols-3 gap-2">
         <FocusStat icon={<Target className="h-4 w-4" />} label={t('tasks.focus')} value={total} />
@@ -61,20 +64,6 @@ function FocusCard({ total, due, blocked, onStart }: { total: number; due: numbe
         <FocusStat icon={<AlertTriangle className="h-4 w-4" />} label={t('dashboard.blocked')} value={blocked} />
       </div>
     </section>
-  );
-}
-
-function FocusStartButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="relative inline-flex h-[var(--app-touch-target)] min-w-[var(--app-touch-target)] items-center justify-center rounded-full bg-white text-[var(--app-primary)] shadow-[0_0_36px_rgba(255,255,255,.7)] ring-1 ring-white/60 transition active:scale-[0.97]"
-      aria-label="Start focus"
-    >
-      <span className="absolute inset-[-10px] -z-10 rounded-full bg-white/20 blur-xl" />
-      <Play className="h-5 w-5 fill-current" />
-    </button>
   );
 }
 

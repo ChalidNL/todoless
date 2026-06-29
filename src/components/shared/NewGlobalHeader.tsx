@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell } from 'lucide-react';
+import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AppLogo } from './AppLogo';
@@ -34,7 +34,7 @@ const SCREEN_THEMES = {
   taken: { color: '#22c55e', bg: '#f0fdf4', badgeLabel: 'TAKEN', Icon: CheckSquare },
   agenda: { color: '#f97316', bg: '#fff7ed', badgeLabel: 'AGENDA', Icon: CalendarDays },
   shop: { color: '#ec4899', bg: '#fdf2f8', badgeLabel: 'SHOP', Icon: ShoppingCart },
-  leden: { color: '#06b6d4', bg: '#ecfeff', badgeLabel: 'LEDEN', Icon: Users },
+  leden: { color: '#06b6d4', bg: '#ecfeff', badgeLabel: 'FAMILIE', Icon: Users },
   labels: { color: '#eab308', bg: '#fefce8', badgeLabel: 'LABELS', Icon: Tag },
   focus: { color: '#8b5cf6', bg: '#f5f3ff', badgeLabel: 'FOCUS', Icon: Target },
   instellingen: { color: '#6366f1', bg: '#eef2ff', badgeLabel: 'INSTELLINGEN', Icon: Settings },
@@ -81,12 +81,14 @@ export const AppHeader = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage, users = [], appSettings = {} } = useApp();
+  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {} } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
-  const displayName = currentUser ? `${currentUser.name || currentUser.displayName || currentUser.email || ''}` : '';
-  const initials = displayName.split(/\s+|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+  const displayName = currentUser ? `${currentUser.displayName || currentUser.name || [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || currentUser.email || ''}` : '';
+  const initials = currentUser
+    ? `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT'
+    : 'CT';
   const notificationCount = 0;
   const isSortable = !!onSortChange && sortOptions.length > 0;
 
@@ -147,25 +149,9 @@ export const AppHeader = ({
       });
     }
     setShowFilterDropdown(false);
-    showCompletionMessage(t('filters.applied'));
   };
 
-  const saveCurrentFilter = () => {
-    if (activeChipFilters.length === 0) {
-      showCompletionMessage(t('filters.noActiveFilters'));
-      return;
-    }
-    const name = `Filter ${typeFilters.length + 1}`;
-    addFilter({
-      name,
-      type: type === 'item' ? 'item' : 'task',
-      labelIds: [],
-      showCompleted: false,
-      chipFilters: activeChipFilters.map(f => ({ type: f.type, id: f.id, label: f.label, color: f.color })),
-    });
-    setShowFilterDropdown(false);
-    showCompletionMessage(t('filters.saved'));
-  };
+  const closeFilterSheet = () => setShowFilterDropdown(false);
 
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
@@ -173,7 +159,7 @@ export const AppHeader = ({
         <div className="mb-3 flex min-h-[36px] items-center justify-between px-0">
           <a
             href="/settings/profile"
-            className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white bg-[var(--app-primary-grad)] text-[13px] font-black text-white shadow-[0_2px_8px_rgba(99,102,241,0.25)] active:scale-[0.97]"
+            className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-full border-[2.5px] border-white/20 bg-[#1a1a2e] text-[13px] font-bold tracking-[-0.02em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] active:scale-[0.97]"
             aria-label={t('settings.yourProfile')}
           >
             <span>{initials}</span>
@@ -196,15 +182,13 @@ export const AppHeader = ({
                 type="button"
                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
                 className="app-icon-button relative h-10 w-10 flex-shrink-0 border backdrop-blur-md hover:bg-[var(--app-surface)]"
-                style={{ background: activeChipFilters.length > 0 ? theme.color : 'rgba(255,255,255,0.82)', borderColor: `${theme.color}30`, color: activeChipFilters.length > 0 ? 'white' : theme.color }}
+                style={{ background: activeChipFilters.length > 0 ? `${theme.color}18` : 'rgba(255,255,255,0.82)', borderColor: activeChipFilters.length > 0 ? `${theme.color}40` : 'var(--app-border-subtle)', color: activeChipFilters.length > 0 ? theme.color : 'var(--app-text-muted)' }}
                 title={t('common.filtersTooltip')}
                 aria-label={t('common.filtersTooltip')}
               >
                 <SlidersHorizontal className="h-4 w-4" strokeWidth={2.2} />
                 {activeChipFilters.length > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: theme.color }}>
-                    {activeChipFilters.length}
-                  </span>
+                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full" style={{ background: theme.color }} />
                 )}
               </button>
 
@@ -218,33 +202,6 @@ export const AppHeader = ({
                       </button>
                     </div>
                   </div>
-
-                  {activeChipFilters.length > 0 && (
-                    <div className="border-b border-[var(--app-border-subtle)] p-2">
-                      <div className="flex flex-wrap gap-1">
-                        {activeChipFilters.map(f => (
-                          <span
-                            key={`${f.type}-${f.id}`}
-                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
-                            style={{ backgroundColor: f.color ? `${f.color}20` : 'var(--app-surface-2)', color: f.color || 'var(--app-text-muted)' }}
-                          >
-                            {f.label || f.id}
-                            <button type="button" onClick={() => toggleChipFilter(f.type, f.id)} className="hover:opacity-70" aria-label={t('common.remove')}>
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                      <div className="mt-2 flex gap-2">
-                        <button type="button" onClick={saveCurrentFilter} className="flex flex-1 items-center justify-center gap-1 rounded py-1 text-[10px] font-medium text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
-                          <Save className="h-3 w-3" /> {t('common.save')}
-                        </button>
-                        <button type="button" onClick={clearChipFilters} className="flex-1 rounded py-1 text-[10px] font-medium text-[var(--app-primary)] hover:bg-[var(--app-surface-2)]">
-                          {t('common.clearAllTooltip')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
 
                   <div className="p-1">
                     {typeFilters.length === 0 ? (
@@ -266,6 +223,14 @@ export const AppHeader = ({
                         </button>
                       ))
                     )}
+                  </div>
+                  <div className="flex gap-2 border-t border-[var(--app-border-subtle)] p-2">
+                    <button type="button" onClick={clearChipFilters} className="min-h-9 flex-1 rounded-full border border-[var(--app-border-subtle)] text-xs font-bold text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
+                      {t('common.clearAllTooltip')}
+                    </button>
+                    <button type="button" onClick={closeFilterSheet} className="min-h-9 flex-1 rounded-full text-xs font-bold text-white" style={{ background: theme.color }}>
+                      {t('common.confirm')}
+                    </button>
                   </div>
                 </div>
               )}
@@ -313,6 +278,27 @@ export const AppHeader = ({
 
           {showAdd && <AddButton onClick={handleAdd} color={theme.color} />}
         </div>
+
+        {activeChipFilters.length > 0 && (
+          <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
+            {activeChipFilters.map((f) => {
+              const color = f.color || theme.color;
+              return (
+                <span
+                  key={`${f.type}-${f.id}`}
+                  className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border py-1 pl-2.5 pr-1 text-xs font-semibold"
+                  style={{ background: `${color}18`, borderColor: `${color}30`, color }}
+                >
+                  {f.label || f.id}
+                  <button type="button" onClick={() => toggleChipFilter(f.type, f.id)} className="grid h-4 w-4 place-items-center rounded-full text-xs leading-none" style={{ background: `${color}25`, color }} aria-label={t('common.remove')}>×</button>
+                </span>
+              );
+            })}
+            <button type="button" onClick={() => setShowFilterDropdown(true)} className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={t('common.filtersTooltip')}>
+              <ChevronDown className="h-[13px] w-[13px]" />
+            </button>
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
