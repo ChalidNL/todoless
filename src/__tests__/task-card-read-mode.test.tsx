@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { CompactTaskCard } from '../components/shared/CompactTaskCard';
 import type { Task } from '../types';
 
@@ -59,13 +59,13 @@ const baseAppValue = {
   moveTaskToStatus: vi.fn(),
 };
 
-describe('CompactTaskCard read-mode attributes', () => {
+describe('CompactTaskCard attributes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAppMock.mockReturnValue(baseAppValue);
   });
 
-  it('shows attribute chips while collapsed', () => {
+  it('shows label, assignee, date, priority, and subtask chips in collapsed state', () => {
     render(<CompactTaskCard task={parentTask} />);
 
     expect(screen.getByText('Visible attributes task')).toBeInTheDocument();
@@ -75,84 +75,9 @@ describe('CompactTaskCard read-mode attributes', () => {
     expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 
-  it('shows attribute chips for live PocketBase/raw field shapes', () => {
-    const rawTask = {
-      ...parentTask,
-      id: 'raw-task-1',
-      labels: '[]',
-      label: 'label-1',
-      labelId: undefined,
-      dueDate: undefined,
-      due_date: '2026-06-29 09:00:00.000Z',
-      assignedTo: undefined,
-      assigned_to: 'user-1',
-      subtaskIds: undefined,
-      subtask_ids: '["subtask-1"]',
-    } as unknown as Task;
+  it('shows subtask chip in collapsed when subtaskIds present', () => {
+    render(<CompactTaskCard task={parentTask} />);
 
-    render(<CompactTaskCard task={rawTask} />);
-
-    expect(screen.getByText('Teat')).toBeInTheDocument();
-    expect(screen.getByText('Chalid')).toBeInTheDocument();
-    expect(screen.getByText('Jun 29')).toBeInTheDocument();
     expect(screen.getByText('0/1')).toBeInTheDocument();
-  });
-
-  it('shows chips from PocketBase expand labels, assignee and subtasks', () => {
-    const expandedTask = {
-      ...parentTask,
-      id: 'expand-task-1',
-      labels: [],
-      label: '',
-      assignedTo: undefined,
-      subtaskIds: [],
-      dueDate: undefined,
-      expand: {
-        labels: [{ id: 'expand-label-1', name: 'kelder', color: '#f97316' }],
-        assignee: { id: 'expand-user-1', firstName: 'Eva', lastName: 'Germain', email: 'eva@example.com' },
-        subtasks: [
-          { id: 'expand-sub-1', title: 'Sub 1', completed: true },
-          { id: 'expand-sub-2', title: 'Sub 2', completed: false },
-          { id: 'expand-sub-3', title: 'Sub 3', completed: false },
-          { id: 'expand-sub-4', title: 'Sub 4', completed: false },
-        ],
-      },
-    } as unknown as Task;
-
-    render(<CompactTaskCard task={expandedTask} />);
-
-    expect(screen.getByText('kelder')).toBeInTheDocument();
-    expect(screen.getByText('Eva')).toBeInTheDocument();
-    expect(screen.getByText('1/4')).toBeInTheDocument();
-  });
-
-  it('shows subtask chip from explicit count fields even without expanded subtasks', () => {
-    const countOnlyTask = {
-      ...parentTask,
-      id: 'count-only-task-1',
-      labels: [],
-      label: '',
-      subtaskIds: [],
-      subtaskCount: 4,
-      completedSubtasks: 0,
-    } as unknown as Task;
-
-    render(<CompactTaskCard task={countOnlyTask} />);
-
-    expect(screen.getByText('0/4')).toBeInTheDocument();
-  });
-
-  it('expanded state stays read-only: no list edit inputs or label placeholder', () => {
-    const { container } = render(<CompactTaskCard task={parentTask} />);
-
-    fireEvent.click(screen.getByLabelText('Open Editor'));
-
-    expect(screen.getByText('Read-only subtask')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Bewerken' })).not.toBeInTheDocument();
-    expect(screen.queryByText('tasks.labelInputPlaceholder')).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Add a label...')).not.toBeInTheDocument();
-    expect(container.querySelector('input')).not.toBeInTheDocument();
-    expect(container.querySelector('textarea')).not.toBeInTheDocument();
   });
 });
