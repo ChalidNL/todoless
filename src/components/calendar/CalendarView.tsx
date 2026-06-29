@@ -7,7 +7,7 @@ import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 import { PageHeader } from '../shared/PageHeader';
 import { SharedSelect } from '../shared/SharedSelect';
-import { CompactTaskCard } from '../shared/CompactTaskCard';
+import { TaskCard } from '../shared/TaskCard';
 import type { Task } from '../../types';
 import {
   addDays,
@@ -122,21 +122,17 @@ export function CalendarView() {
           type="calendar"
         />
       </div>
-      <header className="flex-shrink-0 px-3 py-2">
-        <div className="app-surface flex items-center gap-1.5 rounded-full px-2 py-1.5">
-          <button type="button" onClick={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }} aria-label={t('calendar.today', language)} className={`app-icon-button h-8 w-8 rounded-full ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-3.5 h-3.5" /></button>
-          <button type="button" aria-label={t('calendar.previous', language)} onClick={() => jump(-1)} className="app-icon-button h-8 w-8 rounded-full bg-[var(--app-surface-2)]"><ChevronLeft className="w-3.5 h-3.5" /></button>
-          <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-extrabold text-[var(--app-text)]">{periodTitle}</p>
-          <button type="button" aria-label={t('calendar.next', language)} onClick={() => jump(1)} className="app-icon-button h-8 w-8 rounded-full bg-[var(--app-surface-2)]"><ChevronRight className="w-3.5 h-3.5" /></button>
-          <SharedSelect
-            id="calendar-view-select"
-            ariaLabel={t('calendar.viewLabel', language)}
-            value={mode}
-            onChange={(value) => { setMode(value as CalendarViewMode); setAnchor(startOfLocalDay(Date.now())); }}
-            options={views.map((v) => ({ value: v, label: t(`calendar.${v}`, language) }))}
-          />
-        </div>
-      </header>
+      <DateNavigator
+        periodTitle={periodTitle}
+        isTodayAnchor={isTodayAnchor}
+        mode={mode}
+        views={views}
+        language={language}
+        onToday={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }}
+        onPrevious={() => jump(-1)}
+        onNext={() => jump(1)}
+        onModeChange={(value) => { setMode(value as CalendarViewMode); setAnchor(startOfLocalDay(Date.now())); }}
+      />
 
       <main className="flex-1 min-h-0 overflow-y-auto p-3">
         {mode === 'month' && <MonthGrid anchor={anchor} items={items} selectedDay={selectedDay} expandedTaskId={expandedCalendarTaskId} onExpandTask={setExpandedCalendarTaskId} onSelect={setSelectedDay} onCreate={openCreate} language={language} firstDayOfWeek={firstDayOfWeek} />}
@@ -148,6 +144,26 @@ export function CalendarView() {
         {mode === 'month' && <AgendaList items={selectedDayItems} language={language} compact expandedTaskId={expandedCalendarTaskId} />}
       </main>
     </div>
+  );
+}
+
+function DateNavigator({ periodTitle, isTodayAnchor, mode, views, language, onToday, onPrevious, onNext, onModeChange }: { periodTitle: string; isTodayAnchor: boolean; mode: CalendarViewMode; views: CalendarViewMode[]; language: Language; onToday: () => void; onPrevious: () => void; onNext: () => void; onModeChange: (value: string) => void }) {
+  return (
+    <header className="flex-shrink-0 px-3 py-2">
+      <div className="app-surface flex items-center gap-1.5 rounded-full px-2 py-1.5">
+        <button type="button" onClick={onToday} aria-label={t('calendar.today', language)} className={`app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-3.5 h-3.5" /></button>
+        <button type="button" aria-label={t('calendar.previous', language)} onClick={onPrevious} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronLeft className="w-3.5 h-3.5" /></button>
+        <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-extrabold text-[var(--app-text)]">{periodTitle}</p>
+        <button type="button" aria-label={t('calendar.next', language)} onClick={onNext} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronRight className="w-3.5 h-3.5" /></button>
+        <SharedSelect
+          id="calendar-view-select"
+          ariaLabel={t('calendar.viewLabel', language)}
+          value={mode}
+          onChange={onModeChange}
+          options={views.map((v) => ({ value: v, label: t(`calendar.${v}`, language) }))}
+        />
+      </div>
+    </header>
   );
 }
 
@@ -335,7 +351,7 @@ function CalendarTaskSlot({ item }: { item: TimedLayout; language: Language; ali
 
 function AgendaTaskCard({ item, startExpanded = false, showTimeLabel = false }: { item: CalendarItem; startExpanded?: boolean; showTimeLabel?: boolean }) {
   const timeLabel = showTimeLabel && !item.allDay ? formatNowTime(item.startTime) : undefined;
-  return <CompactTaskCard task={item.source} showCheckbox={false} compact calendarBlock startExpanded={startExpanded} calendarTimeLabel={timeLabel} hideDateChip />;
+  return <TaskCard task={item.source} showCheckbox={false} compact calendarBlock startExpanded={startExpanded} calendarTimeLabel={timeLabel} hideDateChip />;
 }
 
 function layoutOverlappingItems(items: CalendarItem[]): TimedLayout[] {
