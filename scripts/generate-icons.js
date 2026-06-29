@@ -19,6 +19,7 @@ if (!existsSync(logo)) {
 
 mkdirSync(iconDir, { recursive: true });
 copyFileSync(logo, fallbackSource);
+copyFileSync(logo, resolve(iconDir, 'logo-rainbow.png'));
 
 for (const size of sizes) {
   const png = resolve(iconDir, `icon-${size}.png`);

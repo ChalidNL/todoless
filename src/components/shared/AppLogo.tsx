@@ -1,6 +1,6 @@
 import React from 'react';
 
-const APP_ICON_SRC = '/logo-rainbow.png';
+const APP_ICON_SRC = '/icons/logo-rainbow.png';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';
