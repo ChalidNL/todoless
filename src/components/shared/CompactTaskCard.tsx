@@ -404,39 +404,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               </button>
             )}
 
-            {showMenu ? (
-              <input
-                type="text"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                onBlur={() => {
-                  const trimmed = titleDraft.trim();
-                  if (trimmed && trimmed !== task.title) {
-                    updateTask(task.id, { title: trimmed });
-                  } else if (!trimmed) {
-                    setTitleDraft(task.title);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    (e.target as HTMLInputElement).blur();
-                  } else if (e.key === 'Escape') {
-                    setTitleDraft(task.title);
-                  }
-                }}
-                autoFocus
-                className={`${compact ? 'text-xs' : 'text-sm'} font-medium flex-1 min-w-0 px-1.5 py-0.5 border border-neutral-300 rounded bg-white ${
-                  isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
-                }`}
-                aria-label={t('tasks.editTaskTitle')}
-              />
-            ) : (
-            <span className={`${calendarBlock ? 'text-[12px] font-bold' : compact ? 'text-xs font-medium' : 'text-sm font-medium'} flex-1 truncate ${
-              isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
-            }`}>
-              {task.title}
-            </span>
-            )}
+            <div className="flex-1 min-w-0">
+              <span className={`${calendarBlock ? 'text-[12px] font-bold' : compact ? 'text-xs font-medium' : 'text-sm font-medium'} block truncate ${
+                isDone ? 'line-through text-neutral-400' : isFlagged ? 'text-red-900' : 'text-neutral-900'
+              }`}>
+                {task.title}
+              </span>
+            </div>
 
             {/* Expander */}
             <button
@@ -467,8 +441,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
           )}
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
+          {/* Line 2: attribute chips — always visible in collapsed and expanded read mode */}
+          {(hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
             <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
               {task.labels.map((labelId) => {
                 const label = labels.find((l) => l.id === labelId);
@@ -479,48 +453,44 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                     label={label.name}
                     color={label.color}
                     active={isLabelFiltered(label.id)}
-                    onClick={showMenu ? () => removeLabel(label.id) : () => toggleChipFilter('label', label.id, label.name, label.color)}
+                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
                   />
                 ) : null;
               })}
               {assignedUser && (
-                  <AttributeChip
-                    icon={<User className="w-3.5 h-3.5" />}
-                    label={getCompactUserName(assignedUser)}
+                <AttributeChip
+                  icon={<User className="w-3.5 h-3.5" />}
+                  label={getCompactUserName(assignedUser)}
                   color={assigneeColor}
                   active={isAssigneeFiltered(assignedUser.id)}
-                  onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
+                  onClick={() => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
                 />
               )}
-              {dateStr && !hideDateChip && !isDone && (
+              {dateStr && !hideDateChip && (
                 <AttributeChip
                   icon={<CalendarDays className="w-3.5 h-3.5" />}
                   label={dateStr}
                   color="#ea580c"
                   active={isDateFiltered(dateStr)}
-                  onClick={showMenu ? clearAllSchedule : () => toggleChipFilter('date', dateStr)}
+                  onClick={() => toggleChipFilter('date', dateStr)}
                 />
               )}
-              {repeatLabel && !isDone && (
+              {repeatLabel && (
                 <AttributeChip
                   icon={<RotateCcw className="w-3.5 h-3.5" />}
                   label={repeatChipLabel || repeatLabel}
                   color="#0f766e"
                   active={isRepeatFiltered(task.repeatInterval)}
-                  onClick={showMenu ? clearAllSchedule : () => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
+                  onClick={() => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
                   maxWidthClassName="max-w-[92px]"
                 />
               )}
               {hasComment && (
-                <button
-                  type="button"
-                  onClick={() => openCommentEditor()}
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-full text-blue-600 hover:bg-blue-50 transition-colors"
-                  aria-label={t('tasks.comment')}
-                  title={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />
-                </button>
+                <AttributeChip
+                  icon={<MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />}
+                  label={t('tasks.comment')}
+                  color="#2563eb"
+                />
               )}
               {subtaskCount > 0 && (
                 <AttributeChip
@@ -534,491 +504,60 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   icon={<AlertTriangle className="w-3.5 h-3.5" />}
                   label={PRIORITY_LABELS[task.priority] || task.priority}
                   color={PRIORITY_COLORS[task.priority] || '#6b7280'}
-                  onClick={showMenu ? clearPriority : () => toggleChipFilter('priority', task.priority, PRIORITY_LABELS[task.priority] || task.priority, PRIORITY_COLORS[task.priority] || '#6b7280')}
+                  onClick={() => toggleChipFilter('priority', task.priority, PRIORITY_LABELS[task.priority] || task.priority, PRIORITY_COLORS[task.priority] || '#6b7280')}
                 />
               )}
             </div>
           )}
 
-          {/* Subtasks list — visible when selected or when subtasks exist */}{showMenu && (activeEditor === 'subtasks' || subtaskCount > 0) && (
-            <div className={`mt-2 pt-2 border-t space-y-1.5 ${subtaskCount > 0 ? 'border-purple-100' : 'border-neutral-100'}`}>
-              <div className="flex items-center justify-between px-1">
-                <span className={`text-xs font-medium ${subtaskCount > 0 ? 'text-purple-600' : 'text-neutral-500'}`}>
-                  {t('tasks.subtasks')} ({subtaskCount})
-                </span>
-                <button
-                  onClick={() => {
-                    const next = !subtaskEditMode;
-                    setSubtaskEditMode(next);
-                    if (!next) {
-                      setEditingSubtaskId(null);
-                      setEditingSubtaskTitle('');
-                    }
-                  }}
-                  className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'}`}
-                  title={t('tasks.subtasksEditTitle')}
-                  aria-label={t('tasks.subtasksEditAria')}
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {subtasks.map((subtask) => {
-                const isEditing = editingSubtaskId === subtask.id;
-                return (
-                  <div
-                    key={subtask.id}
-                    className={`flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded border ${
-                      subtaskCount > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-neutral-50 border-neutral-100'
-                    }`}
-                  >
-                    <button
-                      onClick={() => {
-                        if (subtask.status === 'done') {
-                          updateTask(subtask.id, { status: 'todo', completedAt: undefined });
-                        } else {
-                          updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
-                        }
-                      }}
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                        subtask.status === 'done'
-                          ? 'bg-neutral-900 border-neutral-900 text-white'
-                          : 'border-neutral-300 hover:border-neutral-500'
-                      }`}
-                      aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
-                    >
-                      {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
-                    </button>
-
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingSubtaskTitle}
-                        onChange={(e) => setEditingSubtaskTitle(e.target.value)}
-                        onBlur={commitSubtaskEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitSubtaskEdit();
-                          if (e.key === 'Escape') {
-                            setEditingSubtaskId(null);
-                            setEditingSubtaskTitle('');
+          {/* Expanded read-only section — no inline edit inputs/forms in list view */}
+          {showMenu && (
+            <div className="mt-2 border-t border-[var(--app-border-subtle)] pt-2">
+              {subtaskCount > 0 && (
+                <div className="mb-2 space-y-1">
+                  {subtasks.map((subtask) => (
+                    <div key={subtask.id} className="flex items-center gap-2 py-1">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (subtask.status === 'done') {
+                            updateTask(subtask.id, { status: 'todo', completedAt: undefined });
+                          } else {
+                            updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
                           }
                         }}
-                        autoFocus
-                        className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
-                        aria-label={t('tasks.subtaskTitleEditAria')}
-                      />
-                    ) : (
-                      <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>
+                        className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded border-2 ${
+                          subtask.status === 'done'
+                            ? 'border-transparent bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
+                            : 'border-neutral-300 bg-transparent'
+                        }`}
+                        aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
+                      >
+                        {subtask.status === 'done' && <Check className="h-[11px] w-[11px]" strokeWidth={3} />}
+                      </button>
+                      <span className={`min-w-0 flex-1 truncate text-sm ${subtask.status === 'done' ? 'text-[var(--app-text-muted)] line-through' : 'text-[var(--app-text)]'}`}>
                         {subtask.title}
                       </span>
-                    )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                    {subtaskEditMode && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => startEditingSubtask(subtask)}
-                          className="p-1 rounded text-neutral-500 hover:bg-white hover:text-neutral-700 transition-colors"
-                          title={t('tasks.subtaskEditTitle')}
-                          aria-label={t('tasks.subtaskEditTitle')}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setSubtaskPendingDelete(subtask)}
-                          className="p-1 rounded text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                          title={t('tasks.subtaskDeleteTitle')}
-                          aria-label={t('tasks.subtaskDeleteTitle')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              <div className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50 border-purple-200' : 'bg-neutral-50 border-dashed border-neutral-200'}`}>
-                <SubtaskIcon className={`w-4 h-4 flex-shrink-0 ${subtaskCount > 0 ? 'text-purple-500' : 'text-neutral-300'}`} />
-                <input
-                  type="text"
-                  value={subtaskTitle}
-                  onChange={(e) => setSubtaskTitle(e.target.value)}
-                  onFocus={() => setActiveEditor('subtasks')}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      await commitSubtask();
-                    }
-                  }}
-                  placeholder={t('tasks.newSubtaskTitle')}
-                  className="flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
-                  aria-label={t('tasks.newSubtaskTitle')}
-                />
-                {subtaskTitle.trim() && (
-                  <button
-                    onClick={commitSubtask}
-                    className="px-2 py-1 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
-                    aria-label={t('tasks.addSubtask')}
-                  >
-                    {t('common.add')}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Line 3: attributes behind expander — only when showMenu */}
-          {showMenu && (
-            <div className="mt-2 pt-2 border-t border-neutral-100">
-              <div>
-                {/* Attribute buttons */}
-              <div className="flex items-center justify-start">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setActiveEditor(activeEditor ? null : 'labels')}
-                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 text-sm font-semibold text-[var(--app-text-muted)]"
-                  title={t('common.edit')}
-                  aria-label={t('common.edit')}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    showCompletionMessage(t('common.openEditor'));
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]"
                 >
-                  <Edit2 className="h-3.5 w-3.5" />
+                  <Edit2 className="h-3 w-3" strokeWidth={2} />
                   {t('common.edit')}
                 </button>
               </div>
-
-              {/* Label editor */}
-              {activeEditor === 'labels' && (
-                <div className="mt-2 space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={labelInput}
-                      onChange={(e) => setLabelInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          const name = labelInput.trim();
-                          if (!name) return;
-                          const existing = labels.find((l) => l.name.toLowerCase() === name.toLowerCase());
-                          if (existing) {
-                            if (!task.labels.includes(existing.id)) {
-                              updateTask(task.id, { labels: [existing.id], labelId: existing.id });
-                            }
-                          } else {
-                            addLabel({ name, color: '#3b82f6', visibility: 'family', isPrivate: false, sharedWith: [] });
-                          }
-                          setLabelInput('');
-                        }
-                      }}
-                      placeholder={t('tasks.labelInputPlaceholder')}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label={t('tasks.labelInputAria')}
-                    />
-                    {hasLabels && (
-                      <button
-                        onClick={clearAllLabels}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label={t('tasks.clearAllLabels')}
-                        title={t('common.clearAllTooltip')}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {visibleLabels.map((label) => (
-                      <button
-                        key={label.id}
-                        onClick={() => {
-                          const has = task.labels.includes(label.id);
-                          updateTask(task.id, {
-                            labels: has ? [] : [label.id],
-                            labelId: has ? null : label.id,
-                          });
-                        }}
-                      >
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border ${
-                            task.labels.includes(label.id)
-                              ? 'ring-2 ring-neutral-900'
-                              : 'hover:border-neutral-400'
-                          }`}
-                          style={{
-                            backgroundColor: task.labels.includes(label.id) ? `${label.color}20` : undefined,
-                            color: task.labels.includes(label.id) ? label.color : undefined,
-                            borderColor: task.labels.includes(label.id) ? `${label.color}40` : '#e5e7eb',
-                          }}
-                        >
-                          {label.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Assignee editor — X uses clearAssignee (null, same pattern as label) */}
-              {activeEditor === 'assignee' && (
-                <div className="mt-2 relative">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={assigneeSearch}
-                      onChange={(e) => setAssigneeSearch(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && filteredUsers.length === 1) {
-                          commitAssignee(filteredUsers[0].id);
-                        }
-                        if (e.key === 'Escape') setActiveEditor(null);
-                      }}
-                      placeholder={t('tasks.searchAssigneePlaceholder')}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label={t('tasks.searchAssigneeAria')}
-                    />
-                    {hasAssignee && (
-                      <button
-                        onClick={clearAssignee}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label={t('tasks.clearAssigneeAria')}
-                        title={t('tasks.removeAssignee')}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  {filteredUsers.length > 0 && (
-                    <div className="absolute z-[100] mt-1 w-full bg-white border border-neutral-300 rounded-md shadow-[0_4px_16px_rgba(0,0,0,0.15)] ring-1 ring-black/5 max-h-40 overflow-y-auto">
-                      {filteredUsers.map((u) => (
-                        <button
-                          key={u.id}
-                          onClick={() => {
-                            const val = task.assignedTo === u.id ? null : u.id;
-                            commitAssignee(val);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 flex items-center gap-2 ${
-                            task.assignedTo === u.id ? 'bg-neutral-50 font-medium' : ''
-                          }`}
-                        >
-                          <span
-                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
-                            style={{ backgroundColor: entityColor(u.id) }}
-                          >
-                            {getCompactUserName(u).charAt(0).toUpperCase()}
-                          </span>
-                          <span>{getCompactUserName(u)}</span>
-                          {u.role && <span className="text-xs text-neutral-400 ml-auto">{u.role}</span>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Schedule editor — X uses clearAllSchedule (null, same pattern as label) */}
-              {activeEditor === 'schedule' && (
-                <div className="mt-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="date"
-                      value={dateValue}
-                      onChange={(e) => {
-                        if (!e.target.value) {
-                          updateTask(task.id, { dueDate: null });
-                          return;
-                        }
-                        const nextDueDate = combineLocalDateAndTime(e.target.value, timeValue || '00:00') ?? parseLocalDateInputValue(e.target.value);
-                        updateTask(task.id, { dueDate: nextDueDate });
-                      }}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label={t('tasks.dueDateAria')}
-                    />
-                    <input
-                      type="time"
-                      value={timeValue}
-                      onChange={(e) => {
-                        if (!dateValue) return;
-                        const nextDueDate = combineLocalDateAndTime(dateValue, e.target.value || '00:00');
-                        updateTask(task.id, { dueDate: nextDueDate });
-                      }}
-                      className="text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label={t('tasks.dueTimeAria')}
-                    />
-                    <select
-                      value={task.repeatInterval || ''}
-                      onChange={(e) => updateTask(task.id, { repeatInterval: (e.target.value || null) as RepeatInterval | null })}
-                      className="w-44 text-sm px-2 py-1.5 border border-neutral-200 rounded"
-                      aria-label={t('tasks.recurringIntervalAria')}
-                    >
-                      {getRepeatOptions(task.dueDate).map((option) => (
-                        <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Comment editor */}
-              {activeEditor === 'comment' && (
-                <div className="mt-2 space-y-2">
-                  <textarea
-                    value={commentDraft}
-                    onChange={(e) => {
-                      setCommentDraft(e.target.value);
-                      if (commentError) setCommentError('');
-                    }}
-                    placeholder={t('tasks.commentPlaceholder')}
-                    className={`w-full min-h-[88px] text-sm px-3 py-2 border rounded resize-none ${
-                      commentError ? 'border-red-300 bg-red-50/40' : 'border-neutral-200 bg-white'
-                    }`}
-                    aria-label={t('tasks.comment')}
-                    autoFocus
-                  />
-                  {commentError && (
-                    <p className="text-xs text-red-600">{commentError}</p>
-                  )}
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => {
-                        setCommentDraft(task.blockedComment || '');
-                        setPendingFlagActivation(false);
-                        setCommentError('');
-                        setActiveEditor(null);
-                      }}
-                      className="px-3 py-1.5 border border-neutral-200 rounded text-sm text-neutral-600"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <button
-                      onClick={commitComment}
-                      className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm"
-                    >
-                      {pendingFlagActivation ? t('tasks.addCommentAndFlag') : t('common.save')}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Priority editor */}
-              {activeEditor === 'priority' && (
-                <div className="mt-2">
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        updateTask(task.id, { priority: null });
-                        setActiveEditor(null);
-                      }}
-                      className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                        !task.priority
-                          ? 'bg-neutral-900 text-white shadow-sm'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      None
-                    </button>
-                    {PRIORITY_ORDER.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => {
-                          updateTask(task.id, { priority: p });
-                          setActiveEditor(null);
-                        }}
-                        className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                          task.priority === p
-                            ? 'text-white shadow-sm'
-                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                        }`}
-                        style={task.priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
-                      >
-                        {PRIORITY_LABELS[p]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Others editor */}
-              {activeEditor === 'others' && (
-                <div className="mt-2 space-y-1.5">
-                  <button
-                    onClick={() => swapEntity(task.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-neutral-200 hover:bg-neutral-50 transition-colors"
-                  >
-                    <ArrowLeftRight className="w-4 h-4 text-neutral-500" strokeWidth={1.75} />
-                    <span>{t('tasks.swap')}</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (task.linkedType === 'task' && task.linkedTo) {
-                        detachFromParentTask(task.linkedTo);
-                        updateTask(task.id, { linkedTo: null, linkedType: null });
-                        showCompletionMessage(t('tasks.promotedStandalone'));
-                        resetParentPicker();
-                        setActiveEditor(null);
-                        return;
-                      }
-
-                      setShowParentPicker((current) => !current);
-                      setParentSearch('');
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border transition-colors ${
-                      task.linkedType === 'task' && task.linkedTo
-                        ? 'border-purple-200 bg-purple-50 text-purple-700'
-                        : 'border-neutral-200 hover:bg-neutral-50'
-                    }`}
-                  >
-                    <GitBranch className="w-4 h-4" strokeWidth={1.75} />
-                    <span>{task.linkedType === 'task' && task.linkedTo ? t('tasks.makeMainTask') : t('tasks.makeSubTask')}</span>
-                  </button>
-                  {!(task.linkedType === 'task' && task.linkedTo) && showParentPicker && (
-                    <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-2.5 space-y-2">
-                      <input
-                        type="text"
-                        value={parentSearch}
-                        onChange={(e) => setParentSearch(e.target.value)}
-                        placeholder={t('tasks.parentTaskSearchPlaceholder')}
-                        className="w-full text-sm px-3 py-2 border border-purple-200 rounded bg-white"
-                        autoFocus
-                      />
-                      <div className="space-y-1">
-                        {parentTaskMatches.length > 0 ? (
-                          parentTaskMatches.map((parentTask) => (
-                            <button
-                              key={parentTask.id}
-                              onClick={() => linkToParentTask(parentTask)}
-                              className="w-full text-left px-3 py-2 rounded border border-white/70 bg-white hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                            >
-                              <span className="block text-sm font-medium text-neutral-900 truncate">{parentTask.title}</span>
-                              {parentTask.dueDate && (
-                                <span className="block text-xs text-neutral-500 mt-0.5">
-                                  {formatDate(parentTask.dueDate, { month: 'short', day: 'numeric' })}
-                                </span>
-                              )}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-neutral-500 bg-white rounded border border-dashed border-purple-200">
-                            {t('tasks.noMatchingParentTask')}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {task.status !== 'backlog' && (
-                    <button
-                      onClick={() => {
-                        moveTaskToStatus(task.id, 'backlog');
-                        showCompletionMessage(t('tasks.movedToBacklog'));
-                        setActiveEditor(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-                    >
-                      <Inbox className="w-4 h-4" strokeWidth={1.75} />
-                      <span>{t('tasks.inbox')}</span>
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
-          </div>
           )}
         </div>
       </div>

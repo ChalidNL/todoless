@@ -107,7 +107,7 @@ export const InboxBacklog = () => {
   const statusSections = [
     { key: 'backlog', label: t('dashboard.inbox'), value: backlogCount, icon: Inbox, tone: 'inbox' as const },
     { key: 'todo', label: t('dashboard.todoSprint'), value: todoCount, icon: Rows2, tone: 'todo' as const },
-    { key: 'blocked', label: t('dashboard.blocked'), value: blockedCount, icon: AlertTriangle, tone: 'blocked' as const },
+    { key: 'blocked', label: 'Geblokkeerd', value: blockedCount, icon: AlertTriangle, tone: 'blocked' as const },
     { key: 'done-today', label: t('dashboard.doneSprint'), value: doneToday, icon: CheckCheck, tone: 'done' as const },
   ];
 

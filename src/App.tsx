@@ -212,11 +212,11 @@ function AppContent() {
   }
 
   const navItems: BottomNavItem[] = [
-    { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="h-[22px] w-[22px]" />, activeColor: '#3b82f6', activeBg: '#eff6ff' },
-    { to: '/tasks', label: t('nav.tasks', language), icon: <CheckSquare className="h-[22px] w-[22px]" />, activeColor: '#22c55e', activeBg: '#f0fdf4' },
-    { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="h-[22px] w-[22px]" />, activeColor: '#f97316', activeBg: '#fff7ed' },
-    { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="h-[22px] w-[22px]" />, activeColor: '#ec4899', activeBg: '#fdf2f8' },
-    { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="h-[22px] w-[22px]" />, activeColor: '#6366f1', activeBg: '#eef2ff' },
+    { to: '/', label: 'Inbox', icon: <InboxIcon className="h-[22px] w-[22px]" />, activeColor: '#3b82f6', activeBg: '#eff6ff' },
+    { to: '/tasks', label: 'Taken', icon: <CheckSquare className="h-[22px] w-[22px]" />, activeColor: '#22c55e', activeBg: '#f0fdf4' },
+    { to: '/calendar', label: 'Agenda', icon: <CalendarDays className="h-[22px] w-[22px]" />, activeColor: '#f97316', activeBg: '#fff7ed' },
+    { to: '/groceries', label: 'Shop', icon: <ShoppingCart className="h-[22px] w-[22px]" />, activeColor: '#ec4899', activeBg: '#fdf2f8' },
+    { to: '/settings', label: 'Instellingen', icon: <SettingsIcon className="h-[22px] w-[22px]" />, activeColor: '#6366f1', activeBg: '#eef2ff' },
   ];
 
   const toast = completionMessage ? (

@@ -515,6 +515,8 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Tasks',
       newTask: 'New Task',
       searchPlaceholder: 'Search tasks…',
+      labelInputPlaceholder: 'Add a label...',
+      noTasks: 'No tasks found',
       dueDate: 'Due Date',
       assignee: 'Assignee',
       labels: 'Labels',
@@ -1321,6 +1323,8 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Taken',
       newTask: 'Nieuwe taak',
       searchPlaceholder: 'Taken zoeken…',
+      labelInputPlaceholder: 'Voeg een label toe...',
+      noTasks: 'Geen taken gevonden',
       dueDate: 'Verloopdatum',
       assignee: 'Toegewezen aan',
       labels: 'Labels',
@@ -2293,15 +2297,15 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     "dashboard": {
       "inbox": "Inbox",
       "todoSprint": "Todo Sprint",
-      "blocked": "Blocked",
+      "blocked": "Geblokkeerd",
       "doneSprint": "Done Sprint"
     },
     "nav": {
       "inbox": "Inbox",
-      "tasks": "Tasks",
-      "calendar": "Cal.",
+      "tasks": "Taken",
+      "calendar": "Agenda",
       "groceries": "Shop",
-      "settings": "Settings"
+      "settings": "Instellingen"
     }
   },
   "nl": {
@@ -2311,7 +2315,11 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "tasks": {
       "taskAdded": "Taak toegevoegd aan inbox",
-      "movedToBacklog": "Verplaatst naar backlog"
+      "movedToBacklog": "Verplaatst naar backlog",
+      "labelInputPlaceholder": "Voeg een label toe...",
+      "searchPlaceholder": "Taken zoeken...",
+      "noTasks": "Geen taken gevonden",
+      "addSubtask": "+ Nieuwe subtaak"
     },
     "common": {
       "previousSlide": "Vorige slide",
@@ -2365,7 +2373,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "tasks": "Taken",
       "calendar": "Agenda",
       "groceries": "Shop",
-      "settings": "Inst."
+      "settings": "Instellingen"
     }
   },
   "fr": {

@@ -170,8 +170,9 @@ describe('Calendar Google-inspired UX', () => {
     fireEvent.click(within(first).getByText('Alpha'));
     expect(calendarCard).toHaveStyle({ width: 'calc(100vw - 24px)', maxWidth: '430px' });
     expect(calendarCard).toHaveClass('max-w-none');
-    const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
-    expect(titleEditor).toHaveValue('Alpha');
+    expect(within(calendarCard).queryByLabelText('tasks.editTaskTitle')).not.toBeInTheDocument();
+    expect(calendarCard.querySelector('input')).not.toBeInTheDocument();
+    expect(within(calendarCard).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
