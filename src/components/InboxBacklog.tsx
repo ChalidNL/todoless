@@ -1,61 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { PageHeader } from './shared/PageHeader';
-import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck, type LucideIcon } from 'lucide-react';
+import { Inbox, Rows2, AlertTriangle, X as XIcon, Save, Check, ArrowRight, CheckCheck } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
-
-type InboxStatColor = 'blue' | 'emerald' | 'rose' | 'violet';
-
-const inboxStatGradients: Record<InboxStatColor, string> = {
-  blue: 'var(--app-status-inbox)',
-  emerald: 'var(--app-status-todo)',
-  rose: 'var(--app-status-blocked)',
-  violet: 'var(--app-status-done)',
-};
-
-function InboxStatCard({
-  statKey,
-  label,
-  value,
-  icon: Icon,
-  color,
-  active,
-  onClick,
-}: {
-  statKey: string;
-  label: string;
-  value: number;
-  icon: LucideIcon;
-  color: InboxStatColor;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      data-testid={`inbox-stat-card-${statKey}`}
-      data-status={statKey}
-      onClick={onClick}
-      aria-label={`${label}: ${value}`}
-      title={`${label}: ${value}`}
-      style={{ background: inboxStatGradients[color] }}
-      className={`app-status-card relative isolate w-full min-w-0 overflow-hidden text-white ${
-        active ? 'ring-2 ring-white ring-offset-2 ring-offset-neutral-50 dark:ring-offset-neutral-950' : ''
-      }`}
-    >
-      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/35" />
-      <div className="relative z-10 flex h-full items-center gap-3">
-        <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/25 backdrop-blur-sm" aria-hidden="true">
-          <Icon className="h-5 w-5 text-white" strokeWidth={2.25} />
-        </span>
-        <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left text-[13px] font-bold leading-none text-white/90">{label}</span>
-        <p className="flex-shrink-0 text-[32px] font-black leading-none tracking-[-0.05em] text-white drop-shadow-sm">{value}</p>
-      </div>
-    </button>
-  );
-}
+import { StatCard } from './shared/StatCard';
+import { SectionHeader } from './shared/SectionHeader';
+import { EmptyState } from './shared/EmptyState';
+import { TaskCard } from './shared/TaskCard';
 
 export const InboxBacklog = () => {
   const { tasks, updateTask, addTask, activeChipFilters, toggleChipFilter, clearChipFilters, showCompletionMessage } = useApp();
@@ -154,10 +106,10 @@ export const InboxBacklog = () => {
 
   const displayedTasks = getFilteredTasks();
   const statusSections = [
-    { key: 'backlog', label: t('dashboard.inbox'), value: backlogCount, icon: Inbox, color: 'blue' as const },
-    { key: 'todo', label: t('dashboard.todoSprint'), value: todoCount, icon: Rows2, color: 'emerald' as const },
-    { key: 'blocked', label: t('dashboard.blocked'), value: blockedCount, icon: AlertTriangle, color: 'rose' as const },
-    { key: 'done-today', label: t('dashboard.doneSprint'), value: doneToday, icon: CheckCheck, color: 'violet' as const },
+    { key: 'backlog', label: t('dashboard.inbox'), value: backlogCount, icon: Inbox, tone: 'inbox' as const },
+    { key: 'todo', label: t('dashboard.todoSprint'), value: todoCount, icon: Rows2, tone: 'todo' as const },
+    { key: 'blocked', label: t('dashboard.blocked'), value: blockedCount, icon: AlertTriangle, tone: 'blocked' as const },
+    { key: 'done-today', label: t('dashboard.doneSprint'), value: doneToday, icon: CheckCheck, tone: 'done' as const },
   ];
 
   const hasAnyFilter = activeStatusFilter || activeChipFilters.some((f) => f.type !== 'status');
@@ -260,15 +212,15 @@ export const InboxBacklog = () => {
 
         <div className="max-w-lg mx-auto px-4 pt-4 space-y-6 pb-20">
           {/* Stat boxes — clickable as filters */}
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+          <div className="grid grid-cols-2 gap-[var(--app-space-gap)]">
             {statusSections.map((stat) => (
-              <InboxStatCard
+              <div key={stat.key} data-testid={`inbox-stat-card-${stat.key}`} data-status={stat.key}>
+              <StatCard
                 key={stat.key}
-                statKey={stat.key}
                 label={stat.label}
                 value={stat.value}
-                icon={stat.icon}
-                color={stat.color}
+                icon={<stat.icon className="h-5 w-5 text-white" strokeWidth={2.25} />}
+                tone={stat.tone}
                 active={activeStatusFilter === stat.key}
                 onClick={() => {
                   if (activeStatusFilter === stat.key) {
@@ -279,36 +231,28 @@ export const InboxBacklog = () => {
                   }
                 }}
               />
+              </div>
             ))}
           </div>
 
           <div>
             {activeStatusFilter ? (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-                    {statusSections.find((s) => s.key === activeStatusFilter)?.label || t('common.tasks')} ({displayedTasks.length})
-                  </h2>
-                </div>
+                <SectionHeader title={statusSections.find((s) => s.key === activeStatusFilter)?.label || t('common.tasks')} count={displayedTasks.length} />
                 {displayedTasks.length === 0 ? (
-                  <div className="text-center py-16">
-                    <Inbox className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-                    <p className="text-neutral-400 text-sm">{t('inbox.noTasksFound')}</p>
-                  </div>
+                  <EmptyState title={t('inbox.noTasksFound')} icon={<Inbox className="h-7 w-7" />} />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-[10px]">
                     {displayedTasks.map((task) => (
-                      <CompactTaskCard key={task.id} task={task} showCheckbox={true} />
+                      <TaskCard key={task.id} task={task} showCheckbox={true} />
                     ))}
                   </div>
                 )}
               </>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-semibold text-sm text-neutral-600 flex items-center gap-1.5">
-                    {t('inbox.title')} ({displayedTasks.length})
-                  </h2>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <SectionHeader title={t('inbox.title')} count={displayedTasks.length} />
                   <div className="flex items-center gap-1">
                     {displayedTasks.length > 0 && !isSelecting && (
                       <button
@@ -343,21 +287,18 @@ export const InboxBacklog = () => {
                   </div>
                 </div>
                 {displayedTasks.length === 0 ? (
-                  <div className="text-center py-16">
-                    <Inbox className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-                    <p className="text-neutral-400 text-sm">{t('inbox.inboxIsEmpty')}</p>
-                  </div>
+                  <EmptyState title={t('inbox.inboxIsEmpty')} icon={<Inbox className="h-7 w-7" />} />
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-[10px]">
                     {displayedTasks.map((task) => (
                       <div key={task.id} className="flex items-center gap-2">
                         {isSelecting && (
                           <button
                             onClick={() => toggleSelect(task.id)}
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            className={`app-checkbox flex flex-shrink-0 items-center justify-center transition-colors ${
                               selectedIds.has(task.id)
-                                ? 'bg-neutral-900 border-neutral-900 text-white'
-                                : 'border-neutral-300 hover:border-neutral-500'
+                                ? 'app-checkbox-checked'
+                                : ''
                             }`}
                             aria-label={selectedIds.has(task.id) ? t('inbox.deselectAll') : t('inbox.selectAll')}
                           >
@@ -365,7 +306,7 @@ export const InboxBacklog = () => {
                           </button>
                         )}
                         <div className="flex-1 min-w-0">
-                          <CompactTaskCard task={task} showCheckbox={false} />
+                          <TaskCard task={task} showCheckbox={false} />
                         </div>
                       </div>
                     ))}
