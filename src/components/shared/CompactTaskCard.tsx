@@ -70,6 +70,90 @@ const getTaskDueDate = (task: Task) => {
   return undefined;
 };
 
+const asArray = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === 'object') return [value];
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : parsed && typeof parsed === 'object' ? [parsed] : value ? [value] : [];
+    } catch {
+      return [value];
+    }
+  }
+  return [];
+};
+
+const recordId = (record: unknown) => typeof record === 'object' && record ? String((record as any).id || '') : typeof record === 'string' ? record : '';
+
+const getExpandedLabelObjects = (task: Task, availableLabels: any[]) => {
+  const expanded = (task as any).expand || {};
+  const candidates = [
+    ...asArray(expanded.labels),
+    ...asArray(expanded.label),
+    ...asArray((task as any).labels),
+    ...asArray((task as any).label),
+    ...asArray((task as any).labelId),
+  ];
+  const byId = new Map(availableLabels.map((label) => [label.id, label]));
+  const seen = new Set<string>();
+  return candidates
+    .map((candidate) => {
+      if (typeof candidate === 'string') return byId.get(candidate);
+      if (candidate && typeof candidate === 'object') return candidate;
+      return null;
+    })
+    .filter((label): label is any => {
+      const id = recordId(label);
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+};
+
+const getExpandedAssignee = (task: Task, availableUsers: any[]) => {
+  const expanded = (task as any).expand || {};
+  const candidate = expanded.assignee || expanded.assigned_to || (task as any).assignee;
+  if (candidate && typeof candidate === 'object') return candidate;
+  const id = task.assignedTo || (task as any).assigned_to || recordId(candidate);
+  return id ? availableUsers.find((user) => user.id === id) || null : null;
+};
+
+const getExpandedSubtasks = (task: Task, availableTasks: Task[]) => {
+  const expanded = (task as any).expand || {};
+  const candidates = [
+    ...asArray(expanded.subtasks),
+    ...asArray(expanded.subtask_ids),
+    ...asArray((task as any).subtasks),
+    ...asArray((task as any).subtaskIds),
+    ...asArray((task as any).subtask_ids),
+  ];
+  const byId = new Map(availableTasks.map((candidate) => [candidate.id, candidate]));
+  const seen = new Set<string>();
+  return candidates
+    .map((candidate) => {
+      if (typeof candidate === 'string') return byId.get(candidate);
+      if (candidate && typeof candidate === 'object') return candidate as Task;
+      return null;
+    })
+    .filter((subtask): subtask is Task => {
+      const id = recordId(subtask);
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+};
+
+const isSubtaskDone = (subtask: any) => subtask.completed === true || subtask.status === 'done';
+
+const getTaskCommentCount = (task: Task) => {
+  const explicit = (task as any).commentCount ?? (task as any).reactionCount;
+  if (typeof explicit === 'number') return explicit;
+  const comments = (task as any).comments;
+  if (Array.isArray(comments)) return comments.length;
+  return task.blockedComment?.trim() ? 1 : 0;
+};
+
 const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
     <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
@@ -162,11 +246,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   }, [task.blockedComment, task.flag]);
 
   const isDone = task.status === 'done';
-  const labelIds = getTaskLabelIds(task);
-  const subtaskIds = getTaskSubtaskIds(task);
+  const taskLabelObjects = getExpandedLabelObjects(task, labels);
+  const labelIds = taskLabelObjects.map((label) => label.id);
   const dueDate = getTaskDueDate(task);
-  const assignedTo = task.assignedTo || (task as any).assigned_to;
-  const assignedUser = assignedTo ? users.find((u) => u.id === assignedTo) : null;
+  const assignedUser = getExpandedAssignee(task, users);
+  const assignedTo = assignedUser?.id || task.assignedTo || (task as any).assigned_to;
   const assigneeColor = assignedUser ? entityColor(assignedUser.id) : undefined;
   const isFlagged = task.flag && !isDone;
   const isFocusTask = !!task.focus && !isDone;
@@ -179,12 +263,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, dueDate);
   const hasComment = !!task.blockedComment?.trim();
 
-  // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
-  const subtasks = subtaskIds
-    .map(id => tasks.find(t => t.id === id))
-    .filter(Boolean) as Task[];
+  // Subtasks: prefer PocketBase expand.subtasks, then subtask id relations.
+  const subtasks = getExpandedSubtasks(task, tasks);
   const subtaskCount = subtasks.length;
-  const completedSubtaskCount = subtasks.filter(s => s.status === 'done').length;
+  const completedSubtaskCount = subtasks.filter(isSubtaskDone).length;
+  const commentCount = getTaskCommentCount(task);
 
   const handleToggle = () => {
     if (task.status === 'done') {
@@ -339,8 +422,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const visibleLabels = sortLabelsByVisibility(labels.filter((l) =>
     l.name.toLowerCase().includes(labelInput.trim().toLowerCase())
   ));
-  const hasLabels = labelIds.length > 0;
-  const hasAssignee = !!assignedTo;
+  const hasLabels = taskLabelObjects.length > 0;
+  const hasAssignee = !!assignedUser;
   const hasSchedule = !!dueDate || !!task.repeatInterval;
   const parentTaskMatches = useMemo(() => {
     const query = parentSearch.trim().toLowerCase();
@@ -481,21 +564,18 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
           )}
 
           {/* Line 2: attribute chips — always visible in collapsed and expanded read mode */}
-          {(hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
+          {(hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || commentCount > 0) && (
             <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
-              {labelIds.map((labelId) => {
-                const label = labels.find((l) => l.id === labelId);
-                return label ? (
-                  <AttributeChip
-                    key={label.id}
-                    icon={<Tag className="w-3.5 h-3.5" />}
-                    label={label.name}
-                    color={label.color}
-                    active={isLabelFiltered(label.id)}
-                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
-                  />
-                ) : null;
-              })}
+              {taskLabelObjects.map((label) => (
+                <AttributeChip
+                  key={label.id}
+                  icon={<Tag className="w-3.5 h-3.5" />}
+                  label={label.name}
+                  color={label.color}
+                  active={isLabelFiltered(label.id)}
+                  onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                />
+              ))}
               {assignedUser && (
                 <AttributeChip
                   icon={<User className="w-3.5 h-3.5" />}
@@ -524,10 +604,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   maxWidthClassName="max-w-[92px]"
                 />
               )}
-              {hasComment && (
+              {commentCount > 0 && (
                 <AttributeChip
                   icon={<MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />}
-                  label={t('tasks.comment')}
+                  label={commentCount > 1 ? String(commentCount) : t('tasks.comment')}
                   color="#2563eb"
                 />
               )}
@@ -560,23 +640,23 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation();
-                          if (subtask.status === 'done') {
+                          if (isSubtaskDone(subtask)) {
                             updateTask(subtask.id, { status: 'todo', completedAt: undefined });
                           } else {
                             updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
                           }
                         }}
                         className={`flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded border-2 ${
-                          subtask.status === 'done'
+                          isSubtaskDone(subtask)
                             ? 'border-transparent bg-gradient-to-br from-emerald-500 to-cyan-500 text-white'
                             : 'border-neutral-300 bg-transparent'
                         }`}
-                        aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
+                        aria-label={isSubtaskDone(subtask) ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
                       >
-                        {subtask.status === 'done' && <Check className="h-[11px] w-[11px]" strokeWidth={3} />}
+                        {isSubtaskDone(subtask) && <Check className="h-[11px] w-[11px]" strokeWidth={3} />}
                       </button>
-                      <span className={`min-w-0 flex-1 truncate text-sm ${subtask.status === 'done' ? 'text-[var(--app-text-muted)] line-through' : 'text-[var(--app-text)]'}`}>
-                        {subtask.title}
+                      <span className={`min-w-0 flex-1 truncate text-sm ${isSubtaskDone(subtask) ? 'text-[var(--app-text-muted)] line-through' : 'text-[var(--app-text)]'}`}>
+                        {(subtask as any).title || (subtask as any).name}
                       </span>
                     </div>
                   ))}

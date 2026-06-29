@@ -98,6 +98,34 @@ describe('CompactTaskCard read-mode attributes', () => {
     expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 
+  it('shows chips from PocketBase expand labels, assignee and subtasks', () => {
+    const expandedTask = {
+      ...parentTask,
+      id: 'expand-task-1',
+      labels: [],
+      label: '',
+      assignedTo: undefined,
+      subtaskIds: [],
+      dueDate: undefined,
+      expand: {
+        labels: [{ id: 'expand-label-1', name: 'kelder', color: '#f97316' }],
+        assignee: { id: 'expand-user-1', firstName: 'Eva', lastName: 'Germain', email: 'eva@example.com' },
+        subtasks: [
+          { id: 'expand-sub-1', title: 'Sub 1', completed: true },
+          { id: 'expand-sub-2', title: 'Sub 2', completed: false },
+          { id: 'expand-sub-3', title: 'Sub 3', completed: false },
+          { id: 'expand-sub-4', title: 'Sub 4', completed: false },
+        ],
+      },
+    } as unknown as Task;
+
+    render(<CompactTaskCard task={expandedTask} />);
+
+    expect(screen.getByText('kelder')).toBeInTheDocument();
+    expect(screen.getByText('Eva')).toBeInTheDocument();
+    expect(screen.getByText('1/4')).toBeInTheDocument();
+  });
+
   it('expanded state stays read-only: no list edit inputs or label placeholder', () => {
     const { container } = render(<CompactTaskCard task={parentTask} />);
 
