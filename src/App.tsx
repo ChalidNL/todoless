@@ -13,6 +13,7 @@ import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
 import { MembersView } from './components/MembersView';
 import { LabelsView } from './components/LabelsView';
+import { ShopsView } from './components/ShopsView';
 import { ProfileView } from './components/ProfileView';
 import { SettingsPreferences } from './components/SettingsPreferences';
 import { pb } from './lib/pocketbase';
@@ -239,6 +240,7 @@ function AppContent() {
           <Route path="/settings/preferences" element={<SettingsPreferences />} />
           <Route path="/settings/members" element={<MembersView />} />
           <Route path="/settings/labels" element={<LabelsView />} />
+          <Route path="/settings/shops" element={<ShopsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     </AppShell>

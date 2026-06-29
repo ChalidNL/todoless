@@ -1,7 +1,7 @@
 import { Lock, Users, Home, Tag } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
-import { PageHeader } from './shared/PageHeader';
+import { AppHeader } from './shared/NewGlobalHeader';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { EmptyState } from './shared/EmptyState';
 
@@ -12,15 +12,33 @@ const VISIBILITY_ICON = {
 };
 
 export function LabelsView() {
-  const { labels } = useApp();
+  const { labels, addLabel } = useApp();
   const sortedLabels = sortLabelsByVisibility(labels);
+
+  const handleCreateLabel = () => {
+    const name = window.prompt(t('settings.labelNamePlaceholder'), '');
+    const trimmed = name?.trim();
+    if (!trimmed) return;
+    addLabel({ name: trimmed, color: '#eab308', visibility: 'family', isPrivate: false, sharedWith: [] });
+  };
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <PageHeader title={t('settings.labels')} subtitle={`${labels.length} labels`} />
+      <AppHeader
+        screen="labels"
+        searchPlaceholder="Zoek labels..."
+        showSearch={false}
+        showFilters={false}
+        onAddEmpty={handleCreateLabel}
+        count={labels.length}
+      />
       <div className="mx-auto max-w-lg space-y-3 px-4 pt-4">
         {sortedLabels.length === 0 ? (
-          <EmptyState title={t('settings.noLabels')} icon={<Tag className="h-7 w-7" />} />
+          <EmptyState
+            title={t('settings.noLabels')}
+            description={t('settings.noLabelsHint')}
+            icon={<Tag className="h-7 w-7" />}
+          />
         ) : (
           sortedLabels.map((label) => {
             const visibility = label.visibility || (label.isPrivate ? 'private' : 'family');

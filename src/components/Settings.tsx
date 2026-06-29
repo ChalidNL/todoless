@@ -5,7 +5,7 @@ import { useAuth } from './AuthProvider';
 import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, Sliders, Bell } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, Sliders, Bell, ShoppingCart, Camera } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
@@ -594,12 +594,13 @@ export const Settings = () => {
   const displayName = userDisplayName(currentUser);
   const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
   const settingsItems = [
-    { href: '/settings/profile', icon: UserCircle2, color: '#6366f1', label: t('settings.yourProfile'), sub: currentUser.email },
+    { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
     { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('settings.teamMembers'), sub: `${users.length} ${t('members.title').toLowerCase()}` },
     { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} labels` },
-    { href: '/settings/preferences', icon: Sliders, color: '#8b5cf6', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
-    { href: '/settings/notifications', icon: Bell, color: '#f97316', label: 'Notificaties', sub: null },
-    { href: '/api/swagger', icon: Plug, color: '#22c55e', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
+    { href: '/settings/shops', icon: ShoppingCart, color: '#ec4899', label: 'Winkels', sub: `${shops.length} winkels` },
+    { href: '/settings/preferences', icon: Sliders, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
+    { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: 'Notificaties', sub: null },
+    { href: '/api/swagger', icon: Plug, color: '#0ea5e9', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
   ];
 
   return (
@@ -607,13 +608,18 @@ export const Settings = () => {
       <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} count={users.length} />
 
       <div className="mx-auto max-w-2xl pb-24 pt-3">
-        <a href="/settings/profile" className="mx-4 mb-3 flex items-center gap-3 rounded-[var(--app-radius-card)] border border-[var(--app-border-subtle)] bg-[var(--app-surface)] px-4 py-4 text-left shadow-[var(--app-shadow-card)] active:scale-[0.97]">
-          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-[var(--app-primary-grad)] text-lg font-black text-white">{initials}</span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-bold text-[var(--app-text)]">{displayName}</span>
-            <span className="block truncate text-sm font-medium text-[var(--app-text-muted)]">{currentUser.email}</span>
+        <a href="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
+          <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
+          <span className="relative grid h-[84px] w-[84px] place-items-center rounded-full border-[3px] border-white/60 bg-white/25 text-[32px] font-black text-white shadow-lg">
+            {initials}
+            <span className="absolute bottom-0 right-0 grid h-[26px] w-[26px] place-items-center rounded-full bg-white text-indigo-600 shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
+              <Camera className="h-[13px] w-[13px]" strokeWidth={2.5} />
+            </span>
           </span>
-          <ChevronRight className="h-4 w-4 text-[var(--app-text-soft)]" />
+          <span className="relative text-center text-white">
+            <span className="block text-xl font-black tracking-[-0.01em]">{displayName}</span>
+            <span className="mt-1 block text-sm font-semibold text-white/80">{currentUser.email}</span>
+          </span>
         </a>
 
         <div className="mx-4 mb-3 overflow-hidden rounded-[var(--app-radius-card)] bg-[var(--app-surface)] shadow-[var(--app-shadow-card)]">
@@ -659,8 +665,8 @@ export const Settings = () => {
           )}
         </div>
 
-        <button onClick={handleLogout} className="mx-4 flex min-h-[52px] w-[calc(100%-32px)] items-center justify-center gap-2 rounded-[var(--app-radius-card)] border border-red-200 bg-red-100 px-4 text-base font-semibold text-red-600 active:scale-[0.97]">
-          <LogOut className="h-[17px] w-[17px]" />
+        <button onClick={handleLogout} className="mx-4 mb-8 flex min-h-[54px] w-[calc(100%-32px)] items-center justify-center gap-2.5 rounded-[var(--app-radius-xl)] border-[1.5px] border-red-200 bg-white px-4 text-base font-semibold text-red-500 shadow-[0_2px_8px_rgba(239,68,68,0.12)] active:scale-[0.97]">
+          <LogOut className="h-[18px] w-[18px]" />
           {t('settings.logOut')}
         </button>
       </div>

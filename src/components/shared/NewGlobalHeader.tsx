@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings } from 'lucide-react';
+import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AppLogo } from './AppLogo';
@@ -23,6 +23,9 @@ interface AppHeaderProps {
   showSearch?: boolean;
   showAdd?: boolean;
   count?: number | string;
+  sortValue?: string;
+  onSortChange?: (value: string) => void;
+  sortOptions?: Array<{ value: string; label: string }>;
 }
 
 const SCREEN_THEMES = {
@@ -68,14 +71,22 @@ export const AppHeader = ({
   showFilters = true,
   showSearch = true,
   showAdd = true,
-  count
+  count,
+  sortValue,
+  onSortChange,
+  sortOptions = []
 }: AppHeaderProps) => {
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage } = useApp();
+  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage, users = [], appSettings = {} } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
+  const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
+  const displayName = currentUser ? `${currentUser.name || currentUser.displayName || currentUser.email || ''}` : '';
+  const initials = displayName.split(/\s+|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+  const notificationCount = 0;
+  const isSortable = !!onSortChange && sortOptions.length > 0;
 
   const typeFilters = filters.filter(f => f.type === type);
 
@@ -157,8 +168,23 @@ export const AppHeader = ({
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
       <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
-        <div className="mb-3 flex min-h-[34px] items-center justify-center">
+        <div className="mb-3 flex min-h-[34px] items-center justify-between">
+          <a
+            href="/settings/profile"
+            className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-full bg-[var(--app-primary-grad)] text-[13px] font-black text-white shadow-sm active:scale-[0.97]"
+            aria-label={t('settings.yourProfile')}
+          >
+            {initials}
+          </a>
           <AppLogo size="lg" />
+          <a
+            href="/settings/notifications"
+            className="relative grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-full text-[var(--app-text-muted)] active:scale-[0.97]"
+            aria-label="Notificaties"
+          >
+            <Bell className="h-5 w-5" strokeWidth={1.8} />
+            {notificationCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-red-500" />}
+          </a>
         </div>
 
         <div className="app-search-card flex items-center gap-2 bg-transparent p-0 shadow-none">
@@ -245,16 +271,15 @@ export const AppHeader = ({
           )}
 
           {showSearch && (
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: theme.color }} strokeWidth={2.5} />
+            <div className="flex min-h-10 flex-1 items-center gap-2.5 rounded-[var(--app-radius-pill)] border bg-white/85 px-3.5 py-2.5 shadow-none backdrop-blur-md focus-within:ring-2" style={{ borderColor: `${theme.color}20`, '--tw-ring-color': `${theme.color}33` } as React.CSSProperties}>
+              <Search className="h-3.5 w-3.5 flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.5} />
               <input
                 type="text"
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
-                className="min-h-10 w-full rounded-[var(--app-radius-pill)] border bg-white/85 py-2.5 pl-9 pr-3 text-sm text-[var(--app-text)] shadow-none backdrop-blur-md placeholder:text-[var(--app-text-soft)] focus:outline-none focus:ring-2"
-                style={{ borderColor: `${theme.color}20`, '--tw-ring-color': `${theme.color}33` } as React.CSSProperties}
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
               />
             </div>
           )}
@@ -291,8 +316,21 @@ export const AppHeader = ({
           <div className="flex items-center gap-2">
             <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
             <span className="text-sm font-black tracking-[0.06em]" style={{ color: theme.color }}>{theme.badgeLabel}</span>
+            {count !== undefined && (
+              <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
+            )}
           </div>
-          {count !== undefined && <span className="text-xl font-black leading-none tracking-[-0.03em]" style={{ color: theme.color }}>{count}</span>}
+          {isSortable && (
+            <select
+              value={sortValue}
+              onChange={(event) => onSortChange?.(event.target.value)}
+              className="min-h-8 rounded-[var(--app-radius-pill)] px-3 text-xs font-bold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color }}
+              aria-label={t('common.sort')}
+            >
+              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          )}
         </div>
       </div>
     </div>

@@ -46,7 +46,7 @@ describe('Inbox stat cards', () => {
       expect(card).toHaveClass('text-white');
       expect(card).not.toHaveClass('bg-white');
       expect(card.querySelector('[data-testid="inbox-stat-watermark"]')).not.toBeInTheDocument();
-      expect(card.querySelector('p')).toHaveClass('text-[32px]');
+      expect(card.querySelector('p')).toHaveClass('text-2xl');
     }
 
     expect(screen.getByTestId('inbox-stat-card-backlog')).toHaveAttribute('data-status', 'backlog');

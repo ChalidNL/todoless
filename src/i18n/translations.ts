@@ -214,6 +214,8 @@ interface TranslationStructure {
     newPassword: string;
     noApiTokens: string;
     noApiTokensYet: string;
+    noLabels: string;
+    noLabelsHint: string;
     noPermissions: string;
     noPendingAgents: string;
     noRegisteredAgents: string;
@@ -619,6 +621,8 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'New Password',
       noApiTokens: 'No API tokens',
       noApiTokensYet: 'No API tokens yet',
+      noLabels: 'No labels yet',
+      noLabelsHint: 'Create a label with the + button',
       noPermissions: 'No permissions',
       noPendingAgents: 'No pending agents',
       noRegisteredAgents: 'No registered agents',
@@ -1020,6 +1024,8 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Nouveau mot de passe',
       noApiTokens: 'Aucun jeton API',
       noApiTokensYet: 'Pas encore de jetons API',
+      noLabels: 'Aucune étiquette',
+      noLabelsHint: 'Créez une étiquette avec le bouton +',
       noPermissions: 'Aucune permission',
       noPendingAgents: 'Aucun agent en attente',
       noRegisteredAgents: 'Aucun agent enregistré',
@@ -1421,6 +1427,8 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Nieuw wachtwoord',
       noApiTokens: 'Geen API tokens',
       noApiTokensYet: 'Nog geen API tokens',
+      noLabels: 'Nog geen labels',
+      noLabelsHint: 'Maak een label aan via de + knop',
       noPermissions: 'Geen rechten',
       noPendingAgents: 'Geen wachtende agenten',
       noRegisteredAgents: 'Geen geregistreerde agenten',
@@ -1822,6 +1830,8 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Neues Passwort',
       noApiTokens: 'Keine API-Tokens',
       noApiTokensYet: 'Noch keine API-Tokens',
+      noLabels: 'Noch keine Labels',
+      noLabelsHint: 'Erstelle ein Label über die + Schaltfläche',
       noPermissions: 'Keine Berechtigungen',
       noPendingAgents: 'Keine ausstehenden Agenten',
       noRegisteredAgents: 'Keine registrierten Agenten',
@@ -2149,7 +2159,7 @@ export const translations: Record<Language, TranslationStructure> = {
       filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
       language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
       newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
-      noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
+      noLabels: 'Aún no hay etiquetas', noLabelsHint: 'Crea una etiqueta con el botón +', noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
       noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', openSwaggerDocs: 'Abrir documentación Swagger',
       admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
       autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',

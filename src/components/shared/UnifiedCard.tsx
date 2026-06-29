@@ -193,20 +193,22 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
           {/* Quantity [+][-] controls (items) — replaces static badge */}
           {!isTask && !isDone && (
-            <div className="flex items-center gap-1 flex-shrink-0 rounded-full bg-[var(--app-surface-2)] p-1 shadow-inner">
+            <div className="flex min-h-[44px] flex-shrink-0 items-center gap-1 rounded-full bg-[var(--app-surface-2)] p-1 shadow-inner">
               <button
-                onClick={() => setQuantity(quantity - 1)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-white text-sm font-black text-[var(--app-primary)] shadow-sm hover:scale-105"
+                type="button"
+                onClick={(event) => { event.stopPropagation(); setQuantity(quantity - 1); }}
+                className="grid h-9 min-h-9 w-9 place-items-center rounded-full bg-white text-base font-black text-[var(--app-primary)] shadow-sm active:scale-[0.97]"
                 aria-label={t('items.decreaseQuantity')}
               >
-                -
+                −
               </button>
-              <span className="min-w-[30px] text-center text-sm font-extrabold text-[var(--app-text)]">
+              <span className="grid min-h-9 min-w-9 place-items-center text-center text-sm font-extrabold text-[var(--app-text)]">
                 {quantity}
               </span>
               <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="grid h-7 w-7 place-items-center rounded-full bg-[var(--app-primary)] text-sm font-black text-white shadow-sm hover:scale-105"
+                type="button"
+                onClick={(event) => { event.stopPropagation(); setQuantity(quantity + 1); }}
+                className="grid h-9 min-h-9 w-9 place-items-center rounded-full bg-[var(--app-primary)] text-base font-black text-white shadow-sm active:scale-[0.97]"
                 aria-label={t('items.increaseQuantity')}
               >
                 +

@@ -3,9 +3,7 @@ import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 
-import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
-import { SharedSelect } from './shared/SharedSelect';
 import { t, formatDate } from '../i18n/translations';
 import { TaskCard } from './shared/TaskCard';
 import { SectionHeader } from './shared/SectionHeader';
@@ -215,7 +213,6 @@ export const TasksView = () => {
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
   const statusQuickFilters = [
     { id: 'todo', label: t('dashboard.todoSprint'), count: regularTasks.length, color: '#16a34a' },
-    { id: 'focus', label: t('tasks.focus'), count: focusTasks.length, color: '#f97316' },
     { id: 'blocked', label: t('dashboard.blocked'), count: blockedTasks.length, color: '#e11d48' },
     { id: 'done', label: t('dashboard.doneSprint'), count: completedTasks.length, color: '#7c3aed' },
   ];
@@ -229,6 +226,13 @@ export const TasksView = () => {
           onSearch={setSearchQuery}
           searchPlaceholder={t('tasks.searchPlaceholder')}
           count={activeTasks.length}
+          sortValue={sortMode}
+          onSortChange={(value) => setSortMode(value as SortMode)}
+          sortOptions={[
+            { value: 'alpha', label: 'A-Z' },
+            { value: 'priority', label: t('filters.priority') },
+            { value: 'dueDate', label: t('filters.dueDate') },
+          ]}
         />
       </div>
 
@@ -342,21 +346,6 @@ export const TasksView = () => {
           <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />
         ) : (
           <>
-            {/* Tasks header with sort — always at top-right */}
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <SectionHeader title={t('common.tasks')} count={activeTasks.length} />
-              <SharedSelect<SortMode>
-                value={sortMode}
-                onChange={setSortMode}
-                ariaLabel={t('filters.sortTasks')}
-                options={[
-                  { value: 'alpha', label: 'A-Z' },
-                  { value: 'priority', label: t('filters.priority') },
-                  { value: 'dueDate', label: t('filters.dueDate') },
-                ]}
-              />
-            </div>
-
             {/* OVERDUE section — always below sort header */}
             <DueDateNotifications />
 
