@@ -107,10 +107,12 @@ export const GroceriesView = () => {
     <>
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
+          screen="shop"
           onSearch={setSearchQuery}
           onAdd={handleAddItem}
           searchPlaceholder={t('items.searchPlaceholder')}
           type="item"
+          count={sortedActiveItems.length}
         />
       </div>
               {/* Filter bar */}

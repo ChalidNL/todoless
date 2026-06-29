@@ -153,9 +153,11 @@ export const InboxBacklog = () => {
     <>
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
+          screen="inbox"
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
           searchPlaceholder={t('inbox.searchPlaceholder')}
+          count={displayedTasks.length}
         />
       </div>
 
@@ -208,9 +210,9 @@ export const InboxBacklog = () => {
           </div>
         )}
 
-        <div className="max-w-lg mx-auto px-4 pt-4 space-y-6 pb-20">
+        <div className="max-w-lg mx-auto px-4 pt-3 space-y-4 pb-20">
           {/* Stat boxes — clickable as filters */}
-          <div className="grid grid-cols-2 gap-[var(--app-space-gap)]">
+          <div className="grid grid-cols-2 gap-[10px]">
             {statusSections.map((stat) => (
               <StatCard
                 key={stat.key}
@@ -236,7 +238,6 @@ export const InboxBacklog = () => {
           <div>
             {activeStatusFilter ? (
               <>
-                <SectionHeader title={statusSections.find((s) => s.key === activeStatusFilter)?.label || t('common.tasks')} count={displayedTasks.length} />
                 {displayedTasks.length === 0 ? (
                   <EmptyState title={t('inbox.noTasksFound')} icon={<Inbox className="h-7 w-7" />} />
                 ) : (
@@ -249,8 +250,7 @@ export const InboxBacklog = () => {
               </>
             ) : (
               <>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <SectionHeader title={t('inbox.title')} count={displayedTasks.length} />
+                <div className="mb-3 flex items-center justify-end gap-3">
                   <div className="flex items-center gap-1">
                     {displayedTasks.length > 0 && !isSelecting && (
                       <button

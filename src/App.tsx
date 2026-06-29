@@ -11,14 +11,12 @@ import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
-import { FocusView } from './components/FocusView';
 import { MembersView } from './components/MembersView';
 import { LabelsView } from './components/LabelsView';
 import { ProfileView } from './components/ProfileView';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, Target } from 'lucide-react';
-import { AppMark } from './components/shared/AppLogo';
+import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, CheckSquare } from 'lucide-react';
 import { SplashScreen } from './components/shared/SplashScreen';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
@@ -212,12 +210,11 @@ function AppContent() {
   }
 
   const navItems: BottomNavItem[] = [
-    { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: t('nav.tasks', language), icon: <AppMark className="w-5 h-5" /> },
-    { to: '/focus', label: t('tasks.focus', language), icon: <Target className="w-5 h-5" /> },
-    { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
-    { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
-    { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
+    { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="h-[22px] w-[22px]" />, activeColor: '#3b82f6', activeBg: '#eff6ff' },
+    { to: '/tasks', label: t('nav.tasks', language), icon: <CheckSquare className="h-[22px] w-[22px]" />, activeColor: '#22c55e', activeBg: '#f0fdf4' },
+    { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="h-[22px] w-[22px]" />, activeColor: '#f97316', activeBg: '#fff7ed' },
+    { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="h-[22px] w-[22px]" />, activeColor: '#ec4899', activeBg: '#fdf2f8' },
+    { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="h-[22px] w-[22px]" />, activeColor: '#6366f1', activeBg: '#eef2ff' },
   ];
 
   const toast = completionMessage ? (
@@ -233,7 +230,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
-          <Route path="/focus" element={<FocusView />} />
+          <Route path="/focus" element={<Navigate to="/tasks" replace />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />

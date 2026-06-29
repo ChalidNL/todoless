@@ -224,9 +224,11 @@ export const TasksView = () => {
     <>
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
+          screen="taken"
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
           searchPlaceholder={t('tasks.searchPlaceholder')}
+          count={activeTasks.length}
         />
       </div>
 

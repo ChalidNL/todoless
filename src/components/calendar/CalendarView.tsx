@@ -111,6 +111,7 @@ export function CalendarView() {
     <div className="app-shell-bg h-full min-h-0 flex flex-col">
       <div className="sticky top-0 z-40">
         <AppHeader
+          screen="agenda"
           onAdd={(value) => openCreate(undefined, undefined, value)}
           onSearch={setSearchQuery}
           onAddEmpty={(value) => value ? openCreate(undefined, undefined, value) : openCreate(selectedDay)}
@@ -118,6 +119,7 @@ export function CalendarView() {
           showAdd={true}
           searchPlaceholder={t('calendar.searchPlaceholder', language)}
           type="calendar"
+          count={items.length}
         />
       </div>
       <DateNavigator
