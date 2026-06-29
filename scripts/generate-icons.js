@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { execFileSync } = require('node:child_process');
-const { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync } = require('node:fs');
+const { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, chmodSync } = require('node:fs');
 const { resolve } = require('node:path');
 
 const root = resolve(__dirname, '..');
@@ -20,6 +20,8 @@ if (!existsSync(logo)) {
 mkdirSync(iconDir, { recursive: true });
 copyFileSync(logo, fallbackSource);
 copyFileSync(logo, resolve(iconDir, 'logo-rainbow.png'));
+chmodSync(fallbackSource, 0o644);
+chmodSync(resolve(iconDir, 'logo-rainbow.png'), 0o644);
 
 for (const size of sizes) {
   const png = resolve(iconDir, `icon-${size}.png`);
