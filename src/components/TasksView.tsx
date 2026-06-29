@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock, Tag } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 
 import { DueDateNotifications } from './shared/DueDateNotifications';
@@ -63,7 +63,7 @@ const isOverdue = (dueDate?: number): boolean => {
 };
 
 export const TasksView = () => {
-  const { tasks, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
+  const { tasks, labels, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
@@ -213,9 +213,16 @@ export const TasksView = () => {
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
   const statusQuickFilters = [
     { id: 'todo', label: t('dashboard.todoSprint'), count: regularTasks.length, color: '#16a34a' },
+    { id: 'focus', label: t('tasks.focus'), count: focusTasks.length, color: '#f97316' },
     { id: 'blocked', label: t('dashboard.blocked'), count: blockedTasks.length, color: '#e11d48' },
     { id: 'done', label: t('dashboard.doneSprint'), count: completedTasks.length, color: '#7c3aed' },
   ];
+  const visibleTaskLabelIds = new Set(tasks.flatMap((task) => task.labels || []));
+  const visibleLabels = labels.filter((label) => visibleTaskLabelIds.has(label.id));
+  const activeLabelChipIds = activeChipFilters.filter((f) => f.type === 'label').map((f) => f.id);
+  const clearLabelChips = () => {
+    activeLabelChipIds.forEach((id) => toggleChipFilter('label', id));
+  };
 
   return (
     <>
@@ -341,6 +348,36 @@ export const TasksView = () => {
           activeIds={activeChipFilters.filter((f) => f.type === 'status').map((f) => f.id)}
           onToggle={(filter) => toggleChipFilter('status', filter.id, filter.label, filter.color)}
         />
+        {visibleLabels.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar" aria-label="Label filters">
+            <button
+              type="button"
+              onClick={clearLabelChips}
+              className={`inline-flex min-h-9 flex-shrink-0 items-center rounded-full border px-3 text-xs font-bold shadow-sm ${activeLabelChipIds.length === 0 ? 'border-transparent bg-[var(--app-primary-grad)] text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'}`}
+            >
+              Alle
+            </button>
+            {visibleLabels.map((label) => {
+              const active = activeLabelChipIds.includes(label.id);
+              return (
+                <button
+                  key={label.id}
+                  type="button"
+                  onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                  className="inline-flex min-h-9 flex-shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold shadow-sm"
+                  style={{
+                    background: active ? `${label.color}18` : 'white',
+                    color: active ? label.color : 'var(--app-text-muted)',
+                    borderColor: active ? `${label.color}35` : 'var(--app-border-subtle)',
+                  }}
+                >
+                  <Tag className="h-3 w-3" />
+                  {label.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {/* Empty state */}
         {isEmpty ? (
           <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />

@@ -2,16 +2,24 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
-import { SharedSelect } from '../shared/SharedSelect';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
 import { EmptyState } from '../shared/EmptyState';
 import { SectionHeader } from '../shared/SectionHeader';
 
-function StoreFilterChips({ shops, activeIds, onToggle }: { shops: Array<{ id: string; name: string; color?: string }>; activeIds: string[]; onToggle: (shop: { id: string; name: string; color?: string }) => void }) {
+function StoreFilterChips({ shops, activeIds, onToggle, onAll }: { shops: Array<{ id: string; name: string; color?: string }>; activeIds: string[]; onToggle: (shop: { id: string; name: string; color?: string }) => void; onAll: () => void }) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" aria-label="Store filters">
+      <button
+        type="button"
+        onClick={onAll}
+        className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black shadow-sm ${activeIds.length === 0 ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
+        style={activeIds.length === 0 ? { backgroundColor: '#ec4899' } : undefined}
+      >
+        <ShoppingCart className="h-3.5 w-3.5" />
+        Alle
+      </button>
       {shops.map((shop) => {
         const active = activeIds.includes(shop.id);
         const color = shop.color || 'var(--app-primary)';
@@ -23,7 +31,7 @@ function StoreFilterChips({ shops, activeIds, onToggle }: { shops: Array<{ id: s
             className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black shadow-sm ${active ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
             style={active ? { backgroundColor: color } : { color }}
           >
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: active ? 'rgba(255,255,255,.85)' : color }} />
+            <ShoppingCart className="h-3.5 w-3.5" />
             {shop.name}
           </button>
         );
@@ -102,6 +110,8 @@ export const GroceriesView = () => {
   };
 
   const hasAnyFilter = activeChipFilters.length > 0;
+  const activeShopFilterIds = activeChipFilters.filter((f) => f.type === 'shop').map((f) => f.id);
+  const clearShopFilters = () => activeShopFilterIds.forEach((id) => toggleChipFilter('shop', id));
 
   return (
     <>
@@ -113,6 +123,12 @@ export const GroceriesView = () => {
           searchPlaceholder={t('items.searchPlaceholder')}
           type="item"
           count={sortedActiveItems.length}
+          sortValue={sortMode}
+          onSortChange={(value) => setSortMode(value as GrocerySortMode)}
+          sortOptions={[
+            { value: 'alpha', label: t('items.sortAlpha') },
+            { value: 'category', label: t('items.sortCategory') },
+          ]}
         />
       </div>
               {/* Filter bar */}
@@ -215,22 +231,11 @@ export const GroceriesView = () => {
         {shops.length > 0 && (
           <StoreFilterChips
             shops={shops}
-            activeIds={activeChipFilters.filter((f) => f.type === 'shop').map((f) => f.id)}
+            activeIds={activeShopFilterIds}
             onToggle={(shop) => toggleChipFilter('shop', shop.id, shop.name, shop.color)}
+            onAll={clearShopFilters}
           />
         )}
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <SectionHeader title={t('items.title')} count={sortedActiveItems.length} />
-          <SharedSelect<GrocerySortMode>
-            value={sortMode}
-            onChange={setSortMode}
-            ariaLabel={t('items.sortLabel')}
-            options={[
-              { value: 'alpha', label: t('items.sortAlpha') },
-              { value: 'category', label: t('items.sortCategory') },
-            ]}
-          />
-        </div>
         {sortedActiveItems.length === 0 ? (
           <EmptyState title={t('groceries.empty') || 'No items yet'} icon={<ShoppingCart className="h-7 w-7" />} />
         ) : (

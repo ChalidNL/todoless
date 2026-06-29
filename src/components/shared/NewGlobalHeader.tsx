@@ -26,6 +26,7 @@ interface AppHeaderProps {
   sortValue?: string;
   onSortChange?: (value: string) => void;
   sortOptions?: Array<{ value: string; label: string }>;
+  sortAriaLabel?: string;
 }
 
 const SCREEN_THEMES = {
@@ -74,7 +75,8 @@ export const AppHeader = ({
   count,
   sortValue,
   onSortChange,
-  sortOptions = []
+  sortOptions = [],
+  sortAriaLabel = t('common.sort')
 }: AppHeaderProps) => {
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
@@ -168,21 +170,21 @@ export const AppHeader = ({
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
       <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
-        <div className="mb-3 flex min-h-[34px] items-center justify-between">
+        <div className="mb-3 flex min-h-[36px] items-center justify-between px-0">
           <a
             href="/settings/profile"
-            className="grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-full bg-[var(--app-primary-grad)] text-[13px] font-black text-white shadow-sm active:scale-[0.97]"
+            className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-full border-2 border-white bg-[var(--app-primary-grad)] text-[13px] font-black text-white shadow-[0_2px_8px_rgba(99,102,241,0.25)] active:scale-[0.97]"
             aria-label={t('settings.yourProfile')}
           >
-            {initials}
+            <span>{initials}</span>
           </a>
           <AppLogo size="lg" />
           <a
             href="/settings/notifications"
-            className="relative grid h-[34px] w-[34px] flex-shrink-0 place-items-center rounded-full text-[var(--app-text-muted)] active:scale-[0.97]"
+            className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-white/60 text-[var(--app-text-muted)] active:scale-[0.97]"
             aria-label="Notificaties"
           >
-            <Bell className="h-5 w-5" strokeWidth={1.8} />
+            <Bell className="h-[19px] w-[19px]" strokeWidth={1.8} />
             {notificationCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-red-500" />}
           </a>
         </div>
@@ -326,7 +328,8 @@ export const AppHeader = ({
               onChange={(event) => onSortChange?.(event.target.value)}
               className="min-h-8 rounded-[var(--app-radius-pill)] px-3 text-xs font-bold outline-none"
               style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color }}
-              aria-label={t('common.sort')}
+              aria-label={sortAriaLabel}
+              data-component="shared-select"
             >
               {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>

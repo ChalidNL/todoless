@@ -5,7 +5,7 @@ import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
 import { t, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
-import { SharedSelect } from '../shared/SharedSelect';
+
 import { TaskCard } from '../shared/TaskCard';
 import type { Task } from '../../types';
 import {
@@ -120,18 +120,20 @@ export function CalendarView() {
           searchPlaceholder={t('calendar.searchPlaceholder', language)}
           type="calendar"
           count={items.length}
+          sortValue={mode}
+          onSortChange={(value) => { setMode(value as CalendarViewMode); setAnchor(startOfLocalDay(Date.now())); }}
+          sortOptions={views.map((v) => ({ value: v, label: t(`calendar.${v}`, language) }))}
+          sortAriaLabel={t('calendar.viewLabel', language)}
         />
       </div>
       <DateNavigator
         periodTitle={periodTitle}
         isTodayAnchor={isTodayAnchor}
         mode={mode}
-        views={views}
         language={language}
         onToday={() => { const today = startOfLocalDay(Date.now()); setAnchor(today); setSelectedDay(today); }}
         onPrevious={() => jump(-1)}
         onNext={() => jump(1)}
-        onModeChange={(value) => { setMode(value as CalendarViewMode); setAnchor(startOfLocalDay(Date.now())); }}
       />
 
       <main className="flex-1 min-h-0 overflow-y-auto p-3">
@@ -147,7 +149,7 @@ export function CalendarView() {
   );
 }
 
-function DateNavigator({ periodTitle, isTodayAnchor, mode, views, language, onToday, onPrevious, onNext, onModeChange }: { periodTitle: string; isTodayAnchor: boolean; mode: CalendarViewMode; views: CalendarViewMode[]; language: Language; onToday: () => void; onPrevious: () => void; onNext: () => void; onModeChange: (value: string) => void }) {
+function DateNavigator({ periodTitle, isTodayAnchor, language, onToday, onPrevious, onNext }: { periodTitle: string; isTodayAnchor: boolean; mode: CalendarViewMode; language: Language; onToday: () => void; onPrevious: () => void; onNext: () => void }) {
   return (
     <header className="flex-shrink-0 px-3 py-2">
       <div className="app-surface flex items-center gap-1.5 rounded-full px-2 py-1.5">
@@ -155,13 +157,6 @@ function DateNavigator({ periodTitle, isTodayAnchor, mode, views, language, onTo
         <button type="button" aria-label={t('calendar.previous', language)} onClick={onPrevious} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronLeft className="w-3.5 h-3.5" /></button>
         <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-extrabold text-[var(--app-text)]">{periodTitle}</p>
         <button type="button" aria-label={t('calendar.next', language)} onClick={onNext} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronRight className="w-3.5 h-3.5" /></button>
-        <SharedSelect
-          id="calendar-view-select"
-          ariaLabel={t('calendar.viewLabel', language)}
-          value={mode}
-          onChange={onModeChange}
-          options={views.map((v) => ({ value: v, label: t(`calendar.${v}`, language) }))}
-        />
       </div>
     </header>
   );

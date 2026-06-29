@@ -5,7 +5,7 @@ import { useAuth } from './AuthProvider';
 import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, Sliders, Bell, ShoppingCart, Camera } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
@@ -597,15 +597,15 @@ export const Settings = () => {
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
     { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('settings.teamMembers'), sub: `${users.length} ${t('members.title').toLowerCase()}` },
     { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} labels` },
-    { href: '/settings/shops', icon: ShoppingCart, color: '#ec4899', label: 'Winkels', sub: `${shops.length} winkels` },
-    { href: '/settings/preferences', icon: Sliders, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
+    { href: '/settings/shops', icon: Store, color: '#ec4899', label: 'Winkels', sub: `${shops.length} winkels` },
+    { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
     { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: 'Notificaties', sub: null },
     { href: '/api/swagger', icon: Plug, color: '#0ea5e9', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
   ];
 
   return (
     <>
-      <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} count={users.length} />
+      <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
 
       <div className="mx-auto max-w-2xl pb-24 pt-3">
         <a href="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
