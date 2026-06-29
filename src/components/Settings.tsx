@@ -5,8 +5,8 @@ import { useAuth } from './AuthProvider';
 import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User } from 'lucide-react';
-import { PageHeader } from './shared/PageHeader';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, Sliders, Bell } from 'lucide-react';
+import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
@@ -591,294 +591,76 @@ export const Settings = () => {
     );
   }
 
+  const displayName = userDisplayName(currentUser);
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || '?';
+  const settingsItems = [
+    { href: '/settings/profile', icon: UserCircle2, color: '#6366f1', label: t('settings.yourProfile'), sub: currentUser.email },
+    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('settings.teamMembers'), sub: `${users.length} ${t('members.title').toLowerCase()}` },
+    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} labels` },
+    { href: '/settings/preferences', icon: Sliders, color: '#8b5cf6', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
+    { href: '/settings/notifications', icon: Bell, color: '#f97316', label: 'Notificaties', sub: null },
+    { href: '/api/swagger', icon: Plug, color: '#22c55e', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
+  ];
+
   return (
     <>
-      <PageHeader title={t('nav.settings')} subtitle={currentUser.email} />
+      <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} count={users.length} />
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 pb-20 space-y-5">
-        <div className="grid gap-2">
-          <a href="/settings/members" className="app-surface flex items-center gap-3 px-4 py-3 text-left">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-violet-50 text-violet-700"><Users className="h-5 w-5" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-extrabold text-[var(--app-text)]">{t('settings.teamMembers')}</span>
-              <span className="block truncate text-xs font-medium text-[var(--app-text-muted)]">{users.length} {t('members.title').toLowerCase()}</span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-neutral-400" />
-          </a>
-          <a href="/settings/labels" className="app-surface flex items-center gap-3 px-4 py-3 text-left">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-50 text-blue-700"><Shield className="h-5 w-5" /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-extrabold text-[var(--app-text)]">{t('settings.labels')}</span>
-              <span className="block truncate text-xs font-medium text-[var(--app-text-muted)]">{labels.length} labels</span>
-            </span>
-            <ChevronRight className="h-5 w-5 text-neutral-400" />
-          </a>
-        </div>
+      <div className="mx-auto max-w-2xl pb-24 pt-3">
+        <a href="/settings/profile" className="mx-4 mb-3 flex items-center gap-3 rounded-[var(--app-radius-card)] border border-[var(--app-border-subtle)] bg-[var(--app-surface)] px-4 py-4 text-left shadow-[var(--app-shadow-card)] active:scale-[0.97]">
+          <span className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-full bg-[var(--app-primary-grad)] text-lg font-black text-white">{initials}</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-base font-bold text-[var(--app-text)]">{displayName}</span>
+            <span className="block truncate text-sm font-medium text-[var(--app-text-muted)]">{currentUser.email}</span>
+          </span>
+          <ChevronRight className="h-4 w-4 text-[var(--app-text-soft)]" />
+        </a>
 
-        {/* User Profile */}
-        <div className="overflow-hidden rounded-[28px] bg-[var(--app-primary-grad)] p-0 text-white shadow-[0_18px_46px_rgba(124,92,252,.28)]">
-          <div className="px-6 pt-5"><h2 className="text-lg font-bold mb-4 text-white">{t('settings.yourProfile')}</h2></div>
-          
-          {profileError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-              {profileError}
-            </div>
-          )}
-
-          {!editingProfile ? (
-            <div className="space-y-4 px-6 pb-6">
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/20 ring-1 ring-white/30 flex items-center justify-center text-2xl font-black text-white shadow-lg shrink-0">
-                  {userDisplayName(currentUser).charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-white truncate">{userDisplayName(currentUser)}</p>
-                    <button
-                      onClick={handleProfileEdit}
-                      className="p-1.5 hover:bg-white/20 rounded-full transition-colors shrink-0"
-                      title={t('settings.editProfile')}
-                    >
-                      <Edit2 className="w-4 h-4 text-white" />
-                    </button>
-                  </div>
-                  <p className="text-sm text-white/75">{currentUser.firstName || currentUser.lastName
-                    ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ')
-                    : t('common.unknown')}</p>
-                  <p className="text-sm text-white/90 truncate">{currentUser.email}</p>
-                  <p className="mt-2 inline-flex rounded-full bg-white/18 px-2.5 py-1 text-xs font-bold capitalize text-white">
-                    {t('settings.role')}: {currentUser.role || t('settings.member')}
-                  </p>
-                  <p className="ml-2 mt-2 inline-flex rounded-full bg-white/18 px-2.5 py-1 text-xs font-bold text-white">
-                    {t('settings.language')}: {getLanguageLabel(currentUser.language || 'en')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Password Change */}
-              <div className="rounded-2xl bg-white/14 p-3 ring-1 ring-white/15">
-                <label className="block text-sm font-semibold text-white/85 mb-2">{t('settings.password')}</label>
-                {passwordError && (
-                  <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                    {passwordError}
-                  </div>
-                )}
-                {!editingPassword ? (
-                  <button
-                    onClick={() => { setEditingPassword(true); setPasswordError(''); }}
-                    className="text-sm font-semibold text-white hover:text-white/80 flex items-center gap-2"
-                  >
-                    {t('settings.changePassword')}
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder={t('settings.currentPassword')}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                    />
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder={t('settings.newPassword')}
-                        className="w-full px-3 py-2 pr-10 border border-neutral-200 rounded text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder={t('settings.confirmPassword')}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                    />
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => {
-                          setEditingPassword(false);
-                          setCurrentPassword('');
-                          setNewPassword('');
-                          setConfirmPassword('');
-                          setShowPassword(false);
-                          setPasswordError('');
-                        }}
-                        className="px-3 py-1.5 border border-neutral-200 rounded text-sm flex-1"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                      <button
-                        onClick={handlePasswordChange}
-                        className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm flex-1"
-                      >
-                        {t('settings.update')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Profile Edit Form */
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {userDisplayName(currentUser).charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-500">{currentUser.email}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.firstName')}</label>
-                <input
-                  type="text"
-                  value={editFirstName}
-                  onChange={(e) => setEditFirstName(e.target.value)}
-                  placeholder={t('onboarding.firstName')}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.lastName')}</label>
-                <input
-                  type="text"
-                  value={editLastName}
-                  onChange={(e) => setEditLastName(e.target.value)}
-                  placeholder={t('onboarding.lastName')}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('settings.language')}</label>
-                <select
-                  value={editLanguage}
-                  onChange={(event) => setEditLanguage(event.target.value as SupportedUiLanguage)}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
-                >
-                  {SUPPORTED_UI_LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>{getLanguageLabel(lang)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={handleCancelProfileEdit}
-                  className="flex-1 px-4 py-2 border border-neutral-200 rounded text-sm"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleProfileSave}
-                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded text-sm"
-                >
-                  {t('common.save')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="app-surface overflow-hidden p-4">
-          <h2 className="mb-3 text-base font-black tracking-[-0.02em] text-[var(--app-text)]">{t('settings.preferences')}</h2>
-          <label className="mb-1 block text-sm font-semibold text-[var(--app-text-muted)]" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
-          <select
-            id="first-day-of-week"
-            aria-label={t('settings.firstDayOfWeek')}
-            value={appSettings.sprintStartDay ?? 1}
-            onChange={(event) => updateAppSettings({ sprintStartDay: Number(event.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })}
-            className="mb-4 w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-[var(--app-surface-2)] px-3 py-3 text-sm font-semibold text-[var(--app-text)]"
-          >
-            {weekDays.map((day) => (
-              <option key={day.value} value={day.value}>{day.label}</option>
-            ))}
-          </select>
-          <CalendarImportExport />
-          <button type="button" onClick={() => setShowPreferences(true)} className="sr-only">{t('settings.preferences')}</button>
-        </div>
-
-        <div className="app-surface overflow-hidden p-2">
-          <SettingsNavItem href="/settings/profile" icon={<User className="h-5 w-5" />} title={t('settings.yourProfile')} subtitle={currentUser.email} />
-          <SettingsNavItem href="/settings/members" icon={<Users className="h-5 w-5" />} title={t('settings.teamMembers')} subtitle={`${users.length} ${t('members.title').toLowerCase()}`} />
-          <button type="button" onClick={() => setShowLabels(!showLabels)} className="flex min-h-[var(--app-touch-target)] w-full items-center gap-3 rounded-[20px] px-3 py-3 text-left transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><Shield className="h-5 w-5" /></span>
-            <span className="min-w-0 flex-1"><span className="block text-sm font-black text-[var(--app-text)]">{t('settings.labels')}</span><span className="block truncate text-xs font-semibold text-[var(--app-text-muted)]">{labels.length} labels</span></span>
-            <ChevronRight className={`h-5 w-5 text-[var(--app-text-soft)] transition ${showLabels ? 'rotate-90' : ''}`} />
-          </button>
-          <SettingsNavItem href="/api/swagger" icon={<Plug className="h-5 w-5" />} title={t('settings.integration')} subtitle={t('settings.apiDocumentation')} external />
-        </div>
-
-        {showLabels && (
-          <div className="app-surface overflow-hidden divide-y divide-[var(--app-border-subtle)]">
-            {sortedLabels.map(label => (
-              <div key={label.id} data-testid={`settings-label-row-${label.id}`} className="flex min-h-11 items-center gap-2 px-3 py-1.5">
-                <AttributeChip label={label.name} color={label.color} maxWidthClassName="max-w-[150px]" />
-                <span className="ml-auto inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--app-surface-2)] px-2 py-1 text-xs font-black text-[var(--app-text-muted)]" title={getVisibilityLabel(label.visibility)}>
-                  <VisibilityIcon visibility={label.visibility} className="h-3 w-3" />
-                  {getVisibilityLabel(label.visibility)}
+        <div className="mx-4 mb-3 overflow-hidden rounded-[var(--app-radius-card)] bg-[var(--app-surface)] shadow-[var(--app-shadow-card)]">
+          {settingsItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+                className="flex min-h-[64px] items-center gap-3 px-4 py-3 text-left active:scale-[0.99]"
+                style={{ borderBottom: index < settingsItems.length - 1 ? '1px solid var(--app-border-subtle)' : 'none' }}
+              >
+                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)]" style={{ background: `${item.color}15`, color: item.color }}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={2.1} />
                 </span>
-                <button type="button" onClick={() => startEditingLabel(label)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]" aria-label={`${t('common.edit')} ${label.name}`} title={t('common.edit')}>
-                  <Edit2 className="h-3.5 w-3.5" />
-                </button>
-                <button type="button" onClick={() => handleDeleteLabel(label.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50" aria-label={`${t('common.delete')} ${label.name}`} title={t('common.delete')}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold text-[var(--app-text)]">{item.label}</span>
+                  {item.sub && <span className="mt-0.5 block truncate text-xs font-medium text-[var(--app-text-muted)]">{item.sub}</span>}
+                </span>
+                {item.external ? <ExternalLink className="h-[15px] w-[15px] text-[var(--app-text-soft)]" /> : <ChevronRight className="h-[15px] w-[15px] text-[var(--app-text-soft)]" />}
+              </a>
+            );
+          })}
+        </div>
 
-        {/* App Info */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
+        <div className="mx-4 mb-3 rounded-[var(--app-radius-card)] bg-[var(--app-surface)] px-4 py-3 shadow-[var(--app-shadow-card)]" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-neutral-900">{t('settings.appInfo')}</h3>
-            <button
-              onClick={handleCopyAppInfo}
-              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-50"
-              aria-label={t('settings.copyAppInfo')}
-            >
-              <Copy className="w-3.5 h-3.5" />
-              {t('settings.copyAppInfo')}
+            <div className="min-w-0">
+              <div className="mb-1 text-sm font-semibold text-[var(--app-text-muted)]">{t('settings.appInfo')}</div>
+              <div className="truncate text-xs font-medium text-[var(--app-text-soft)]">{t('settings.version')}: {appVersion} · {appCommit}</div>
+            </div>
+            <button onClick={handleCopyAppInfo} className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 text-xs font-semibold text-[var(--app-text-muted)]" aria-label={t('settings.copyAppInfo')}>
+              <Copy className="h-3 w-3" /> {t('settings.copyAppInfo')}
             </button>
           </div>
-          <div className="text-sm text-neutral-600">
-            <p><span className="font-medium text-neutral-800">{t('settings.version')}:</span> <code>{appVersion}</code></p>
-            <p><span className="font-medium text-neutral-800">{t('settings.commit')}:</span> <code>{appCommit}</code></p>
-          </div>
           {updateAvailable && (
-            <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-blue-700">{t('settings.updateAvailable')}</p>
-              <button
-                onClick={handleUpdateApp}
-                disabled={updatingApp}
-                className="w-full px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-wait"
-              >
-                <RefreshCw className={`w-3 h-3 ${updatingApp ? 'animate-spin' : ''}`} />
-                {updatingApp ? t('common.loading') : t('settings.update')}
-              </button>
-            </div>
+            <button onClick={handleUpdateApp} disabled={updatingApp} className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--app-primary-soft)] px-3 text-xs font-bold text-[var(--app-primary)] disabled:opacity-60">
+              <RefreshCw className={`h-3 w-3 ${updatingApp ? 'animate-spin' : ''}`} />
+              {updatingApp ? t('common.loading') : t('settings.update')}
+            </button>
           )}
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="w-full px-4 py-3 border-2 border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors font-medium flex items-center justify-center gap-2"
-        >
-          <LogOut className="w-5 h-5" />
+        <button onClick={handleLogout} className="mx-4 flex min-h-[52px] w-[calc(100%-32px)] items-center justify-center gap-2 rounded-[var(--app-radius-card)] border border-red-200 bg-red-100 px-4 text-base font-semibold text-red-600 active:scale-[0.97]">
+          <LogOut className="h-[17px] w-[17px]" />
           {t('settings.logOut')}
         </button>
       </div>

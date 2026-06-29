@@ -671,127 +671,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-2 pt-2 border-t border-neutral-100">
               <div>
                 {/* Attribute buttons */}
-              <div className={`flex flex-wrap items-center gap-1.5 ${calendarBlock ? 'flex-wrap' : ''}`}>
+              <div className="flex items-center justify-start">
                 <button
-                  onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    hasLabels || activeEditor === 'labels'
-                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.labelTooltip')}
-                  aria-label={t('tasks.editLabels')}
+                  type="button"
+                  onClick={() => setActiveEditor(activeEditor ? null : 'labels')}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 text-sm font-semibold text-[var(--app-text-muted)]"
+                  title={t('common.edit')}
+                  aria-label={t('common.edit')}
                 >
-                  <Tag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => {
-                    const next = activeEditor === 'assignee' ? null : 'assignee';
-                    setActiveEditor(next);
-                    if (next) setAssigneeSearch('');
-                  }}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    hasAssignee || activeEditor === 'assignee'
-                      ? 'bg-green-100 text-green-700'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.assigneeTooltip')}
-                  aria-label={t('tasks.editAssignee')}
-                >
-                  <User className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    hasSchedule || activeEditor === 'schedule'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.scheduleTooltip')}
-                  aria-label={t('tasks.editSchedule')}
-                >
-                  <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks')}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    subtaskCount > 0 || activeEditor === 'subtasks'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.subtasksTooltip')}
-                  aria-label={t('tasks.viewSubtasks')}
-                >
-                  <SubtaskIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? 'text-white'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  style={
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? { backgroundColor: PRIORITY_COLORS[task.priority] }
-                      : undefined
-                  }
-                  title={t('tasks.priority')}
-                  aria-label={t('tasks.editPriority')}
-                >
-                  <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                {/* Focus toggle */}
-                <button
-                  onClick={() => updateTask(task.id, { focus: !task.focus })}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={task.focus ? 'Remove focus' : 'Add focus'}
-                  aria-label={t('tasks.toggleFocus')}
-                >
-                  <Target className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => openCommentEditor()}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    getCommentButtonActive(task) || activeEditor === 'comment'
-                      ? 'bg-neutral-900 text-white'
-                      : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.comment')}
-                  aria-label={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={handleToggleFlag}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'}`}
-                  title={t('tasks.flagTooltip')}
-                  aria-label={t('tasks.toggleFlag')}
-                >
-                  <Flag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'others' ? null : 'others')}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${
-                    activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-white text-neutral-500 hover:border-[var(--app-border-subtle)] hover:shadow-sm'
-                  }`}
-                  title={t('tasks.otherActions')}
-                  aria-label={t('tasks.otherActions')}
-                >
-                  <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <div className="flex-1" />
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  onMouseEnter={() => setIsDeleteHover(true)}
-                  onMouseLeave={() => setIsDeleteHover(false)}
-                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 transition-colors border border-transparent ${isDeleteHover ? 'bg-red-100 text-red-700' : 'text-red-600 hover:bg-red-50'}`}
-                  title={t('common.delete')}
-                  aria-label={t('tasks.deleteTask')}
-                >
-                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
+                  <Edit2 className="h-3.5 w-3.5" />
+                  {t('common.edit')}
                 </button>
               </div>
 

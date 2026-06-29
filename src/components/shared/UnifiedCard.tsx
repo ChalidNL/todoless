@@ -152,7 +152,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </button>
 
           {/* Title */}
-          {showMenu ? (
+          {showMenu && isTask ? (
             <input
               type="text"
               value={titleDraft}

@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { Settings } from '../components/Settings';
+import { SettingsPreferences } from '../components/SettingsPreferences';
+import { LabelsView } from '../components/LabelsView';
 import type { Task } from '../types';
 
 const useAppMock = vi.fn();
@@ -188,16 +190,14 @@ describe('Calendar Google-inspired UX', () => {
   });
 
   it('persists first day of week from Settings', () => {
-    render(<Settings />);
-    fireEvent.click(screen.getByRole('button', { name: /Preferences/i }));
+    render(<SettingsPreferences />);
     const select = screen.getByRole('combobox', { name: 'First day of week' });
     fireEvent.change(select, { target: { value: '0' } });
     expect(updateAppSettings).toHaveBeenCalledWith({ sprintStartDay: 0 });
   });
 
   it('places calendar import/export actions in Settings preferences instead of the calendar toolbar', () => {
-    const { unmount } = render(<Settings />);
-    fireEvent.click(screen.getByRole('button', { name: /Preferences/i }));
+    const { unmount } = render(<SettingsPreferences />);
     expect(screen.getByRole('button', { name: 'Import Calendar (.ics)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export as .ics' })).toBeInTheDocument();
     unmount();
@@ -216,16 +216,12 @@ describe('Calendar Google-inspired UX', () => {
       ],
     });
 
-    render(<Settings />);
-    fireEvent.click(screen.getByRole('button', { name: /Labels/i }));
+    render(<LabelsView />);
 
-    const cafRow = screen.getByTestId('settings-label-row-label-1');
-    expect(cafRow).toHaveClass('min-h-11');
-    expect(cafRow).toHaveClass('py-1.5');
+    const cafRow = screen.getByText('CAF').closest('article')!;
+    expect(cafRow).toHaveClass('app-card');
     expect(within(cafRow).getAllByText('CAF')).toHaveLength(1);
-    expect(within(cafRow).getByTitle('Family')).toHaveClass('text-xs');
-    expect(within(cafRow).getByRole('button', { name: 'Edit CAF' })).toHaveClass('h-8');
-    expect(within(cafRow).getByRole('button', { name: 'Delete CAF' })).toHaveClass('h-8');
+    expect(within(cafRow).getByText('family')).toBeInTheDocument();
   });
 });
 
