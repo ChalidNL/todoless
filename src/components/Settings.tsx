@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { User, ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
+import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User } from 'lucide-react';
 import { PageHeader } from './shared/PageHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
@@ -17,6 +17,19 @@ import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { CalendarImportExport } from './CalendarImportExport';
 import { sortLabelsByVisibility } from '../lib/label-utils';
+
+function SettingsNavItem({ href, icon, title, subtitle, external }: { href: string; icon: React.ReactNode; title: string; subtitle: string; external?: boolean }) {
+  return (
+    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="flex min-h-[var(--app-touch-target)] items-center gap-3 rounded-[20px] px-3 py-3 transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]">
+      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-black text-[var(--app-text)]">{title}</span>
+        <span className="block truncate text-xs font-semibold text-[var(--app-text-muted)]">{subtitle}</span>
+      </span>
+      {external ? <ExternalLink className="h-5 w-5 text-[var(--app-text-soft)]" /> : <ChevronRight className="h-5 w-5 text-[var(--app-text-soft)]" />}
+    </a>
+  );
+}
 
 export const Settings = () => {
   const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
@@ -779,421 +792,29 @@ export const Settings = () => {
           )}
         </div>
 
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowPreferences(!showPreferences)}
-            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
+        <div className="app-surface overflow-hidden p-4">
+          <h2 className="mb-3 text-base font-black tracking-[-0.02em] text-[var(--app-text)]">{t('settings.preferences')}</h2>
+          <label className="mb-1 block text-sm font-semibold text-[var(--app-text-muted)]" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
+          <select
+            id="first-day-of-week"
+            aria-label={t('settings.firstDayOfWeek')}
+            value={appSettings.sprintStartDay ?? 1}
+            onChange={(event) => updateAppSettings({ sprintStartDay: Number(event.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })}
+            className="mb-4 w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-[var(--app-surface-2)] px-3 py-3 text-sm font-semibold text-[var(--app-text)]"
           >
-            <h2 className="text-lg font-semibold">{t('settings.preferences')}</h2>
-            {showPreferences ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-neutral-400" />
-            )}
-          </button>
-
-          {showPreferences && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-              <label className="block text-sm text-neutral-600 mb-1" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
-              <select
-                id="first-day-of-week"
-                aria-label={t('settings.firstDayOfWeek')}
-                value={appSettings.sprintStartDay ?? 1}
-                onChange={(event) => updateAppSettings({ sprintStartDay: Number(event.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })}
-                className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
-              >
-                {weekDays.map((day) => (
-                  <option key={day.value} value={day.value}>{day.label}</option>
-                ))}
-              </select>
-              <CalendarImportExport />
-            </div>
-          )}
+            {weekDays.map((day) => (
+              <option key={day.value} value={day.value}>{day.label}</option>
+            ))}
+          </select>
+          <CalendarImportExport />
         </div>
 
-        {/* Team Members */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowTeamMembers(!showTeamMembers)}
-            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
-          >
-            <h2 className="text-lg font-semibold">{t('members.title')}</h2>
-            {showTeamMembers ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-neutral-400" />
-            )}
-          </button>
-
-          {showTeamMembers && (
-            <>
-              {familyMembershipView.members.length === 0 ? (
-                <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
-              ) : (
-                <>
-                  <div className="rounded-2xl border border-violet-200 bg-violet-50/60 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-violet-200/80">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700 flex-shrink-0">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0 text-sm">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">{t('members.familyLabel')}</span>
-                        <span className="font-semibold text-violet-950 truncate">{familyMembershipView.familyName}</span>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-violet-100">
-                      {familyMembershipView.members.map(user => {
-                        const isCurrentUser = currentUser?.id === user.id;
-                        const isAdmin = isSystemAdminRole(user.role);
-                        const isOwner = user.role === 'owner';
-                        const isAgent = user.role === 'agent';
-                        const isActive = user.active ?? true;
-                        const canManageRole = canChangeMemberRole(currentUser, user);
-                        const displayName = getMemberDisplayName(user);
-                        const initials = getMemberInitials({
-                          firstName: user.firstName,
-                          lastName: user.lastName,
-                          displayName: user.displayName,
-                          name: user.name,
-                          email: user.email,
-                        });
-                        const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
-                        const userColor = entityColor(user.id);
-                        const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
-                        const isEditingMember = editingMemberId === user.id;
-
-                        return (
-                          <div key={user.id} className="px-4 py-3 bg-white/70">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className="w-8 h-8 min-w-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                                style={{ backgroundColor: userColor }}
-                              >
-                                {initials}
-                              </div>
-                              <div className="flex-1 min-w-0 text-sm">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="font-medium text-neutral-900 truncate">{displayName || userDisplayName(user)}</span>
-                                  {isCurrentUser && (
-                                    <span
-                                      className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium uppercase tracking-wide flex-shrink-0 border"
-                                      style={{
-                                        backgroundColor: entityBg(user.id),
-                                        color: userColor,
-                                        borderColor: entityBorder(user.id),
-                                      }}
-                                    >
-                                      {t('settings.you')}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="block text-xs text-neutral-500 truncate mt-0.5">{user.email}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                <AttributeChip label={memberRoleLabel} color={userColor} active />
-                                <AttributeChip label={isActive ? t('settings.active') : t('settings.blocked')} color={isActive ? '#16a34a' : '#dc2626'} active />
-                                {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
-                                {canManageMembers && !isCurrentUser && !isOwner && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingMemberId(isEditingMember ? null : user.id)}
-                                    className={`p-1.5 rounded transition-colors ${isEditingMember ? 'bg-violet-100 text-violet-700' : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700'}`}
-                                    aria-label={t('common.edit')}
-                                    title={t('common.edit')}
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {canManageMembers && !isCurrentUser && !isOwner && isEditingMember && (
-                              <div className="mt-2 ml-11 flex flex-wrap items-center gap-2">
-                                <span className="text-[11px] text-neutral-500">{t('settings.adminOnly')}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleMemberActive(user)}
-                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors"
-                                >
-                                  {isActive ? t('settings.deactivate') : t('settings.activate')}
-                                </button>
-                                {canManageRole && !isAdmin ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRoleChange(user.id, 'admin')}
-                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-violet-200 text-violet-700 hover:bg-violet-50 transition-colors"
-                                  >
-                                    {t('settings.makeAdmin')}
-                                  </button>
-                                ) : canManageRole ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRoleChange(user.id, 'member')}
-                                    disabled={disableMemberRole}
-                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                  >
-                                    {t('settings.makeMember')}
-                                  </button>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMember(user)}
-                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  {t('common.delete')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="border-t border-violet-200/80 px-4 py-3 bg-violet-50/40">
-                      <p className="mb-2 text-xs text-violet-800">{t('members.sameFamilyHint')}</p>
-                      {canManageMembers && (
-                        <div>
-                          <h3 className="text-sm font-semibold mb-1">{t('members.inviteMember')}</h3>
-                          <p className="mb-3 text-xs text-neutral-500">{t('settings.autoFamilyJoinHint')}</p>
-                          <InviteManager />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+        <div className="app-surface overflow-hidden p-2">
+          <SettingsNavItem href="/settings/profile" icon={<User className="h-5 w-5" />} title={t('settings.yourProfile')} subtitle={currentUser.email} />
+          <SettingsNavItem href="/settings/members" icon={<Users className="h-5 w-5" />} title={t('settings.teamMembers')} subtitle={`${users.length} ${t('members.title').toLowerCase()}`} />
+          <SettingsNavItem href="/settings/labels" icon={<Shield className="h-5 w-5" />} title={t('settings.labels')} subtitle={`${labels.length} labels`} />
+          <SettingsNavItem href="/api/swagger" icon={<Plug className="h-5 w-5" />} title={t('settings.integration')} subtitle={t('settings.apiDocumentation')} external />
         </div>
-
-        {/* Labels Section */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowLabels(!showLabels)}
-            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {t('settings.labels')}
-            </h2>
-            {showLabels ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-neutral-400" />
-            )}
-          </button>
-
-          {showLabels && (
-            <>
-              <button
-                onClick={openAddLabelModal}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-              >
-                <Plus className="w-4 h-4" />
-                {t('settings.addLabel')}
-              </button>
-
-              <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100 dark:border-neutral-800 dark:bg-neutral-950 dark:divide-neutral-800">
-                {sortedLabels.map(label => (
-                  <div
-                    key={label.id}
-                    data-testid={`settings-label-row-${label.id}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => startEditingLabel(label)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        startEditingLabel(label);
-                      }
-                    }}
-                    className="flex min-h-11 items-center gap-2 px-2.5 py-1.5 transition-colors hover:bg-neutral-50 focus:outline-none focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-300 dark:hover:bg-neutral-900 dark:focus-visible:bg-neutral-900 dark:focus-visible:ring-neutral-700"
-                    aria-label={`Label ${label.name}`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <AttributeChip label={label.name} color={label.color} maxWidthClassName="max-w-[150px]" />
-                    </div>
-                    <div className="inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-neutral-100 px-1.5 py-0.5 text-xs font-medium leading-none text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300" title={getVisibilityLabel(label.visibility)}>
-                      <VisibilityIcon visibility={label.visibility} className="w-3 h-3" />
-                      <span>{getVisibilityLabel(label.visibility)}</span>
-                    </div>
-                    <div className="ml-0.5 flex flex-shrink-0 items-center gap-0.5">
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          startEditingLabel(label);
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-                        title={t('common.edit')}
-                        aria-label={`${t('common.edit')} ${label.name}`}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteLabel(label.id);
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-                        title={t('common.delete')}
-                        aria-label={`${t('common.delete')} ${label.name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Shops Section */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowShops(!showShops)}
-            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {t('settings.shops')}
-            </h2>
-            {showShops ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-neutral-400" />
-            )}
-          </button>
-
-          {showShops && (
-            <>
-              <button
-                onClick={openAddShopModal}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-              >
-                <Plus className="w-4 h-4" />
-                {t('settings.addShop')}
-              </button>
-
-              <div className="space-y-3">
-                {shops.map(shop => (
-                  <div key={shop.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <AttributeChip label={shop.name} color={shop.color} />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{shop.name}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingShopId(shop.id);
-                          setEditingShopName(shop.name);
-                          setEditingShopColor(shop.color);
-                        }}
-                        className="p-1 hover:bg-neutral-100 rounded"
-                        title={t('common.edit')}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteShop(shop.id)}
-                        className="p-1 hover:bg-neutral-100 rounded text-red-500"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Filter Views */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
-          >
-            <h2 className="text-lg font-semibold">{t('filters.title')}</h2>
-            {showFilters ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronRight className="w-5 h-5 text-neutral-400" />
-            )}
-          </button>
-
-          {showFilters && (
-            <>
-              {filters.length === 0 ? (
-                <p className="text-sm text-neutral-500">{t('filters.noSavedFilters')}</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {filters.map(f => (
-                    <div key={f.id} className="flex items-center justify-between p-2.5 border border-neutral-200 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{f.name}</p>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${f.type === 'task' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                            {f.type === 'task' ? t('common.tasks') : t('common.items')}
-                          </span>
-                        </div>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          {f.chipFilters?.length || f.labelIds.length || 0} condition{(f.chipFilters?.length || f.labelIds.length || 0) !== 1 ? 's' : ''}
-                          {f.chipFilters?.map(cf => (
-                            <span key={cf.id} className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                              style={{ backgroundColor: cf.color ? `${cf.color}20` : '#f3f4f6', color: cf.color || '#6b7280' }}
-                            >{cf.label || cf.id}</span>
-                          ))}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => { deleteFilter(f.id); showCompletionMessage(t('common.success')); }}
-                        className="p-1 text-neutral-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Integration Section — API Documentation */}
-          <div className="mb-6 border-b border-neutral-200 pb-6">
-            <button
-              onClick={toggleIntegrationsSection}
-              className="app-surface flex items-center justify-between w-full px-4 py-3 mb-3 text-left"
-            >
-              <h2 className="text-lg font-semibold">
-                {t('settings.integration')}
-              </h2>
-              {showIntegrations ? (
-                <ChevronUp className="w-5 h-5 text-neutral-500" />
-              ) : (
-                <ChevronRight className="w-5 h-5 text-neutral-400" />
-              )}
-            </button>
-
-            {showIntegrations && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">{t('settings.apiDocumentation')}</h3>
-                  <a
-                    href="/api/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {t('settings.openSwaggerDocs')}
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
 
         {/* App Info */}
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
