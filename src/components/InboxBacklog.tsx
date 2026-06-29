@@ -214,9 +214,10 @@ export const InboxBacklog = () => {
           {/* Stat boxes — clickable as filters */}
           <div className="grid grid-cols-2 gap-[var(--app-space-gap)]">
             {statusSections.map((stat) => (
-              <div key={stat.key} data-testid={`inbox-stat-card-${stat.key}`} data-status={stat.key}>
               <StatCard
                 key={stat.key}
+                testId={`inbox-stat-card-${stat.key}`}
+                status={stat.key}
                 label={stat.label}
                 value={stat.value}
                 icon={<stat.icon className="h-5 w-5 text-white" strokeWidth={2.25} />}
@@ -231,7 +232,6 @@ export const InboxBacklog = () => {
                   }
                 }}
               />
-              </div>
             ))}
           </div>
 

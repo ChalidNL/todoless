@@ -7,6 +7,8 @@ interface StatCardProps {
   tone?: 'inbox' | 'todo' | 'blocked' | 'done' | 'focus';
   active?: boolean;
   onClick?: () => void;
+  testId?: string;
+  status?: string;
 }
 
 const toneVar = {
@@ -17,12 +19,14 @@ const toneVar = {
   focus: 'var(--app-status-focus)',
 };
 
-export function StatCard({ label, value, icon, tone = 'inbox', active, onClick }: StatCardProps) {
+export function StatCard({ label, value, icon, tone = 'inbox', active, onClick, testId, status }: StatCardProps) {
   const Component = onClick ? 'button' : 'div';
   return (
     <Component
       type={onClick ? 'button' : undefined}
       onClick={onClick}
+      data-testid={testId}
+      data-status={status}
       aria-label={`${label}: ${value}`}
       className={`app-status-card relative isolate min-h-[104px] w-full overflow-hidden text-left text-white transition active:scale-[0.97] ${active ? 'ring-2 ring-white ring-offset-2 ring-offset-[var(--app-bg)]' : ''}`}
       style={{ background: toneVar[tone] }}

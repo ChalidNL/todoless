@@ -1,17 +1,56 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
-import { CompactTaskCard } from './shared/CompactTaskCard';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 import { PageHeader } from './shared/PageHeader';
 import { TopBar } from './shared/TopBar';
 import { DueDateNotifications } from './shared/DueDateNotifications';
 import { SharedSelect } from './shared/SharedSelect';
 import { t, formatDate } from '../i18n/translations';
+import { TaskCard } from './shared/TaskCard';
+import { SectionHeader } from './shared/SectionHeader';
+import { EmptyState } from './shared/EmptyState';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+interface SprintFilterChip {
+  id: string;
+  label: string;
+  count: number;
+  color: string;
+}
+
+function SprintFilterChips({
+  filters,
+  activeIds,
+  onToggle,
+}: {
+  filters: SprintFilterChip[];
+  activeIds: string[];
+  onToggle: (filter: SprintFilterChip) => void;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" aria-label="Sprint filters">
+      {filters.map((filter) => {
+        const active = activeIds.includes(filter.id);
+        return (
+          <button
+            key={filter.id}
+            type="button"
+            onClick={() => onToggle(filter)}
+            className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black ${active ? 'text-white shadow-sm' : 'bg-white text-[var(--app-text-muted)] shadow-sm'}`}
+            style={active ? { backgroundColor: filter.color } : undefined}
+          >
+            <span>{filter.label}</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{filter.count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 const isDueWithin24h = (dueDate?: number): boolean => {
   if (!dueDate) return false;
@@ -292,36 +331,19 @@ export const TasksView = () => {
       )}
 
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-          {statusQuickFilters.map((filter) => {
-            const active = activeChipFilters.some((f) => f.type === 'status' && f.id === filter.id);
-            return (
-              <button
-                key={filter.id}
-                type="button"
-                onClick={() => toggleChipFilter('status', filter.id, filter.label, filter.color)}
-                className={`app-chip inline-flex h-9 flex-shrink-0 items-center gap-2 px-3 text-xs font-bold ${active ? 'text-white shadow-sm' : 'bg-white text-[var(--app-text-muted)] shadow-sm'}`}
-                style={active ? { backgroundColor: filter.color } : undefined}
-              >
-                <span>{filter.label}</span>
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{filter.count}</span>
-              </button>
-            );
-          })}
-        </div>
+        <SprintFilterChips
+          filters={statusQuickFilters}
+          activeIds={activeChipFilters.filter((f) => f.type === 'status').map((f) => f.id)}
+          onToggle={(filter) => toggleChipFilter('status', filter.id, filter.label, filter.color)}
+        />
         {/* Empty state */}
         {isEmpty ? (
-          <div className="text-center py-16">
-            <CheckSquare className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-            <p className="text-neutral-400 text-sm">{t('inbox.empty')}</p>
-          </div>
+          <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />
         ) : (
           <>
             {/* Tasks header with sort — always at top-right */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-sm text-neutral-600">
-                {t('common.tasks')} ({activeTasks.length})
-              </h2>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <SectionHeader title={t('common.tasks')} count={activeTasks.length} />
               <SharedSelect<SortMode>
                 value={sortMode}
                 onChange={setSortMode}
@@ -342,7 +364,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowFocus(!showFocus)}
-                  className="flex items-center gap-2 w-full mb-2 px-0 text-left"
+                  className="mb-2 flex min-h-[var(--app-touch-target)] w-full items-center gap-2 px-1 text-left"
                 >
                   <Target className="w-4 h-4 text-orange-500" />
                   <h3 className="text-sm font-semibold text-orange-600">
@@ -355,9 +377,9 @@ export const TasksView = () => {
                   )}
                 </button>
                 {showFocus && (
-                  <div className="space-y-2">
+                  <div className="space-y-[10px]">
                     {sortedFocusTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={true}
@@ -374,7 +396,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowBlocked(!showBlocked)}
-                  className="flex items-center gap-2 w-full mb-2 px-0 text-left"
+                  className="mb-2 flex min-h-[var(--app-touch-target)] w-full items-center gap-2 px-1 text-left"
                 >
                   <Lock className="w-4 h-4 text-red-500" />
                   <h3 className="text-sm font-semibold text-red-600">
@@ -387,9 +409,9 @@ export const TasksView = () => {
                   )}
                 </button>
                 {showBlocked && (
-                  <div className="space-y-2">
+                  <div className="space-y-[10px]">
                     {sortedBlockedTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={true}
@@ -402,9 +424,9 @@ export const TasksView = () => {
 
             {/* TASKS section — always visible, no collapse */}
             {sortedRegularTasks.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-[10px]">
                 {sortedRegularTasks.map((task) => (
-                  <CompactTaskCard
+                  <TaskCard
                     key={task.id}
                     task={task}
                     showCheckbox={true}
@@ -419,7 +441,7 @@ export const TasksView = () => {
                 <div className="flex items-center justify-between w-full px-1 mb-2">
                   <button
                     onClick={() => setShowCompleted(!showCompleted)}
-                    className="flex items-center gap-2"
+                    className="flex min-h-[var(--app-touch-target)] items-center gap-2"
                   >
                     <h2 className="text-sm font-semibold text-neutral-700">
                       {t('common.completed')} ({sortedCompletedTasks.length})
@@ -446,9 +468,9 @@ export const TasksView = () => {
                 </div>
 
                 {showCompleted && (
-                  <div className="space-y-2">
+                  <div className="space-y-[10px]">
                     {sortedCompletedTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={task.status === 'done'}
