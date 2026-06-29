@@ -22,10 +22,11 @@ copyFileSync(logo, fallbackSource);
 
 for (const size of sizes) {
   const png = resolve(iconDir, `icon-${size}.png`);
+  const contentSize = Math.round(size * 0.72);
   execFileSync('ffmpeg', [
     '-y',
     '-i', logo,
-    '-vf', `scale=${size}:${size}:force_original_aspect_ratio=decrease,pad=${size}:${size}:(ow-iw)/2:(oh-ih)/2:color=0x00000000`,
+    '-vf', `scale=${contentSize}:${contentSize}:force_original_aspect_ratio=decrease,pad=${size}:${size}:(ow-iw)/2:(oh-ih)/2:color=0x00000000,format=rgba`,
     '-frames:v', '1',
     png,
   ], { stdio: 'ignore' });
@@ -39,7 +40,7 @@ for (const size of sizes) {
 execFileSync('ffmpeg', [
   '-y',
   '-i', logo,
-  '-vf', 'scale=410:410:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0xffffffff',
+  '-vf', 'scale=340:340:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,format=rgba',
   '-frames:v', '1',
   resolve(iconDir, 'icon-512-maskable.png'),
 ], { stdio: 'ignore' });

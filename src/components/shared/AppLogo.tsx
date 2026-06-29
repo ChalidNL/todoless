@@ -1,6 +1,6 @@
 import React from 'react';
 
-const APP_ICON_SRC = '/icons/icon-512.png';
+const APP_ICON_SRC = '/logo-rainbow.png';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';
@@ -24,9 +24,9 @@ export const AppMark = ({ className = '' }: AppMarkProps) => (
 
 export const AppLogo = ({ size = 'md', showText = true, variant = 'dark' }: AppLogoProps) => {
   const sizes = {
-    sm: 'w-5 h-5',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
+    sm: 'w-6 h-6',
+    md: 'w-7 h-7',
+    lg: 'w-10 h-10',
   };
 
   const textSizes = {
