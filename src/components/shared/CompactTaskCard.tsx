@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, MessageSquare } from 'lucide-react';
 import { t, formatDate } from '../../i18n/translations';
 import { sortLabelsByVisibility } from '../../lib/label-utils';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
@@ -154,6 +154,26 @@ const getTaskCommentCount = (task: Task) => {
   return task.blockedComment?.trim() ? 1 : 0;
 };
 
+const getTaskSubtaskTotal = (task: Task, subtasks: Task[]) => {
+  const explicit = (task as any).subtaskCount ?? (task as any).subtasksCount ?? (task as any).subtask_count;
+  if (typeof explicit === 'number') return explicit;
+  if (typeof explicit === 'string' && explicit.trim()) {
+    const parsed = Number(explicit);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return subtasks.length;
+};
+
+const getTaskCompletedSubtaskTotal = (task: Task, subtasks: Task[]) => {
+  const explicit = (task as any).completedSubtasks ?? (task as any).completedSubtaskCount ?? (task as any).completed_subtasks;
+  if (typeof explicit === 'number') return explicit;
+  if (typeof explicit === 'string' && explicit.trim()) {
+    const parsed = Number(explicit);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return subtasks.filter(isSubtaskDone).length;
+};
+
 const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
     <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
@@ -265,8 +285,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
 
   // Subtasks: prefer PocketBase expand.subtasks, then subtask id relations.
   const subtasks = getExpandedSubtasks(task, tasks);
-  const subtaskCount = subtasks.length;
-  const completedSubtaskCount = subtasks.filter(isSubtaskDone).length;
+  const subtaskCount = getTaskSubtaskTotal(task, subtasks);
+  const completedSubtaskCount = getTaskCompletedSubtaskTotal(task, subtasks);
   const commentCount = getTaskCommentCount(task);
 
   const handleToggle = () => {
@@ -662,20 +682,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   ))}
                 </div>
               )}
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    showCompletionMessage(t('common.openEditor'));
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]"
-                >
-                  <Edit2 className="h-3 w-3" strokeWidth={2} />
-                  {t('common.edit')}
-                </button>
-              </div>
             </div>
           )}
         </div>

@@ -126,13 +126,30 @@ describe('CompactTaskCard read-mode attributes', () => {
     expect(screen.getByText('1/4')).toBeInTheDocument();
   });
 
+  it('shows subtask chip from explicit count fields even without expanded subtasks', () => {
+    const countOnlyTask = {
+      ...parentTask,
+      id: 'count-only-task-1',
+      labels: [],
+      label: '',
+      subtaskIds: [],
+      subtaskCount: 4,
+      completedSubtasks: 0,
+    } as unknown as Task;
+
+    render(<CompactTaskCard task={countOnlyTask} />);
+
+    expect(screen.getByText('0/4')).toBeInTheDocument();
+  });
+
   it('expanded state stays read-only: no list edit inputs or label placeholder', () => {
     const { container } = render(<CompactTaskCard task={parentTask} />);
 
     fireEvent.click(screen.getByLabelText('Open Editor'));
 
     expect(screen.getByText('Read-only subtask')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Bewerken' })).not.toBeInTheDocument();
     expect(screen.queryByText('tasks.labelInputPlaceholder')).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Add a label...')).not.toBeInTheDocument();
     expect(container.querySelector('input')).not.toBeInTheDocument();

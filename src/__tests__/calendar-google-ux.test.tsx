@@ -172,7 +172,7 @@ describe('Calendar Google-inspired UX', () => {
     expect(calendarCard).toHaveClass('max-w-none');
     expect(within(calendarCard).queryByLabelText('tasks.editTaskTitle')).not.toBeInTheDocument();
     expect(calendarCard.querySelector('input')).not.toBeInTheDocument();
-    expect(within(calendarCard).getByRole('button', { name: 'Edit' })).toBeInTheDocument();
+    expect(within(calendarCard).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
