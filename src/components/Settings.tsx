@@ -807,14 +807,39 @@ export const Settings = () => {
             ))}
           </select>
           <CalendarImportExport />
+          <button type="button" onClick={() => setShowPreferences(true)} className="sr-only">{t('settings.preferences')}</button>
         </div>
 
         <div className="app-surface overflow-hidden p-2">
           <SettingsNavItem href="/settings/profile" icon={<User className="h-5 w-5" />} title={t('settings.yourProfile')} subtitle={currentUser.email} />
           <SettingsNavItem href="/settings/members" icon={<Users className="h-5 w-5" />} title={t('settings.teamMembers')} subtitle={`${users.length} ${t('members.title').toLowerCase()}`} />
-          <SettingsNavItem href="/settings/labels" icon={<Shield className="h-5 w-5" />} title={t('settings.labels')} subtitle={`${labels.length} labels`} />
+          <button type="button" onClick={() => setShowLabels(!showLabels)} className="flex min-h-[var(--app-touch-target)] w-full items-center gap-3 rounded-[20px] px-3 py-3 text-left transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]"><Shield className="h-5 w-5" /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-black text-[var(--app-text)]">{t('settings.labels')}</span><span className="block truncate text-xs font-semibold text-[var(--app-text-muted)]">{labels.length} labels</span></span>
+            <ChevronRight className={`h-5 w-5 text-[var(--app-text-soft)] transition ${showLabels ? 'rotate-90' : ''}`} />
+          </button>
           <SettingsNavItem href="/api/swagger" icon={<Plug className="h-5 w-5" />} title={t('settings.integration')} subtitle={t('settings.apiDocumentation')} external />
         </div>
+
+        {showLabels && (
+          <div className="app-surface overflow-hidden divide-y divide-[var(--app-border-subtle)]">
+            {sortedLabels.map(label => (
+              <div key={label.id} data-testid={`settings-label-row-${label.id}`} className="flex min-h-11 items-center gap-2 px-3 py-1.5">
+                <AttributeChip label={label.name} color={label.color} maxWidthClassName="max-w-[150px]" />
+                <span className="ml-auto inline-flex flex-shrink-0 items-center gap-1 rounded-full bg-[var(--app-surface-2)] px-2 py-1 text-xs font-black text-[var(--app-text-muted)]" title={getVisibilityLabel(label.visibility)}>
+                  <VisibilityIcon visibility={label.visibility} className="h-3 w-3" />
+                  {getVisibilityLabel(label.visibility)}
+                </span>
+                <button type="button" onClick={() => startEditingLabel(label)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]" aria-label={`${t('common.edit')} ${label.name}`} title={t('common.edit')}>
+                  <Edit2 className="h-3.5 w-3.5" />
+                </button>
+                <button type="button" onClick={() => handleDeleteLabel(label.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50" aria-label={`${t('common.delete')} ${label.name}`} title={t('common.delete')}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* App Info */}
         <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
