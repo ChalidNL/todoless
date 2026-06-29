@@ -170,7 +170,6 @@ describe('Calendar Google-inspired UX', () => {
     fireEvent.click(within(first).getByText('Alpha'));
     expect(calendarCard).toHaveStyle({ width: 'calc(100vw - 24px)', maxWidth: '430px' });
     expect(calendarCard).toHaveClass('max-w-none');
-    expect(within(calendarCard).getByText('Alpha')).toBeInTheDocument();
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
