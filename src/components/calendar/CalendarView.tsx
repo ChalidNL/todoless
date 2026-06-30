@@ -281,7 +281,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
                 const isActive = inlineSlot?.day === day && inlineSlot?.hour === hour;
                 if (isActive) {
                   return (
-                    <div key={hour} className="absolute left-1 right-1 z-20" style={{ top: hour * HOUR_HEIGHT }}>
+                    <div key={hour} className="absolute left-0 right-0 z-20" style={{ top: hour * HOUR_HEIGHT }}>
                       <input
                         autoFocus
                         type="text"
@@ -295,7 +295,8 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
                           if (!inlineTitle.trim()) clearInline();
                         }}
                         placeholder={t('calendar.newEvent', language)}
-                        className="w-full rounded-lg border border-violet-400 bg-white px-2 py-1.5 text-xs font-semibold text-neutral-900 shadow-lg outline-none ring-2 ring-violet-300 placeholder:text-neutral-400"
+                        className="w-full rounded-xl border-2 border-violet-400 bg-white px-3.5 py-2.5 text-xs font-semibold text-neutral-900 shadow-[0_4px_16px_rgba(99,102,241,0.2)] outline-none ring-2 ring-violet-300/50 placeholder:text-neutral-400"
+                        style={{ boxSizing: 'border-box' }}
                       />
                     </div>
                   );

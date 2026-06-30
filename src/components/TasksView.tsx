@@ -243,43 +243,47 @@ export const TasksView = () => {
         />
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        <SprintFilterChips
-          filters={statusQuickFilters}
-          activeIds={activeChipFilters.filter((f) => f.type === 'status').map((f) => f.id)}
-          onToggle={(filter) => toggleChipFilter('status', filter.id, filter.label, filter.color)}
-        />
-        {visibleLabels.length > 0 && (
-          <div className="flex gap-1.5 overflow-x-auto pb-1 hide-scrollbar" aria-label="Label filters">
-            <button
-              type="button"
-              onClick={clearLabelChips}
-              className={`inline-flex min-h-9 flex-shrink-0 items-center rounded-full border px-3 text-xs font-bold shadow-sm ${activeLabelChipIds.length === 0 ? 'border-transparent bg-[var(--app-primary-grad)] text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'}`}
-            >
-              Alle
-            </button>
-            {visibleLabels.map((label) => {
-              const active = activeLabelChipIds.includes(label.id);
-              return (
-                <button
-                  key={label.id}
-                  type="button"
-                  onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
-                  className="inline-flex min-h-9 flex-shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-bold shadow-sm"
-                  style={{
-                    background: active ? `${label.color}18` : 'white',
-                    color: active ? label.color : 'var(--app-text-muted)',
-                    borderColor: active ? `${label.color}35` : 'var(--app-border-subtle)',
-                  }}
-                >
-                  <Tag className="h-3 w-3" />
-                  {label.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {/* Empty state */}
+      <div className="max-w-lg mx-auto px-4 pt-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
+          <SprintFilterChips
+            filters={statusQuickFilters}
+            activeIds={activeChipFilters.filter((f) => f.type === 'status').map((f) => f.id)}
+            onToggle={(filter) => toggleChipFilter('status', filter.id, filter.label, filter.color)}
+          />
+          {visibleLabels.length > 0 && (
+            <>
+              <div className="w-px h-6 bg-neutral-200 flex-shrink-0 mx-1" />
+              <button
+                type="button"
+                onClick={clearLabelChips}
+                className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm ${activeLabelChipIds.length === 0 ? 'border-transparent bg-[var(--app-primary-grad)] text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'}`}
+              >
+                Alle
+              </button>
+              {visibleLabels.map((label) => {
+                const active = activeLabelChipIds.includes(label.id);
+                return (
+                  <button
+                    key={label.id}
+                    type="button"
+                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                    className="inline-flex min-h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-bold shadow-sm"
+                    style={{
+                      background: active ? `${label.color}18` : 'white',
+                      color: active ? label.color : 'var(--app-text-muted)',
+                      borderColor: active ? `${label.color}35` : 'var(--app-border-subtle)',
+                    }}
+                  >
+                    <Tag className="h-3 w-3" />
+                    {label.name}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      </div>
+      <div className="max-w-lg mx-auto px-4 space-y-4">
         {isEmpty ? (
           <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />
         ) : (

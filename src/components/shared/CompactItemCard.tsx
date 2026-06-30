@@ -79,23 +79,41 @@ export const CompactItemCard = ({ item }: CompactItemCardProps) => {
               {item.title}
             </h3>
             {!item.completed && (
-              <div className="flex items-center gap-1 bg-neutral-100 rounded px-2 py-0.5">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
-                  onClick={decreaseQuantity}
-                  className="hover:bg-neutral-200 rounded p-0.5"
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); decreaseQuantity(); }}
+                  style={{
+                    width: '30px', height: '30px', borderRadius: '10px',
+                    background: '#f8f7ff', border: '1px solid rgba(99,102,241,0.10)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '17px', fontWeight: 600, color: '#64748b',
+                    cursor: 'pointer',
+                  }}
                   aria-label={t('items.decreaseQuantity')}
                 >
-                  <Minus className="w-3 h-3 text-neutral-600" />
+                  <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-xs font-medium text-neutral-700 min-w-[20px] text-center">
+                <span style={{
+                  fontSize: '15px', fontWeight: 700, minWidth: '22px', textAlign: 'center',
+                  color: '#1a1a2e',
+                }}>
                   {item.quantity || 1}
                 </span>
                 <button
-                  onClick={increaseQuantity}
-                  className="hover:bg-neutral-200 rounded p-0.5"
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); increaseQuantity(); }}
+                  style={{
+                    width: '30px', height: '30px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #22c55e, #06b6d4)',
+                    border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 8px rgba(34,197,94,0.3)',
+                    cursor: 'pointer',
+                  }}
                   aria-label={t('items.increaseQuantity')}
                 >
-                  <Plus className="w-3 h-3 text-neutral-600" />
+                  <Plus className="w-3.5 h-3.5" color="white" strokeWidth={2.5} />
                 </button>
               </div>
             )}
