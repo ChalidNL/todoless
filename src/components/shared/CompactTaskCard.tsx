@@ -8,8 +8,13 @@ import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
+import { entityColor } from '../../lib/entity-colors';
+import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
+import { PriorityIcon } from '../../lib/PriorityIcon';
+import { TaskMetaRow, type MetaRowData } from './TaskMetaRow';
+import { TaskActionBar } from './TaskActionBar';
 
-// Subtask icon: square with dot inside
+// Local subtask icon (still used by inline editor)
 const SubtaskIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
     <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3" />
@@ -17,9 +22,6 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 import { AttributeChip } from './AttributeChip';
-import { entityColor } from '../../lib/entity-colors';
-import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
-import { PriorityIcon } from '../../lib/PriorityIcon';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -388,14 +390,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'shadow-[0_0_20px_rgba(34,197,94,0.12),0_0_0_1px_rgba(34,197,94,0.15)] !bg-white' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
               <button
                 onClick={handleToggle}
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 active:scale-75 ${
                   isDone
                     ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 border-transparent text-white shadow-[0_2px_8px_rgba(34,197,94,0.3)]'
                     : 'border-neutral-300 hover:border-neutral-500'
@@ -469,218 +471,156 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
           )}
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
-            <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
-              {task.labels.map((labelId) => {
-                const label = labels.find((l) => l.id === labelId);
-                return label ? (
-                  <AttributeChip
-                    key={label.id}
-                    icon={<Tag className="w-3.5 h-3.5" />}
-                    label={label.name}
-                    color={label.color}
-                    active={isLabelFiltered(label.id)}
-                    onClick={showMenu ? () => removeLabel(label.id) : () => toggleChipFilter('label', label.id, label.name, label.color)}
-                  />
-                ) : null;
-              })}
-              {assignedUser && (
-                <button
-                  onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
-                  className={`inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white transition-transform active:scale-95 ${
-                    isAssigneeFiltered(assignedUser.id) ? 'ring-2 ring-offset-1' : ''
-                  }`}
-                  style={{
-                    backgroundColor: assigneeColor || '#6366f1',
-                    ...(isAssigneeFiltered(assignedUser.id) ? { ringColor: assigneeColor || '#6366f1' } as React.CSSProperties : {}),
-                  }}
-                  title={getCompactUserName(assignedUser)}
-                  aria-label={`${t('tasks.assignee')}: ${getCompactUserName(assignedUser)}`}
-                >
-                  {assignedUser.avatarUrl ? (
-                    <img src={assignedUser.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
-                  ) : (
-                    getCompactUserName(assignedUser).charAt(0).toUpperCase()
-                  )}
-                </button>
-              )}
-              {dateStr && !hideDateChip && !isDone && (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-500"
-                  onClick={showMenu ? clearAllSchedule : () => toggleChipFilter('date', dateStr)}
-                  style={{ cursor: showMenu || isDateFiltered(dateStr) ? 'pointer' : undefined }}
-                >
-                  <CalendarDays className="w-3 h-3" />
-                  {dateStr}
-                </span>
-              )}
-              {repeatLabel && !isDone && (
-                <AttributeChip
-                  icon={<RotateCcw className="w-3.5 h-3.5" />}
-                  label={repeatChipLabel || repeatLabel}
-                  color="#0f766e"
-                  active={isRepeatFiltered(task.repeatInterval)}
-                  onClick={showMenu ? clearAllSchedule : () => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
-                  maxWidthClassName="max-w-[92px]"
-                />
-              )}
-              {hasComment && (
-                <button
-                  type="button"
-                  onClick={() => openCommentEditor()}
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-full text-blue-600 hover:bg-blue-50 transition-colors"
-                  aria-label={t('tasks.comment')}
-                  title={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />
-                </button>
-              )}
-              {subtaskCount > 0 && (
-                <AttributeChip
-                  icon={<SubtaskIcon className="w-3.5 h-3.5" />}
-                  label={`${completedSubtaskCount}/${subtaskCount}`}
-                  color="#8b5cf6"
-                />
-              )}
-              {task.priority && PRIORITY_COLORS[task.priority] && (
-                <button
-                  onClick={showMenu ? clearPriority : () => toggleChipFilter('priority', task.priority, PRIORITY_LABELS[task.priority] || task.priority, PRIORITY_COLORS[task.priority] || '#6b7280')}
-                  className="inline-flex items-center justify-center"
-                  title={PRIORITY_LABELS[task.priority] || task.priority}
-                  aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[task.priority] || task.priority}`}
-                >
-                  <PriorityIcon priority={task.priority} size={15} />
-                </button>
-              )}
-            </div>
+          {/* Meta row — shared component, consistent sizing across collapsed + expanded */}
+          {!isDone && !showMenu && (
+            <TaskMetaRow
+              data={{
+                labels: task.labels.map((labelId) => {
+                  const label = labels.find((l) => l.id === labelId);
+                  return label ? { id: label.id, name: label.name, color: label.color } : null;
+                }).filter(Boolean) as Array<{ id: string; name: string; color: string }>,
+                assignee: assignedUser ? {
+                  name: getCompactUserName(assignedUser),
+                  color: assigneeColor || '#6366f1',
+                  avatarUrl: assignedUser.avatarUrl,
+                  id: assignedUser.id,
+                } : null,
+                dateStr: !hideDateChip ? dateStr : null,
+                isOverdue,
+                repeatLabel: repeatLabel,
+                repeatChipLabel: repeatChipLabel || null,
+                repeatInterval: task.repeatInterval || null,
+                hasComment,
+                subtaskCount,
+                completedSubtaskCount,
+                priority: task.priority || null,
+              }}
+              expanded={false}
+              themeColor="#22c55e"
+              onLabelClick={(id) => toggleChipFilter('label', id, labels.find(l => l.id === id)?.name || '', labels.find(l => l.id === id)?.color || '#6366f1')}
+              onAssigneeClick={() => toggleChipFilter('assignee', assignedUser!.id, getCompactUserName(assignedUser!), assigneeColor)}
+              onDateClick={() => toggleChipFilter('date', dateStr!)}
+              onRepeatClick={() => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel!)}
+              onCommentClick={() => openCommentEditor()}
+              onSubtaskClick={() => {}}
+              onPriorityClick={() => toggleChipFilter('priority', task.priority!, PRIORITY_LABELS[task.priority!] || task.priority!, PRIORITY_COLORS[task.priority!] || '#6b7280')}
+              isLabelFiltered={isLabelFiltered}
+              isAssigneeFiltered={isAssigneeFiltered(assignedUser?.id)}
+              isDateFiltered={isDateFiltered(dateStr!)}
+              isRepeatFiltered={isRepeatFiltered(task.repeatInterval)}
+            />
           )}
 
-          {/* Expanded section — attribute action row + inline editors */}
+          {/* Expanded section — shared action bar + inline editors */}
           {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              {/* Attribute buttons */}
-              <div className={`flex items-center gap-2 ${calendarBlock ? 'flex-wrap' : ''}`}>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasLabels || activeEditor === 'labels'
-                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.labelTooltip')}
-                  aria-label={t('tasks.editLabels')}
-                >
-                  <Tag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => {
-                    const next = activeEditor === 'assignee' ? null : 'assignee';
-                    setActiveEditor(next);
-                    if (next) setAssigneeSearch('');
-                  }}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasAssignee || activeEditor === 'assignee'
-                      ? 'bg-green-100 text-green-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.assigneeTooltip')}
-                  aria-label={t('tasks.editAssignee')}
-                >
-                  <User className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasSchedule || activeEditor === 'schedule'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.scheduleTooltip')}
-                  aria-label={t('tasks.editSchedule')}
-                >
-                  <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks')}
-                  className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0 || activeEditor === 'subtasks'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.subtasksTooltip')}
-                  aria-label={t('tasks.viewSubtasks')}
-                >
-                  <SubtaskIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
-                  className={`p-1.5 rounded transition-colors ${
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? 'text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  style={
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? { backgroundColor: PRIORITY_COLORS[task.priority] }
-                      : undefined
-                  }
-                  title={t('tasks.priority')}
-                  aria-label={t('tasks.editPriority')}
-                >
-                  <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                {/* Focus toggle */}
-                <button
-                  onClick={() => updateTask(task.id, { focus: !task.focus })}
-                  className={`p-1.5 rounded transition-colors ${
-                    task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={task.focus ? 'Remove focus' : 'Add focus'}
-                  aria-label={t('tasks.toggleFocus')}
-                >
-                  <Target className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => openCommentEditor()}
-                  className={`p-1.5 rounded transition-colors ${
-                    getCommentButtonActive(task) || activeEditor === 'comment'
-                      ? 'bg-neutral-900 text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.comment')}
-                  aria-label={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={handleToggleFlag}
-                  className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title={t('tasks.flagTooltip')}
-                  aria-label={t('tasks.toggleFlag')}
-                >
-                  <Flag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'others' ? null : 'others')}
-                  className={`p-1.5 rounded transition-colors ${
-                    activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.otherActions')}
-                  aria-label={t('tasks.otherActions')}
-                >
-                  <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <div className="flex-1" />
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 rounded transition-colors text-red-600 hover:bg-red-50"
-                  title={t('common.delete')}
-                  aria-label={t('tasks.deleteTask')}
-                >
-                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-              </div>
+              {/* Action bar — color=status: set = colored, unset = neutral gray */}
+              <TaskActionBar
+                buttons={{
+                  label: {
+                    key: 'label',
+                    label: t('tasks.labelTooltip'),
+                    ariaLabel: t('tasks.editLabels'),
+                    Icon: Tag,
+                    isSet: hasLabels,
+                    color: labels.find(l => task.labels.includes(l.id))?.color || '#3b82f6',
+                    onClick: () => setActiveEditor(activeEditor === 'labels' ? null : 'labels'),
+                    active: activeEditor === 'labels',
+                  },
+                  assignee: {
+                    key: 'assignee',
+                    label: t('tasks.assigneeTooltip'),
+                    ariaLabel: t('tasks.editAssignee'),
+                    Icon: User,
+                    isSet: hasAssignee,
+                    color: assigneeColor || '#22c55e',
+                    onClick: () => { const n = activeEditor === 'assignee' ? null : 'assignee'; setActiveEditor(n); if (n) setAssigneeSearch(''); },
+                    active: activeEditor === 'assignee',
+                  },
+                  schedule: {
+                    key: 'schedule',
+                    label: t('tasks.scheduleTooltip'),
+                    ariaLabel: t('tasks.editSchedule'),
+                    Icon: CalendarDays,
+                    isSet: hasSchedule,
+                    color: '#ea580c',
+                    onClick: () => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule'),
+                    active: activeEditor === 'schedule',
+                  },
+                  subtask: {
+                    key: 'subtask',
+                    label: t('tasks.subtasksTooltip'),
+                    ariaLabel: t('tasks.viewSubtasks'),
+                    Icon: MessageSquare as any, // placeholder, SubtaskIcon used in render
+                    isSet: subtaskCount > 0,
+                    color: '#8b5cf6',
+                    onClick: () => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks'),
+                    active: activeEditor === 'subtasks',
+                  },
+                  priority: {
+                    key: 'priority',
+                    label: t('tasks.priority'),
+                    ariaLabel: t('tasks.editPriority'),
+                    Icon: AlertTriangle,
+                    isSet: task.priority && PRIORITY_COLORS[task.priority] ? true : false,
+                    color: task.priority ? PRIORITY_COLORS[task.priority] : undefined,
+                    onClick: () => setActiveEditor(activeEditor === 'priority' ? null : 'priority'),
+                    active: activeEditor === 'priority',
+                  },
+                  focus: {
+                    key: 'focus',
+                    label: task.focus ? 'Remove focus' : 'Add focus',
+                    ariaLabel: t('tasks.toggleFocus'),
+                    Icon: Target,
+                    isSet: !!task.focus,
+                    color: '#f97316',
+                    onClick: () => updateTask(task.id, { focus: !task.focus }),
+                    active: false,
+                  },
+                  comment: {
+                    key: 'comment',
+                    label: t('tasks.comment'),
+                    ariaLabel: t('tasks.comment'),
+                    Icon: MessageSquare,
+                    isSet: getCommentButtonActive(task),
+                    color: '#1e293b',
+                    onClick: () => openCommentEditor(),
+                    active: activeEditor === 'comment',
+                  },
+                  flag: {
+                    key: 'flag',
+                    label: t('tasks.flagTooltip'),
+                    ariaLabel: t('tasks.toggleFlag'),
+                    Icon: Flag,
+                    isSet: !!task.flag,
+                    color: '#ef4444',
+                    onClick: handleToggleFlag,
+                    active: false,
+                  },
+                  more: {
+                    key: 'more',
+                    label: t('tasks.otherActions'),
+                    ariaLabel: t('tasks.otherActions'),
+                    Icon: MoreHorizontal,
+                    isSet: false,
+                    color: undefined,
+                    onClick: () => setActiveEditor(activeEditor === 'others' ? null : 'others'),
+                    active: activeEditor === 'others',
+                  },
+                  delete: {
+                    key: 'delete',
+                    label: t('common.delete'),
+                    ariaLabel: t('tasks.deleteTask'),
+                    Icon: Trash2,
+                    isSet: true,
+                    color: '#ef4444',
+                    onClick: () => setShowDeleteConfirm(true),
+                    active: false,
+                  },
+                }}
+                themeColor="#22c55e"
+                activeEditor={activeEditor}
+              />
 
               {/* Label editor */}
               {activeEditor === 'labels' && (
@@ -763,7 +703,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                     )}
                   </div>
                   {filteredUsers.length > 0 && (
-                    <div className="absolute z-[100] mt-1 w-full bg-white border border-neutral-300 rounded-md shadow-[0_4px_16px_rgba(0,0,0,0.15)] ring-1 ring-black/5 max-h-40 overflow-y-auto">
+                    <div className="absolute z-[100] mt-1 w-full backdrop-blur-xl bg-white/90 border border-white/40 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-black/5 max-h-40 overflow-y-auto">
                       {filteredUsers.map((u) => (
                         <button
                           key={u.id}

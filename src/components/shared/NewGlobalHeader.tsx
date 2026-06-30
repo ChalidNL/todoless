@@ -193,7 +193,7 @@ export const AppHeader = ({
               </button>
 
               {showFilterDropdown && (
-                <div className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto">
+                <div className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto backdrop-blur-xl bg-white/90 border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
                   <div className="border-b border-[var(--app-border-subtle)] p-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-[var(--app-text-muted)]">{t('filters.title')}</span>
