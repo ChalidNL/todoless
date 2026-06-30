@@ -70,8 +70,10 @@ describe('CompactTaskCard attributes', () => {
 
     expect(screen.getByText('Visible attributes task')).toBeInTheDocument();
     expect(screen.getByText('Teat')).toBeInTheDocument();
-    expect(screen.getByText('Chalid')).toBeInTheDocument();
-    expect(screen.getByText('High')).toBeInTheDocument();
+    // Assignee is now a round avatar with aria-label, not a text chip
+    expect(screen.getByLabelText(/Assignee: Chalid/i)).toBeInTheDocument();
+    // Priority is now an icon-only button with aria-label, not a text chip
+    expect(screen.getByLabelText(/Priority: High/i)).toBeInTheDocument();
     expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 

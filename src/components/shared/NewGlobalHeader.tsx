@@ -238,15 +238,15 @@ export const AppHeader = ({
           )}
 
           {showSearch && (
-            <div className="flex min-h-10 flex-1 items-center gap-2.5 rounded-[var(--app-radius-pill)] border bg-white/85 px-3.5 py-2.5 shadow-none backdrop-blur-md focus-within:ring-2" style={{ borderColor: `${theme.color}20`, '--tw-ring-color': `${theme.color}33` } as React.CSSProperties}>
-              <Search className="h-3.5 w-3.5 flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.5} />
+            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
+              <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
               <input
                 type="text"
                 value={inputText}
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent p-0 text-[16px] font-medium text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
               />
             </div>
           )}
@@ -279,26 +279,7 @@ export const AppHeader = ({
           {showAdd && <AddButton onClick={handleAdd} color={theme.color} />}
         </div>
 
-        {activeChipFilters.length > 0 && (
-          <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-            {activeChipFilters.map((f) => {
-              const color = f.color || theme.color;
-              return (
-                <span
-                  key={`${f.type}-${f.id}`}
-                  className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border py-1 pl-2.5 pr-1 text-xs font-semibold"
-                  style={{ background: `${color}18`, borderColor: `${color}30`, color }}
-                >
-                  {f.label || f.id}
-                  <button type="button" onClick={() => toggleChipFilter(f.type, f.id)} className="grid h-4 w-4 place-items-center rounded-full text-xs leading-none" style={{ background: `${color}25`, color }} aria-label={t('common.remove')}>×</button>
-                </span>
-              );
-            })}
-            <button type="button" onClick={() => setShowFilterDropdown(true)} className="grid h-[26px] w-[26px] flex-shrink-0 place-items-center rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={t('common.filtersTooltip')}>
-              <ChevronDown className="h-[13px] w-[13px]" />
-            </button>
-          </div>
-        )}
+        {/* Active filter chips now inline in screen-specific filter bars — removed from global header */}
 
         <div className="mt-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -312,8 +293,8 @@ export const AppHeader = ({
             <select
               value={sortValue}
               onChange={(event) => onSortChange?.(event.target.value)}
-              className="min-h-8 rounded-[var(--app-radius-pill)] px-3 text-xs font-bold outline-none"
-              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color }}
+              className="min-h-10 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
               aria-label={sortAriaLabel}
               data-component="shared-select"
             >

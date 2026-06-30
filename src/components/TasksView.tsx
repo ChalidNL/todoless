@@ -244,6 +244,7 @@ export const TasksView = () => {
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-4">
+        {/* Single compact filter row: sprint status chips + visible label chips combined */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
           <SprintFilterChips
             filters={statusQuickFilters}
@@ -252,14 +253,18 @@ export const TasksView = () => {
           />
           {visibleLabels.length > 0 && (
             <>
-              <div className="w-px h-6 bg-neutral-200 flex-shrink-0 mx-1" />
-              <button
-                type="button"
-                onClick={clearLabelChips}
-                className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm ${activeLabelChipIds.length === 0 ? 'border-transparent bg-[var(--app-primary-grad)] text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'}`}
-              >
-                Alle
-              </button>
+              {/* Separator */}
+              <div className="w-px h-6 bg-neutral-200 flex-shrink-0 mx-0.5" />
+              {/* Only show "Alle" when NO label filter is active */}
+              {activeLabelChipIds.length === 0 && (
+                <button
+                  type="button"
+                  onClick={clearLabelChips}
+                  className="inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm border-transparent bg-[var(--app-primary-grad)] text-white"
+                >
+                  Alle
+                </button>
+              )}
               {visibleLabels.map((label) => {
                 const active = activeLabelChipIds.includes(label.id);
                 return (

@@ -19,6 +19,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 import { AttributeChip } from './AttributeChip';
 import { entityColor } from '../../lib/entity-colors';
 import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
+import { PriorityIcon } from '../../lib/PriorityIcon';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -485,22 +486,34 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 ) : null;
               })}
               {assignedUser && (
-                  <AttributeChip
-                    icon={<User className="w-3.5 h-3.5" />}
-                    label={getCompactUserName(assignedUser)}
-                  color={assigneeColor}
-                  active={isAssigneeFiltered(assignedUser.id)}
+                <button
                   onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
-                />
+                  className={`inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white transition-transform active:scale-95 ${
+                    isAssigneeFiltered(assignedUser.id) ? 'ring-2 ring-offset-1' : ''
+                  }`}
+                  style={{
+                    backgroundColor: assigneeColor || '#6366f1',
+                    ...(isAssigneeFiltered(assignedUser.id) ? { ringColor: assigneeColor || '#6366f1' } as React.CSSProperties : {}),
+                  }}
+                  title={getCompactUserName(assignedUser)}
+                  aria-label={`${t('tasks.assignee')}: ${getCompactUserName(assignedUser)}`}
+                >
+                  {assignedUser.avatarUrl ? (
+                    <img src={assignedUser.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    getCompactUserName(assignedUser).charAt(0).toUpperCase()
+                  )}
+                </button>
               )}
               {dateStr && !hideDateChip && !isDone && (
-                <AttributeChip
-                  icon={<CalendarDays className="w-3.5 h-3.5" />}
-                  label={dateStr}
-                  color="#ea580c"
-                  active={isDateFiltered(dateStr)}
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-neutral-500"
                   onClick={showMenu ? clearAllSchedule : () => toggleChipFilter('date', dateStr)}
-                />
+                  style={{ cursor: showMenu || isDateFiltered(dateStr) ? 'pointer' : undefined }}
+                >
+                  <CalendarDays className="w-3 h-3" />
+                  {dateStr}
+                </span>
               )}
               {repeatLabel && !isDone && (
                 <AttributeChip
@@ -531,12 +544,14 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 />
               )}
               {task.priority && PRIORITY_COLORS[task.priority] && (
-                <AttributeChip
-                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
-                  label={PRIORITY_LABELS[task.priority] || task.priority}
-                  color={PRIORITY_COLORS[task.priority] || '#6b7280'}
+                <button
                   onClick={showMenu ? clearPriority : () => toggleChipFilter('priority', task.priority, PRIORITY_LABELS[task.priority] || task.priority, PRIORITY_COLORS[task.priority] || '#6b7280')}
-                />
+                  className="inline-flex items-center justify-center"
+                  title={PRIORITY_LABELS[task.priority] || task.priority}
+                  aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[task.priority] || task.priority}`}
+                >
+                  <PriorityIcon priority={task.priority} size={15} />
+                </button>
               )}
             </div>
           )}
