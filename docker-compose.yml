@@ -1,6 +1,6 @@
 services:
   todoless:
-    image: ghcr.io/chalidnl/todoless-frontend:red
+    image: ghcr.io/chalidnl/todoless-frontend:pre
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -27,7 +27,7 @@ services:
       - todoless-net
 
   pocketbase:
-    image: ghcr.io/chalidnl/todoless-pocketbase:red
+    image: ghcr.io/chalidnl/todoless-pocketbase:pre
     container_name: todoless-pb
     restart: unless-stopped
     security_opt:
