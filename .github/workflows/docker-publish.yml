@@ -2,7 +2,7 @@ name: Build & Publish Docker Images
 
 on:
   push:
-    branches: [main, beta, red, dev]
+    branches: [main, beta, red, dev, pre]
   workflow_dispatch:
 
 env:
@@ -29,6 +29,9 @@ jobs:
           elif [ "${{ github.ref_name }}" = "beta" ]; then
             echo "fe_tag=beta" >> $GITHUB_OUTPUT
             echo "pb_tag=beta" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref_name }}" = "pre" ]; then
+            echo "fe_tag=pre" >> $GITHUB_OUTPUT
+            echo "pb_tag=pre" >> $GITHUB_OUTPUT
           elif [ "${{ github.ref_name }}" = "red" ]; then
             echo "fe_tag=red" >> $GITHUB_OUTPUT
             echo "pb_tag=red" >> $GITHUB_OUTPUT
@@ -61,6 +64,7 @@ jobs:
           build-args: |
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ steps.meta.outputs.branch }}
+            TODOLESS_TAG=${{ steps.meta.outputs.branch }}
 
       - name: Build & push pocketbase
         uses: docker/build-push-action@v5

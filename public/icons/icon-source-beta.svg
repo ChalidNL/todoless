@@ -29,4 +29,18 @@
     stroke-linecap="round"
     stroke-linejoin="round"
   />
+
+  <!-- BETA badge — bottom-right -->
+  <rect
+    x="340" y="400" width="120" height="38" rx="12" ry="12"
+    fill="#7C3AED" opacity="0.92"
+  />
+  <text
+    x="400" y="427"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-size="22" font-weight="700"
+    fill="#ffffff"
+    text-anchor="middle"
+    letter-spacing="1"
+  >BETA</text>
 </svg>
