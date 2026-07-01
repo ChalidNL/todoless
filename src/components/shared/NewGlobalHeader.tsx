@@ -204,24 +204,48 @@ export const AppHeader = ({
                   </div>
 
                   <div className="p-1">
-                    {typeFilters.length === 0 ? (
-                      <p className="p-3 text-center text-xs text-[var(--app-text-soft)]">
-                        {t('filters.noSavedFiltersHint')}
-                      </p>
-                    ) : (
-                      typeFilters.map(f => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => applySavedFilter(f.id)}
-                          className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-2)]"
-                        >
-                          <span className="truncate">{f.name}</span>
-                          <span className="ml-2 shrink-0 text-[10px] text-[var(--app-text-soft)]">
-                            {f.chipFilters?.length || 0}
-                          </span>
-                        </button>
-                      ))
+                    {/* Predefined status filters — always visible, never empty */}
+                    <div className="flex flex-wrap gap-1 p-1.5">
+                      {[
+                        { id: 'todo', label: t('dashboard.todoSprint'), color: '#16a34a' },
+                        { id: 'focus', label: t('tasks.focus'), color: '#f97316' },
+                        { id: 'blocked', label: t('dashboard.blocked'), color: '#e11d48' },
+                        { id: 'done', label: t('dashboard.doneSprint'), color: '#7c3aed' },
+                      ].map((pf) => {
+                        const active = activeChipFilters.some((f: any) => f.type === 'status' && f.id === pf.id);
+                        return (
+                          <button
+                            key={pf.id}
+                            type="button"
+                            onClick={() => toggleChipFilter('status', pf.id, pf.label, pf.color)}
+                            className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                              active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                            }`}
+                            style={active ? { backgroundColor: pf.color } : undefined}
+                          >
+                            {pf.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Saved filters section */}
+                    {typeFilters.length > 0 && (
+                      <div className="border-t border-[var(--app-border-subtle)] pt-1 mt-0.5">
+                        {typeFilters.map(f => (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => applySavedFilter(f.id)}
+                            className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-2)]"
+                          >
+                            <span className="truncate">{f.name}</span>
+                            <span className="ml-2 shrink-0 text-[10px] text-[var(--app-text-soft)]">
+                              {f.chipFilters?.length || 0}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                   </div>
                   <div className="flex gap-2 border-t border-[var(--app-border-subtle)] p-2">

@@ -46,11 +46,12 @@ interface TaskMetaRowProps {
 }
 
 /**
- * ATTRIBUUT-STANDAARD — shared meta row for all task attributes.
+ * ATTRIBUUT-STANDAARD ronde 4 — verfijnd.
  * 
- * Rule: every attribute is a chip (pill) with tinted background, icon-leading, chip height.
- * Exception: assignee = round avatar, but matched to chip height (h-7).
- * Consistent across compact + expanded, all screens.
+ * - Chip (pill, icon-leading + value): label, date, subtasks
+ * - Clear icon (no chip, color = meaning): priority, comment
+ * - Circle avatar: assignee — true circle, diameter = chip-height, always leftmost
+ * - All same height/baseline, tap = picker. One shared component.
  */
 export const TaskMetaRow = React.memo(function TaskMetaRow({
   data,
@@ -71,29 +72,24 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
 
   if (!hasAny) return null;
 
+  // Consistent chip-height = h-7 (28px)
+  const iconBtnClass = 'inline-flex items-center justify-center flex-shrink-0 transition-transform active:scale-95';
+  const iconLabel = 'text-[11px] font-medium leading-none';
+
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-1.5 ml-0.5" data-component="TaskMetaRow">
-      {/* Labels — chip with tag icon + name */}
-      {labels.map((label) => (
-        <AttributeChip
-          key={label.id}
-          icon={<Tag className="w-3 h-3" />}
-          label={label.name}
-          color={label.color}
-          active={isLabelFiltered(label.id)}
-          onClick={() => onLabelClick(label.id)}
-        />
-      ))}
 
-      {/* Assignee — round avatar, height = chip height (h-7 = 28px) */}
+      {/* ── 1. Assignee — true circle avatar, always leftmost ── */}
       {assignee && (
         <button
           onClick={onAssigneeClick}
-          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white transition-transform active:scale-95 ${
+          className={`${iconBtnClass} h-7 w-7 rounded-full text-[11px] font-bold text-white leading-none ${
             isAssigneeFiltered ? 'ring-1.5 ring-offset-1' : ''
           }`}
           style={{
             backgroundColor: assignee.color,
+            minWidth: '28px',
+            maxWidth: '28px',
             ...(isAssigneeFiltered ? { ringColor: assignee.color } as React.CSSProperties : {}),
           }}
           title={assignee.name}
@@ -107,7 +103,19 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         </button>
       )}
 
-      {/* Date — back in chip: calendar icon + date, overdue = orange tint */}
+      {/* ── 2. Labels — chip with tag icon + name ── */}
+      {labels.map((label) => (
+        <AttributeChip
+          key={label.id}
+          icon={<Tag className="w-3 h-3" />}
+          label={label.name}
+          color={label.color}
+          active={isLabelFiltered(label.id)}
+          onClick={() => onLabelClick(label.id)}
+        />
+      ))}
+
+      {/* ── 3. Date — chip: calendar icon + date ── */}
       {dateStr && (
         <AttributeChip
           icon={<CalendarDays className="w-3 h-3" />}
@@ -118,17 +126,19 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         />
       )}
 
-      {/* Comment — chip with message-square icon + optional count */}
-      {hasComment && (
-        <AttributeChip
-          icon={<MessageSquare className="w-3 h-3" strokeWidth={1.75} />}
-          label={commentCount && commentCount > 0 ? `${commentCount}` : ''}
-          color="#3b82f6"
-          onClick={onCommentClick}
-        />
+      {/* ── 4. Priority — clear standalone icon, color per level ── */}
+      {priority && PRIORITY_COLORS[priority] && (
+        <button
+          onClick={onPriorityClick}
+          className={`${iconBtnClass} h-7 w-7`}
+          title={PRIORITY_LABELS[priority] || priority}
+          aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[priority] || priority}`}
+        >
+          <PriorityIcon priority={priority as any} size={16} />
+        </button>
       )}
 
-      {/* Subtasks — chip with square-dot icon + progress */}
+      {/* ── 5. Subtasks — chip with square-dot icon + progress ── */}
       {subtaskCount > 0 && (
         <AttributeChip
           icon={<SubtaskIcon className="w-3 h-3" />}
@@ -138,19 +148,23 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         />
       )}
 
-      {/* Priority — icon in chip-height container, color per level */}
-      {priority && PRIORITY_COLORS[priority] && (
+      {/* ── 6. Comment — clear standalone icon, optional count ── */}
+      {hasComment && (
         <button
-          onClick={onPriorityClick}
-          className="inline-flex items-center justify-center h-7 w-7 rounded-full transition-transform active:scale-95"
-          title={PRIORITY_LABELS[priority] || priority}
-          aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[priority] || priority}`}
+          type="button"
+          onClick={onCommentClick}
+          className={`${iconBtnClass} gap-0.5 ${iconLabel} text-blue-500`}
+          aria-label={t('tasks.comment')}
+          title={t('tasks.comment')}
         >
-          <PriorityIcon priority={priority as any} size={15} />
+          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.75} />
+          {commentCount && commentCount > 0 ? (
+            <span className="text-[11px] font-semibold">{commentCount}</span>
+          ) : null}
         </button>
       )}
 
-      {/* Repeat — compact chip */}
+      {/* ── Repeat — compact chip (after comment) ── */}
       {repeatLabel && (
         <AttributeChip
           icon={<RotateCcw className="w-3 h-3" />}
