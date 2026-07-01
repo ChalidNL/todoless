@@ -13,8 +13,8 @@ name: todoless
 
 services:
   todoless:
-    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-frontend:${TODOLESS_TAG:-latest}
-    container_name: todoless-${TODOLESS_TAG:-latest}
+    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-frontend:${TODOLESS_TAG}
+    container_name: todoless-${TODOLESS_TAG}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -25,7 +25,6 @@ services:
       - /tmp
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
-      DEPLOY_ENV: ${DEPLOY_ENV:-${TODOLESS_TAG:-latest}}
     ports:
       - "${TODOLESS_PORT:-7070}:80"
     depends_on:
@@ -41,8 +40,8 @@ services:
       - todoless-net
 
   pocketbase:
-    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-pocketbase:${TODOLESS_TAG:-latest}
-    container_name: todoless-pb-${TODOLESS_TAG:-latest}
+    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-pocketbase:${TODOLESS_TAG}
+    container_name: todoless-pb-${TODOLESS_TAG}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -55,7 +54,6 @@ services:
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
-      DEPLOY_ENV: ${DEPLOY_ENV:-${TODOLESS_TAG:-latest}}
       COMMIT_SHA: ${COMMIT_SHA:-unknown}
     volumes:
       - ${PB_DATA_DIR:-/DATA/AppData/todoless}/pb_data:/pb_data
