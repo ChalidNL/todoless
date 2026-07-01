@@ -1,11 +1,9 @@
 import React from 'react';
-import { CalendarDays, MessageSquare } from 'lucide-react';
-import { t, formatDate } from '../../i18n/translations';
+import { CalendarDays, MessageSquare, Tag, RotateCcw } from 'lucide-react';
+import { t } from '../../i18n/translations';
 import { AttributeChip } from './AttributeChip';
 import { PriorityIcon } from '../../lib/PriorityIcon';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../lib/priority';
-import { getRepeatChipLabel, getRepeatLabel } from '../../lib/repeat-options';
-import { RotateCcw } from 'lucide-react';
 
 // Subtask icon
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -24,6 +22,7 @@ export interface MetaRowData {
   repeatChipLabel: string | null;
   repeatInterval: string | null;
   hasComment: boolean;
+  commentCount?: number;
   subtaskCount: number;
   completedSubtaskCount: number;
   priority: string | null;
@@ -32,9 +31,7 @@ export interface MetaRowData {
 interface TaskMetaRowProps {
   data: MetaRowData;
   expanded: boolean;
-  /** Theme color for the screen (e.g. green for Tasks, blue for Inbox) */
   themeColor?: string;
-  // Handlers (when expanded, use remove/clear; when collapsed, use filter toggle)
   onLabelClick: (labelId: string) => void;
   onAssigneeClick: () => void;
   onDateClick: () => void;
@@ -42,14 +39,19 @@ interface TaskMetaRowProps {
   onCommentClick: () => void;
   onSubtaskClick: () => void;
   onPriorityClick: () => void;
-  // Filter state hooks
   isLabelFiltered: (id: string) => boolean;
   isAssigneeFiltered: boolean;
   isDateFiltered: boolean;
   isRepeatFiltered: boolean;
 }
 
-/** Shared compact meta row — consistent sizing across collapsed + expanded, all screens */
+/**
+ * ATTRIBUUT-STANDAARD — shared meta row for all task attributes.
+ * 
+ * Rule: every attribute is a chip (pill) with tinted background, icon-leading, chip height.
+ * Exception: assignee = round avatar, but matched to chip height (h-7).
+ * Consistent across compact + expanded, all screens.
+ */
 export const TaskMetaRow = React.memo(function TaskMetaRow({
   data,
   expanded,
@@ -60,7 +62,7 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
   const {
     labels, assignee, dateStr, isOverdue,
     repeatLabel, repeatChipLabel,
-    hasComment, subtaskCount, completedSubtaskCount,
+    hasComment, commentCount, subtaskCount, completedSubtaskCount,
     priority,
   } = data;
 
@@ -69,28 +71,25 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
 
   if (!hasAny) return null;
 
-  /** Consistent meta height */
-  const metaClass = 'inline-flex items-center gap-1 text-[11px] font-medium leading-none';
-
   return (
     <div className="flex flex-wrap items-center gap-1.5 mt-1.5 ml-0.5" data-component="TaskMetaRow">
-      {/* Labels — AttributeChip (compact, h-6) */}
+      {/* Labels — chip with tag icon + name */}
       {labels.map((label) => (
         <AttributeChip
           key={label.id}
+          icon={<Tag className="w-3 h-3" />}
           label={label.name}
           color={label.color}
           active={isLabelFiltered(label.id)}
           onClick={() => onLabelClick(label.id)}
-          compact={false}
         />
       ))}
 
-      {/* Assignee — small round avatar */}
+      {/* Assignee — round avatar, height = chip height (h-7 = 28px) */}
       {assignee && (
         <button
           onClick={onAssigneeClick}
-          className={`inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white transition-transform active:scale-95 ${
+          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white transition-transform active:scale-95 ${
             isAssigneeFiltered ? 'ring-1.5 ring-offset-1' : ''
           }`}
           style={{
@@ -108,32 +107,28 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         </button>
       )}
 
-      {/* Date — subtle inline, overdue gets orange tint */}
+      {/* Date — back in chip: calendar icon + date, overdue = orange tint */}
       {dateStr && (
-        <span
+        <AttributeChip
+          icon={<CalendarDays className="w-3 h-3" />}
+          label={dateStr}
+          color={isOverdue ? '#ea580c' : '#6b7280'}
+          active={isDateFiltered}
           onClick={onDateClick}
-          className={`${metaClass} cursor-pointer ${isOverdue ? 'text-orange-500' : 'text-neutral-400'}`}
-          style={isDateFiltered ? { color: '#ea580c', fontWeight: 600 } : undefined}
-        >
-          <CalendarDays className="w-3 h-3 flex-shrink-0" />
-          {dateStr}
-        </span>
+        />
       )}
 
-      {/* Comment — consistent size with count */}
+      {/* Comment — chip with message-square icon + optional count */}
       {hasComment && (
-        <button
-          type="button"
+        <AttributeChip
+          icon={<MessageSquare className="w-3 h-3" strokeWidth={1.75} />}
+          label={commentCount && commentCount > 0 ? `${commentCount}` : ''}
+          color="#3b82f6"
           onClick={onCommentClick}
-          className={`${metaClass} cursor-pointer text-blue-500 hover:text-blue-600`}
-          aria-label={t('tasks.comment')}
-          title={t('tasks.comment')}
-        >
-          <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.75} />
-        </button>
+        />
       )}
 
-      {/* Subtasks — compact chip */}
+      {/* Subtasks — chip with square-dot icon + progress */}
       {subtaskCount > 0 && (
         <AttributeChip
           icon={<SubtaskIcon className="w-3 h-3" />}
@@ -143,15 +138,15 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         />
       )}
 
-      {/* Priority — icon only */}
+      {/* Priority — icon in chip-height container, color per level */}
       {priority && PRIORITY_COLORS[priority] && (
         <button
           onClick={onPriorityClick}
-          className="inline-flex items-center justify-center"
+          className="inline-flex items-center justify-center h-7 w-7 rounded-full transition-transform active:scale-95"
           title={PRIORITY_LABELS[priority] || priority}
           aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[priority] || priority}`}
         >
-          <PriorityIcon priority={priority as any} size={14} />
+          <PriorityIcon priority={priority as any} size={15} />
         </button>
       )}
 

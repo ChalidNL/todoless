@@ -471,8 +471,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
           )}
 
-          {/* Meta row — shared component, consistent sizing across collapsed + expanded */}
-          {!isDone && !showMenu && (
+          {/* Meta row — shared component, visible in both collapsed AND expanded */}
+          {!isDone && (
             <TaskMetaRow
               data={{
                 labels: task.labels.map((labelId) => {
@@ -495,15 +495,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 completedSubtaskCount,
                 priority: task.priority || null,
               }}
-              expanded={false}
+              expanded={showMenu}
               themeColor="#22c55e"
-              onLabelClick={(id) => toggleChipFilter('label', id, labels.find(l => l.id === id)?.name || '', labels.find(l => l.id === id)?.color || '#6366f1')}
-              onAssigneeClick={() => toggleChipFilter('assignee', assignedUser!.id, getCompactUserName(assignedUser!), assigneeColor)}
-              onDateClick={() => toggleChipFilter('date', dateStr!)}
-              onRepeatClick={() => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel!)}
+              // When collapsed: tap = filter toggle. When expanded: tap = open editor
+              onLabelClick={(id) => showMenu ? setActiveEditor('labels') : toggleChipFilter('label', id, labels.find(l => l.id === id)?.name || '', labels.find(l => l.id === id)?.color || '#6366f1')}
+              onAssigneeClick={() => showMenu ? setActiveEditor('assignee') : toggleChipFilter('assignee', assignedUser!.id, getCompactUserName(assignedUser!), assigneeColor)}
+              onDateClick={() => showMenu ? setActiveEditor('schedule') : toggleChipFilter('date', dateStr!)}
+              onRepeatClick={() => showMenu ? setActiveEditor('schedule') : task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel!)}
               onCommentClick={() => openCommentEditor()}
-              onSubtaskClick={() => {}}
-              onPriorityClick={() => toggleChipFilter('priority', task.priority!, PRIORITY_LABELS[task.priority!] || task.priority!, PRIORITY_COLORS[task.priority!] || '#6b7280')}
+              onSubtaskClick={() => showMenu ? setActiveEditor('subtasks') : {}}
+              onPriorityClick={() => showMenu ? setActiveEditor('priority') : toggleChipFilter('priority', task.priority!, PRIORITY_LABELS[task.priority!] || task.priority!, PRIORITY_COLORS[task.priority!] || '#6b7280')}
               isLabelFiltered={isLabelFiltered}
               isAssigneeFiltered={isAssigneeFiltered(assignedUser?.id)}
               isDateFiltered={isDateFiltered(dateStr!)}
