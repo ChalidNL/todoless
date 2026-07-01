@@ -25,7 +25,7 @@ services:
       - /tmp
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
-      DEPLOY_ENV: ${DEPLOY_ENV:-production}
+      DEPLOY_ENV: ${DEPLOY_ENV:-${TODOLESS_TAG:-latest}}
     ports:
       - "${TODOLESS_PORT:-7070}:80"
     depends_on:
@@ -55,7 +55,7 @@ services:
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
-      DEPLOY_ENV: ${DEPLOY_ENV:-production}
+      DEPLOY_ENV: ${DEPLOY_ENV:-${TODOLESS_TAG:-latest}}
       COMMIT_SHA: ${COMMIT_SHA:-unknown}
     volumes:
       - ${PB_DATA_DIR:-/DATA/AppData/todoless}/pb_data:/pb_data
