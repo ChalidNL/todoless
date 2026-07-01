@@ -388,6 +388,7 @@ interface TranslationStructure {
     addMember: string;
     familyLabel: string;
     sameFamilyHint: string;
+    inviteSectionTitle: string;
   };
   agent: {
     title: string;
@@ -795,6 +796,7 @@ export const translations: Record<Language, TranslationStructure> = {
       addMember: 'Add Member',
       familyLabel: 'Family',
       sameFamilyHint: 'Only members from the same family are shown here.',
+      inviteSectionTitle: 'Invite',
     },
     agent: {
       title: 'Agents',
@@ -1198,6 +1200,7 @@ export const translations: Record<Language, TranslationStructure> = {
       addMember: 'Ajouter un membre',
       familyLabel: 'Famille',
       sameFamilyHint: 'Seuls les membres de la même famille sont affichés ici.',
+      inviteSectionTitle: 'Inviter',
     },
     agent: {
       title: 'Agents',
@@ -1603,6 +1606,7 @@ export const translations: Record<Language, TranslationStructure> = {
       addMember: 'Lid toevoegen',
       familyLabel: 'Familie',
       sameFamilyHint: 'Hier zie je alleen leden uit dezelfde familie.',
+      inviteSectionTitle: 'Uitnodigen',
     },
     agent: {
       title: 'Agenten',
@@ -2006,6 +2010,7 @@ export const translations: Record<Language, TranslationStructure> = {
       addMember: 'Mitglied hinzufügen',
       familyLabel: 'Familie',
       sameFamilyHint: 'Hier werden nur Mitglieder derselben Familie angezeigt.',
+      inviteSectionTitle: 'Einladen',
     },
     agent: {
       title: 'Agenten',
@@ -2230,7 +2235,7 @@ export const translations: Record<Language, TranslationStructure> = {
     members: {
       title: 'Familia', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
       noMembers: 'Sin miembros', role: 'Rol', manageMembers: 'Gestionar miembros', addMember: 'Añadir miembro',
-      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.',
+      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.', inviteSectionTitle: 'Invitar',
     },
     agent: {
       title: 'Agentes', createToken: 'Crear token', tokenCreated: 'Token creado', tokenRevoked: 'Token revocado',
@@ -2306,6 +2311,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "calendar": "Agenda",
       "groceries": "Shop",
       "settings": "Instellingen"
+    },
+    "members": {
+      "inviteSectionTitle": "Invite"
     }
   },
   "nl": {
@@ -2374,6 +2382,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "calendar": "Agenda",
       "groceries": "Shop",
       "settings": "Instellingen"
+    },
+    "members": {
+      "inviteSectionTitle": "Uitnodigen"
     }
   },
   "fr": {
@@ -2438,6 +2449,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "calendar": "Agenda",
       "groceries": "Courses",
       "settings": "Régl."
+    },
+    "members": {
+      "inviteSectionTitle": "Inviter"
     }
   },
   "de": {
@@ -2469,6 +2483,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "calendar": "Kal.",
       "groceries": "Einkauf",
       "settings": "Einst."
+    },
+    "members": {
+      "inviteSectionTitle": "Einladen"
     }
   },
   "es": {
@@ -2500,6 +2517,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "calendar": "Cal.",
       "groceries": "Compra",
       "settings": "Ajustes"
+    },
+    "members": {
+      "inviteSectionTitle": "Invitar"
     }
   },
 };
