@@ -2,7 +2,7 @@ import { Home, Lock, Pencil, Tag, Users, X, ChevronDown, ChevronUp, Check } from
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
-import { AppHeader } from './shared/NewGlobalHeader';
+import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { EmptyState } from './shared/EmptyState';
 import { Button } from './ui/Button';
@@ -11,10 +11,19 @@ import type { Label } from '../types';
 const COLOR_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#ef4444', '#14b8a6', '#f43f5e', '#a855f7'];
 const VISIBILITY_ICON = { private: Lock, shared: Users, family: Home } as const;
 const VISIBILITY_OPTIONS = [
-  { value: 'family' as const, label: 'Familie', icon: Home, color: '#22c55e' },
-  { value: 'private' as const, label: 'Privé', icon: Lock, color: '#ef4444' },
-  { value: 'shared' as const, label: 'Gedeeld', icon: Users, color: '#3b82f6' },
+  { value: 'family' as const, icon: Home, color: '#22c55e' },
+  { value: 'private' as const, icon: Lock, color: '#ef4444' },
+  { value: 'shared' as const, icon: Users, color: '#3b82f6' },
 ];
+
+function visibilityLabel(visibility: 'family' | 'private' | 'shared'): string {
+  const keyMap: Record<string, string> = {
+    family: 'labels.visibilityFamily',
+    private: 'labels.visibilityPrivate',
+    shared: 'labels.visibilityShared',
+  };
+  return t(keyMap[visibility]);
+}
 
 export function LabelsView() {
   const { labels, addLabel, updateLabel } = useApp();
@@ -54,30 +63,23 @@ export function LabelsView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <AppHeader
+      <SettingsDetailHeader
+        mode="list"
         screen="labels"
-        searchPlaceholder="Zoek labels..."
+        searchPlaceholder={t('settings.labelsSearchPlaceholder')}
         onSearch={setSearch}
-        onAddEmpty={() => { setExpandedId('new'); setDraftName(''); setDraftColor('#eab308'); }}
+        onAdd={() => { setExpandedId('new'); setDraftName(''); setDraftColor('#eab308'); }}
         count={sortedLabels.length}
-        sortValue="alpha"
-        onSortChange={() => {}}
-        sortOptions={[
-          { value: 'alpha', label: 'A-Z' },
-          { value: 'alpha-reverse', label: 'Z-A' },
-          { value: 'color', label: 'Kleur' },
-          { value: 'visibility', label: 'Zichtbaarheid' },
-        ]}
       />
       <div className="mx-auto max-w-lg space-y-2 px-4 pt-4">
         {/* New label creation row (when expandedId === 'new') */}
         {expandedId === 'new' && (
           <article className="app-card app-animate-in flex flex-col gap-3 px-4 py-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-black text-[var(--app-text)]">Nieuw label</span>
+              <span className="text-sm font-black text-[var(--app-text)]">{t('settings.newLabel')}</span>
               <button type="button" onClick={collapseAll} className="grid h-9 w-9 place-items-center rounded-full bg-[var(--app-bg)]"><X className="h-4 w-4" /></button>
             </div>
-            <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Labelnaam…" className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') createLabel(); }} />
+            <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') createLabel(); }} />
             <div className="flex flex-wrap gap-2.5">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-9 w-9 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }} aria-label={color} />)}</div>
             <div className="flex gap-2">
               <Button label={t('common.save')} onClick={createLabel} />
@@ -107,7 +109,7 @@ export function LabelsView() {
                 >
                   <Tag className="h-3 w-3" /> {label.name}
                 </span>
-                <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold capitalize text-[var(--app-text-muted)]"><Icon className="h-3 w-3" /> {visibility}</span>
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold capitalize text-[var(--app-text-muted)]"><Icon className="h-3 w-3" /> {visibilityLabel(visibility)}</span>
                 <button type="button" onClick={() => expandLabel(label)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`Edit ${label.name}`}>
                   {isExpanded ? <ChevronUp className="h-[15px] w-[15px]" /> : <ChevronDown className="h-[15px] w-[15px]" />}
                 </button>
@@ -133,7 +135,7 @@ export function LabelsView() {
                           style={active ? { backgroundColor: opt.color } : undefined}
                         >
                           <VisIcon className="h-3 w-3" />
-                          {opt.label}
+                          {visibilityLabel(opt.value)}
                           {active && <Check className="h-3 w-3" />}
                         </button>
                       );

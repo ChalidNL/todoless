@@ -2,7 +2,7 @@ import { Pencil, Store, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
-import { AppHeader } from './shared/NewGlobalHeader';
+import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { EmptyState } from './shared/EmptyState';
 import { Button } from './ui/Button';
 import type { Shop } from '../types';
@@ -31,10 +31,17 @@ export function ShopsView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <AppHeader screen="shop" searchPlaceholder="Zoek winkels..." showFilters={false} onSearch={setSearch} onAddEmpty={openCreate} count={visibleShops.length} />
+      <SettingsDetailHeader
+        mode="list"
+        screen="shop"
+        searchPlaceholder={t('settings.shopsSearchPlaceholder')}
+        onSearch={setSearch}
+        onAdd={openCreate}
+        count={visibleShops.length}
+      />
       <div className="mx-auto max-w-lg space-y-2 px-4 pt-4">
         {visibleShops.length === 0 ? (
-          <EmptyState title="Nog geen winkels" description="Maak een winkel aan via de + knop" icon={<Store className="h-7 w-7" />} />
+          <EmptyState title={t('settings.noShops')} description={t('settings.noShopsHint')} icon={<Store className="h-7 w-7" />} />
         ) : visibleShops.map((shop) => (
           <article key={shop.id} className="app-card app-animate-in flex items-center gap-3 px-4 py-3">
             <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)]" style={{ background: `${shop.color || '#ec4899'}15`, color: shop.color || '#ec4899' }}><Store className="h-[18px] w-[18px]" /></span>

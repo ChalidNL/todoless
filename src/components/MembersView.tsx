@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Mail, Shield, CheckCircle2, Clock3, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
-import { AppHeader } from './shared/NewGlobalHeader';
+import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { getMemberDisplayName, getMemberInitials } from '../lib/member-role-utils';
 import { entityColor } from '../lib/entity-colors';
 import { Avatar, AvatarFallback } from './ui/avatar';
@@ -9,17 +10,31 @@ import { InviteManager } from './InviteManager';
 
 export function MembersView() {
   const { users } = useApp();
+  const [search, setSearch] = useState('');
+  const [inviteTrigger, setInviteTrigger] = useState(0);
+
+  const handleInvite = () => {
+    setInviteTrigger((t) => t + 1);
+  };
+
+  const filteredUsers = users.filter(
+    (u) =>
+      !search.trim() ||
+      getMemberDisplayName(u).toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <AppHeader
+      <SettingsDetailHeader
+        mode="list"
         screen="leden"
-        showSearch={false}
-        showAdd={false}
-        showFilters={false}
+        searchPlaceholder={t('settings.membersSearchPlaceholder') || 'Zoek leden...'}
+        onSearch={setSearch}
+        onAdd={handleInvite}
+        count={users.length}
       />
       <div className="mx-auto max-w-lg space-y-3 px-4 pt-4">
-        {users.map((member) => {
+        {filteredUsers.map((member) => {
           const name = getMemberDisplayName(member);
           const status = (member as any).memberStatus || (member as any).member_status || 'active';
           const active = status !== 'blocked';
@@ -59,7 +74,7 @@ export function MembersView() {
       </div>
       <div className="mx-auto max-w-lg space-y-3 px-4 pt-8">
         <h2 className="text-sm font-extrabold text-[var(--app-text)]">{t('members.inviteSectionTitle')}</h2>
-        <InviteManager />
+        <InviteManager triggerGenerate={inviteTrigger} />
       </div>
     </div>
   );

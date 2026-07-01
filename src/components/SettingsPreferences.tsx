@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
-import { AppHeader } from './shared/NewGlobalHeader';
+import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { CalendarImportExport } from './CalendarImportExport';
 
 export function SettingsPreferences() {
+  const navigate = useNavigate();
   const { appSettings, updateAppSettings } = useApp();
   const weekDays = [
     { value: 0, label: t('settings.sunday') },
@@ -17,9 +19,14 @@ export function SettingsPreferences() {
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
+      <SettingsDetailHeader
+        mode="detail"
+        themeColor="#f97316"
+        title={t('settings.preferences')}
+        onBack={() => navigate(-1)}
+      />
       <main className="mx-auto max-w-2xl space-y-3 px-4 pt-3">
-        <section className="rounded-[var(--app-radius-card)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-card)]">
+        <section className="app-card p-4">
           <h1 className="mb-3 text-base font-black text-[var(--app-text)]">{t('settings.preferences')}</h1>
           <label className="mb-1 block text-sm font-semibold text-[var(--app-text-muted)]" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
           <select
@@ -33,7 +40,7 @@ export function SettingsPreferences() {
           </select>
         </section>
 
-        <section className="rounded-[var(--app-radius-card)] bg-[var(--app-surface)] p-4 shadow-[var(--app-shadow-card)]">
+        <section className="app-card p-4">
           <CalendarImportExport />
         </section>
       </main>

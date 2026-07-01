@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Share2, Copy, Trash2, Plus, UserPlus, Check, Clock, X } from 'lucide-react';
 
-export const InviteManager = () => {
+export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: number }) => {
   const { inviteCodes, generateInviteCode, deleteInviteCode, showCompletionMessage } = useApp();
   const { t } = useLanguage();
   const [showShareModal, setShowShareModal] = useState(false);
   const [currentInviteUrl, setCurrentInviteUrl] = useState('');
   const [currentInviteCode, setCurrentInviteCode] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  // Track previous trigger value to avoid double-firing on mount
+  const prevTrigger = useRef(triggerGenerate);
+  useEffect(() => {
+    if (triggerGenerate > 0 && triggerGenerate !== prevTrigger.current) {
+      prevTrigger.current = triggerGenerate;
+      handleGenerateInvite();
+    }
+  }, [triggerGenerate]);
 
   const handleGenerateInvite = async () => {
     setGenerating(true);

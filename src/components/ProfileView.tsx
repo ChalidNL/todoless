@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Camera, ChevronLeft, Lock, Save } from 'lucide-react';
+import { Camera, Lock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t, SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
 import { userDisplayName } from '../types';
 import { Button } from './ui/Button';
+import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 
 const languageLabel = (language: SupportedUiLanguage) => {
   const labels: Record<SupportedUiLanguage, string> = { en: 'English', nl: 'Nederlands', fr: 'Français', de: 'Deutsch', es: 'Español' };
@@ -74,23 +75,24 @@ export function ProfileView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
-      <section className="relative overflow-hidden px-6 pb-7 pt-5 text-white shadow-[0_16px_40px_rgba(99,102,241,0.28)]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
-        <button type="button" onClick={() => navigate(-1)} className="absolute left-4 top-4 inline-flex min-h-9 items-center gap-1 rounded-full bg-white/12 px-3 text-sm font-semibold text-white active:scale-[0.97]">
-          <ChevronLeft className="h-[18px] w-[18px]" /> Terug
+      <div className="relative">
+        <SettingsDetailHeader
+          mode="detail"
+          themeColor="#6366f1"
+          title={displayName}
+          subtitle={currentUser.email}
+          avatarInitials={initials}
+          onBack={() => navigate(-1)}
+        />
+        <button
+          type="button"
+          onClick={handleAvatarUpload}
+          className="absolute right-[calc(50%-56px)] top-[108px] grid h-7 w-7 place-items-center rounded-full bg-white text-indigo-600 shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
+          aria-label="Avatar upload"
+        >
+          <Camera className="h-3.5 w-3.5" strokeWidth={2.5} />
         </button>
-        <div className="mt-10 flex flex-col items-center gap-3 text-center">
-          <span className="relative grid h-[84px] w-[84px] place-items-center overflow-hidden rounded-full border-[3px] border-white/60 bg-white/25 text-[28px] font-black text-white shadow-lg">
-            {initials}
-            <button type="button" onClick={handleAvatarUpload} className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full bg-white text-indigo-600 shadow-[0_2px_8px_rgba(0,0,0,0.2)]" aria-label="Avatar upload">
-              <Camera className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </button>
-          </span>
-          <div>
-            <h1 className="text-xl font-black tracking-[-0.01em]">{displayName}</h1>
-            <p className="mt-1 text-sm font-semibold text-white/80">{currentUser.email}</p>
-          </div>
-        </div>
-      </section>
+      </div>
 
       <main className="mx-auto max-w-lg pt-4">
         <section className="mx-4 overflow-hidden rounded-[var(--app-radius-xl)] bg-white shadow-[var(--app-shadow-card)]">

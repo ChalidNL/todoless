@@ -87,6 +87,7 @@ interface TranslationStructure {
     unknown: string;
     warning: string;
     yes: string;
+    back: string;
   };
   onboarding: {
     accountCreationFailed: string;
@@ -221,6 +222,9 @@ interface TranslationStructure {
     noRegisteredAgents: string;
     noSavedFilters: string;
     notifications: string;
+    notificationsComingSoon: string;
+    notificationsComingSoonHint: string;
+    notificationsDueDate: string;
     openSwaggerDocs: string;
     admin: string;
     adminOnly: string;
@@ -472,6 +476,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Unknown',
       warning: 'Warning',
       yes: 'Yes',
+      back: 'Back',
     },
     onboarding: {
       accountCreationFailed: 'Account creation failed. Please try again.',
@@ -480,7 +485,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Creating account…',
       email: 'Email',
       emailAlreadyInUse: 'This email is already in use. Try logging in.',
-      firstName: 'First name *',
+      firstName: 'First name',
       getStarted: 'Get Started',
       goToLogin: 'Go to login',
       lastName: 'Last name',
@@ -631,6 +636,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noRegisteredAgents: 'No registered agents',
       noSavedFilters: 'No saved filters',
       notifications: 'Notifications',
+      notificationsDueDate: 'Due date notifications',
+      notificationsComingSoon: 'Coming soon',
+      notificationsComingSoonHint: 'Notification preferences will be available in a future update.',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
       adminOnly: 'Admin only',
@@ -878,6 +886,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Inconnu',
       warning: 'Avertissement',
       yes: 'Oui',
+      back: 'Retour',
     },
     onboarding: {
       accountCreationFailed: 'Échec de la création du compte. Veuillez réessayer.',
@@ -886,7 +895,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Création du compte…',
       email: 'E-mail',
       emailAlreadyInUse: 'Cet e-mail est déjà utilisé. Essayez de vous connecter.',
-      firstName: 'Prénom *',
+      firstName: 'Prénom',
       getStarted: 'Commencer',
       goToLogin: 'Aller à la connexion',
       lastName: 'Nom de famille',
@@ -1035,6 +1044,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noRegisteredAgents: 'Aucun agent enregistré',
       noSavedFilters: 'Aucun filtre enregistré',
       notifications: 'Notifications',
+      notificationsDueDate: 'Notifications de date d\'échéance',
+      notificationsComingSoon: 'Bientôt disponible',
+      notificationsComingSoonHint: 'Les préférences de notification seront disponibles dans une prochaine mise à jour.',
       openSwaggerDocs: 'Ouvrir la documentation Swagger',
       admin: 'Admin',
       adminOnly: 'Admin uniquement',
@@ -1282,6 +1294,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Onbekend',
       warning: 'Waarschuwing',
       yes: 'Ja',
+      back: 'Terug',
     },
     onboarding: {
       accountCreationFailed: 'Account aanmaken mislukt. Probeer het opnieuw.',
@@ -1290,7 +1303,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Account aanmaken…',
       email: 'E-mail',
       emailAlreadyInUse: 'Dit e-mailadres is al in gebruik. Probeer in te loggen.',
-      firstName: 'Voornaam *',
+      firstName: 'Voornaam',
       getStarted: 'Aan de slag',
       goToLogin: 'Naar inloggen',
       lastName: 'Achternaam',
@@ -1441,6 +1454,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noRegisteredAgents: 'Geen geregistreerde agenten',
       noSavedFilters: 'Geen opgeslagen filters',
       notifications: 'Meldingen',
+      notificationsDueDate: 'Deadline meldingen',
+      notificationsComingSoon: 'Binnenkort beschikbaar',
+      notificationsComingSoonHint: 'Notificatievoorkeuren komen binnenkort beschikbaar.',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
       adminOnly: 'Alleen admin',
@@ -1688,6 +1704,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Unbekannt',
       warning: 'Warnung',
       yes: 'Ja',
+      back: 'Zurück',
     },
     onboarding: {
       accountCreationFailed: 'Kontoerstellung fehlgeschlagen. Bitte versuchen Sie es erneut.',
@@ -1696,7 +1713,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Konto wird erstellt…',
       email: 'E-Mail',
       emailAlreadyInUse: 'Diese E-Mail wird bereits verwendet. Versuchen Sie sich anzumelden.',
-      firstName: 'Vorname *',
+      firstName: 'Vorname',
       getStarted: 'Loslegen',
       goToLogin: 'Zum Login',
       lastName: 'Nachname',
@@ -1845,6 +1862,9 @@ export const translations: Record<Language, TranslationStructure> = {
       noRegisteredAgents: 'Keine registrierten Agenten',
       noSavedFilters: 'Keine gespeicherten Filter',
       notifications: 'Benachrichtigungen',
+      notificationsDueDate: 'Fälligkeitsbenachrichtigungen',
+      notificationsComingSoon: 'Demnächst verfügbar',
+      notificationsComingSoonHint: 'Benachrichtigungseinstellungen werden in einem zukünftigen Update verfügbar sein.',
       openSwaggerDocs: 'Swagger-Dokumentation öffnen',
       admin: 'Admin',
       adminOnly: 'Nur Admin',
@@ -2092,6 +2112,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Desconocido',
       warning: 'Advertencia',
       yes: 'Sí',
+      back: 'Volver',
     },
     onboarding: {
       accountCreationFailed: 'Error al crear la cuenta.',
@@ -2100,7 +2121,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Creando cuenta…',
       email: 'Correo electrónico',
       emailAlreadyInUse: 'Este correo ya está en uso.',
-      firstName: 'Nombre *',
+      firstName: 'Nombre',
       getStarted: 'Comenzar',
       goToLogin: 'Ir al inicio de sesión',
       lastName: 'Apellido',
@@ -2169,7 +2190,7 @@ export const translations: Record<Language, TranslationStructure> = {
       language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
       newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
       noLabels: 'Aún no hay etiquetas', noLabelsHint: 'Crea una etiqueta con el botón +', noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
-      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', openSwaggerDocs: 'Abrir documentación Swagger',
+      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', notificationsDueDate: 'Notificaciones de fecha límite', notificationsComingSoon: 'Próximamente', notificationsComingSoonHint: 'Las preferencias de notificación estarán disponibles en una futura actualización.', openSwaggerDocs: 'Abrir documentación Swagger',
       admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
       autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',
       firstAdmin: 'Primer admin', makeAdmin: 'Hacer admin', makeMember: 'Hacer miembro', owner: 'Propietario',
@@ -2314,6 +2335,18 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "members": {
       "inviteSectionTitle": "Invite"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Search labels...",
+      "shopsSearchPlaceholder": "Search shops...",
+      "noShops": "No shops yet",
+      "noShopsHint": "Create a shop with the + button",
+      "newLabel": "New label",
+      "visibility": "Visibility",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Color",
+      "sortVisibility": "Visibility"
     }
   },
   "nl": {
@@ -2385,6 +2418,18 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "members": {
       "inviteSectionTitle": "Uitnodigen"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Zoek labels...",
+      "shopsSearchPlaceholder": "Zoek winkels...",
+      "noShops": "Nog geen winkels",
+      "noShopsHint": "Maak een winkel aan via de + knop",
+      "newLabel": "Nieuw label",
+      "visibility": "Zichtbaarheid",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Kleur",
+      "sortVisibility": "Zichtbaarheid"
     }
   },
   "fr": {
@@ -2452,6 +2497,18 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "members": {
       "inviteSectionTitle": "Inviter"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Rechercher des étiquettes...",
+      "shopsSearchPlaceholder": "Rechercher des magasins...",
+      "noShops": "Pas encore de magasins",
+      "noShopsHint": "Créez un magasin avec le bouton +",
+      "newLabel": "Nouvelle étiquette",
+      "visibility": "Visibilité",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Couleur",
+      "sortVisibility": "Visibilité"
     }
   },
   "de": {
@@ -2486,6 +2543,18 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "members": {
       "inviteSectionTitle": "Einladen"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Labels suchen...",
+      "shopsSearchPlaceholder": "Geschäfte suchen...",
+      "noShops": "Noch keine Geschäfte",
+      "noShopsHint": "Erstelle ein Geschäft mit der + Taste",
+      "newLabel": "Neues Label",
+      "visibility": "Sichtbarkeit",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Farbe",
+      "sortVisibility": "Sichtbarkeit"
     }
   },
   "es": {
@@ -2520,6 +2589,18 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "members": {
       "inviteSectionTitle": "Invitar"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Buscar etiquetas...",
+      "shopsSearchPlaceholder": "Buscar tiendas...",
+      "noShops": "Aún no hay tiendas",
+      "noShopsHint": "Crea una tienda con el botón +",
+      "newLabel": "Nueva etiqueta",
+      "visibility": "Visibilidad",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Color",
+      "sortVisibility": "Visibilidad"
     }
   },
 };
