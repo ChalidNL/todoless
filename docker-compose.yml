@@ -1,20 +1,7 @@
-name: todoless
-
-# ── One compose for all environments ──
-# The ONLY difference between environments is the TAG + PORT.
-#
-#   production:  TODOLESS_TAG=latest  TODOLESS_PORT=7070  docker compose up -d
-#   testers:     TODOLESS_TAG=pre     TODOLESS_PORT=7071  docker compose up -d
-#   design:      TODOLESS_TAG=red     TODOLESS_PORT=7080  docker compose up -d
-#   development: TODOLESS_TAG=dev     TODOLESS_PORT=7072  docker compose up -d
-#
-# Use -p <project> for multi-instance on the same host:
-#   docker compose -p todoless-pre up -d
-
 services:
   todoless:
-    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-frontend:${TODOLESS_TAG}
-    container_name: todoless-${TODOLESS_TAG}
+    image: ghcr.io/chalidnl/todoless-frontend:red
+    container_name: todoless
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -24,9 +11,9 @@ services:
       - /var/run
       - /tmp
     environment:
-      TZ: ${TZ:-Europe/Amsterdam}
+      TZ: Europe/Amsterdam
     ports:
-      - "${TODOLESS_PORT:-7070}:80"
+      - "7080:80"
     depends_on:
       pocketbase:
         condition: service_healthy
@@ -40,8 +27,8 @@ services:
       - todoless-net
 
   pocketbase:
-    image: ${REGISTRY:-ghcr.io/chalidnl}/todoless-pocketbase:${TODOLESS_TAG}
-    container_name: todoless-pb-${TODOLESS_TAG}
+    image: ghcr.io/chalidnl/todoless-pocketbase:red
+    container_name: todoless-pb
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
@@ -53,12 +40,12 @@ services:
     entrypoint: ["/entrypoint.sh"]
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:
-      TZ: ${TZ:-Europe/Amsterdam}
-      COMMIT_SHA: ${COMMIT_SHA:-unknown}
+      TZ: Europe/Amsterdam
+      COMMIT_SHA: unknown
     volumes:
-      - ${PB_DATA_DIR:-/DATA/AppData/todoless}/pb_data:/pb_data
-      - ${PB_DATA_DIR:-/DATA/AppData/todoless}/pb_migrations:/pb_migrations
-      - ${PB_DATA_DIR:-/DATA/AppData/todoless}/pb_hooks:/pb_hooks
+      - /DATA/AppData/todoless/pb_data:/pb_data
+      - /DATA/AppData/todoless/pb_migrations:/pb_migrations
+      - /DATA/AppData/todoless/pb_hooks:/pb_hooks
     networks:
       - todoless-net
     healthcheck:
