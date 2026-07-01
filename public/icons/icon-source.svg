@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="20%" stop-color="#3B82F6"/>
+      <stop offset="40%" stop-color="#10B981"/>
+      <stop offset="60%" stop-color="#F59E0B"/>
+      <stop offset="80%" stop-color="#EF4444"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Checkbox rounded square -->
+  <rect
+    x="96" y="96" width="320" height="320" rx="64" ry="64"
+    fill="none"
+    stroke="url(#rainbow)"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Checkmark -->
+  <polyline
+    points="160,270 230,340 360,190"
+    fill="none"
+    stroke="url(#rainbow)"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>
