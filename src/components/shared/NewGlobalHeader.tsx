@@ -204,7 +204,8 @@ export const AppHeader = ({
                   </div>
 
                   <div className="p-1">
-                    {/* Predefined status filters — always visible, never empty */}
+                    {/* Predefined status filters — only for task screens (not shop/labels) */}
+                    {screen !== 'shop' && screen !== 'labels' && (
                     <div className="flex flex-wrap gap-1 p-1.5">
                       {[
                         { id: 'todo', label: t('dashboard.todoSprint'), color: '#16a34a' },
@@ -228,6 +229,7 @@ export const AppHeader = ({
                         );
                       })}
                     </div>
+                    )}
 
                     {/* Saved filters section */}
                     {typeFilters.length > 0 && (

@@ -27,7 +27,7 @@ export function FocusView() {
         {focusTasks.length === 0 ? (
           <EmptyState title="Geen focus-taken" icon={<Target className="h-7 w-7" />} />
         ) : (
-          <div className="space-y-[10px]">
+          <div className="space-y-2">
             {focusTasks.map((task) => (
               <div key={task.id}>
                 {task.dueDate && <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-muted)]">{formatDate(task.dueDate, { weekday: 'short', month: 'short', day: 'numeric' })}</p>}

@@ -315,7 +315,7 @@ export const TasksView = () => {
                   )}
                 </button>
                 {showFocus && (
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {sortedFocusTasks.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -347,7 +347,7 @@ export const TasksView = () => {
                   )}
                 </button>
                 {showBlocked && (
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {sortedBlockedTasks.map((task) => (
                       <TaskCard
                         key={task.id}
@@ -362,7 +362,7 @@ export const TasksView = () => {
 
             {/* TASKS section — always visible, no collapse */}
             {sortedRegularTasks.length > 0 && (
-              <div className="space-y-[10px]">
+              <div className="space-y-2">
                 {sortedRegularTasks.map((task) => (
                   <TaskCard
                     key={task.id}
@@ -406,7 +406,7 @@ export const TasksView = () => {
                 </div>
 
                 {showCompleted && (
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {sortedCompletedTasks.map((task) => (
                       <TaskCard
                         key={task.id}

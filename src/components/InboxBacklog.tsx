@@ -190,7 +190,7 @@ export const InboxBacklog = () => {
                 {displayedTasks.length === 0 ? (
                   <EmptyState title={t('inbox.noTasksFound')} icon={<Inbox className="h-7 w-7" />} />
                 ) : (
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {displayedTasks.map((task) => (
                       <TaskCard key={task.id} task={task} showCheckbox={true} />
                     ))}
@@ -236,7 +236,7 @@ export const InboxBacklog = () => {
                 {displayedTasks.length === 0 ? (
                   <EmptyState title={t('inbox.inboxIsEmpty')} icon={<Inbox className="h-7 w-7" />} />
                 ) : (
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {displayedTasks.map((task) => (
                       <div key={task.id} className="flex items-center gap-2">
                         {isSelecting && (

@@ -151,7 +151,7 @@ export const GroceriesView = () => {
                   <Target className="w-4 h-4 text-orange-500" />
                   {t('tasks.focus')} ({focusedActiveItems.length})
                 </h3>
-                <div className="space-y-[10px]">
+                <div className="space-y-2">
                   {focusedActiveItems.map((item) => (
                     <UnifiedCard key={item.id} entity={item} type="item" />
                   ))}
@@ -160,7 +160,7 @@ export const GroceriesView = () => {
             )}
 
             {sortMode === 'alpha' ? (
-              <div className="space-y-[10px]">
+              <div className="space-y-2">
                 {regularActiveItems.map((item) => (
                   <UnifiedCard key={item.id} entity={item} type="item" />
                 ))}
@@ -169,7 +169,7 @@ export const GroceriesView = () => {
               groupedActive.map(([category, catItems]) => (
                 <div key={category}>
                   <SectionHeader title={category} count={catItems.length} />
-                  <div className="space-y-[10px]">
+                  <div className="space-y-2">
                     {catItems.map((item) => (
                       <UnifiedCard key={item.id} entity={item} type="item" />
                     ))}
@@ -204,7 +204,7 @@ export const GroceriesView = () => {
             </div>
 
             {showBought && (
-              <div className="mt-3 space-y-[10px]">
+              <div className="mt-3 space-y-2">
                 {sortedBoughtItems.map((item) => (
                   <UnifiedCard key={item.id} entity={item} type="item" />
                 ))}

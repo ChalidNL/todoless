@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -77,6 +77,7 @@ class ErrorBoundary extends React.Component<
 function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
+  const hasInitializedRef = useRef(false);
   const { completionMessage, tasks, items } = useApp();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
@@ -176,9 +177,11 @@ function AppContent() {
     };
 
     void checkFirstRun();
+    hasInitializedRef.current = true;
   }, [loading, user]);
 
-  if (appScreen === 'checking') {
+  // Only show splash on cold start (first render before effect runs)
+  if (appScreen === 'checking' && !hasInitializedRef.current) {
     return <SplashScreen />;
   }
 
