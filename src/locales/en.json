@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Pre-filled with your workspace name, you can change it",
     "skip": "Skip",
     "selectLanguage": "Select your language",
-    "languageStepTitle": "Choose Your Language",
+    "languageStepTitle": "Choose your language",
     "languageStepDesc": "Pick your preferred language to get started.",
     "step1Desc": "Your daily assistant for quick, simple productivity without overwhelm.",
     "step2Desc": "Track groceries with quantities and stores. Keep your shopping list simple and organized.",
@@ -112,7 +112,45 @@
     "welcome": "Welcome to todoless",
     "workspaceName": "Workspace name",
     "workspaceNameMissing": "Workspace name is missing — go back and enter it",
-    "exampleFamilyName": "Smith Family"
+    "exampleFamilyName": "Smith Family",
+    "welcomeDescription": "Your family assistant for tasks, groceries and more — simple and clear.",
+    "discoverFeatures": "Discover the features",
+    "showcaseHint": "Use the arrows to discover every feature.",
+    "workspaceDescription": "Choose the shared name for your family workspace.",
+    "accountDescription": "Create the first administrator account for this workspace.",
+    "doneAdminTitle": "Your workspace is ready",
+    "doneInfoTitle": "Ready to get organized?",
+    "doneInfoDescription": "Sign in or use an invitation to join your family workspace.",
+    "doneUserTitle": "You are ready",
+    "doneWorkspaceDescription": "Everything is set up. Open todoless and get started.",
+    "openApp": "Open todoless",
+    "languageSaveFailed": "Your language preference could not be saved. Try again.",
+    "module": {
+      "tasks": {
+        "title": "Tasks",
+        "tagline": "Capture and finish what matters."
+      },
+      "groceries": {
+        "title": "Groceries",
+        "tagline": "A shared shopping list without the noise."
+      },
+      "calendar": {
+        "title": "Calendar",
+        "tagline": "See family plans at a glance."
+      },
+      "rewards": {
+        "title": "Rewards",
+        "tagline": "Celebrate progress together."
+      },
+      "notes": {
+        "title": "Notes",
+        "tagline": "Keep useful details close."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Focus together on the next goal."
+      }
+    }
   },
   "tasks": {
     "title": "Tasks",
@@ -158,7 +196,7 @@
     "movedToBacklog": "Moved to backlog",
     "noMatchingParentTask": "No matching main task found",
     "searchPlaceholder": "Search tasks…",
-    "labelInputPlaceholder": "Add a label...",
+    "labelInputPlaceholder": "Add label...",
     "searchAssigneePlaceholder": "Search member...",
     "searchAssigneeAria": "Search members",
     "labelTooltip": "Labels",
@@ -170,7 +208,6 @@
     "flagTooltip": "Flag",
     "toggleFlag": "Toggle flag",
     "moveToBacklog": "Move to backlog",
-    "labelInputPlaceholder": "Add label...",
     "labelInputAria": "Add label",
     "dueDateAria": "Due date",
     "dueTimeAria": "Due time",
@@ -549,5 +586,12 @@
     "shortMonth": "Monthly",
     "shortYear": "Yearly",
     "shortMonthPrefix": "Mon ·"
+  },
+  "nav": {
+    "inbox": "Inbox",
+    "tasks": "Tasks",
+    "calendar": "Calendar",
+    "groceries": "Groceries",
+    "settings": "Settings"
   }
 }

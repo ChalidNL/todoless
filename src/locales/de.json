@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Vorausgefüllt mit deinem Arbeitsbereich-Namen, du kannst ihn ändern",
     "skip": "Überspringen",
     "selectLanguage": "Sprache wählen",
-    "languageStepTitle": "Wähle Deine Sprache",
+    "languageStepTitle": "Wähle deine Sprache",
     "languageStepDesc": "Wähle deine bevorzugte Sprache, um zu beginnen.",
     "step1Desc": "Dein täglicher Assistent für schnelle, einfache Produktivität ohne Überforderung.",
     "step2Desc": "Verfolge Einkäufe mit Mengen und Geschäften. Halte deine Einkaufsliste einfach und organisiert.",
@@ -112,7 +112,45 @@
     "welcome": "Willkommen bei todoless",
     "workspaceName": "Arbeitsbereich-Name",
     "workspaceNameMissing": "Arbeitsbereich-Name fehlt — gehe zurück und gib ihn ein",
-    "exampleFamilyName": "Familie Müller"
+    "exampleFamilyName": "Familie Müller",
+    "welcomeDescription": "Dein Familienassistent für Aufgaben, Einkäufe und mehr — einfach und übersichtlich.",
+    "discoverFeatures": "Funktionen entdecken",
+    "showcaseHint": "Nutze die Pfeile, um alle Funktionen zu entdecken.",
+    "workspaceDescription": "Wähle den gemeinsamen Namen für euren Familienbereich.",
+    "accountDescription": "Erstelle das erste Administratorkonto für diesen Bereich.",
+    "doneAdminTitle": "Euer Bereich ist bereit",
+    "doneInfoTitle": "Bereit für mehr Überblick?",
+    "doneInfoDescription": "Melde dich an oder nutze eine Einladung für euren Familienbereich.",
+    "doneUserTitle": "Du bist startklar",
+    "doneWorkspaceDescription": "Alles ist eingerichtet. Öffne todoless und lege los.",
+    "openApp": "todoless öffnen",
+    "languageSaveFailed": "Deine Spracheinstellung konnte nicht gespeichert werden. Versuche es erneut.",
+    "module": {
+      "tasks": {
+        "title": "Aufgaben",
+        "tagline": "Erfasse und erledige, was wichtig ist."
+      },
+      "groceries": {
+        "title": "Einkäufe",
+        "tagline": "Eine gemeinsame Liste ohne Ablenkung."
+      },
+      "calendar": {
+        "title": "Kalender",
+        "tagline": "Familienpläne auf einen Blick."
+      },
+      "rewards": {
+        "title": "Belohnungen",
+        "tagline": "Feiert Fortschritte gemeinsam."
+      },
+      "notes": {
+        "title": "Notizen",
+        "tagline": "Wichtige Details immer griffbereit."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Konzentriert euch gemeinsam auf das nächste Ziel."
+      }
+    }
   },
   "tasks": {
     "title": "Aufgaben",
@@ -547,5 +585,12 @@
     "shortMonth": "Monatlich",
     "shortYear": "Jährlich",
     "shortMonthPrefix": "Mon ·"
+  },
+  "nav": {
+    "inbox": "Eingang",
+    "tasks": "Aufgaben",
+    "calendar": "Kalender",
+    "groceries": "Einkäufe",
+    "settings": "Einstellungen"
   }
 }

@@ -1,8 +1,21 @@
+import enLocale from '../locales/en.json';
+import nlLocale from '../locales/nl.json';
+import frLocale from '../locales/fr.json';
+import deLocale from '../locales/de.json';
+import esLocale from '../locales/es.json';
+
 export type Language = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
 export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en', 'de', 'es'] as const;
 export type SupportedUiLanguage = typeof SUPPORTED_UI_LANGUAGES[number];
 export const DEFAULT_UI_LANGUAGE: SupportedUiLanguage = 'en';
+const localeResources: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  en: enLocale,
+  nl: nlLocale,
+  fr: frLocale,
+  de: deLocale,
+  es: esLocale,
+};
 const STORAGE_LANGUAGE_KEY = 'app_language';
 let activeLanguage: Language = DEFAULT_UI_LANGUAGE;
 
@@ -501,7 +514,7 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterWorkspaceName: 'Please enter a workspace name',
       prefilledWithWorkspace: 'Pre-filled with your workspace name, you can change it',
       selectLanguage: 'Select your language',
-      languageStepTitle: 'Choose Your Language',
+      languageStepTitle: 'Choose your language',
       languageStepDesc: 'Pick your preferred language to get started.',
       skip: 'Skip',
       step1Desc: 'Your daily assistant for quick, simple productivity without overwhelm.',
@@ -3026,23 +3039,14 @@ function lookupNested(dict: unknown, key: string): string | undefined {
 
 /** Simple translation helper: looks up nested key in language dict. */
 function lookupTranslation(key: string, lang: Language): string | undefined {
-  const overlayDict = isSupportedUiLanguage(lang) ? overlayTranslations[lang] : undefined;
-  const overlay = lookupNested(overlayDict, key);
+  const supportedLanguage = isSupportedUiLanguage(lang) ? lang : DEFAULT_UI_LANGUAGE;
+  const overlay = lookupNested(overlayTranslations[supportedLanguage], key);
   if (overlay) return overlay;
-  const extraDict = isSupportedUiLanguage(lang) ? extraTranslations[lang] : undefined;
-  const extra = lookupNested(extraDict, key);
+  const extra = lookupNested(extraTranslations[supportedLanguage], key);
   if (extra) return extra;
-  const dict = translations[lang];
-  const parts = key.split('.');
-  let value: any = dict;
-  for (const part of parts) {
-    if (value && typeof value === 'object' && part in value) {
-      value = value[part];
-    } else {
-      return undefined;
-    }
-  }
-  return typeof value === 'string' ? value : undefined;
+  const inline = lookupNested(translations[lang], key);
+  if (inline) return inline;
+  return lookupNested(localeResources[supportedLanguage], key);
 }
 
 /** Simple translation helper: active language → English fallback → key. */

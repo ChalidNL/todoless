@@ -288,7 +288,13 @@ class PocketBaseClient {
     return { token: pb.authStore.token, user: normalizeUser(authData.record) };
   }
 
-  async registerAdmin(email: string, password: string, name: string, familyName?: string) {
+  async registerAdmin(
+    email: string,
+    password: string,
+    name: string,
+    familyName?: string,
+    language = getActiveLanguage(),
+  ) {
     const firstName = name.trim().split(' ')[0];
     const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : familyName || '';
     const response = await fetch('/api/register', {
@@ -303,7 +309,7 @@ class PocketBaseClient {
         name,
         family_name: familyName || 'My Family',
         user_type: 'family_member',
-        language: getActiveLanguage(),
+        language,
       }),
     });
 
