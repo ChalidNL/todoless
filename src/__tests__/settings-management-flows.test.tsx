@@ -80,6 +80,25 @@ describe('redesign settings management parity', () => {
     expect(deleteUser).toHaveBeenCalledWith('member-1');
   });
 
+  it('creates a shared label for selected family members', () => {
+    const addLabel = vi.fn();
+    useAppMock.mockReturnValue({ ...baseApp, addLabel });
+
+    render(<LabelsView />);
+    fireEvent.click(screen.getByRole('button', { name: 'Header add' }));
+    fireEvent.change(screen.getByPlaceholderText(/label name/i), { target: { value: 'Shared project' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Shared' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Member One' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(addLabel).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Shared project',
+      visibility: 'shared',
+      isPrivate: false,
+      sharedWith: ['member-1'],
+    }));
+  });
+
   it('requires confirmation and deletes a label from its expanded redesign card', () => {
     const deleteLabel = vi.fn();
     useAppMock.mockReturnValue({ ...baseApp, deleteLabel });

@@ -26,17 +26,21 @@ function visibilityLabel(visibility: 'family' | 'private' | 'shared'): string {
 }
 
 export function LabelsView() {
-  const { labels, addLabel, updateLabel, deleteLabel } = useApp();
+  const { labels, users, appSettings, addLabel, updateLabel, deleteLabel } = useApp();
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftColor, setDraftColor] = useState('#eab308');
+  const [draftVisibility, setDraftVisibility] = useState<'family' | 'private' | 'shared'>('family');
+  const [draftSharedWith, setDraftSharedWith] = useState<string[]>([]);
   const sortedLabels = sortLabelsByVisibility(labels).filter((label) => !search.trim() || label.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   const expandLabel = (label: Label) => {
     setExpandedId(expandedId === label.id ? null : label.id);
     setDraftName(label.name);
     setDraftColor(label.color || '#eab308');
+    setDraftVisibility(label.visibility || (label.isPrivate ? 'private' : 'family'));
+    setDraftSharedWith(label.sharedWith || []);
   };
 
   const collapseAll = () => { setExpandedId(null); };
@@ -44,22 +48,76 @@ export function LabelsView() {
   const saveLabelEdit = (id: string) => {
     const name = draftName.trim();
     if (!name) return;
-    updateLabel(id, { name, color: draftColor });
+    updateLabel(id, {
+      name,
+      color: draftColor,
+      visibility: draftVisibility,
+      isPrivate: draftVisibility === 'private',
+      sharedWith: draftVisibility === 'shared' ? draftSharedWith : [],
+    });
     collapseAll();
   };
 
   const createLabel = () => {
     const name = draftName.trim();
     if (!name) return;
-    addLabel({ name, color: draftColor, visibility: 'family', isPrivate: false, sharedWith: [] });
+    addLabel({
+      name,
+      color: draftColor,
+      visibility: draftVisibility,
+      isPrivate: draftVisibility === 'private',
+      sharedWith: draftVisibility === 'shared' ? draftSharedWith : [],
+    });
     setDraftName('');
     setDraftColor('#eab308');
+    setDraftVisibility('family');
+    setDraftSharedWith([]);
     collapseAll();
   };
 
-  const setLabelVisibility = (id: string, visibility: 'family' | 'private' | 'shared') => {
-    updateLabel(id, { visibility, isPrivate: visibility === 'private' });
+  const setLabelVisibility = (visibility: 'family' | 'private' | 'shared') => {
+    setDraftVisibility(visibility);
+    if (visibility !== 'shared') setDraftSharedWith([]);
   };
+
+  const visibilityControls = () => (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {VISIBILITY_OPTIONS.map((opt) => {
+          const VisIcon = opt.icon;
+          const active = draftVisibility === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setLabelVisibility(opt.value)}
+              className={`inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${active ? 'text-white shadow-sm' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'}`}
+              style={active ? { backgroundColor: opt.color } : undefined}
+            >
+              <VisIcon className="h-3 w-3" />
+              {visibilityLabel(opt.value)}
+              {active && <Check className="h-3 w-3" />}
+            </button>
+          );
+        })}
+      </div>
+      {draftVisibility === 'shared' && (
+        <fieldset className="space-y-2 rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] p-3">
+          <legend className="px-1 text-xs font-bold text-[var(--app-text-muted)]">{t('labels.sharedMembers')}</legend>
+          {users.filter((user) => user.id !== appSettings.currentUserId).map((user) => (
+            <label key={user.id} className="flex min-h-9 items-center gap-2 text-sm font-semibold text-[var(--app-text)]">
+              <input
+                type="checkbox"
+                checked={draftSharedWith.includes(user.id)}
+                onChange={() => setDraftSharedWith((current) => current.includes(user.id) ? current.filter((id) => id !== user.id) : [...current, user.id])}
+              />
+              {user.name || user.email}
+            </label>
+          ))}
+        </fieldset>
+      )}
+    </>
+  );
 
   return (
     <div className="app-shell-bg min-h-full pb-24">
@@ -68,7 +126,7 @@ export function LabelsView() {
         screen="labels"
         searchPlaceholder={t('settings.labelsSearchPlaceholder')}
         onSearch={setSearch}
-        onAdd={() => { setExpandedId('new'); setDraftName(''); setDraftColor('#eab308'); }}
+        onAdd={() => { setExpandedId('new'); setDraftName(''); setDraftColor('#eab308'); setDraftVisibility('family'); setDraftSharedWith([]); }}
         count={sortedLabels.length}
       />
       <div className="mx-auto max-w-lg space-y-2 px-4 pt-4">
@@ -81,6 +139,7 @@ export function LabelsView() {
             </div>
             <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') createLabel(); }} />
             <div className="flex flex-wrap gap-2.5">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-9 w-9 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }} aria-label={color} />)}</div>
+            {visibilityControls()}
             <div className="flex gap-2">
               <Button label={t('common.save')} onClick={createLabel} />
               <Button label={t('common.cancel')} onClick={collapseAll} variant="ghost" />
@@ -120,27 +179,7 @@ export function LabelsView() {
                   <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus />
                   <div className="flex flex-wrap gap-2">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-8 w-8 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 3px ${color}` : 'none' }} aria-label={color} />)}</div>
                   {/* Visibility selector */}
-                  <div className="flex items-center gap-1.5">
-                    {VISIBILITY_OPTIONS.map((opt) => {
-                      const VisIcon = opt.icon;
-                      const active = visibility === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => setLabelVisibility(label.id, opt.value)}
-                          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
-                            active ? 'text-white shadow-sm' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
-                          }`}
-                          style={active ? { backgroundColor: opt.color } : undefined}
-                        >
-                          <VisIcon className="h-3 w-3" />
-                          {visibilityLabel(opt.value)}
-                          {active && <Check className="h-3 w-3" />}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {visibilityControls()}
                   <div className="flex gap-2">
                     <Button label={t('common.save')} onClick={() => saveLabelEdit(label.id)} />
                     <Button label={t('common.cancel')} onClick={collapseAll} variant="ghost" />
