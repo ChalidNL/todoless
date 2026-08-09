@@ -1,4 +1,4 @@
-import { Home, Lock, Pencil, Tag, Users, X, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { Home, Lock, Tag, Users, X, ChevronDown, ChevronUp, Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
@@ -26,7 +26,7 @@ function visibilityLabel(visibility: 'family' | 'private' | 'shared'): string {
 }
 
 export function LabelsView() {
-  const { labels, addLabel, updateLabel } = useApp();
+  const { labels, addLabel, updateLabel, deleteLabel } = useApp();
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -144,6 +144,17 @@ export function LabelsView() {
                   <div className="flex gap-2">
                     <Button label={t('common.save')} onClick={() => saveLabelEdit(label.id)} />
                     <Button label={t('common.cancel')} onClick={collapseAll} variant="ghost" />
+                    <Button
+                      label={t('common.delete')}
+                      icon={Trash2}
+                      variant="destructive"
+                      onClick={() => {
+                        if (window.confirm(t('common.confirmDeleteTitle'))) {
+                          deleteLabel(label.id);
+                          collapseAll();
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               )}

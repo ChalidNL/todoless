@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Shield, CheckCircle2, Clock3, ChevronRight } from 'lucide-react';
+import { Mail, Shield, CheckCircle2, Clock3, ChevronDown, ChevronUp, Trash2, UserCog } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
@@ -9,9 +9,12 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { InviteManager } from './InviteManager';
 
 export function MembersView() {
-  const { users } = useApp();
+  const { users, appSettings, updateUser, deleteUser, showCompletionMessage } = useApp();
   const [search, setSearch] = useState('');
   const [inviteTrigger, setInviteTrigger] = useState(0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const currentUser = users.find((user) => user.id === appSettings.currentUserId);
+  const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
 
   const handleInvite = () => {
     setInviteTrigger((t) => t + 1);
@@ -37,7 +40,9 @@ export function MembersView() {
         {filteredUsers.map((member) => {
           const name = getMemberDisplayName(member);
           const status = (member as any).memberStatus || (member as any).member_status || 'active';
-          const active = status !== 'blocked';
+          const active = member.active ?? status !== 'blocked';
+          const canManageMember = canManageMembers && member.id !== currentUser?.id;
+          const expanded = expandedId === member.id;
           return (
             <article key={member.id} className="app-card p-4 app-animate-in">
               <div className="flex items-center gap-3">
@@ -66,8 +71,59 @@ export function MembersView() {
                     </span>
                   </div>
                 </div>
-                <ChevronRight className="h-5 w-5 flex-shrink-0 text-[var(--app-text-muted)]" />
+                {canManageMember && (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expanded ? null : member.id)}
+                    className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]"
+                    aria-label={`Manage ${name}`}
+                    aria-expanded={expanded}
+                  >
+                    {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                  </button>
+                )}
               </div>
+              {expanded && canManageMember && (
+                <div className="mt-4 grid gap-2 border-t border-[var(--app-border-subtle)] pt-4 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--app-radius-md)] bg-violet-50 px-3 text-sm font-bold text-violet-700"
+                    onClick={async () => {
+                      const role = member.role === 'admin' ? 'member' : 'admin';
+                      if (await updateUser(member.id, { role })) {
+                        showCompletionMessage(role === 'admin' ? t('settings.adminUpdated') : t('settings.memberUpdated'));
+                      }
+                    }}
+                  >
+                    <UserCog className="h-4 w-4" />
+                    {member.role === 'admin' ? t('settings.makeMember') : t('settings.makeAdmin')}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--app-radius-md)] bg-amber-50 px-3 text-sm font-bold text-amber-700"
+                    onClick={async () => {
+                      await updateUser(member.id, {
+                        active: !active,
+                        member_status: active ? 'blocked' : 'active',
+                      });
+                    }}
+                  >
+                    {active ? t('settings.deactivate') : t('settings.activate')}
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--app-radius-md)] bg-rose-50 px-3 text-sm font-bold text-rose-700"
+                    onClick={async () => {
+                      if (window.confirm(t('settings.deleteMemberConfirm'))) {
+                        await deleteUser(member.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {t('settings.deleteMember')}
+                  </button>
+                </div>
+              )}
             </article>
           );
         })}
