@@ -26,6 +26,20 @@ import type {
 const toISO = (timestamp?: number | string | null): string | null =>
   timestamp ? new Date(timestamp).toISOString() : null;
 
+const relationIds = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
+
+const taskLabelsFromRecord = (record: any): string[] => {
+  const canonical = relationIds(record.label);
+  return canonical.length > 0 ? canonical : relationIds(record.labels);
+};
+
+const canonicalTaskLabels = (labelId?: string | null, labels?: string[]): string[] => {
+  const result = relationIds(labels);
+  if (labelId && !result.includes(labelId)) result.unshift(labelId);
+  return result;
+};
+
 // --- Normalizers: PocketBase snake_case → Frontend camelCase ---
 const normalizeUser = (r: any): User => ({
   id: r.id, email: r.email, name: r.name || r.email || [r.first_name, r.last_name].filter(Boolean).join(' ') || r.display_name || r.id || '?',
@@ -43,7 +57,7 @@ const normalizeTask = (r: any): Task => ({
   repeatInterval: r.repeat_interval, completedAt: r.completed_at ? new Date(r.completed_at).getTime() : undefined,
   archived: !!r.archived, archivedAt: r.archived_at ? new Date(r.archived_at).getTime() : undefined,
   deleteAfter: r.delete_after ? new Date(r.delete_after).getTime() : undefined,
-  isPrivate: !!r.is_private, labels: r.label ? [r.label] : (Array.isArray(r.labels) ? r.labels : []), labelId: r.label || undefined,
+  isPrivate: !!r.is_private, labels: taskLabelsFromRecord(r), labelId: taskLabelsFromRecord(r)[0] || undefined,
   subtaskIds: Array.isArray(r.subtask_ids) ? r.subtask_ids : [],
   focus: !!r.focus,
   linkedTo: r.linked_to, linkedType: r.linked_type, flag: !!r.flag,
@@ -183,6 +197,7 @@ export const api = {
     },
     async get(id: string): Promise<Task> { return normalizeTask(await pb.collection('tasks').getOne(id)); },
     async create(data: Partial<Task>): Promise<Task> {
+      const canonicalLabels = canonicalTaskLabels(data.labelId, data.labels);
       const record = await pb.collection('tasks').create({
         title: data.title, status: data.status || 'todo', blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
@@ -191,7 +206,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         show_in_calendar: data.showInCalendar,
-        repeat_interval: data.repeatInterval, labels: data.labelId ? [data.labelId] : (data.labels || []), label: data.labelId || data.labels?.[0] || null,
+        repeat_interval: data.repeatInterval, labels: canonicalLabels, label: canonicalLabels,
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,
@@ -202,6 +217,8 @@ export const api = {
       return normalizeTask(record);
     },
     async update(id: string, data: Partial<Task>): Promise<Task> {
+      const hasLabelUpdate = Object.prototype.hasOwnProperty.call(data, 'labelId') || Object.prototype.hasOwnProperty.call(data, 'labels');
+      const canonicalLabels = hasLabelUpdate ? canonicalTaskLabels(data.labelId, data.labels) : undefined;
       const record = await pb.collection('tasks').update(id, {
         title: data.title, status: data.status, blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
@@ -210,7 +227,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         repeat_interval: data.repeatInterval, completed_at: toISO(data.completedAt),
-        labels: data.labelId ? [data.labelId] : data.labels, label: data.labelId ?? data.labels?.[0] ?? undefined, is_private: data.isPrivate, archived: data.archived,
+        labels: canonicalLabels, label: canonicalLabels, is_private: data.isPrivate, archived: data.archived,
         archived_at: toISO(data.archivedAt),
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,

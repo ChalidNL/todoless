@@ -1,8 +1,13 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Unlabeled tasks are family-visible to preserve TodoLess' current shared-family behavior.
-const TASK_VISIBILITY_RULE = 'user.family_id = @request.auth.family_id && (label = "" || label.visibility = "family" || (label.visibility = "private" && label.owner = @request.auth.id) || (label.visibility = "shared" && (label.owner = @request.auth.id || label.shared_with ?= @request.auth.id)))';
-const LABEL_VISIBILITY_RULE = 'family = @request.auth.family_id || user.family_id = @request.auth.family_id || owner = @request.auth.id';
+// Unlabeled, non-private tasks remain family-visible. Multi-label tasks are only
+// family-visible when every label is family-visible; shared/private labels are
+// deliberately restricted to one canonical relation because PB rules cannot
+// correlate per-user access across multiple related records safely.
+const TASK_LABEL_ACCESS_RULE = '(label = "" || (label.family:each = @request.auth.family_id && (label.visibility:each = "family" || (label:length = 1 && ((label.visibility = "private" && label.owner = @request.auth.id) || (label.visibility = "shared" && (label.owner = @request.auth.id || label.shared_with ?= @request.auth.id)))))))';
+const TASK_VISIBILITY_RULE = 'user = @request.auth.id || (is_private = false && user.family_id = @request.auth.family_id && ' + TASK_LABEL_ACCESS_RULE + ')';
+const LABEL_FAMILY_RULE = '(family = @request.auth.family_id || user.family_id = @request.auth.family_id)';
+const LABEL_VISIBILITY_RULE = 'owner = @request.auth.id || user = @request.auth.id || (' + LABEL_FAMILY_RULE + ' && (visibility = "family" || (visibility = "shared" && shared_with ?= @request.auth.id) || (visibility = "private" && owner = @request.auth.id)))';
 
 migrate(
   (app) => {
@@ -41,39 +46,47 @@ migrate(
 
     labels.listRule = LABEL_VISIBILITY_RULE;
     labels.viewRule = LABEL_VISIBILITY_RULE;
-    labels.createRule = '@request.auth.id != "" && (family = @request.auth.family_id || family = "" || owner = @request.auth.id || owner = "")';
+    labels.createRule = '@request.auth.id != "" && (owner = @request.auth.id || (owner = "" && user = @request.auth.id)) && (family = "" || family = @request.auth.family_id)';
     labels.updateRule = 'owner = @request.auth.id || user = @request.auth.id';
     labels.deleteRule = 'owner = @request.auth.id || user = @request.auth.id';
     app.save(labels);
 
-    if (!tasks.fields.getByName('label')) {
-      tasks.fields.add(new RelationField({ name: 'label', collectionId: labels.id, cascadeDelete: false, maxSelect: 1, required: false }));
-      app.save(tasks);
+    const taskLabelField = tasks.fields.getByName('label');
+    if (!taskLabelField) {
+      tasks.fields.add(new RelationField({ name: 'label', collectionId: labels.id, cascadeDelete: false, maxSelect: 99, required: false }));
+    } else {
+      taskLabelField.maxSelect = 99;
     }
+    app.save(tasks);
 
     const existingTasks = app.findRecordsByFilter('tasks', '', '', 10000, 0);
     for (const task of existingTasks) {
       if (task.get('label')) continue;
       const legacyLabels = task.get('labels') || [];
       if (legacyLabels && legacyLabels.length > 0) {
-        const candidate = String(legacyLabels[0] || '');
-        if (!candidate) continue;
-        try {
-          app.findRecordById('labels', candidate);
-          task.set('label', candidate);
+        const canonicalLabels = [];
+        for (const legacyLabel of legacyLabels) {
+          const candidate = String(legacyLabel || '');
+          if (!candidate) continue;
+          try {
+            app.findRecordById('labels', candidate);
+            canonicalLabels.push(candidate);
+          } catch (_) {
+            // Ignore free-text labels and stale relation ids without discarding valid ids.
+          }
+        }
+        if (canonicalLabels.length > 0) {
+          task.set('label', canonicalLabels);
           app.save(task);
-        } catch (_) {
-          // Older tasks may contain free-text label names or stale ids in the legacy JSON array.
-          // Leave those tasks unlabeled; unlabeled tasks are intentionally family-visible.
         }
       }
     }
 
     tasks.listRule = TASK_VISIBILITY_RULE;
     tasks.viewRule = TASK_VISIBILITY_RULE;
-    tasks.createRule = '@request.auth.id != "" && user.family_id = @request.auth.family_id && (label = "" || label.family = @request.auth.family_id || label.owner = @request.auth.id || label.shared_with ?= @request.auth.id)';
-    tasks.updateRule = TASK_VISIBILITY_RULE + ' && (label = "" || label.family = @request.auth.family_id || label.owner = @request.auth.id || label.shared_with ?= @request.auth.id)';
-    tasks.deleteRule = TASK_VISIBILITY_RULE;
+    tasks.createRule = '@request.auth.id != "" && user = @request.auth.id && ' + TASK_LABEL_ACCESS_RULE;
+    tasks.updateRule = 'user = @request.auth.id && ' + TASK_LABEL_ACCESS_RULE;
+    tasks.deleteRule = 'user = @request.auth.id';
     app.save(tasks);
   },
   (app) => {
