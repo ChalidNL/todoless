@@ -2,11 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { NewGlobalHeader } from '../shared/NewGlobalHeader';
-import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, X as XIcon, Save, ChevronRight, Target } from 'lucide-react';
+import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
 import { EmptyState } from '../shared/EmptyState';
 import { SectionHeader } from '../shared/SectionHeader';
+import { SavedFilterControls } from '../shared/SavedFilterControls';
 
 function StoreFilterChips({ shops, activeIds, onToggle, onAll }: { shops: Array<{ id: string; name: string; color?: string }>; activeIds: string[]; onToggle: (shop: { id: string; name: string; color?: string }) => void; onAll: () => void }) {
   return (
@@ -58,6 +59,19 @@ export const GroceriesView = () => {
     }
     setShowSavedFilters(false);
     showCompletionMessage(`Filter: ${f.name}`);
+  };
+
+  const saveCurrentFilter = () => {
+    const name = window.prompt(t('settings.filterName'), '');
+    if (!name?.trim()) return;
+    addFilter({
+      name: name.trim(),
+      labelIds: [],
+      chipFilters: activeChipFilters.map((filter) => ({ ...filter })),
+      showCompleted: showBought,
+      type: 'item',
+    });
+    showCompletionMessage(t('filters.saved'));
   };
 
   const filteredItems = useMemo(() => {
@@ -141,6 +155,17 @@ export const GroceriesView = () => {
             onAll={clearShopFilters}
           />
         )}
+        <SavedFilterControls
+          filters={itemFilters}
+          open={showSavedFilters}
+          onOpenChange={setShowSavedFilters}
+          onApply={applySavedFilter}
+          onDelete={(filter) => {
+            deleteFilter(filter.id);
+            showCompletionMessage(t('filters.deleted'));
+          }}
+          onSave={saveCurrentFilter}
+        />
         {sortedActiveItems.length === 0 ? (
           <EmptyState title={t('groceries.empty') || 'No items yet'} icon={<ShoppingCart className="h-7 w-7" />} />
         ) : (
