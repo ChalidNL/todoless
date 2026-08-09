@@ -39,8 +39,8 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+    <div className="app-shell-bg flex min-h-screen items-center justify-center p-4">
+      <div className="app-surface w-full max-w-md rounded-[28px] p-6 sm:p-8">
         <div className="flex items-center justify-center mb-8">
           <AppLogo size="lg" showText={true} variant="dark" />
         </div>
@@ -52,32 +52,36 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
+            <label htmlFor="login-email" className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
             <input
+              id="login-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.password')}</label>
+            <label htmlFor="login-password" className="block text-sm text-neutral-600 mb-1">{t('auth.password')}</label>
             <div className="relative">
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 pr-14 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
                 placeholder="••••••••"
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500"
+                className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-neutral-500 hover:bg-[var(--app-surface-2)]"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={t('auth.password')}
+                aria-pressed={showPassword}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -85,12 +89,12 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
+            <p className="text-red-500 text-sm" role="alert">{error}</p>
           )}
 
           <button
             onClick={handleLogin}
-            className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+            className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-xl)] bg-[linear-gradient(135deg,#6366f1,#8b5cf6)] px-4 py-3 font-bold text-white shadow-[0_6px_20px_rgba(99,102,241,0.32)] transition active:scale-[0.98]"
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : t('auth.logIn')}
           </button>
