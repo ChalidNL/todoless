@@ -7,6 +7,7 @@ import { changeAppLanguage } from '../i18n';
 import { userDisplayName } from '../types';
 import { Button } from './ui/Button';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
+import { api } from '../lib/pocketbase-client';
 
 const languageLabel = (language: SupportedUiLanguage) => {
   const labels: Record<SupportedUiLanguage, string> = { en: 'English', nl: 'Nederlands', fr: 'Français', de: 'Deutsch', es: 'Español' };
@@ -35,6 +36,7 @@ export function ProfileView() {
   const [firstName, setFirstName] = useState(currentUser?.firstName || '');
   const [lastName, setLastName] = useState(currentUser?.lastName || '');
   const [language, setLanguage] = useState<SupportedUiLanguage>((currentUser?.language || 'en') as SupportedUiLanguage);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const displayName = currentUser ? userDisplayName(currentUser) : '';
@@ -53,13 +55,31 @@ export function ProfileView() {
   };
 
   const savePassword = async () => {
-    if (!password.trim()) return;
+    if (!currentPassword || !password || !passwordConfirm) {
+      showCompletionMessage(t('settings.passwordRequired'));
+      return;
+    }
+    if (password.length < 6) {
+      showCompletionMessage(t('settings.passwordMinLength').replace('{n}', '6'));
+      return;
+    }
     if (password !== passwordConfirm) {
       showCompletionMessage(t('settings.passwordMismatch'));
       return;
     }
-    const ok = await updateUser(currentUser.id, { password } as any);
+    if (currentPassword === password) {
+      showCompletionMessage(t('settings.passwordSame'));
+      return;
+    }
+    try {
+      await api.login(currentUser.email, currentPassword);
+    } catch {
+      showCompletionMessage(t('settings.currentPasswordIncorrect'));
+      return;
+    }
+    const ok = await updateUser(currentUser.id, { password, passwordConfirm } as any);
     if (ok) {
+      setCurrentPassword('');
       setPassword('');
       setPasswordConfirm('');
       showCompletionMessage(t('settings.passwordUpdated'));
@@ -106,6 +126,7 @@ export function ProfileView() {
         </div>
 
         <section className="mx-4 mt-4 overflow-hidden rounded-[var(--app-radius-xl)] bg-white shadow-[var(--app-shadow-card)]">
+          <ProfileField label={t('settings.currentPassword')} type="password" value={currentPassword} onChange={setCurrentPassword} />
           <ProfileField label={t('settings.newPassword')} type="password" value={password} onChange={setPassword} />
           <ProfileField label={t('settings.confirmPassword')} type="password" value={passwordConfirm} onChange={setPasswordConfirm} />
         </section>
