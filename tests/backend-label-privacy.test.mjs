@@ -227,6 +227,7 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.match(main, /token_hash = \{:hash\}/)
   assert.match(main, /getString\('permissions'\)/)
   assert.match(main, /getString\('scopes'\)/)
+  assert.match(main, /_hasPerm\('entries:read'\)/)
   assert.doesNotMatch(agents, /\/api\/agent\/keys\/:id\/revoke|c\.pathParam\(/)
   assert.match(agents, /\/api\/agent\/keys\/\{id\}\/revoke/)
   assert.match(agents, /c\.request\.pathValue\('id'\)/)

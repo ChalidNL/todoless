@@ -447,7 +447,7 @@ routerAdd('GET', '/api/entries', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     var tokInfo = c.get('apiTokenInfo');
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
-    if (!_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
+    if (!_hasPerm('entries:read') && !_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
     function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
     function _canAccessTask(r){
       if(!r)return false;
