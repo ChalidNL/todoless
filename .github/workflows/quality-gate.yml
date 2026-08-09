@@ -38,6 +38,9 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Run PocketBase contract tests
+        run: node --test tests/*.test.mjs
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
