@@ -20,6 +20,10 @@
   if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
   if (rec.get('all_day') === undefined || rec.get('all_day') === null) rec.set('all_day', false);
   if (!rec.get('start_time') && rec.get('due_date')) { rec.set('start_time', rec.get('due_date')); }
+  var createLabels = rec.get('label') || rec.get('labels') || [];
+  if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
+  rec.set('labels', createLabels);
+  rec.set('label', createLabels);
 
   // Request info - call ONCE, store reference
   var info = null;
@@ -86,9 +90,15 @@ onRecordUpdate('tasks', (e) => {
   try { info = e.requestInfo(); } catch(ex) {}
   if (info) {
     try {
-      var data = info.data || {};
+      var data = info.body || info.data || {};
       if (data && data.subtask_ids !== undefined) {
         e.record.set('subtask_ids', data.subtask_ids);
+      }
+      if (data && (data.labels !== undefined || data.label !== undefined)) {
+        var updateLabels = data.label !== undefined ? data.label : data.labels;
+        if (!Array.isArray(updateLabels)) updateLabels = updateLabels ? [String(updateLabels)] : [];
+        e.record.set('labels', updateLabels);
+        e.record.set('label', updateLabels);
       }
     } catch(err) { /* ignore */ }
   }
@@ -145,7 +155,7 @@ routerAdd('POST', '/api/validate-create', function(c) {
       rec.set('is_private', false);
     }
 
-    if (body.labels && Array.isArray(body.labels)) rec.set('labels', body.labels);
+    if (body.labels && Array.isArray(body.labels)) { rec.set('labels', body.labels); rec.set('label', body.labels); }
     if (body.assigned_to) rec.set('assigned_to', body.assigned_to);
     if (body.due_date) rec.set('due_date', body.due_date);
     if (body.priority) rec.set('priority', body.priority);
@@ -439,9 +449,32 @@ routerAdd('GET', '/api/entries', (c) => {
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
     if (!_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
     function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
+    function _canAccessTask(r){
+      if(!r)return false;
+      var taskOwner=String(r.get('user')||'');
+      if(taskOwner===auth.id)return true;
+      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
+      var af=String(auth.get('family_id')||'');
+      if(!af||!_canRead(r))return false;
+      var ids=r.get('label')||r.get('labels')||[];
+      if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
+      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
+      for(var li=0;li<ids.length;li++){
+        var labelId=String(ids[li]||''); if(!labelId)continue;
+        var label=null; try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}
+        var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
+        var owner=String(label.get('owner')||label.get('user')||'');
+        var lf=String(label.get('family')||'');
+        if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
+        if(vis==='private'){if(owner!==auth.id)return false;}
+        else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}
+        else if(lf!==af)return false;
+      }
+      return true;
+    }
     var q = info.query || {};
-    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
-      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
+    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
     var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
       return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
@@ -522,13 +555,33 @@ routerAdd('POST', '/api/v1', (c) => {
     if(tokInfo && (action==='set_role'||action==='set_user_block'||action==='delete_user')) return c.json(403,{error:'API tokens cannot manage members'});
     if(reqPerm && !_hasPerm(reqPerm)) return c.json(403,{error:'Missing permission: '+reqPerm});
     function _canAccess(r){ if(!auth||!r)return false; var uid=String(r.get('user')||r.get('created_by')||''); if(uid&&uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
+    function _canAccessTask(r){
+      if(!r)return false; var taskOwner=String(r.get('user')||''); if(taskOwner===auth.id)return true;
+      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
+      var af=String(auth.get('family_id')||''); if(!af||!_canAccess(r))return false;
+      var ids=r.get('label')||r.get('labels')||[]; if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
+      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
+      for(var li=0;li<ids.length;li++){var labelId=String(ids[li]||'');if(!labelId)continue;var label=null;try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var owner=String(label.get('owner')||label.get('user')||'');var lf=String(label.get('family')||'');if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}if(vis==='private'){if(owner!==auth.id)return false;}else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}else if(lf!==af)return false;}
+      return true;
+    }
+    function _canAccessLabel(label){
+      if(!label)return false;
+      var owner=String(label.get('owner')||label.get('user')||''); if(owner===auth.id)return true;
+      var af=String(auth.get('family_id')||''); if(!af)return false;
+      var lf=String(label.get('family')||''); if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
+      if(lf!==af)return false;
+      var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
+      if(vis==='family')return true;
+      if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];return sw.indexOf(auth.id)!==-1;}
+      return false;
+    }
     function _freshAuth(){ if(!auth||!auth.id)return null; try { return $app.findRecordById('users', auth.id); } catch(e) { return null; } }
     function _isFamilyAdmin(user){ var r=String(user&&user.get('role')||''); return r==='admin'||r==='owner'; }
 
     if (action === 'list') {
     var q = info.query || {};
-      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
-        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
       var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
         return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
@@ -562,7 +615,9 @@ routerAdd('POST', '/api/v1', (c) => {
         var assign = String(gv(d,'assignee_id','')).trim();
         if (assign) rec.set('assigned_to', assign);
         var labs = d.labels;
-        if (Array.isArray(labs) && labs.length > 0) rec.set('labels', labs);
+        var canonicalLabels = Array.isArray(labs) ? labs : [];
+        rec.set('labels', canonicalLabels);
+        rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
         if (linkedTo) rec.set('linked_to', linkedTo);
         var linkedType = String(gv(d,'linked_type','')).trim();
@@ -612,7 +667,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
@@ -624,7 +680,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       rec.set('assigned_to',String(gv(d,'assignee_id','')));
       $app.save(rec);return c.json(200,{assigned:true});
     }
@@ -636,7 +693,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
@@ -647,7 +705,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
       var parent = $app.findRecordById('tasks', taskId);
       if (!parent) return c.json(404, { error: 'Parent task not found' });
-      if (!_canAccess(parent)) return c.json(404, { error: 'Parent task not found' });
+      if (!_canAccessTask(parent)) return c.json(404, { error: 'Parent task not found' });
       var existing = parent.get('subtask_ids') || [];
       if (!Array.isArray(existing)) existing = [];
       if (existing.indexOf(subtaskId) === -1) {
@@ -659,7 +717,7 @@ routerAdd('POST', '/api/v1', (c) => {
     }
 
     if (action === 'filters') {
-      var labels = $app.findRecordsByFilter('labels','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
+      var labels = $app.findRecordsByFilter('labels','', 'name',10000,0).filter(_canAccessLabel).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var shops = $app.findRecordsByFilter('shops','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var af=String(auth.get('family_id')||''); var uf=af?'family_id = {:f}':'id = {:u}'; var up=af?{f:af}:{u:auth.id};
       var users = $app.findRecordsByFilter('users',uf,'name',10000,0,up).map(function(r){return{id:r.id,name:r.get('name')||r.get('email')||r.id};});

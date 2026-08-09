@@ -15,8 +15,12 @@ function getKeyPrefix(key) {
 
 
 function hasScope(agentKey, requiredScope) {
-  var scopes = agentKey.get('permissions') || agentKey.get('scopes');
-  if (!scopes || !Array.isArray(scopes)) return false;
+  var scopeText = '';
+  try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+  if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+  var scopes = [];
+  try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+  if (!Array.isArray(scopes)) return false;
   if (scopes.indexOf('*') !== -1) return true;
   if (scopes.indexOf(requiredScope) !== -1) return true;
   // entries:write implies entries:read
@@ -65,6 +69,59 @@ function getAgentUserFamily(agentKey) {
   }
 }
 
+function normalizeLabelIds(value) {
+  if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+  return value ? [String(value)] : [];
+}
+
+function setCanonicalTaskLabels(record, value) {
+  var ids = normalizeLabelIds(value);
+  record.set('labels', ids);
+  record.set('label', ids);
+}
+
+function canAccessTaskForUser(record, user) {
+  if (!record || !user) return false;
+  var userId = user.id;
+  var ownerId = String(record.get('user') || '');
+  if (ownerId === userId) return true;
+  if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+
+  var familyId = String(user.get('family_id') || '');
+  if (!familyId || !ownerId) return false;
+  try {
+    var ownerUser = $app.findRecordById('users', ownerId);
+    if (String(ownerUser.get('family_id') || '') !== familyId) return false;
+  } catch (_e) { return false; }
+
+  var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+  if (labelIds.length > 1) {
+    for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+      var mixedLabel = null;
+      try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+      var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+      if (visibility !== 'family') return false;
+    }
+  }
+  for (var i = 0; i < labelIds.length; i++) {
+    var label = null;
+    try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+    var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+    var labelOwner = String(label.get('owner') || label.get('user') || '');
+    var labelFamily = String(label.get('family') || '');
+    if (!labelFamily && labelOwner) {
+      try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; }
+    }
+    if (visibility === 'private' && labelOwner !== userId) return false;
+    if (visibility === 'shared') {
+      var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+      if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+    }
+    if (visibility === 'family' && labelFamily !== familyId) return false;
+  }
+  return true;
+}
+
 // ─── API Key Management (admin-only routes) ────────────────────────────────
 
 // Create a new API key: POST /api/agent/keys
@@ -83,7 +140,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -91,7 +148,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -103,9 +160,92 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     return null;
   }
 
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
+  }
+
   try {
     var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
+    var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 
@@ -126,13 +266,14 @@ routerAdd('POST', '/api/agent/keys', function(c) {
 
     var rawKey = generateApiKey();
     var prefix = getKeyPrefix(rawKey);
-    var keyHash = $security.hashWithPassword(rawKey);
+    var keyHash = $security.sha256(rawKey);
 
     var rec = new Record($app.findCollectionByNameOrId('agent_keys'));
     rec.set('name', name);
     rec.set('key_hash', keyHash);
     rec.set('key_prefix', prefix);
     rec.set('permissions', scopes);
+    rec.set('scopes', scopes);
     rec.set('active', true);
     rec.set('user', auth.id);
     if (expiresAt) rec.set('expires_at', expiresAt);
@@ -171,7 +312,7 @@ routerAdd('GET', '/api/agent/keys', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -179,7 +320,7 @@ routerAdd('GET', '/api/agent/keys', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -191,16 +332,99 @@ routerAdd('GET', '/api/agent/keys', function(c) {
     return null;
   }
 
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
+  }
+
   try {
     var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
+    var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 
     var keys = $app.findRecordsByFilter(
       'agent_keys',
       'user = "' + auth.id + '"',
-      '-created',
+      '',
       0,
       0
     );
@@ -242,7 +466,7 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -250,7 +474,7 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -262,9 +486,92 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
     return null;
   }
 
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
+  }
+
   try {
     var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
+    var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 
@@ -308,7 +615,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -316,7 +623,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -326,6 +633,89 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       }
     }
     return null;
+  }
+
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
   }
 
   try {
@@ -356,9 +746,11 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     var familyId = String(ownerUser.get('family_id') || '');
     var actingUserId = ownerUser.id;
 
-    // Helper: build family-scoped filter
-    function familyFilter() {
-      return familyId ? 'user.family_id = "' + familyId + '"' : 'user = "' + actingUserId + '"';
+    // Helper: build a bound family-scoped filter.
+    function familyQuery() {
+      return familyId
+        ? { filter: 'user.family_id = {:familyId}', params: { familyId: familyId } }
+        : { filter: 'user = {:actingUserId}', params: { actingUserId: actingUserId } };
     }
 
     function recordInFamily(rec, fid, uid) {
@@ -397,6 +789,9 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
             return c.json(403, { error: 'Access denied' });
           }
         }
+        if (collectionName === 'tasks' && !canAccessTaskForUser(rec, ownerUser)) {
+          return c.json(403, { error: 'Access denied' });
+        }
 
         auditLog(agentKey, 'read', type || collectionName, rec.id, {}, c);
         return c.json(200, {
@@ -417,25 +812,31 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 
       // List mode
       var q = info.query || {};
-      var f = familyFilter();
+      var family = familyQuery();
+      var f = family.filter;
+      var queryParams = family.params;
+      var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
       var t = String(gv(q, 'type', '')).trim();
       var status = String(gv(q, 'status', '')).trim();
+      var validReadStatuses = ['', 'backlog', 'todo', 'done'];
+      if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
 
       var results = [];
 
       if (!t || t === 'task') {
         var taskFilter = f;
-        if (status) taskFilter += ' && status = "' + status + '"';
-        var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', 0, 0);
+        if (status) { taskFilter += ' && status = {:status}'; queryParams.status = status; }
+        var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', 0, 0, queryParams);
         for (var ti = 0; ti < tasks.length; ti++) {
           var tr = tasks[ti];
+          if (!canAccessTaskForUser(tr, ownerUser)) continue;
           results.push({
             id: tr.id, type: 'task',
             title: String(tr.get('title') || ''),
             status: String(tr.get('status') || 'todo'),
             description: String(tr.get('blocked_comment') || ''),
             assignee_id: String(tr.get('assigned_to') || ''),
-            labels: tr.get('labels') || [],
+            labels: tr.get('label') || tr.get('labels') || [],
             shop_id: '', quantity: null,
             due_date: tr.get('due_date') || '',
             created_by: String(tr.get('user') || ''),
@@ -447,7 +848,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 
       if (!t || t === 'grocery') {
         var itemFilter = f;
-        var items = $app.findRecordsByFilter('items', itemFilter, '-created', 0, 0);
+        var items = $app.findRecordsByFilter('items', itemFilter, '-created', 0, 0, itemQueryParams);
         for (var ii = 0; ii < items.length; ii++) {
           var ir = items[ii];
           results.push({
@@ -497,7 +898,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
         rec.set('status', st);
         rec.set('blocked_comment', String(gv(d, 'description', '') || ''));
         rec.set('assigned_to', gv(d, 'assignee_id', ''));
-        rec.set('labels', gv(d, 'labels', []));
+        setCanonicalTaskLabels(rec, gv(d, 'labels', []));
         rec.set('due_date', gv(d, 'due_date', ''));
         rec.set('is_private', false);
         rec.set('completed_at', st === 'done' ? new Date().toISOString() : null);
@@ -555,10 +956,14 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
       if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) rec.set('assigned_to', gv(d, 'assignee_id', ''));
-      if (Object.prototype.hasOwnProperty.call(d, 'labels')) rec.set('labels', gv(d, 'labels', []));
+      if (Object.prototype.hasOwnProperty.call(d, 'labels')) {
+        if (type === 'task') setCanonicalTaskLabels(rec, gv(d, 'labels', []));
+        else rec.set('labels', gv(d, 'labels', []));
+      }
       if (Object.prototype.hasOwnProperty.call(d, 'due_date')) rec.set('due_date', gv(d, 'due_date', ''));
 
       if (type === 'task') {
@@ -592,6 +997,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       var title = String(rec.get('title') || '');
       $app.delete(rec);
@@ -612,6 +1018,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       if (type === 'task') {
         rec.set('status', complete ? 'done' : 'todo');
@@ -636,6 +1043,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
       $app.save(rec);
@@ -655,9 +1063,11 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       var newLabels = gv(d, 'labels', []);
-      rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
+      if (type === 'task') setCanonicalTaskLabels(rec, newLabels);
+      else rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
       $app.save(rec);
       auditLog(agentKey, 'set_labels', type, rec.id, { labels: rec.get('labels') }, c);
       return c.json(200, { labels: rec.get('labels') || [] });
@@ -670,6 +1080,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       var rec = $app.findRecordById('tasks', id);
       if (!rec) return c.json(404, { error: 'Task not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       rec.set('due_date', String(gv(d, 'due_date', '') || ''));
       $app.save(rec);
@@ -699,7 +1110,7 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -707,7 +1118,7 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -717,6 +1128,89 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
       }
     }
     return null;
+  }
+
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
   }
 
   try {
@@ -734,11 +1228,15 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     var familyId = String(ownerUser.get('family_id') || '');
     var actingUserId = ownerUser.id;
 
-    var f = familyId ? 'user.family_id = "' + familyId + '"' : 'user = "' + actingUserId + '"';
+    var f = familyId ? 'user.family_id = {:familyId}' : 'user = {:actingUserId}';
+    var queryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
+    var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
     var info = c.requestInfo();
     var q = info.query || {};
     var t = String(gv(q, 'type', '')).trim();
     var status = String(gv(q, 'status', '')).trim();
+    var validReadStatuses = ['', 'backlog', 'todo', 'done'];
+    if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
     var limit = parseInt(gv(q, 'limit', '100'), 10);
     if (limit < 1) limit = 100;
 
@@ -746,16 +1244,17 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
 
     if (!t || t === 'task') {
       var taskFilter = f;
-      if (status) taskFilter += ' && status = "' + status + '"';
-      var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', limit, 0);
+      if (status) { taskFilter += ' && status = {:status}'; queryParams.status = status; }
+      var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', limit, 0, queryParams);
       for (var ti = 0; ti < tasks.length; ti++) {
         var tr = tasks[ti];
+        if (!canAccessTaskForUser(tr, ownerUser)) continue;
         results.push({
           id: tr.id, type: 'task',
           title: String(tr.get('title') || ''),
           status: String(tr.get('status') || 'todo'),
           assignee_id: String(tr.get('assigned_to') || ''),
-          labels: tr.get('labels') || [],
+          labels: tr.get('label') || tr.get('labels') || [],
           due_date: tr.get('due_date') || '',
           created_by: String(tr.get('user') || ''),
           created_at: tr.created,
@@ -764,7 +1263,7 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     }
 
     if (!t || t === 'grocery') {
-      var items = $app.findRecordsByFilter('items', f, '-created', limit, 0);
+      var items = $app.findRecordsByFilter('items', f, '-created', limit, 0, itemQueryParams);
       for (var ii = 0; ii < items.length; ii++) {
         var ir = items[ii];
         results.push({
@@ -803,7 +1302,7 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -811,7 +1310,7 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -821,6 +1320,89 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
       }
     }
     return null;
+  }
+
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
   }
 
   try {
@@ -855,7 +1437,7 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     var candidates = $app.findRecordsByFilter(
       'agent_keys',
       'key_prefix = {:prefix} && active = true',
-      '-created',
+      '',
       10,
       0,
       { prefix: prefix }
@@ -863,7 +1445,7 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
   
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
-      if ($security.compareWithHash(storedHash, token)) {
+      if ($security.equal(storedHash, $security.sha256(token))) {
         // Update last_used_at
         try {
           candidates[i].set('last_used_at', new Date().toISOString());
@@ -875,9 +1457,92 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     return null;
   }
 
+  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
+  function getKeyPrefix(key) { return key.substring(0, 12); }
+  function hasScope(agentKey, requiredScope) {
+    var scopeText = '';
+    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
+    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
+    var scopes = [];
+    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
+    if (!Array.isArray(scopes)) return false;
+    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
+    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
+    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
+    return false;
+  }
+  function gv(o, k, f) {
+    if (f === undefined) f = '';
+    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
+    var value = o[k];
+    return value === undefined || value === null ? f : value;
+  }
+  function getAgentUserFamily(agentKey) {
+    var userId = String(agentKey.get('user') || '');
+    if (!userId) return null;
+    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
+  }
+  function auditLog(agentKey, action, entityType, entityId, details) {
+    try {
+      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
+      audit.set('agent_key_id', agentKey.id);
+      audit.set('agent_name', agentKey.get('name') || '');
+      audit.set('action', action);
+      audit.set('entity_type', entityType || '');
+      audit.set('entity_id', entityId || '');
+      audit.set('details', details || {});
+      audit.set('ip_address', '');
+      audit.set('user', agentKey.get('user'));
+      $app.save(audit);
+    } catch (_e) {}
+  }
+  function normalizeLabelIds(value) {
+    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
+    return value ? [String(value)] : [];
+  }
+  function setCanonicalTaskLabels(record, value) {
+    var ids = normalizeLabelIds(value);
+    record.set('labels', ids);
+    record.set('label', ids);
+  }
+  function canAccessTaskForUser(record, user) {
+    if (!record || !user) return false;
+    var userId = user.id;
+    var ownerId = String(record.get('user') || '');
+    if (ownerId === userId) return true;
+    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
+    var familyId = String(user.get('family_id') || '');
+    if (!familyId || !ownerId) return false;
+    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
+    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
+    if (labelIds.length > 1) {
+      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
+        var mixedLabel = null;
+        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
+        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
+        if (visibility !== 'family') return false;
+      }
+    }
+    for (var i = 0; i < labelIds.length; i++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var labelOwner = String(label.get('owner') || label.get('user') || '');
+      var labelFamily = String(label.get('family') || '');
+      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
+      if (visibility === 'private' && labelOwner !== userId) return false;
+      if (visibility === 'shared') {
+        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
+        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
+      }
+      if (visibility === 'family' && labelFamily !== familyId) return false;
+    }
+    return true;
+  }
+
   try {
     var info = c.requestInfo();
-    var auth = info && info.auth ? info.auth : null;
+    var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 

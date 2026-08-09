@@ -118,6 +118,84 @@ test('task list route binds filter inputs and allow-lists sort fields', () => {
   assert.doesNotMatch(source, /status = \\"' \+ status/)
 })
 
+test('already-deployed databases receive a separate paginated fail-closed privacy upgrade', () => {
+  const source = read('pb_migrations/z062_enforce_label_privacy.js')
+
+  assert.match(source, /const PAGE_SIZE = 500/)
+  assert.match(source, /offset \+= batch\.length/)
+  assert.match(source, /task\.set\('is_private', true\)/)
+  assert.match(source, /taskLabelField\.maxSelect = 99/)
+  assert.match(source, /TASK_VISIBILITY_RULE/)
+})
+
+test('active user and agent APIs enforce label visibility and dual-write canonical task labels', () => {
+  const main = read('pb_hooks/main.pb.js')
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+
+  assert.match(main, /function _canAccessTask\(/)
+  assert.match(main, /_canAccessTask\(r\)/)
+  assert.match(main, /function _canAccessLabel\(/)
+  assert.match(main, /filter\(_canAccessLabel\)/)
+  assert.match(main, /rec\.set\('label', canonicalLabels\)/)
+  assert.match(main, /if \(type === 'task' && !_canAccessTask\(rec\)\)/)
+
+  assert.match(agents, /routerAdd\('POST', '\/api\/agent\/dispatch'[\s\S]{0,12000}function hasScope\(/)
+  assert.match(agents, /routerAdd\('GET', '\/api\/agent\/dispatch'[\s\S]{0,12000}function hasScope\(/)
+  assert.match(agents, /function canAccessTaskForUser\(/)
+  assert.match(agents, /canAccessTaskForUser\(tr, ownerUser\)/)
+  assert.match(agents, /\(info && info\.auth\) \|\| c\.get\('authRecord'\)/)
+  assert.match(agents, /rec\.set\('permissions', scopes\)/)
+  assert.match(agents, /rec\.set\('scopes', scopes\)/)
+  assert.match(agents, /getString\('scopes'\)/)
+  assert.doesNotMatch(agents, /'agent_keys',[\s\S]{0,160}'-created'/)
+  assert.doesNotMatch(agents, /hashWithPassword|compareWithHash/)
+  assert.match(agents, /\$security\.sha256\(rawKey\)/)
+  assert.match(agents, /\$security\.equal\(storedHash, \$security\.sha256\(token\)\)/)
+  assert.match(agents, /status = \{:status\}/)
+  assert.doesNotMatch(agents, /status = \\\"' \+ status/)
+  assert.match(agents, /findRecordsByFilter\('tasks', taskFilter, '-created', [^\n]+, queryParams\)/)
+  assert.match(agents, /setCanonicalTaskLabels\(rec,/)
+  assert.match(agents, /canAccessTaskForUser\(rec, ownerUser\)/)
+})
+
+test('all loaded agent task routes enforce the same label privacy contract', () => {
+  const source = read('pb_hooks/03_agent_tasks.pb.js')
+
+  assert.match(source, /function canAccessTaskForUser\(/)
+  assert.match(source, /if\s*\(!canAccessTaskForUser\(t,\s*a\.user\)\)\s*continue/)
+  assert.match(source, /if\s*\(!canAccessTaskForUser\(t,\s*a\.user\)\)\s*return c\.json\(403/)
+  assert.match(source, /status = \{:status\}/)
+  assert.doesNotMatch(source, /status = "'\+st\+'/)
+  assert.match(source, /\$security\.sha256\(raw\)/)
+  assert.doesNotMatch(source, /\$security\.SHA256|return'd_'|return 'd_'/)
+  assert.match(source, /getString\('permissions'\)/)
+  assert.match(source, /getString\('scopes'\)/)
+  assert.match(source, /\/api\/agent\/tasks\/\{id\}/)
+  assert.match(source, /c\.request\.pathValue\('id'\)/)
+})
+
+test('ICS import and export cannot bypass privacy and keep canonical labels synchronized', () => {
+  const source = read('pb_hooks/14_ics.pb.js')
+
+  assert.match(source, /function canAccessTaskForUser\(/)
+  assert.match(source, /existingList\s*=\s*existingList\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)
+  assert.match(source, /tasks\s*=\s*tasks\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)
+  assert.match(source, /existing\.set\('label',uniqueLabels\)/)
+  assert.match(source, /rec\.set\('label',uniqueLabels\)/)
+  assert.doesNotMatch(source, /c\.queryParam\(/)
+  assert.match(source, /info\.query\s*\|\|\s*\{\}/)
+})
+
+test('custom task authorization matches the collection rule for mixed non-family labels', () => {
+  const migration = read('pb_migrations/z062_enforce_label_privacy.js')
+  const main = read('pb_hooks/main.pb.js')
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+
+  assert.match(migration, /label:length = 1/)
+  assert.match(main, /ids\.length > 1[\s\S]{0,360}mixedVis !== 'family'/)
+  assert.match(agents, /labelIds\.length > 1[\s\S]{0,500}visibility !== 'family'/)
+})
+
 test('frontend clients propagate all labels to the canonical relation instead of only the first label', () => {
   for (const path of ['src/lib/pocketbase-client.ts', 'src/lib/api-client.ts']) {
     const source = read(path)
