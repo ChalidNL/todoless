@@ -405,7 +405,7 @@ class PocketBaseClient {
         blocked: task.blocked || false,
         focus: task.focus || false,
         blocked_comment: task.blockedComment,
-        priority: task.priority,
+        priority: task.priority || 'medium',
         horizon: task.horizon,
         assigned_to: task.assignedTo,
         sprint_id: task.sprintId,

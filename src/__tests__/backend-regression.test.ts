@@ -30,4 +30,10 @@ describe('backend regression guards', () => {
     expect(client).not.toContain("pb.collection('projects').getFullList({ filter: `user.id = \"${userId}\"`, sort: '-created' })");
     expect(client).not.toContain("pb.collection('reminders').getFullList({ filter: `user.id = \"${userId}\"`, sort: 'due_date' })");
   });
+
+  it('supplies the required default priority when quick-adding a task', () => {
+    const client = repoFile('src/lib/pocketbase-client.ts');
+
+    expect(client).toContain("priority: task.priority || 'medium'");
+  });
 });
