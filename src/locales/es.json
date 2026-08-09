@@ -125,6 +125,7 @@
     "doneWorkspaceDescription": "Todo está configurado. Abre todoless y empieza.",
     "openApp": "Abrir todoless",
     "languageSaveFailed": "No se pudo guardar tu idioma. Inténtalo de nuevo.",
+    "completionSaveFailed": "No se pudo guardar tu progreso de incorporación. Inténtalo de nuevo.",
     "module": {
       "tasks": {
         "title": "Tareas",

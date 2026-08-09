@@ -125,6 +125,7 @@
     "doneWorkspaceDescription": "Alles staat klaar. Open todoless en ga aan de slag.",
     "openApp": "Open todoless",
     "languageSaveFailed": "Je taalvoorkeur kon niet worden opgeslagen. Probeer het opnieuw.",
+    "completionSaveFailed": "Je onboardingvoortgang kon niet worden opgeslagen. Probeer het opnieuw.",
     "module": {
       "tasks": {
         "title": "Taken",

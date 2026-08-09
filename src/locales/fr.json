@@ -125,6 +125,7 @@
     "doneWorkspaceDescription": "Tout est prêt. Ouvrez todoless et commencez.",
     "openApp": "Ouvrir todoless",
     "languageSaveFailed": "Votre préférence de langue n’a pas pu être enregistrée. Réessayez.",
+    "completionSaveFailed": "Votre progression d’intégration n’a pas pu être enregistrée. Réessayez.",
     "module": {
       "tasks": {
         "title": "Tâches",

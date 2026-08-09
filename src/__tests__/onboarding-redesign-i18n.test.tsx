@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { SupportedUiLanguage } from '../i18n/translations';
@@ -138,6 +138,110 @@ describe('red onboarding visual and localization contract', () => {
 
     expect(screen.getByText('nl')).toBeInTheDocument();
     await waitFor(() => expect(localStorage.getItem('app_language')).toBe('nl'));
+  });
+
+  it('persists an authenticated users language before switching the UI', async () => {
+    let resolveUpdate!: (value: unknown) => void;
+    vi.spyOn(api, 'updateUser').mockReturnValue(new Promise((resolve) => { resolveUpdate = resolve; }));
+    authStore.record = { id: 'member-1', language: 'en' };
+    authStore.isValid = true;
+
+    render(
+      <LanguageProvider>
+        <LanguageProbe />
+        <Onboarding mode="user" onComplete={vi.fn()} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Nederlands/i }));
+    expect(screen.getByText('en', { selector: 'output' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Loading...' })).toBeDisabled();
+
+    resolveUpdate({ id: 'member-1', language: 'nl' });
+    await waitFor(() => expect(screen.getByText('nl', { selector: 'output' })).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Volgende' })).toBeEnabled();
+  });
+
+  it('keeps user onboarding retryable when completion persistence fails', async () => {
+    const onComplete = vi.fn();
+    const markSeen = vi.spyOn(api, 'markOnboardingSeen')
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(undefined);
+    authStore.record = { id: 'member-1', language: 'en' };
+    authStore.isValid = true;
+
+    render(
+      <LanguageProvider>
+        <Onboarding mode="user" onComplete={onComplete} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to save');
+    expect(onComplete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(markSeen).toHaveBeenCalledTimes(2);
+  });
+
+  it('times out a hanging onboarding completion instead of trapping the user', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(api, 'markOnboardingSeen').mockReturnValue(new Promise(() => undefined));
+    authStore.record = { id: 'member-1', language: 'en' };
+    authStore.isValid = true;
+
+    render(
+      <LanguageProvider>
+        <Onboarding mode="user" onComplete={vi.fn()} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+    expect(screen.getByRole('alert')).toHaveTextContent('Unable to save');
+    vi.useRealTimers();
+  });
+
+  it('retries only first-admin completion after registration already succeeded', async () => {
+    const registerAdmin = vi.spyOn(api, 'registerAdmin').mockImplementation(async () => {
+      authStore.record = { id: 'admin-1', language: 'en' };
+      authStore.isValid = true;
+      return { token: 'test-token', user: authStore.record } as never;
+    });
+    const markSeen = vi.spyOn(api, 'markOnboardingSeen')
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(undefined);
+
+    render(
+      <LanguageProvider>
+        <Onboarding mode="admin" onComplete={vi.fn()} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Discover/i }));
+    await screen.findByText('Capture and finish what matters.');
+    for (let index = 0; index < 5; index += 1) {
+      fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    }
+    fireEvent.click(await screen.findByRole('button', { name: /Get Started/i }));
+
+    fireEvent.change(await screen.findByLabelText('Workspace name'), { target: { value: 'Ada family' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.change(await screen.findByLabelText('First name'), { target: { value: 'Ada' } });
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'admin@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText('Confirm password'), { target: { value: 'password123' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to save');
+
+    fireEvent.click(screen.getByRole('button', { name: /Create Account/i }));
+    expect(await screen.findByRole('heading', { name: /ready/i })).toBeInTheDocument();
+    expect(registerAdmin).toHaveBeenCalledTimes(1);
+    expect(markSeen).toHaveBeenCalledTimes(2);
   });
 
   it('uses i18n keys for every bottom navigation label', () => {

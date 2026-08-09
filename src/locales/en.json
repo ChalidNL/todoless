@@ -125,6 +125,7 @@
     "doneWorkspaceDescription": "Everything is set up. Open todoless and get started.",
     "openApp": "Open todoless",
     "languageSaveFailed": "Your language preference could not be saved. Try again.",
+    "completionSaveFailed": "Unable to save your onboarding progress. Try again.",
     "module": {
       "tasks": {
         "title": "Tasks",

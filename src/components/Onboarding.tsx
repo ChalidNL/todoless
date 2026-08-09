@@ -105,6 +105,8 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [adminRegistrationComplete, setAdminRegistrationComplete] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
 
   const stepId = steps[currentStep];
@@ -128,7 +130,6 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
   const selectLanguage = async (nextLanguage: SupportedUiLanguage) => {
     setSelectedLanguage(nextLanguage);
     setLanguageSelected(true);
-    setLanguage(nextLanguage);
     setError('');
 
     const userId = pb.authStore.record?.id;
@@ -136,11 +137,15 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
       setIsPersistingLanguage(true);
       try {
         await api.updateUser(userId, { language: nextLanguage });
+        setLanguage(nextLanguage);
       } catch {
+        setLanguageSelected(false);
         setError(t('onboarding.languageSaveFailed'));
       } finally {
         setIsPersistingLanguage(false);
       }
+    } else {
+      setLanguage(nextLanguage);
     }
   };
 
@@ -165,13 +170,26 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
 
     setError('');
     setIsSubmitting(true);
+    let registrationComplete = adminRegistrationComplete || Boolean(pb.authStore.isValid && pb.authStore.record?.id);
     try {
-      const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
-      await api.registerAdmin(email, password, fullName, familyName.trim(), selectedLanguage);
-      await api.markOnboardingSeen(true);
+      if (!registrationComplete) {
+        const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+        await api.registerAdmin(email, password, fullName, familyName.trim(), selectedLanguage);
+        registrationComplete = true;
+        setAdminRegistrationComplete(true);
+      }
+      await Promise.race([
+        api.markOnboardingSeen(true),
+        new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), 10_000)),
+      ]);
       updateAppSettings({ hasCompletedOnboarding: true, setupComplete: true });
       goNext();
     } catch (caught: unknown) {
+      if (registrationComplete || Boolean(pb.authStore.isValid && pb.authStore.record?.id)) {
+        setAdminRegistrationComplete(true);
+        setError(t('onboarding.completionSaveFailed'));
+        return;
+      }
       const message = caught instanceof Error ? caught.message : '';
       if (/email|already/i.test(message)) setError(t('onboarding.emailAlreadyInUse'));
       else if (/password/i.test(message)) setError(t('onboarding.passwordDoesNotMeetRequirements'));
@@ -181,21 +199,28 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
     }
   };
 
-  const finish = async () => {
-    if (mode === 'user') {
-      await api.markOnboardingSeen(false);
-      updateAppSettings({ hasCompletedOnboarding: true });
+  const completeOnboarding = async () => {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    setError('');
+    try {
+      if (mode === 'user') {
+        await Promise.race([
+          api.markOnboardingSeen(false),
+          new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), 10_000)),
+        ]);
+        updateAppSettings({ hasCompletedOnboarding: true });
+      }
+      onComplete();
+    } catch {
+      setError(t('onboarding.completionSaveFailed'));
+    } finally {
+      setIsCompleting(false);
     }
-    onComplete();
   };
 
-  const skip = async () => {
-    if (mode === 'user') {
-      await api.markOnboardingSeen(false);
-      updateAppSettings({ hasCompletedOnboarding: true });
-    }
-    onComplete();
-  };
+  const finish = completeOnboarding;
+  const skip = completeOnboarding;
 
   const renderLanguage = () => (
     <div className="onboarding-centered">
@@ -328,7 +353,8 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
         <div className="onboarding-done-icon"><CheckCircle2 /></div>
         <h1>{title}</h1>
         <p>{description}</p>
-        <GlowButton onClick={() => void finish()}>
+        {error && <p className="onboarding-error" role="alert">{error}</p>}
+        <GlowButton disabled={isCompleting} onClick={() => void finish()}>
           <span>{isInfo ? t('onboarding.goToLogin') : t('onboarding.openApp')}</span><Sparkles />
         </GlowButton>
       </div>
@@ -346,7 +372,7 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
 
   return (
     <main className={`onboarding-shell onboarding-theme-${stepId}`}>
-      <button type="button" className="onboarding-skip" onClick={() => void skip()}>
+      <button type="button" className="onboarding-skip" disabled={isCompleting} onClick={() => void skip()}>
         {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
       </button>
       {currentStep > 0 && !['workspace', 'account', 'done'].includes(stepId) && (
@@ -355,6 +381,7 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
       <div className={`onboarding-transition ${transitioning ? 'is-transitioning' : ''}`} key={`${stepId}-${moduleIndex}`}>
         {renderStep()}
       </div>
+      {error && ['welcome', 'showcase'].includes(stepId) && <p className="onboarding-error" role="alert">{error}</p>}
       {!['workspace', 'account'].includes(stepId) && <ProgressDots current={currentStep} total={steps.length} />}
     </main>
   );

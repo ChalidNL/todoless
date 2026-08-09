@@ -193,7 +193,7 @@ function AppContent() {
         onComplete={() => {
           localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser((user as any)?.id ?? null));
 
-          if (onboardingMode === 'info' || onboardingMode === 'admin') {
+          if (onboardingMode === 'info' || (onboardingMode === 'admin' && !pb.authStore.isValid)) {
             setAppScreen('login');
           } else {
             setAppScreen('app');

@@ -125,6 +125,7 @@
     "doneWorkspaceDescription": "Alles ist eingerichtet. Öffne todoless und lege los.",
     "openApp": "todoless öffnen",
     "languageSaveFailed": "Deine Spracheinstellung konnte nicht gespeichert werden. Versuche es erneut.",
+    "completionSaveFailed": "Dein Onboarding-Fortschritt konnte nicht gespeichert werden. Versuche es erneut.",
     "module": {
       "tasks": {
         "title": "Aufgaben",
