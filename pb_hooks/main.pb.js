@@ -431,9 +431,9 @@ routerAdd('GET', '/api/entries', (c) => {
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; try { perms = JSON.parse(rawPerms || '[]'); } catch(e) { perms = []; }
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -519,9 +519,9 @@ routerAdd('POST', '/api/v1', (c) => {
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; try { perms = JSON.parse(rawPerms || '[]'); } catch(e) { perms = []; }
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;

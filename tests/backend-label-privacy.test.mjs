@@ -225,6 +225,8 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.doesNotMatch(main, /\$security\.SHA256|return'd_'/)
   assert.match(main, /\$security\.sha256\(token\)/)
   assert.match(main, /token_hash = \{:hash\}/)
+  assert.match(main, /getString\('permissions'\)/)
+  assert.match(main, /getString\('scopes'\)/)
   assert.doesNotMatch(agents, /\/api\/agent\/keys\/:id\/revoke|c\.pathParam\(/)
   assert.match(agents, /\/api\/agent\/keys\/\{id\}\/revoke/)
   assert.match(agents, /c\.request\.pathValue\('id'\)/)
@@ -232,4 +234,13 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.match(agentTasks, /var filter='user = \{:userId\}'/)
   assert.match(agentTasks, /reminder_time >= \{:now\}/)
   assert.match(agentTasks, /rec\.set\('user',a\.uid\)/)
+})
+
+test('existing agent key schemas allow a persisted false revoked state', () => {
+  const migration = read('pb_migrations/z064_fix_agent_key_revocation.js')
+
+  assert.match(migration, /findCollectionByNameOrId\('agent_keys'\)/)
+  assert.match(migration, /getByName\('active'\)/)
+  assert.match(migration, /activeField\.required = false/)
+  assert.match(migration, /app\.save\(keys\)/)
 })
