@@ -79,7 +79,7 @@ function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
-  const { completionMessage, tasks, items } = useApp();
+  const { completionMessage, tasks, items, dataLoadState, loadError, retryLoad } = useApp();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
   const location = useLocation();
@@ -213,6 +213,35 @@ function AppContent() {
 
   if (!pb.authStore.isValid) {
     return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+  }
+
+  if (dataLoadState === 'loading') {
+    return (
+      <main className="app-shell-bg grid min-h-screen place-items-center p-6" role="status" aria-live="polite">
+        <div className="app-surface flex items-center gap-3 rounded-[var(--app-radius-xl)] px-5 py-4 text-[var(--app-text-muted)]">
+          <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span>{t('common.loading', language)}</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (dataLoadState === 'error') {
+    return (
+      <main className="app-shell-bg grid min-h-screen place-items-center p-6">
+        <section className="app-surface w-full max-w-md rounded-[var(--app-radius-xl)] p-6 text-center" role="alert">
+          <h1 className="text-xl font-bold text-[var(--app-text)]">{t('common.error', language)}</h1>
+          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('auth.appErrorDescription', language)}</p>
+          <button
+            type="button"
+            onClick={() => void retryLoad()}
+            className="mt-5 min-h-[var(--app-touch-target)] rounded-[var(--app-radius-xl)] bg-[var(--app-primary)] px-5 font-bold text-white"
+          >
+            {t('common.retry', language)}
+          </button>
+        </section>
+      </main>
+    );
   }
 
   const navItems: BottomNavItem[] = [
