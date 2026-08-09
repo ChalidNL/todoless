@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { t, SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
 import { userDisplayName } from '../types';
-import { Button } from './ui/Button';
+import { Button } from './ui/AppButton';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { api } from '../lib/pocketbase-client';
 

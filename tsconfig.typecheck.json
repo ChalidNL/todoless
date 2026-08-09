@@ -6,12 +6,6 @@
     "allowImportingTsExtensions": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src/lib/**/*.ts",
-    "src/hooks/**/*.ts",
-    "src/utils/**/*.ts",
-    "src/types/**/*.ts",
-    "src/**/__tests__/**/*.ts",
-    "src/test-setup.ts"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": []
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { Settings } from '../components/Settings';
 import { SettingsPreferences } from '../components/SettingsPreferences';
@@ -188,14 +189,14 @@ describe('Calendar Google-inspired UX', () => {
   });
 
   it('persists first day of week from Settings', () => {
-    render(<SettingsPreferences />);
+    render(<SettingsPreferences />, { wrapper: MemoryRouter });
     const select = screen.getByRole('combobox', { name: 'First day of week' });
     fireEvent.change(select, { target: { value: '0' } });
     expect(updateAppSettings).toHaveBeenCalledWith({ sprintStartDay: 0 });
   });
 
   it('places calendar import/export actions in Settings preferences instead of the calendar toolbar', () => {
-    const { unmount } = render(<SettingsPreferences />);
+    const { unmount } = render(<SettingsPreferences />, { wrapper: MemoryRouter });
     expect(screen.getByRole('button', { name: 'Import Calendar (.ics)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Export as .ics' })).toBeInTheDocument();
     unmount();
@@ -219,7 +220,7 @@ describe('Calendar Google-inspired UX', () => {
     const cafRow = screen.getByText('CAF').closest('article')!;
     expect(cafRow).toHaveClass('app-card');
     expect(within(cafRow).getAllByText('CAF')).toHaveLength(1);
-    expect(within(cafRow).getByText('family')).toBeInTheDocument();
+    expect(within(cafRow).getByText('Family')).toBeInTheDocument();
   });
 });
 

@@ -150,7 +150,7 @@ function AppContent() {
         return;
       }
 
-      if (mode === 'info' || mode === 'admin') {
+      if (mode === 'info') {
         // First check for register route — invite links bypass info slides
         const path = window.location.pathname.toLowerCase();
         if (path === '/register') {

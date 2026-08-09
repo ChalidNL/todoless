@@ -2,7 +2,7 @@ name: Build & Publish Docker Images
 
 on:
   push:
-    branches: [main, beta, red, dev, pre]
+    branches: [main, beta, red, dev]
   workflow_dispatch:
 
 env:
@@ -10,7 +10,44 @@ env:
   OWNER: chalidnl
 
 jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck full React source
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Scan repository for secrets
+        run: npm run security:secrets
+
   build-and-push:
+    needs: quality-gate
     runs-on: ubuntu-latest
     permissions:
       contents: read

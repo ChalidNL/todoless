@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility } from '../types';
+import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility, type User } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, User, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
-import { Button } from './ui/Button';
+import { Button } from './ui/AppButton';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { entityBg, entityBorder, entityColor } from '../lib/entity-colors';

@@ -641,7 +641,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                               updateTask(task.id, { labels: [...task.labels, existing.id] });
                             }
                           } else {
-                            addLabel({ name, color: '#3b82f6' });
+                            addLabel({ name, color: '#3b82f6', visibility: 'family' });
                           }
                           setLabelInput('');
                         }

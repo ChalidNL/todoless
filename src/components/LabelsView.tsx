@@ -5,7 +5,7 @@ import { t } from '../i18n/translations';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { EmptyState } from './shared/EmptyState';
-import { Button } from './ui/Button';
+import { Button } from './ui/AppButton';
 import type { Label } from '../types';
 
 const COLOR_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#ef4444', '#14b8a6', '#f43f5e', '#a855f7'];

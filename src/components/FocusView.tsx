@@ -5,7 +5,7 @@ import { t, formatDate } from '../i18n/translations';
 import { PageHeader } from './shared/PageHeader';
 import { TaskCard } from './shared/TaskCard';
 import { EmptyState } from './shared/EmptyState';
-import { Button } from './ui/Button';
+import { Button } from './ui/AppButton';
 
 export function FocusView() {
   const { tasks, showCompletionMessage } = useApp();
