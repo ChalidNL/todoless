@@ -26,7 +26,7 @@ describe('label based visibility contract', () => {
     expect(migration).toContain('label.visibility:each = "family"');
     expect(migration).toContain('label.visibility = "shared"');
     expect(migration).toContain('label.visibility = "private"');
-    expect(migration).toContain('label.shared_with ?= @request.auth.id');
+    expect(migration).toContain('label.shared_with.id ?= @request.auth.id');
   });
 
   it('exposes label visibility fields in frontend types and both API clients', () => {

@@ -128,6 +128,19 @@ test('already-deployed databases receive a separate paginated fail-closed privac
   assert.match(source, /TASK_VISIBILITY_RULE/)
 })
 
+test('already-deployed privacy rules match shared members through relation ids', () => {
+  const initial = read('pb_migrations/z061_label_visibility.js')
+  const upgrade = read('pb_migrations/z062_enforce_label_privacy.js')
+  const ruleFix = read('pb_migrations/z063_fix_shared_label_rules.js')
+
+  for (const migration of [initial, upgrade, ruleFix]) {
+    assert.match(migration, /shared_with\.id \?= @request\.auth\.id/)
+    assert.match(migration, /label\.shared_with\.id \?= @request\.auth\.id/)
+  }
+  assert.match(ruleFix, /app\.save\(labels\)/)
+  assert.match(ruleFix, /app\.save\(tasks\)/)
+})
+
 test('active user and agent APIs enforce label visibility and dual-write canonical task labels', () => {
   const main = read('pb_hooks/main.pb.js')
   const agents = read('pb_hooks/05_agents_routes.pb.js')
