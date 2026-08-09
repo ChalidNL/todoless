@@ -1076,7 +1076,7 @@ class PocketBaseClient {
   async getProjects(): Promise<Project[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('projects').getFullList({ filter: `user.id = "${userId}"`, sort: '-created' });
+    const list = await pb.collection('projects').getFullList({ filter: `user = "${userId}"` });
     return list.map(normalizeProject);
   }
 
@@ -1118,7 +1118,7 @@ class PocketBaseClient {
   async getReminders(): Promise<Reminder[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('reminders').getFullList({ filter: `user.id = "${userId}"`, sort: 'due_date' });
+    const list = await pb.collection('reminders').getFullList({ filter: `user = "${userId}"`, sort: 'reminder_time' });
     return list.map(normalizeReminder);
   }
 

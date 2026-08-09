@@ -423,10 +423,11 @@ routerAdd('GET', '/api/agent/keys', function(c) {
 
     var keys = $app.findRecordsByFilter(
       'agent_keys',
-      'user = "' + auth.id + '"',
+      'user = {:userId}',
       '',
+      10000,
       0,
-      0
+      { userId: auth.id }
     );
 
     var result = [];
@@ -450,8 +451,8 @@ routerAdd('GET', '/api/agent/keys', function(c) {
   }
 });
 
-// Revoke an API key: POST /api/agent/keys/:id/revoke
-routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
+// Revoke an API key: POST /api/agent/keys/{id}/revoke
+routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
   function authFromApiKey(c) {
     var headers = c.requestInfo().headers || {};
     var authHeader = headers.authorization || headers.Authorization || '';
@@ -575,7 +576,7 @@ routerAdd('POST', '/api/agent/keys/:id/revoke', function(c) {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 
-    var id = c.pathParam('id');
+    var id = c.request.pathValue('id');
     if (!id) return c.json(400, { error: 'id required' });
 
     var rec = $app.findRecordById('agent_keys', id);

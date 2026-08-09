@@ -216,3 +216,20 @@ test('frontend clients propagate all labels to the canonical relation instead of
     assert.doesNotMatch(source, /payload\.label\s*=\s*updates\.labels\?\.\[0\]/, path)
   }
 })
+
+test('all active token and agent management routes use PB 0.35 APIs and bound filters', () => {
+  const main = read('pb_hooks/main.pb.js')
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+  const agentTasks = read('pb_hooks/03_agent_tasks.pb.js')
+
+  assert.doesNotMatch(main, /\$security\.SHA256|return'd_'/)
+  assert.match(main, /\$security\.sha256\(token\)/)
+  assert.match(main, /token_hash = \{:hash\}/)
+  assert.doesNotMatch(agents, /\/api\/agent\/keys\/:id\/revoke|c\.pathParam\(/)
+  assert.match(agents, /\/api\/agent\/keys\/\{id\}\/revoke/)
+  assert.match(agents, /c\.request\.pathValue\('id'\)/)
+  assert.match(agents, /user = \{:userId\}[\s\S]{0,120}10000[\s\S]{0,80}\{ userId: auth\.id \}/)
+  assert.match(agentTasks, /var filter='user = \{:userId\}'/)
+  assert.match(agentTasks, /reminder_time >= \{:now\}/)
+  assert.match(agentTasks, /rec\.set\('user',a\.uid\)/)
+})

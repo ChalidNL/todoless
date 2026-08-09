@@ -415,8 +415,8 @@ routerAdd('GET', '/api/entries', (c) => {
       }
       var token = parts[1].trim();
       if (!token) return c.json(401, { 'error': 'Empty token' });
-      var hashed = (function(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} })(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       var rawEnabled = tokRec.get('enabled');
@@ -503,8 +503,8 @@ routerAdd('POST', '/api/v1', (c) => {
       }
       var token = parts[1].trim();
       if (!token) return c.json(401, { 'error': 'Empty token' });
-      var hashed = (function(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} })(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       var rawEnabled = tokRec.get('enabled');
