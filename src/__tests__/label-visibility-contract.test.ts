@@ -22,7 +22,7 @@ describe('label based visibility contract', () => {
   it('documents unlabeled tasks as family visible and enforces label visibility in task rules', () => {
     expect(migration).toContain('Unlabeled, non-private tasks remain family-visible');
     expect(migration).toContain('is_private = false');
-    expect(migration).toContain('label = ""');
+    expect(migration).toContain('label:length = 0');
     expect(migration).toContain('label.visibility:each = "family"');
     expect(migration).toContain('label.visibility = "shared"');
     expect(migration).toContain('label.visibility = "private"');

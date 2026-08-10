@@ -245,3 +245,16 @@ test('existing agent key schemas allow a persisted false revoked state', () => {
   assert.match(migration, /activeField\.required = false/)
   assert.match(migration, /app\.save\(keys\)/)
 })
+
+test('empty canonical label relations remain writable for normal quick-add tasks', () => {
+  const fresh = read('pb_migrations/z061_label_visibility.js')
+  const privacyUpgrade = read('pb_migrations/z062_enforce_label_privacy.js')
+  const sharedUpgrade = read('pb_migrations/z063_fix_shared_label_rules.js')
+  const existingInstallFix = read('pb_migrations/z065_fix_empty_task_label_rules.js')
+
+  for (const source of [fresh, privacyUpgrade, sharedUpgrade, existingInstallFix]) {
+    assert.match(source, /label:length = 0/)
+  }
+  assert.match(existingInstallFix, /tasks\.createRule =/)
+  assert.match(existingInstallFix, /tasks\.updateRule =/)
+})
