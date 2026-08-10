@@ -5,7 +5,7 @@
 // - c.requestInfo() call ONCE per request
 // - use info.body NOT info.data (PB 0.34 compat)
 // - $app.save(rec) for users throws "ReferenceError: tasks" (PB 0.34.2 bug)
-//   FIX: use var u = $app.unsafeWithoutHooks(); u.save(rec); with manual id/tokenKey
+//   FIX: use $app.save(rec) with manual id/tokenKey
 
 
 
@@ -168,8 +168,7 @@ routerAdd('POST', '/api/validate-create', function(c) {
 
     var fid = String(auth.get('family_id') || '');
     if (fid) {
-      var familyFilter = 'user.family_id = "' + fid + '"';
-      var familyResults = $app.findRecordsByFilter(collName, familyFilter + ' && id = "' + rec.id + '"', '', 1, 0);
+      var familyResults = $app.findRecordsByFilter(collName, 'user.family_id = {:familyId} && id = {:recordId}', '', 1, 0, { familyId: fid, recordId: rec.id });
       if (familyResults.length === 0) {
         return c.json(500, { error: 'VALIDATION FAILED: record not queryable by family ' + fid });
       }
@@ -287,7 +286,7 @@ routerAdd('GET', '/api/validate-invite', (c) => {
 routerAdd('POST', '/api/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
   var createUser = function(col, data) {
-    var u = $app.unsafeWithoutHooks();
+    var u = $app;
     var rec = new Record(col);
     rec.set('id', $security.randomString(15));
     rec.set('tokenKey', $security.randomString(50));
@@ -312,7 +311,7 @@ routerAdd('POST', '/api/register', (c) => {
     fam.set('id', $security.randomString(15));
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
-    var u = $app.unsafeWithoutHooks();
+    var u = $app;
     u.save(fam);
     return fam;
   };
@@ -357,7 +356,7 @@ routerAdd('POST', '/api/register', (c) => {
 
       // Update user with family_id
       rec.set('family_id', fam.id);
-      var u = $app.unsafeWithoutHooks();
+      var u = $app;
       u.save(rec);
 
       return c.json(201, {
@@ -394,7 +393,7 @@ routerAdd('POST', '/api/register', (c) => {
     inviteRec.set('used', true);
     inviteRec.set('used_at', now);
     inviteRec.set('used_by', rec.id);
-    var uu = $app.unsafeWithoutHooks();
+    var uu = $app;
     uu.save(inviteRec);
 
     return c.json(201, {
@@ -755,11 +754,11 @@ routerAdd('POST', '/api/v1', (c) => {
         return c.json(400, { error: 'Agents cannot be assigned admin or owner roles.' });
       }
 
-      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = "' + actorFamilyId + '" && (role = "admin" || role = "owner")', '', 10000, 0);
+      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
 
       // Keep a single admin/owner per family: promoting a new admin demotes the others in that family only.
       if (newRole === 'admin' || newRole === 'owner') {
-        var u2 = $app.unsafeWithoutHooks();
+        var u2 = $app;
         for (var i = 0; i < familyAdmins.length; i++) {
           if (familyAdmins[i].id !== targetId) {
             familyAdmins[i].set('role', 'member');
@@ -777,7 +776,7 @@ routerAdd('POST', '/api/v1', (c) => {
         if (otherAdmins.length === 0) return c.json(400, { error: 'You are the only admin. Promote someone else first.' });
       }
 
-      var u = $app.unsafeWithoutHooks();
+      var u = $app;
       target.set('role', newRole);
       u.save(target);
       return c.json(200, { success: true, user_id: targetId, role: newRole });
@@ -797,7 +796,7 @@ routerAdd('POST', '/api/v1', (c) => {
       var actorFamilyBlock = String(actorBlockRecord.get('family_id') || '').trim();
       if (!actorFamilyBlock || String(targetBlock.get('family_id') || '').trim() !== actorFamilyBlock) return c.json(403, { error: 'You can only manage members in your own family.' });
       if (String(targetBlock.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot block the owner' });
-      var ub = $app.unsafeWithoutHooks();
+      var ub = $app;
       targetBlock.set('member_status', blocked ? 'blocked' : 'active');
       ub.save(targetBlock);
       return c.json(200, { success: true, user_id: targetIdBlock, blocked: !!blocked });
@@ -839,17 +838,9 @@ routerAdd('GET', '/api/agent/counts', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
-    // Get family members to scope tokens
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var allTokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var allTokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var pending = 0, approved = 0;
     for (var ti = 0; ti < allTokens.length; ti++) {
       var rawEnabled = allTokens[ti].get('enabled');
@@ -869,15 +860,8 @@ routerAdd('GET', '/api/agent/pending', (c) => {
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter + ' && enabled=false', '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId} && enabled = false' : 'user = {:userId} && enabled = false';
+    var tokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -913,7 +897,7 @@ routerAdd('POST', '/api/agent/approve', (c) => {
     $app.save(token);
 
     // Also update the invite's used flag if linked
-    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = {:tokenId}', '', 1, 0, { tokenId: tokenId });
     if (invites.length > 0) {
       var inv = invites[0];
       inv.set('used', true);
@@ -948,7 +932,7 @@ routerAdd('POST', '/api/agent/reject', (c) => {
     if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
 
     // Also delete linked invite
-    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = {:tokenId}', '', 1, 0, { tokenId: tokenId });
     if (invites.length > 0) {
       $app.delete(invites[0]);
     }
@@ -967,15 +951,8 @@ routerAdd('GET', '/api/agent/list', (c) => {
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var tokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -995,14 +972,14 @@ routerAdd('GET', '/api/agent/list', (c) => {
 });
 
 // DELETE /api/agent/:id — revoke token
-routerAdd('DELETE', '/api/agent/:id', (c) => {
+routerAdd('DELETE', '/api/agent/{id}', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
-    var tokenId = c.pathParam('id');
+    var tokenId = c.request.pathValue('id');
     if (!tokenId) return c.json(400, { error: 'id required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);

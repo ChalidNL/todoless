@@ -8,18 +8,7 @@
 
 // ─── SHA-256 hash ──────────────────────────────────────
 function hashToken(token) {
-  try {
-    return $security.SHA256(token);
-  } catch(e) {
-    var hash = 0;
-    if (token.length === 0) return 'dev_hash_empty';
-    for (var i = 0; i < token.length; i++) {
-      var char = token.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return 'd_' + Math.abs(hash).toString(16).padStart(8, '0');
-  }
+  return $security.sha256(token);
 }
 
 function generateToken(length) {
@@ -47,10 +36,11 @@ function bearerAuthMiddleware(c) {
 
     var tokens = $app.findRecordsByFilter(
       'api_tokens',
-      'token_hash = "' + hashed + '"',
+      'token_hash = {:hash}',
       '',
       1,
-      0
+      0,
+      { hash: hashed }
     );
 
     if (tokens.length === 0) {
@@ -100,16 +90,13 @@ function bearerAuthMiddleware(c) {
     if (rawMemberStatus === 'pending_approval') return c.json(403, { 'error': 'Token owner is pending approval' });
 
     // Parse permissions (prefer 'permissions', fallback 'scopes')
-    var rawPerms = tokRec.get('permissions');
-    if (!rawPerms || (Array.isArray(rawPerms) && rawPerms.length === 0)) {
-      rawPerms = tokRec.get('scopes');
+    var rawPerms = '';
+    try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+    if (!rawPerms || rawPerms === '[]') {
+      try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {}
     }
     var perms = [];
-    if (Array.isArray(rawPerms)) {
-      perms = rawPerms;
-    } else if (typeof rawPerms === 'string') {
-      try { perms = JSON.parse(rawPerms); } catch(e) {}
-    }
+    if (rawPerms) try { perms = JSON.parse(rawPerms); } catch(e) {}
 
     // Set token info on context for downstream handlers
     c.set('apiTokenInfo', {

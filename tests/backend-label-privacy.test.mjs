@@ -258,3 +258,20 @@ test('empty canonical label relations remain writable for normal quick-add tasks
   assert.match(existingInstallFix, /tasks\.createRule =/)
   assert.match(existingInstallFix, /tasks\.updateRule =/)
 })
+
+test('every auto-loaded PocketBase hook uses PB 0.35 route and crypto APIs', () => {
+  const hookDir = new URL('pb_hooks/', root)
+  const loaded = fs.readdirSync(hookDir)
+    .filter((name) => name.endsWith('.pb.js'))
+    .map((name) => [name, fs.readFileSync(new URL(name, hookDir), 'utf8')])
+
+  for (const [name, source] of loaded) {
+    assert.doesNotMatch(source, /\$security\.SHA256/, `${name} uses uppercase SHA256`)
+    assert.doesNotMatch(source, /return\s*['"]d_|['"]d_['"]\s*\+/, `${name} contains a weak fallback hash`)
+    assert.doesNotMatch(source, /routerAdd\([^\n]+\/:\w+/, `${name} uses Express-style route params`)
+    assert.doesNotMatch(source, /c\.pathParam\(/, `${name} uses removed pathParam()`)
+    assert.doesNotMatch(source, /\$app\.dao\(\)|\$app\.unsafeWithoutHooks\(\)/, `${name} uses a removed PocketBase DAO API`)
+    assert.doesNotMatch(source, /\$request\.|\$env\.|new Fetch\(|RecordUpsertAction/, `${name} uses a removed PocketBase hook API`)
+    assert.doesNotMatch(source, /findRecordsByFilter\([\s\S]{0,220}?,\s*0\s*,\s*0(?:\s*[,\)])/, `${name} uses a zero record limit`)
+  }
+})

@@ -3,23 +3,7 @@
 // Uses Bearer token auth OR PB session auth.
 // All created items link to the token owner's user record and family.
 
-// ─── Inline helpers (PB 0.35: each route gets its own copies) ──
-
-// Hash token for lookup (var = hoistable in PB 0.35 callbacks)
-var _ht = function(tok) {
-  try { return $security.SHA256(tok); } catch(e) {
-    var h = 0;
-    if (tok.length === 0) return 'd_';
-    for (var i = 0; i < tok.length; i++) {
-      h = ((h << 5) - h) + tok.charCodeAt(i);
-      h = h & h;
-    }
-    return 'd_' + Math.abs(h).toString(16).padStart(8, '0');
-  }
-};
-
-// Generate new token (var = hoistable in PB 0.35 callbacks)
-var _gt = function(len) { if (typeof len === 'undefined') len = 48; return 'tl_' + $security.randomString(len); }
+// PB 0.35 routes are self-contained; crypto helpers are called inline.
 
 // ─── POST /api/tasks — Create task (optional subtasks) ──────────
 routerAdd('POST', '/api/tasks', function(c) {
@@ -30,8 +14,8 @@ routerAdd('POST', '/api/tasks', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -60,7 +44,7 @@ routerAdd('POST', '/api/tasks', function(c) {
             user_role: String(user.get('role') || 'user'),
             user_name: String(user.get('name') || user.get('email') || ''),
             family_id: String(user.get('family_id') || ''),
-            permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})()
+            permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})()
           });
         }
       }
@@ -100,7 +84,29 @@ routerAdd('POST', '/api/tasks', function(c) {
     rec.set('blocked', body.blocked === true || body.blocked === 'true');
     if (body.description) rec.set('blocked_comment', String(body.description));
     if (body.assigned_to) rec.set('assigned_to', String(body.assigned_to));
-    if (body.labels && Array.isArray(body.labels)) rec.set('labels', body.labels);
+    var labelIds = [];
+    if (body.labels && Array.isArray(body.labels)) {
+      for (var li = 0; li < body.labels.length; li++) {
+        var candidate = String(body.labels[li] || '').trim();
+        if (candidate && labelIds.indexOf(candidate) === -1) labelIds.push(candidate);
+      }
+    }
+    for (var lvi = 0; lvi < labelIds.length; lvi++) {
+      var label = null;
+      try { label = $app.findRecordById('labels', labelIds[lvi]); } catch(e) {}
+      if (!label) return c.json(400, { error: 'Invalid label' });
+      var labelFamily = String(label.get('family') || '');
+      if (familyId && labelFamily !== familyId) return c.json(403, { error: 'Label is outside your family' });
+      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+      var owner = String(label.get('owner') || label.get('user') || '');
+      var sharedWith = label.get('shared_with') || [];
+      if (!Array.isArray(sharedWith)) sharedWith = sharedWith ? [String(sharedWith)] : [];
+      if (labelIds.length > 1 && visibility !== 'family') return c.json(403, { error: 'Multiple labels must all be family-visible' });
+      if (visibility === 'private' && owner !== userId) return c.json(403, { error: 'Private label is not accessible' });
+      if (visibility === 'shared' && owner !== userId && sharedWith.indexOf(userId) === -1) return c.json(403, { error: 'Shared label is not accessible' });
+    }
+    rec.set('labels', labelIds);
+    rec.set('label', labelIds);
     if (body.due_date) rec.set('due_date', String(body.due_date));
     if (body.priority) rec.set('priority', String(body.priority));
     if (body.horizon) rec.set('horizon', String(body.horizon));
@@ -167,8 +173,8 @@ routerAdd('POST', '/api/tasks', function(c) {
   }
 });
 
-// ─── POST /api/tasks/:taskId/subtasks — Create subtask ─────────
-routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
+// ─── POST /api/tasks/{taskId}/subtasks — Create subtask ─────────
+routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
   try {
     // Bearer token auth
     var authHeader = c.requestInfo().headers['authorization'];
@@ -176,8 +182,8 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -195,7 +201,7 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -217,7 +223,7 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
       familyId = String(auth.get('family_id') || '');
     }
 
-    var taskId = c.pathParam('taskId');
+    var taskId = c.request.pathValue('taskId');
     if (!taskId) return c.json(400, { error: 'taskId is required' });
     if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
@@ -265,16 +271,16 @@ routerAdd('POST', '/api/tasks/:taskId/subtasks', function(c) {
   }
 });
 
-// ─── PATCH /api/tasks/:taskId — Update task ────────────────────
-routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
+// ─── PATCH /api/tasks/{taskId} — Update task ────────────────────
+routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
   try {
     var authHeader = c.requestInfo().headers['authorization'];
     if (authHeader) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -292,7 +298,7 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -312,7 +318,7 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
       familyId = String(auth.get('family_id') || '');
     }
 
-    var taskId = c.pathParam('taskId');
+    var taskId = c.request.pathValue('taskId');
     if (!taskId) return c.json(400, { error: 'taskId is required' });
     if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
@@ -328,7 +334,30 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
     if (body.status !== undefined) { rec.set('status', String(body.status)); changed = true; }
     if (body.description !== undefined) { rec.set('blocked_comment', String(body.description)); changed = true; }
     if (body.assigned_to !== undefined) { rec.set('assigned_to', String(body.assigned_to)); changed = true; }
-    if (body.labels !== undefined && Array.isArray(body.labels)) { rec.set('labels', body.labels); changed = true; }
+    if (body.labels !== undefined && Array.isArray(body.labels)) {
+      var labelIds = [];
+      for (var li = 0; li < body.labels.length; li++) {
+        var candidate = String(body.labels[li] || '').trim();
+        if (candidate && labelIds.indexOf(candidate) === -1) labelIds.push(candidate);
+      }
+      for (var lvi = 0; lvi < labelIds.length; lvi++) {
+        var label = null;
+        try { label = $app.findRecordById('labels', labelIds[lvi]); } catch(e) {}
+        if (!label) return c.json(400, { error: 'Invalid label' });
+        var labelFamily = String(label.get('family') || '');
+        if (familyId && labelFamily !== familyId) return c.json(403, { error: 'Label is outside your family' });
+        var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+        var labelOwner = String(label.get('owner') || label.get('user') || '');
+        var sharedWith = label.get('shared_with') || [];
+        if (!Array.isArray(sharedWith)) sharedWith = sharedWith ? [String(sharedWith)] : [];
+        if (labelIds.length > 1 && visibility !== 'family') return c.json(403, { error: 'Multiple labels must all be family-visible' });
+        if (visibility === 'private' && labelOwner !== userId) return c.json(403, { error: 'Private label is not accessible' });
+        if (visibility === 'shared' && labelOwner !== userId && sharedWith.indexOf(userId) === -1) return c.json(403, { error: 'Shared label is not accessible' });
+      }
+      rec.set('labels', labelIds);
+      rec.set('label', labelIds);
+      changed = true;
+    }
     if (body.due_date !== undefined) { rec.set('due_date', body.due_date ? String(body.due_date) : ''); changed = true; }
     if (body.priority !== undefined) { rec.set('priority', String(body.priority)); changed = true; }
     if (body.horizon !== undefined) { rec.set('horizon', String(body.horizon)); changed = true; }
@@ -356,16 +385,16 @@ routerAdd('PATCH', '/api/tasks/:taskId', function(c) {
   }
 });
 
-// ─── PATCH /api/subtasks/:subtaskId — Update subtask ───────────
-routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
+// ─── PATCH /api/subtasks/{subtaskId} — Update subtask ───────────
+routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
   try {
     var authHeader = c.requestInfo().headers['authorization'];
     if (authHeader) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -383,7 +412,7 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -403,7 +432,7 @@ routerAdd('PATCH', '/api/subtasks/:subtaskId', function(c) {
       familyId = String(auth.get('family_id') || '');
     }
 
-    var subtaskId = c.pathParam('subtaskId');
+    var subtaskId = c.request.pathValue('subtaskId');
     if (!subtaskId) return c.json(400, { error: 'subtaskId is required' });
     if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
 
@@ -443,8 +472,8 @@ routerAdd('POST', '/api/groceries', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -462,7 +491,7 @@ routerAdd('POST', '/api/groceries', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -520,16 +549,16 @@ routerAdd('POST', '/api/groceries', function(c) {
   }
 });
 
-// ─── PATCH /api/groceries/:itemId — Update grocery item ─────────
-routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
+// ─── PATCH /api/groceries/{itemId} — Update grocery item ─────────
+routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
   try {
     var authHeader = c.requestInfo().headers['authorization'];
     if (authHeader) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -547,7 +576,7 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -568,7 +597,7 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
     }
 
     if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='groceries:write'||pp==='groceries:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: groceries:write' }); }
-    var itemId = c.pathParam('itemId');
+    var itemId = c.request.pathValue('itemId');
     if (!itemId) return c.json(400, { error: 'itemId is required' });
 
     var rec = null;
@@ -606,8 +635,8 @@ routerAdd('PATCH', '/api/groceries/:itemId', function(c) {
 
 // ─── Token Management: Member API Tokens ──────────────────────
 
-// GET /api/members/:userId/token — Get token info for a member
-routerAdd('GET', '/api/members/:userId/token', function(c) {
+// GET /api/members/{userId}/token — Get token info for a member
+routerAdd('GET', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authHeader = c.requestInfo().headers['authorization'];
@@ -615,8 +644,8 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -626,7 +655,7 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -649,7 +678,7 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
       actingRole = String(auth.get('role') || '');
     }
 
-    var targetUserId = c.pathParam('userId');
+    var targetUserId = c.request.pathValue('userId');
     if (!targetUserId) return c.json(400, { error: 'userId is required' });
 
     // Only admins/owners can view other members' tokens — or the member themselves
@@ -666,7 +695,7 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
     }
 
     // Find token — sort '' since api_tokens has no 'created' column
-    var tokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 1, 0);
+    var tokens = $app.findRecordsByFilter('api_tokens', 'user = {:userId}', '', 1, 0, { userId: targetUserId });
     if (tokens.length === 0) {
       return c.json(200, { hasToken: false, userId: targetUserId });
     }
@@ -690,8 +719,8 @@ routerAdd('GET', '/api/members/:userId/token', function(c) {
   }
 });
 
-// POST /api/members/:userId/token — Create or regenerate token
-routerAdd('POST', '/api/members/:userId/token', function(c) {
+// POST /api/members/{userId}/token — Create or regenerate token
+routerAdd('POST', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authHeader = c.requestInfo().headers['authorization'];
@@ -699,8 +728,8 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -710,7 +739,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -733,7 +762,7 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
       actingRole = String(auth.get('role') || '');
     }
 
-    var targetUserId = c.pathParam('userId');
+    var targetUserId = c.request.pathValue('userId');
     if (!targetUserId) return c.json(400, { error: 'userId is required' });
 
     // Admin only
@@ -752,15 +781,15 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
     }
 
     // Disable any existing tokens for this user
-    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 10000, 0);
+    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = {:userId}', '', 10000, 0, { userId: targetUserId });
     for (var ei = 0; ei < existingTokens.length; ei++) {
       existingTokens[ei].set('enabled', false);
       $app.save(existingTokens[ei]);
     }
 
     // Generate new token
-    var newToken = _gt(48);
-    var hash = _ht(newToken);
+    var newToken = 'tl_' + $security.randomString(48);
+    var hash = $security.sha256(newToken);
 
     var coll = $app.findCollectionByNameOrId('api_tokens');
     var rec = new Record(coll);
@@ -769,7 +798,6 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
     rec.set('token_hash', hash);
     rec.set('permissions', ['tasks:write', 'groceries:write', 'tasks:read', 'groceries:read']);
     rec.set('enabled', true);
-    rec.set('created', new Date().toISOString());
     $app.save(rec);
 
     return c.json(201, {
@@ -786,8 +814,8 @@ routerAdd('POST', '/api/members/:userId/token', function(c) {
   }
 });
 
-// DELETE /api/members/:userId/token — Revoke token
-routerAdd('DELETE', '/api/members/:userId/token', function(c) {
+// DELETE /api/members/{userId}/token — Revoke token
+routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authHeader = c.requestInfo().headers['authorization'];
@@ -795,8 +823,8 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
       var parts = String(authHeader).split(' ');
       if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
         var token = parts[1].trim();
-        var hashed = _ht(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = \"' + hashed + '\"', '', 1, 0);
+        var hashed = $security.sha256(token);
+        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
         if (tokens.length > 0) {
           var tokRec = tokens[0];
           var rawEnabled = tokRec.get('enabled');
@@ -806,7 +834,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
           try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
           if (!user) return c.json(401, { error: 'Token owner not found' });
           c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp=tokRec.get('permissions')||tokRec.get('scopes'),ps=[]; if(Array.isArray(rp)) ps=rp; else if(typeof rp==='string') try{ps=JSON.parse(rp)}catch(e){} return ps;})() });
+          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
         }
       }
     }
@@ -829,7 +857,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
       actingRole = String(auth.get('role') || '');
     }
 
-    var targetUserId = c.pathParam('userId');
+    var targetUserId = c.request.pathValue('userId');
     if (!targetUserId) return c.json(400, { error: 'userId is required' });
 
     // Admin only
@@ -848,7 +876,7 @@ routerAdd('DELETE', '/api/members/:userId/token', function(c) {
     }
 
     // Disable all tokens for this user
-    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = \"' + targetUserId + '\"', '', 10000, 0);
+    var existingTokens = $app.findRecordsByFilter('api_tokens', 'user = {:userId}', '', 10000, 0, { userId: targetUserId });
     var disabled = 0;
     for (var ei = 0; ei < existingTokens.length; ei++) {
       existingTokens[ei].set('enabled', false);

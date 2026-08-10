@@ -827,7 +827,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       if (!t || t === 'task') {
         var taskFilter = f;
         if (status) { taskFilter += ' && status = {:status}'; queryParams.status = status; }
-        var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', 0, 0, queryParams);
+        var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', 10000, 0, queryParams);
         for (var ti = 0; ti < tasks.length; ti++) {
           var tr = tasks[ti];
           if (!canAccessTaskForUser(tr, ownerUser)) continue;
@@ -849,7 +849,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 
       if (!t || t === 'grocery') {
         var itemFilter = f;
-        var items = $app.findRecordsByFilter('items', itemFilter, '-created', 0, 0, itemQueryParams);
+        var items = $app.findRecordsByFilter('items', itemFilter, '-created', 10000, 0, itemQueryParams);
         for (var ii = 0; ii < items.length; ii++) {
           var ir = items[ii];
           results.push({
@@ -1553,11 +1553,12 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     var actionFilter = String(gv(q, 'action', '')).trim();
     var keyIdFilter = String(gv(q, 'key_id', '')).trim();
 
-    var filter = 'user = "' + auth.id + '"';
-    if (actionFilter) filter += ' && action = "' + actionFilter + '"';
-    if (keyIdFilter) filter += ' && agent_key_id = "' + keyIdFilter + '"';
+    var filter = 'user = {:userId}';
+    var queryParams = { userId: auth.id };
+    if (actionFilter) { filter += ' && action = {:action}'; queryParams.action = actionFilter; }
+    if (keyIdFilter) { filter += ' && agent_key_id = {:keyId}'; queryParams.keyId = keyIdFilter; }
 
-    var logs = $app.findRecordsByFilter('agent_audit_log', filter, '-created', limit, 0);
+    var logs = $app.findRecordsByFilter('agent_audit_log', filter, '-created', limit, 0, queryParams);
     var result = [];
     for (var i = 0; i < logs.length; i++) {
       var l = logs[i];
