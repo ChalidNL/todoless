@@ -215,6 +215,194 @@
     box-shadow: var(--app-shadow-card-active);
   }
 
+  /* Auth screens use guaranteed component CSS because index.css is a static
+     Tailwind build and does not contain every utility used by legacy markup. */
+  .auth-shell {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    align-items: flex-start;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+
+  .auth-card {
+    width: min(100%, 28rem);
+    margin: auto;
+    padding: clamp(1.25rem, 4vw, 2rem);
+  }
+
+  .auth-logo {
+    display: flex;
+    margin-bottom: 1.25rem;
+    justify-content: center;
+  }
+
+  .auth-title {
+    margin: 0 0 .4rem;
+    color: var(--app-text);
+    font-size: clamp(1.5rem, 6vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  .auth-subtitle {
+    margin: 0 0 1.5rem;
+    color: var(--app-text-muted);
+    font-size: .875rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-align: center;
+  }
+
+  .auth-validation-message {
+    display: flex;
+    min-width: 0;
+    margin-bottom: 1.25rem;
+    padding: .75rem;
+    align-items: flex-start;
+    justify-content: center;
+    gap: .5rem;
+    border: 1px solid #bbf7d0;
+    border-radius: .75rem;
+    color: #166534;
+    background: #f0fdf4;
+  }
+
+  .auth-form {
+    display: grid;
+    min-width: 0;
+    gap: 1rem;
+  }
+
+  .auth-field {
+    display: grid;
+    min-width: 0;
+    gap: .375rem;
+  }
+
+  .auth-label,
+  .auth-hint,
+  .auth-message,
+  .auth-footer p {
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .auth-label {
+    color: var(--app-text-muted);
+    font-size: .875rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .auth-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    padding: .7rem 1rem;
+    border: 1px solid var(--app-border-strong);
+    border-radius: var(--app-radius-input);
+    color: var(--app-text);
+    background: var(--app-surface-2);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .auth-input:focus {
+    border-color: transparent;
+    outline: 2px solid var(--app-primary);
+    outline-offset: 1px;
+  }
+
+  .auth-input:-webkit-autofill {
+    -webkit-text-fill-color: var(--app-text);
+    box-shadow: 0 0 0 1000px var(--app-surface-2) inset;
+  }
+
+  .auth-invite-input {
+    text-align: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 1.35rem;
+    letter-spacing: .16em;
+  }
+
+  .auth-password-field {
+    position: relative;
+    min-width: 0;
+  }
+
+  .auth-password-input { padding-right: 3.75rem; }
+
+  .auth-visibility-button {
+    position: absolute;
+    top: 50%;
+    right: .125rem;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    place-items: center;
+    border-radius: 999px;
+    color: var(--app-text-muted);
+    transform: translateY(-50%);
+  }
+
+  .auth-visibility-button:hover { background: var(--app-surface-3); }
+  .auth-hint { color: var(--app-text-muted); font-size: .75rem; line-height: 1.45; }
+  .auth-message { min-width: 0; font-size: .875rem; font-weight: 600; line-height: 1.5; }
+
+  .auth-error {
+    padding: .65rem .75rem;
+    border: 1px solid #fecaca;
+    border-radius: .75rem;
+    color: #b91c1c;
+    background: #fef2f2;
+  }
+
+  .auth-submit {
+    display: flex;
+    width: 100%;
+    min-height: 3rem;
+    padding: .75rem 1rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--app-radius-button);
+    color: #fff;
+    background: var(--app-primary-grad);
+    box-shadow: var(--app-shadow-fab);
+    font-weight: 700;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .auth-submit:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
+
+  .auth-footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--app-border-subtle);
+    color: var(--app-text-muted);
+    font-size: .75rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+
+  @media (max-width: 420px) {
+    .auth-shell { padding-inline: .75rem; }
+    .auth-card { padding: 1.125rem; }
+    .auth-logo,
+    .auth-validation-message { margin-bottom: 1rem; }
+    .auth-subtitle { margin-bottom: 1.25rem; }
+    .auth-form { gap: .875rem; }
+  }
+
   .app-input {
     background: var(--app-surface-2);
     border: 1px solid transparent;
