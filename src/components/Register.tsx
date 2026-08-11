@@ -121,7 +121,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidateInvite()}
-                maxLength={6}
+                maxLength={12}
                 className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-center text-2xl font-mono tracking-widest"
                 placeholder="ABC123"
               />

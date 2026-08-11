@@ -211,7 +211,7 @@ routerAdd('POST', '/api/invites/create', (c) => {
     }
 
     // Generate invite code with CSPRNG
-    var code = $security.randomString(12);
+    var code = $security.randomString(12).toUpperCase();
 
     var now = new Date();
     var expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -273,8 +273,11 @@ routerAdd('GET', '/api/validate-invite', (c) => {
     }
 
     return c.json(200, {
+      id: invites[0].id,
+      code: code,
       valid: true,
       status: 'valid',
+      message: 'Invite code is valid',
       family_id: inviter ? String(inviter.get('family_id') || '') : '',
       family_name: familyName,
       invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
@@ -288,7 +291,7 @@ routerAdd('POST', '/api/register', (c) => {
   var createUser = function(col, data) {
     var u = $app;
     var rec = new Record(col);
-    rec.set('id', $security.randomString(15));
+    rec.set('id', $security.randomString(15).toLowerCase());
     rec.set('tokenKey', $security.randomString(50));
     rec.set('verified', false);
     rec.set('email', data.email);
@@ -308,7 +311,7 @@ routerAdd('POST', '/api/register', (c) => {
   var createFamily = function(name, createdBy) {
     var fc = $app.findCollectionByNameOrId('families');
     var fam = new Record(fc);
-    fam.set('id', $security.randomString(15));
+    fam.set('id', $security.randomString(15).toLowerCase());
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
     var u = $app;

@@ -278,7 +278,7 @@ class PocketBaseClient {
 
     const data = await response.json();
     if (data.status === 'valid') {
-      return { id: data.invite.id, code: data.invite.code, status: 'valid', message: data.message };
+      return { id: data.id, code: data.code, status: 'valid', message: data.message || '' };
     }
     throw new Error(data.message || `Invite code is ${data.status}`);
   }
