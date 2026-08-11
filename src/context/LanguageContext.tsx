@@ -33,18 +33,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, [language]);
 
   useEffect(() => {
-    const userLanguage = getUserLanguage(pb.authStore.record);
-    if (userLanguage && userLanguage !== language) {
-      setLanguageState(userLanguage);
-    }
-
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       const nextLanguage = getUserLanguage(record) ?? getStoredLanguage();
       setLanguageState(nextLanguage);
     });
 
     return () => unsubscribe();
-  }, [language]);
+  }, []);
 
   const value = useMemo<LanguageContextType>(() => ({
     language,

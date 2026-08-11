@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Vooringevuld met uw workspace naam, u kunt het wijzigen",
     "skip": "Overslaan",
     "selectLanguage": "Kies uw taal",
-    "languageStepTitle": "Kies Uw Taal",
+    "languageStepTitle": "Kies je taal",
     "languageStepDesc": "Kies uw voorkeurstaal om te beginnen.",
     "step1Desc": "Uw dagelijkse assistent voor snelle, eenvoudige productiviteit zonder overweldiging.",
     "step2Desc": "Volg boodschappen met hoeveelheden en winkels. Houd uw boodschappenlijst eenvoudig en georganiseerd.",
@@ -112,7 +112,46 @@
     "welcome": "Welkom bij todoless",
     "workspaceName": "Werkruimte naam",
     "workspaceNameMissing": "Werkruimte naam ontbreekt — ga terug en voer het in",
-    "exampleFamilyName": "Familie Jansen"
+    "exampleFamilyName": "Familie Jansen",
+    "welcomeDescription": "Jouw gezinsassistent voor taken, boodschappen en meer — simpel en overzichtelijk.",
+    "discoverFeatures": "Ontdek de mogelijkheden",
+    "showcaseHint": "Gebruik de pijlen om alle mogelijkheden te ontdekken.",
+    "workspaceDescription": "Kies de gedeelde naam voor de workspace van je gezin.",
+    "accountDescription": "Maak het eerste beheerdersaccount voor deze workspace.",
+    "doneAdminTitle": "Je workspace is klaar",
+    "doneInfoTitle": "Klaar om overzicht te krijgen?",
+    "doneInfoDescription": "Log in of gebruik een uitnodiging om bij je gezinsworkspace te komen.",
+    "doneUserTitle": "Je bent klaar",
+    "doneWorkspaceDescription": "Alles staat klaar. Open todoless en ga aan de slag.",
+    "openApp": "Open todoless",
+    "languageSaveFailed": "Je taalvoorkeur kon niet worden opgeslagen. Probeer het opnieuw.",
+    "completionSaveFailed": "Je onboardingvoortgang kon niet worden opgeslagen. Probeer het opnieuw.",
+    "module": {
+      "tasks": {
+        "title": "Taken",
+        "tagline": "Leg vast en rond af wat belangrijk is."
+      },
+      "groceries": {
+        "title": "Boodschappen",
+        "tagline": "Een gedeelde boodschappenlijst zonder ruis."
+      },
+      "calendar": {
+        "title": "Agenda",
+        "tagline": "Zie gezinsplannen in één oogopslag."
+      },
+      "rewards": {
+        "title": "Beloningen",
+        "tagline": "Vier samen de voortgang."
+      },
+      "notes": {
+        "title": "Notities",
+        "tagline": "Houd nuttige details dichtbij."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Werk samen aan het volgende doel."
+      }
+    }
   },
   "tasks": {
     "title": "Taken",
@@ -158,7 +197,7 @@
     "movedToBacklog": "Verplaatst naar backlog",
     "noMatchingParentTask": "Geen passende hoofdtaak gevonden",
     "searchPlaceholder": "Taken zoeken…",
-    "labelInputPlaceholder": "Voeg een label toe...",
+    "labelInputPlaceholder": "Label toevoegen...",
     "searchAssigneePlaceholder": "Zoek lid...",
     "searchAssigneeAria": "Leden zoeken",
     "labelTooltip": "Labels",
@@ -170,7 +209,6 @@
     "flagTooltip": "Markeren",
     "toggleFlag": "Markering wisselen",
     "moveToBacklog": "Naar backlog",
-    "labelInputPlaceholder": "Label toevoegen...",
     "labelInputAria": "Label toevoegen",
     "dueDateAria": "Vervaldatum",
     "dueTimeAria": "Tijd",
@@ -549,5 +587,12 @@
     "shortMonth": "Maandelijks",
     "shortYear": "Jaarlijks",
     "shortMonthPrefix": "Mnd ·"
+  },
+  "nav": {
+    "inbox": "Inbox",
+    "tasks": "Taken",
+    "calendar": "Agenda",
+    "groceries": "Boodschappen",
+    "settings": "Instellingen"
   }
 }

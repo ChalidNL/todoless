@@ -6,6 +6,7 @@ import { Label, Filter, userDisplayName } from '../../types';
 import { entityColor, entityBg } from '../../lib/entity-colors';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { sortLabelsByVisibility } from '../../lib/label-utils';
+import { t } from '../../i18n/translations';
 
 interface FilterPanelProps {
   type: 'task' | 'item';

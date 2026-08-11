@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Pré-rempli avec le nom de votre espace de travail, vous pouvez le modifier",
     "skip": "Passer",
     "selectLanguage": "Choisissez votre langue",
-    "languageStepTitle": "Choisissez Votre Langue",
+    "languageStepTitle": "Choisissez votre langue",
     "languageStepDesc": "Choisissez votre langue préférée pour commencer.",
     "step1Desc": "Votre assistant quotidien pour une productivité rapide et simple sans surcharge.",
     "step2Desc": "Suivez les courses avec les quantités et les magasins. Gardez votre liste de courses simple et organisée.",
@@ -112,7 +112,46 @@
     "welcome": "Bienvenue sur todoless",
     "workspaceName": "Nom de l'espace de travail",
     "workspaceNameMissing": "Le nom de l'espace de travail est manquant — revenez en arrière et saisissez-le",
-    "exampleFamilyName": "Famille Dupont"
+    "exampleFamilyName": "Famille Dupont",
+    "welcomeDescription": "Votre assistant familial pour les tâches, les courses et plus encore — simple et clair.",
+    "discoverFeatures": "Découvrir les fonctionnalités",
+    "showcaseHint": "Utilisez les flèches pour découvrir chaque fonctionnalité.",
+    "workspaceDescription": "Choisissez le nom partagé de votre espace familial.",
+    "accountDescription": "Créez le premier compte administrateur de cet espace.",
+    "doneAdminTitle": "Votre espace est prêt",
+    "doneInfoTitle": "Prêt à vous organiser ?",
+    "doneInfoDescription": "Connectez-vous ou utilisez une invitation pour rejoindre votre espace familial.",
+    "doneUserTitle": "Vous êtes prêt",
+    "doneWorkspaceDescription": "Tout est prêt. Ouvrez todoless et commencez.",
+    "openApp": "Ouvrir todoless",
+    "languageSaveFailed": "Votre préférence de langue n’a pas pu être enregistrée. Réessayez.",
+    "completionSaveFailed": "Votre progression d’intégration n’a pas pu être enregistrée. Réessayez.",
+    "module": {
+      "tasks": {
+        "title": "Tâches",
+        "tagline": "Notez et terminez ce qui compte."
+      },
+      "groceries": {
+        "title": "Courses",
+        "tagline": "Une liste partagée sans distraction."
+      },
+      "calendar": {
+        "title": "Calendrier",
+        "tagline": "Consultez les plans familiaux en un coup d’œil."
+      },
+      "rewards": {
+        "title": "Récompenses",
+        "tagline": "Célébrez les progrès ensemble."
+      },
+      "notes": {
+        "title": "Notes",
+        "tagline": "Gardez les détails utiles à portée de main."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Concentrez-vous ensemble sur le prochain objectif."
+      }
+    }
   },
   "tasks": {
     "title": "Tâches",
@@ -547,5 +586,12 @@
     "shortMonth": "Mensuel",
     "shortYear": "Annuel",
     "shortMonthPrefix": "Mois ·"
+  },
+  "nav": {
+    "inbox": "Boîte de réception",
+    "tasks": "Tâches",
+    "calendar": "Calendrier",
+    "groceries": "Courses",
+    "settings": "Paramètres"
   }
 }

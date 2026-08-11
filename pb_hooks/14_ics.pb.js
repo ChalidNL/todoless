@@ -53,24 +53,26 @@ var _genUid = function(taskId,familyId) {
 
 // ─── POST /api/ics-import — Import parsed VEVENTs as tasks ──────────
 routerAdd('POST','/api/ics-import',function(c){
+  function gv(o,k,f){if(f===undefined)f='';if(!o)return f;if(Object.prototype.hasOwnProperty.call(o,k)){var v=o[k];return(v===undefined||v===null)?f:v;}return f;}
+  function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
   try{
     // Auth
     var info=c.requestInfo();
-    var body=_gv(info,'data')||_gv(info,'body')||{};
-    var auth=info.auth||c.auth;
+    var body=gv(info,'data')||gv(info,'body')||{};
+    var auth=(info&&info.auth)||c.get('authRecord')||null;
     if(!auth)return c.json(401,{error:'Unauthorized'});
 
     var familyId=String(auth.get('family_id')||'');
     if(!familyId)return c.json(400,{error:'User has no family — cannot import'});
 
-    var events=_gv(body,'events');
+    var events=gv(body,'events');
     if(!events||typeof events.length==='undefined'||events.length===0){
       return c.json(400,{error:'No events to import'});
     }
 
-    var options=_gv(body,'options')||{};
-    var bulkAssignee=_gv(options,'assignee');
-    var bulkLabels=_gv(options,'labels')||[];
+    var options=gv(body,'options')||{};
+    var bulkAssignee=gv(options,'assignee');
+    var bulkLabels=gv(options,'labels')||[];
 
     var results={created:0,updated:0,skipped:0,errors:[],items:[]};
     var tasksColl=$app.findCollectionByNameOrId('tasks');
@@ -81,35 +83,35 @@ routerAdd('POST','/api/ics-import',function(c){
       var ev=events[i];
       if(!ev||!ev.title){results.skipped++;continue;}
 
-      var uid=String(_gv(ev,'uid','')).trim();
-      var title=String(_gv(ev,'title','')).trim();
+      var uid=String(gv(ev,'uid','')).trim();
+      var title=String(gv(ev,'title','')).trim();
       if(!title){results.skipped++;continue;}
 
-      // Check for existing task with same uid in this family
+      // Check for an existing task with the same UID that this user may access.
       var existing=null;
       if(uid){
-        // Search for tasks with same uid AND whose owner is in the same family
-        var flt='uid=\\\"'+uid.replace(/\\/g,'\\\\').replace(/\\"/g,'\\\\"')+'\\\" && user.family_id=\\\"'+familyId+'\\\"';
-        var existingList=$app.findRecordsByFilter('tasks',flt,'',1,0);
-        // Goja findRecordsByFilter might return empty when limit=0; try with explicit limit
-        if(existingList.length===0){
-          var existingList2=$app.findRecordsByFilter('tasks',flt,'',100,0);
-          if(existingList2.length>0)existing=existingList2[0];
-        }else{
-          existing=existingList[0];
-        }
+        var existingList=$app.findRecordsByFilter(
+          'tasks',
+          'uid = {:uid} && user.family_id = {:familyId}',
+          '',
+          100,
+          0,
+          {uid:uid,familyId:familyId}
+        );
+        existingList=existingList.filter(function(task){return canAccessTaskForUser(task,auth);});
+        if(existingList.length>0)existing=existingList[0];
       }
 
       // Parse dates
       var startTime=ev.start_time||null;
       var endTime=ev.end_time||null;
       var allDay=!!ev.all_day;
-      var description=_gv(ev,'description');
-      var location=_gv(ev,'location');
-      var timezone=_gv(ev,'timezone');
-      var rrule=_gv(ev,'rrule');
+      var description=gv(ev,'description');
+      var location=gv(ev,'location');
+      var timezone=gv(ev,'timezone');
+      var rrule=gv(ev,'rrule');
       var exdates=ev.exdates||null;
-      var recurrenceId=_gv(ev,'recurrence_id');
+      var recurrenceId=gv(ev,'recurrence_id');
 
       // Labels: merge bulk + event-specific
       var labels=[];
@@ -128,7 +130,7 @@ routerAdd('POST','/api/ics-import',function(c){
         if(lbl&&!seen[lbl]){seen[lbl]=true;uniqueLabels.push(lbl);}
       }
 
-      var assignee=bulkAssignee||_gv(ev,'assigned_to')||ev.assignedTo||auth.id;
+      var assignee=bulkAssignee||gv(ev,'assigned_to')||ev.assignedTo||auth.id;
 
       try{
         if(existing){
@@ -149,6 +151,7 @@ routerAdd('POST','/api/ics-import',function(c){
             existing.set('assigned_to',assignee);
           }
           existing.set('labels',uniqueLabels);
+          existing.set('label',uniqueLabels);
           $app.save(existing);
           results.updated++;
           results.items.push({uid:uid,title:title,action:'updated',id:existing.id});
@@ -173,6 +176,7 @@ routerAdd('POST','/api/ics-import',function(c){
           rec.set('source','ics_import');
           if(uid)rec.set('external_id',uid);
           rec.set('labels',uniqueLabels);
+          rec.set('label',uniqueLabels);
           rec.set('is_private',false);
           $app.save(rec);
           results.created++;
@@ -200,32 +204,39 @@ routerAdd('POST','/api/ics-import',function(c){
 
 // ─── GET /api/ics-export — Export tasks as .ics ─────────────────────
 routerAdd('GET','/api/ics-export',function(c){
+  function icsDt(ts){if(!ts)return'';try{var d=new Date(ts);if(isNaN(d.getTime()))return'';return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0')+'T'+String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+String(d.getUTCSeconds()).padStart(2,'0')+'Z';}catch(e){return'';}}
+  function icsEscape(value){if(!value)return'';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');if(text.length<=75)return text;var out='';while(text.length>75){out+=text.substring(0,75)+'\r\n ';text=text.substring(75);}return out+text;}
+  function genUid(taskId,familyId){return'todoless-'+String(taskId)+'@family-'+String(familyId);}
+  function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
   try{
     var info=c.requestInfo();
-    var auth=info.auth||c.auth;
+    var auth=(info&&info.auth)||c.get('authRecord')||null;
     if(!auth)return c.json(401,{error:'Unauthorized'});
 
     var familyId=String(auth.get('family_id')||'');
     if(!familyId)return c.json(400,{error:'User has no family'});
 
     // Optional date range filter
-    var startParam=c.queryParam('start');
-    var endParam=c.queryParam('end');
+    var query=info.query||{};
+    var startParam=String(query.start||'').trim();
+    var endParam=String(query.end||'').trim();
 
-    // Fetch tasks with dates from this user's family
-    var filter='user.family_id=\\\"'+familyId+'\\\" && due_date!=\\\"\\\"';
+    // Fetch dated tasks from the family, then enforce the same privacy contract
+    // as direct collection and custom task APIs.
+    var queryParams={familyId:familyId};
+    var filter='user.family_id = {:familyId} && due_date != ""';
+    var filter2='user.family_id = {:familyId} && start_time != ""';
     if(startParam&&endParam){
-      filter+=' && due_date>=\\\"'+startParam+'\\\" && due_date<=\\\"'+endParam+'\\\"';
-    }
-    // Also get tasks with start_time
-    var filter2='user.family_id=\\\"'+familyId+'\\\" && start_time!=\\\"\\\"';
-    if(startParam&&endParam){
-      filter2+=' && start_time>=\\\"'+startParam+'\\\" && start_time<=\\\"'+endParam+'\\\"';
+      queryParams.start=startParam;
+      queryParams.end=endParam;
+      filter+=' && due_date >= {:start} && due_date <= {:end}';
+      filter2+=' && start_time >= {:start} && start_time <= {:end}';
     }
 
     var tasks=[];
-    try{var t1=$app.findRecordsByFilter('tasks',filter,'',10000,0);if(t1&&t1.length)for(var i=0;i<t1.length;i++)tasks.push(t1[i]);}catch(e){}
-    try{var t2=$app.findRecordsByFilter('tasks',filter2,'',10000,0);if(t2&&t2.length)for(var j=0;j<t2.length;j++){var already=false;for(var k=0;k<tasks.length;k++){if(tasks[k].id===t2[j].id){already=true;break;}}if(!already)tasks.push(t2[j]);}}catch(e){}
+    try{var t1=$app.findRecordsByFilter('tasks',filter,'',10000,0,queryParams);if(t1&&t1.length)for(var i=0;i<t1.length;i++)tasks.push(t1[i]);}catch(e){}
+    try{var t2=$app.findRecordsByFilter('tasks',filter2,'',10000,0,queryParams);if(t2&&t2.length)for(var j=0;j<t2.length;j++){var already=false;for(var k=0;k<tasks.length;k++){if(tasks[k].id===t2[j].id){already=true;break;}}if(!already)tasks.push(t2[j]);}}catch(e){}
+    tasks=tasks.filter(function(task){return canAccessTaskForUser(task,auth);});
 
     // Generate ICS
     var ics='BEGIN:VCALENDAR\r\n';
@@ -236,7 +247,7 @@ routerAdd('GET','/api/ics-export',function(c){
 
     for(var ti=0;ti<tasks.length;ti++){
       var t=tasks[ti];
-      var uid=t.get('uid')||_genUid(t.id,familyId);
+      var uid=t.get('uid')||genUid(t.id,familyId);
       var title=String(t.get('title')||'Untitled');
       var desc=t.get('description')||'';
       var loc=t.get('location')||'';
@@ -286,7 +297,7 @@ routerAdd('GET','/api/ics-export',function(c){
           try{
             var stDate=new Date(String(st).replace(' ','T'));
             if(!isNaN(stDate.getTime())){
-              dtStart=_icsDt(stDate.getTime());
+              dtStart=icsDt(stDate.getTime());
             }
           }catch(ex3){}
         }
@@ -294,7 +305,7 @@ routerAdd('GET','/api/ics-export',function(c){
           try{
             var etDate=new Date(String(et).replace(' ','T'));
             if(!isNaN(etDate.getTime())){
-              dtEnd=_icsDt(etDate.getTime());
+              dtEnd=icsDt(etDate.getTime());
             }
           }catch(ex4){}
         }
@@ -303,8 +314,8 @@ routerAdd('GET','/api/ics-export',function(c){
       if(!dtStart)continue; // Skip tasks without valid dates
 
       ics+='BEGIN:VEVENT\r\n';
-      ics+='UID:'+_icsEscape(uid)+'\r\n';
-      ics+='DTSTAMP:'+_icsDt(Date.now())+'\r\n';
+      ics+='UID:'+icsEscape(uid)+'\r\n';
+      ics+='DTSTAMP:'+icsDt(Date.now())+'\r\n';
       if(allDay){
         ics+='DTSTART;VALUE=DATE:'+dtStart+'\r\n';
         ics+='DTEND;VALUE=DATE:'+dtEnd+'\r\n';
@@ -312,9 +323,9 @@ routerAdd('GET','/api/ics-export',function(c){
         ics+='DTSTART:'+dtStart+'\r\n';
         ics+='DTEND:'+dtEnd+'\r\n';
       }
-      ics+='SUMMARY:'+_icsEscape(title)+'\r\n';
-      if(desc)ics+='DESCRIPTION:'+_icsEscape(desc)+'\r\n';
-      if(loc)ics+='LOCATION:'+_icsEscape(loc)+'\r\n';
+      ics+='SUMMARY:'+icsEscape(title)+'\r\n';
+      if(desc)ics+='DESCRIPTION:'+icsEscape(desc)+'\r\n';
+      if(loc)ics+='LOCATION:'+icsEscape(loc)+'\r\n';
       if(rrule)ics+='RRULE:'+rrule+'\r\n';
       ics+='END:VEVENT\r\n';
     }

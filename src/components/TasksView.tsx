@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock, Tag } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Target, Lock, Tag } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 
 import { DueDateNotifications } from './shared/DueDateNotifications';
@@ -8,6 +8,7 @@ import { t, formatDate } from '../i18n/translations';
 import { TaskCard } from './shared/TaskCard';
 import { SectionHeader } from './shared/SectionHeader';
 import { EmptyState } from './shared/EmptyState';
+import { SavedFilterControls } from './shared/SavedFilterControls';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
 
@@ -96,6 +97,19 @@ export const TasksView = () => {
     }
     setShowSavedFilters(false);
     showCompletionMessage(`Filter: ${f.name}`);
+  };
+
+  const saveCurrentFilter = () => {
+    const name = window.prompt(t('settings.filterName'), '');
+    if (!name?.trim()) return;
+    addFilter({
+      name: name.trim(),
+      labelIds: [...activeLabelFilters],
+      chipFilters: activeChipFilters.map((filter) => ({ ...filter })),
+      showCompleted,
+      type: 'task',
+    });
+    showCompletionMessage(t('filters.saved'));
   };
 
   const getFilteredTasks = () => {
@@ -208,7 +222,7 @@ export const TasksView = () => {
   const sortedCompletedTasks = sortTasks(completedTasks);
 
   const hasAnyFilter = activeChipFilters.length > 0;
-  const hasSavedFilters = taskFilters.length > 0;
+
 
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
   const statusQuickFilters = [
@@ -287,6 +301,17 @@ export const TasksView = () => {
               Reset
             </button>
           )}
+          <SavedFilterControls
+            filters={taskFilters}
+            open={showSavedFilters}
+            onOpenChange={setShowSavedFilters}
+            onApply={applySavedFilter}
+            onDelete={(filter) => {
+              deleteFilter(filter.id);
+              showCompletionMessage(t('filters.deleted'));
+            }}
+            onSave={saveCurrentFilter}
+          />
         </div>
       </div>
       <div className="max-w-lg mx-auto px-4 space-y-4">

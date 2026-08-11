@@ -131,6 +131,9 @@ const entryToTask = (entry: Entry): Task => ({
 });
 
 interface AppContextType {
+  dataLoadState: 'loading' | 'ready' | 'error';
+  loadError: string | null;
+  retryLoad: () => Promise<void>;
   items: Item[];
   tasks: Task[];
   notes: Note[];
@@ -286,6 +289,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [activeChipFilters, setActiveChipFilters] = useState<ChipFilter[]>(() => readFiltersFromUrl().chipFilters);
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
+  const [dataLoadState, setDataLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Entry model state
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -397,6 +402,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshAll = async () => {
+    setDataLoadState('loading');
+    setLoadError(null);
     if (!pb.authStore.isValid || !pb.authStore.record) {
       setItems([]);
       setTasks([]);
@@ -412,25 +419,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setReminders([]);
       setEntries([]);
       setAppSettings(defaultSettings);
+      setDataLoadState('ready');
       return;
     }
 
-    await Promise.all([
-      refreshItems(),
-      refreshTasks(),
-      refreshNotes(),
-      refreshLabels(),
-      refreshShops(),
-      refreshSprints(),
-      refreshUsers(),
-      refreshInvites(),
-      refreshRewards(),
-      refreshGoals(),
-      refreshProjects(),
-      refreshReminders(),
-      refreshSettings(),
-      refreshEntries(),
-    ]);
+    try {
+      await Promise.all([
+        refreshItems(),
+        refreshTasks(),
+        refreshNotes(),
+        refreshLabels(),
+        refreshShops(),
+        refreshSprints(),
+        refreshUsers(),
+        refreshInvites(),
+        refreshRewards(),
+        refreshGoals(),
+        refreshProjects(),
+        refreshReminders(),
+        refreshSettings(),
+        refreshEntries(),
+      ]);
+      setDataLoadState('ready');
+    } catch (error) {
+      setDataLoadState('error');
+      setLoadError(error instanceof Error && error.message ? error.message : t('common.error'));
+    }
   };
 
   useEffect(() => {
@@ -1021,6 +1035,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const contextValue = useMemo(
     () => ({
+      dataLoadState,
+      loadError,
+      retryLoad: refreshAll,
       items: effectiveItems,
       tasks: effectiveTasks,
       notes,
@@ -1142,6 +1159,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       currentSprint,
       reminders,
       entries,
+      dataLoadState,
+      loadError,
     ],
   );
 

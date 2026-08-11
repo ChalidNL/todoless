@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Pre-rellenado con el nombre de tu espacio de trabajo, puedes cambiarlo",
     "skip": "Saltar",
     "selectLanguage": "Selecciona tu idioma",
-    "languageStepTitle": "Elige Tu Idioma",
+    "languageStepTitle": "Elige tu idioma",
     "languageStepDesc": "Elige tu idioma preferido para comenzar.",
     "step1Desc": "Tu asistente diario para una productividad rápida y sencilla sin agobios.",
     "step2Desc": "Gestiona la compra con cantidades y tiendas. Mantén tu lista de la compra simple y organizada.",
@@ -112,7 +112,46 @@
     "welcome": "Bienvenido a todoless",
     "workspaceName": "Nombre del espacio de trabajo",
     "workspaceNameMissing": "Falta el nombre del espacio de trabajo — vuelve atrás e introdúcelo",
-    "exampleFamilyName": "Familia García"
+    "exampleFamilyName": "Familia García",
+    "welcomeDescription": "Tu asistente familiar para tareas, compras y mucho más — sencillo y claro.",
+    "discoverFeatures": "Descubre las funciones",
+    "showcaseHint": "Usa las flechas para descubrir todas las funciones.",
+    "workspaceDescription": "Elige el nombre compartido del espacio de tu familia.",
+    "accountDescription": "Crea la primera cuenta administradora de este espacio.",
+    "doneAdminTitle": "Tu espacio está listo",
+    "doneInfoTitle": "¿Listo para organizarte?",
+    "doneInfoDescription": "Inicia sesión o usa una invitación para unirte al espacio familiar.",
+    "doneUserTitle": "Todo listo",
+    "doneWorkspaceDescription": "Todo está configurado. Abre todoless y empieza.",
+    "openApp": "Abrir todoless",
+    "languageSaveFailed": "No se pudo guardar tu idioma. Inténtalo de nuevo.",
+    "completionSaveFailed": "No se pudo guardar tu progreso de incorporación. Inténtalo de nuevo.",
+    "module": {
+      "tasks": {
+        "title": "Tareas",
+        "tagline": "Anota y completa lo que importa."
+      },
+      "groceries": {
+        "title": "Compras",
+        "tagline": "Una lista compartida sin ruido."
+      },
+      "calendar": {
+        "title": "Calendario",
+        "tagline": "Consulta los planes familiares de un vistazo."
+      },
+      "rewards": {
+        "title": "Recompensas",
+        "tagline": "Celebrad juntos el progreso."
+      },
+      "notes": {
+        "title": "Notas",
+        "tagline": "Ten a mano los detalles útiles."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Centraos juntos en el siguiente objetivo."
+      }
+    }
   },
   "tasks": {
     "title": "Tareas",
@@ -547,5 +586,12 @@
     "shortMonth": "Mensual",
     "shortYear": "Anual",
     "shortMonthPrefix": "Mes ·"
+  },
+  "nav": {
+    "inbox": "Bandeja",
+    "tasks": "Tareas",
+    "calendar": "Calendario",
+    "groceries": "Compras",
+    "settings": "Ajustes"
   }
 }

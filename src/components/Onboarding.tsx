@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
-import { Sparkles, ShoppingCart, Check, Eye, EyeOff, UserPlus, Users, Globe } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Globe,
+  ListTodo,
+  NotebookPen,
+  ShoppingCart,
+  Sparkles,
+  Star,
+  UserPlus,
+  Users,
+  Zap,
+} from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { useAuth } from './AuthProvider';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
-import { AppLogo } from './shared/AppLogo';
+import { AppMark } from './shared/AppLogo';
 import { useLanguage } from '../context/LanguageContext';
 import { SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 
@@ -13,409 +29,360 @@ interface OnboardingProps {
   onComplete: () => void;
 }
 
-export const Onboarding = ({ mode, onComplete }: OnboardingProps) => {
+type StepId = 'language' | 'welcome' | 'showcase' | 'workspace' | 'account' | 'done';
+type Translate = (key: string) => string;
+
+const LANG_LABELS: Record<SupportedUiLanguage, string> = {
+  nl: 'Nederlands',
+  fr: 'Français',
+  en: 'English',
+  de: 'Deutsch',
+  es: 'Español',
+};
+
+const MODULES = [
+  { id: 'tasks', icon: ListTodo, color: '#8b5cf6' },
+  { id: 'groceries', icon: ShoppingCart, color: '#10b981' },
+  { id: 'calendar', icon: CalendarDays, color: '#0ea5e9' },
+  { id: 'rewards', icon: Star, color: '#f59e0b' },
+  { id: 'notes', icon: NotebookPen, color: '#f43f5e' },
+  { id: 'sprint', icon: Zap, color: '#6366f1' },
+] as const;
+
+function GlowButton({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className="onboarding-primary-button" disabled={disabled} onClick={onClick}>
+      {children}
+    </button>
+  );
+}
+
+function ProgressDots({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="onboarding-progress" aria-hidden="true">
+      {Array.from({ length: total }, (_, index) => (
+        <span key={index} className={index === current ? 'is-active' : index < current ? 'is-complete' : ''} />
+      ))}
+    </div>
+  );
+}
+
+function ShowcasePreview({ moduleIndex, t }: { moduleIndex: number; t: Translate }) {
+  const module = MODULES[moduleIndex];
+  const Icon = module.icon;
+  return (
+    <section className="onboarding-showcase-card" style={{ '--onboarding-module': module.color } as React.CSSProperties}>
+      <div className="onboarding-showcase-icon"><Icon aria-hidden="true" /></div>
+      <p className="onboarding-eyebrow">{t(`onboarding.module.${module.id}.title`)}</p>
+      <h2>{t(`onboarding.module.${module.id}.tagline`)}</h2>
+      <div className="onboarding-mockup" aria-hidden="true">
+        <span /><span /><span />
+      </div>
+    </section>
+  );
+}
+
+export function Onboarding({ mode, onComplete }: OnboardingProps) {
   const { updateAppSettings } = useApp();
-  const { t, setLanguage } = useLanguage();
-  const [languageSelected, setLanguageSelected] = useState(false);
+  const { language, setLanguage, t } = useLanguage();
+  const isAdmin = mode === 'admin';
+  const isInfo = mode === 'info';
+  const steps: StepId[] = isAdmin
+    ? ['language', 'welcome', 'showcase', 'workspace', 'account', 'done']
+    : ['language', 'welcome', 'showcase', 'done'];
+
   const [currentStep, setCurrentStep] = useState(0);
+  const [moduleIndex, setModuleIndex] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedUiLanguage>(language);
+  const [languageSelected, setLanguageSelected] = useState(false);
+  const [isPersistingLanguage, setIsPersistingLanguage] = useState(false);
+  const [familyName, setFamilyName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [familyName, setFamilyName] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isAdmin = mode === 'admin';
-  const isInfo = mode === 'info';
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [adminRegistrationComplete, setAdminRegistrationComplete] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
 
-  const getLanguageLabel = (lang: SupportedUiLanguage) =>
-    ({ nl: 'Nederlands', fr: 'Français', en: 'English', de: 'Deutsch', es: 'Español' })[lang];
+  const stepId = steps[currentStep];
 
-  const infoSteps = [
-    {
-      icon: <Sparkles className="w-16 h-16 text-neutral-900" />,
-      title: t('onboarding.welcome'),
-      description: t('onboarding.step1Desc'),
-    },
-    {
-      icon: <ShoppingCart className="w-16 h-16 text-neutral-900" />,
-      title: t('onboarding.step2Title'),
-      description: t('onboarding.step2Desc'),
-    },
-  ];
+  const moveTo = useCallback((nextStep: number) => {
+    setTransitioning(true);
+    window.setTimeout(() => {
+      setCurrentStep(nextStep);
+      setTransitioning(false);
+    }, 50);
+  }, []);
 
-  const adminSteps = [
-    ...infoSteps,
-    {
-      icon: <Users className="w-16 h-16 text-neutral-900" />,
-      title: t('onboarding.step3Title'),
-      description: t('onboarding.step3Desc'),
-    },
-    {
-      icon: <UserPlus className="w-16 h-16 text-neutral-900" />,
-      title: t('onboarding.step4Title'),
-      description: t('onboarding.step4Desc'),
-    },
-  ];
+  const goNext = useCallback(() => {
+    if (currentStep < steps.length - 1) moveTo(currentStep + 1);
+  }, [currentStep, moveTo, steps.length]);
 
-  const userSteps = [
-    ...infoSteps,
-    {
-      icon: <Check className="w-16 h-16 text-neutral-900" />,
-      title: t('onboarding.stepUserTitle'),
-      description: t('onboarding.stepUserDesc'),
-    },
-  ];
+  const goPrev = useCallback(() => {
+    if (currentStep > 0) moveTo(currentStep - 1);
+  }, [currentStep, moveTo]);
 
-  const steps = isAdmin ? adminSteps : isInfo ? infoSteps : userSteps;
+  const selectLanguage = async (nextLanguage: SupportedUiLanguage) => {
+    setSelectedLanguage(nextLanguage);
+    setLanguageSelected(true);
+    setError('');
 
-  const isFamilyStep = isAdmin && currentStep === steps.length - 2;
-  const isLastStep = currentStep === steps.length - 1;
-  const showAdminForm = isAdmin && isLastStep;
-  const showFamilyForm = isAdmin && isFamilyStep;
-
-  const handleNext = () => {
-    if (showFamilyForm) {
-      if (!familyName.trim()) {
-        setError(t('onboarding.pleaseEnterWorkspaceName'));
-        return;
+    const userId = pb.authStore.record?.id;
+    if (mode === 'user' && userId) {
+      setIsPersistingLanguage(true);
+      try {
+        await api.updateUser(userId, { language: nextLanguage });
+        setLanguage(nextLanguage);
+      } catch {
+        setLanguageSelected(false);
+        setError(t('onboarding.languageSaveFailed'));
+      } finally {
+        setIsPersistingLanguage(false);
       }
-      setError('');
-      // Pre-fill lastName with workspace name when proceeding to admin form
-      if (!lastName.trim()) {
-        setLastName(familyName.trim());
-      }
-    }
-
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
     } else {
-      if (isAdmin) {
-        handleCreateAdmin();
-      } else if (isInfo) {
-        onComplete(); // → login
-      } else {
-        handleUserOnboardingComplete();
-      }
+      setLanguage(nextLanguage);
     }
   };
 
-  const handleCreateAdmin = async () => {
-    // Validate all fields upfront with clear messages
-    if (!firstName.trim()) {
-      setError(t('onboarding.pleaseEnterFirstName'));
-      return;
-    }
-    if (!email.trim()) {
-      setError(t('onboarding.pleaseEnterEmail'));
-      return;
-    }
-    if (!password) {
-      setError(t('onboarding.pleaseEnterPassword'));
-      return;
-    }
-    if (password.length < 8) {
-      setError(t('onboarding.passwordMinLength'));
-      return;
-    }
-    if (!passwordConfirm) {
-      setError(t('onboarding.pleaseConfirmPassword'));
-      return;
-    }
-    if (password !== passwordConfirm) {
-      setError(t('onboarding.passwordsDoNotMatch'));
-      return;
-    }
+  const handleWorkspaceNext = () => {
     if (!familyName.trim()) {
-      setError(t('onboarding.workspaceNameMissing'));
+      setError(t('onboarding.pleaseEnterWorkspaceName'));
       return;
     }
+    setError('');
+    if (!lastName.trim()) setLastName(familyName.trim());
+    goNext();
+  };
+
+  const handleCreateAdmin = async () => {
+    if (!firstName.trim()) { setError(t('onboarding.pleaseEnterFirstName')); return; }
+    if (!email.trim()) { setError(t('onboarding.pleaseEnterEmail')); return; }
+    if (!password) { setError(t('onboarding.pleaseEnterPassword')); return; }
+    if (password.length < 8) { setError(t('onboarding.passwordMinLength')); return; }
+    if (!passwordConfirm) { setError(t('onboarding.pleaseConfirmPassword')); return; }
+    if (password !== passwordConfirm) { setError(t('onboarding.passwordsDoNotMatch')); return; }
+    if (!familyName.trim()) { setError(t('onboarding.workspaceNameMissing')); return; }
 
     setError('');
     setIsSubmitting(true);
-
+    let registrationComplete = adminRegistrationComplete || Boolean(pb.authStore.isValid && pb.authStore.record?.id);
     try {
-      const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
-      const result = await api.registerAdmin(email, password, fullName, familyName.trim());
-      await api.markOnboardingSeen(true);
-      updateAppSettings({ hasCompletedOnboarding: true, setupComplete: true });
-      onComplete();
-    } catch (e: any) {
-      const msg = e?.message || '';
-      if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('already')) {
-        setError(t('onboarding.emailAlreadyInUse'));
-      } else if (msg.toLowerCase().includes('password')) {
-        setError(t('onboarding.passwordDoesNotMeetRequirements'));
-      } else {
-        setError(msg || t('onboarding.accountCreationFailed'));
+      if (!registrationComplete) {
+        const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(' ');
+        await api.registerAdmin(email, password, fullName, familyName.trim(), selectedLanguage);
+        registrationComplete = true;
+        setAdminRegistrationComplete(true);
       }
+      await Promise.race([
+        api.markOnboardingSeen(true),
+        new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), 10_000)),
+      ]);
+      updateAppSettings({ hasCompletedOnboarding: true, setupComplete: true });
+      goNext();
+    } catch (caught: unknown) {
+      if (registrationComplete || Boolean(pb.authStore.isValid && pb.authStore.record?.id)) {
+        setAdminRegistrationComplete(true);
+        setError(t('onboarding.completionSaveFailed'));
+        return;
+      }
+      const message = caught instanceof Error ? caught.message : '';
+      if (/email|already/i.test(message)) setError(t('onboarding.emailAlreadyInUse'));
+      else if (/password/i.test(message)) setError(t('onboarding.passwordDoesNotMeetRequirements'));
+      else setError(message || t('onboarding.accountCreationFailed'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUserOnboardingComplete = async () => {
-    await api.markOnboardingSeen(false);
-    updateAppSettings({ hasCompletedOnboarding: true });
-    onComplete();
-  };
-
-  const handleSkip = () => {
-    if (isInfo || isAdmin) {
+  const completeOnboarding = async () => {
+    if (isCompleting) return;
+    setIsCompleting(true);
+    setError('');
+    try {
+      if (mode === 'user') {
+        await Promise.race([
+          api.markOnboardingSeen(false),
+          new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('timeout')), 10_000)),
+        ]);
+        updateAppSettings({ hasCompletedOnboarding: true });
+      }
       onComplete();
-      return;
+    } catch {
+      setError(t('onboarding.completionSaveFailed'));
+    } finally {
+      setIsCompleting(false);
     }
-    handleUserOnboardingComplete();
   };
 
-  const handleSelectLanguage = (lang: SupportedUiLanguage) => {
-    setLanguage(lang);
-    setLanguageSelected(true);
-  };
+  const finish = completeOnboarding;
+  const skip = completeOnboarding;
 
-  // ── Language selection (first step) ──
-  if (!languageSelected) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex flex-col">
-        <div className="p-4 flex justify-end">
-          <button
-            onClick={handleSkip}
-            className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
-          >
-            {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
-          </button>
-        </div>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-center mb-8">
-              <AppLogo size="lg" showText={true} variant="dark" />
-            </div>
-
-            <h1 className="text-2xl mb-4 text-center text-neutral-900">
-              🌐 {t('onboarding.languageStepTitle')}
-            </h1>
-
-            <p className="text-center text-neutral-600 max-w-sm mx-auto mb-8">
-              {t('onboarding.languageStepDesc')}
-            </p>
-
-            <div className="space-y-3 bg-white p-6 rounded-lg shadow-sm">
-              {SUPPORTED_UI_LANGUAGES.map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => handleSelectLanguage(lang)}
-                  className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded-lg hover:border-neutral-400 hover:bg-neutral-50 transition-colors text-left"
-                >
-                  <span className="text-neutral-800 font-medium">
-                    {getLanguageLabel(lang)}
-                  </span>
-                  <span className="text-xs text-neutral-400 uppercase">{lang}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const step = steps[currentStep];
-
-  return (
-    <div className="min-h-screen bg-neutral-50 flex flex-col">
-      {/* Skip button */}
-      <div className="p-4 flex justify-end">
-        <button
-          onClick={handleSkip}
-          className="text-sm text-neutral-500 hover:text-neutral-700 transition-colors"
-        >
-          {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
-        </button>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20">
-        {showAdminForm ? (
-          // Admin account creation
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-center mb-8">
-              <AppLogo size="lg" showText={true} variant="dark" />
-            </div>
-
-            <h1 className="text-2xl mb-4 text-center text-neutral-900">
-              {step.title}
-            </h1>
-
-            <p className="text-center text-neutral-600 max-w-sm mx-auto mb-8">
-              {step.description}
-            </p>
-
-            <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.firstName')}</label>
-                <input
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="John"
-                  autoFocus
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.lastName')}</label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="Doe"
-                />
-                <p className="text-xs text-neutral-500 mt-1">{t('onboarding.prefilledWithWorkspace')}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.email')}</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="admin@example.com"
-                />
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.password')}</label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform translate-y-1 text-neutral-500 hover:text-neutral-700"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.confirmPassword')}</label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={passwordConfirm}
-                  onChange={(e) => setPasswordConfirm(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              {error && (
-                <p className="text-red-500 text-sm">{error}</p>
-              )}
-
-              <button
-                onClick={handleCreateAdmin}
-                disabled={isSubmitting}
-                className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? t('onboarding.creatingAccount') : t('onboarding.createAccount')}
-              </button>
-
-              <p className="text-xs text-neutral-500 text-center">
-                {t('onboarding.thisIsTheOnlyAccount')}
-              </p>
-            </div>
-          </div>
-        ) : showFamilyForm ? (
-          // Workspace name step
-          <div className="w-full max-w-md">
-            <div className="flex items-center justify-center mb-8">
-              {step.icon}
-            </div>
-
-            <h1 className="text-2xl mb-4 text-center text-neutral-900">
-              {step.title}
-            </h1>
-
-            <p className="text-center text-neutral-600 max-w-sm mx-auto mb-8">
-              {step.description}
-            </p>
-
-            <div className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.workspaceName')}</label>
-                <input
-                  type="text"
-                  value={familyName}
-                  onChange={(e) => { setFamilyName(e.target.value); setError(''); }}
-                  className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                  placeholder={t('onboarding.exampleFamilyName')}
-                  autoFocus
-                />
-              </div>
-
-              {error && (
-                <p className="text-red-500 text-sm">{error}</p>
-              )}
-
-              <button
-                onClick={handleNext}
-                className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
-              >
-                {t('onboarding.next')}
-              </button>
-            </div>
-          </div>
-        ) : (
-          // Regular onboarding slides
-          <>
-            <div className="mb-8">
-              {step.icon}
-            </div>
-
-            <h1 className="text-2xl mb-4 text-center text-neutral-900">
-              {step.title}
-            </h1>
-
-            <p className="text-center text-neutral-600 max-w-sm mb-12">
-              {step.description}
-            </p>
-
-            {/* Progress dots — only for info slides (not workspace/admin form steps) */}
-            <div className="flex gap-2 mb-12">
-              {infoSteps.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === currentStep ? 'bg-neutral-900' : 'bg-neutral-300'
-                  }`}
-                />
-              ))}
-            </div>
-
-            {/* CTA */}
+  const renderLanguage = () => (
+    <div className="onboarding-centered">
+      <section className="onboarding-glass-card onboarding-language-card">
+        <div className="onboarding-step-icon"><Globe aria-hidden="true" /></div>
+        <h1>{t('onboarding.languageStepTitle')}</h1>
+        <p>{t('onboarding.languageStepDesc')}</p>
+        <div className="onboarding-language-options">
+          {SUPPORTED_UI_LANGUAGES.map((option) => (
             <button
-              onClick={handleNext}
-              className="bg-neutral-900 text-white px-8 py-3 rounded-lg hover:bg-neutral-800 transition-colors"
+              type="button"
+              key={option}
+              aria-pressed={languageSelected && selectedLanguage === option}
+              className={languageSelected && selectedLanguage === option ? 'is-selected' : ''}
+              onClick={() => void selectLanguage(option)}
             >
-              {isLastStep
-                ? isInfo
-                  ? t('onboarding.goToLogin')
-                  : t('onboarding.getStarted')
-                : t('onboarding.next')}
+              <span>{LANG_LABELS[option]}</span><small>{option}</small>
             </button>
-          </>
-        )}
-      </div>
+          ))}
+        </div>
+        {error && <p className="onboarding-error" role="alert">{error}</p>}
+        <button
+          type="button"
+          className="onboarding-light-button"
+          disabled={!languageSelected || isPersistingLanguage}
+          onClick={goNext}
+        >
+          {isPersistingLanguage ? t('common.loading') : t('onboarding.next')}
+        </button>
+      </section>
     </div>
   );
-};
+
+  const renderWelcome = () => (
+    <div className="onboarding-centered onboarding-welcome">
+      <div className="onboarding-logo-glow"><AppMark /></div>
+      <h1>{t('onboarding.welcome')}</h1>
+      <p>{t('onboarding.welcomeDescription')}</p>
+      <GlowButton onClick={goNext}>
+        <span>{t('onboarding.discoverFeatures')}</span><ArrowRight aria-hidden="true" />
+      </GlowButton>
+    </div>
+  );
+
+  const renderShowcase = () => (
+    <div className="onboarding-centered onboarding-showcase">
+      <div className="onboarding-carousel-controls">
+        <button type="button" aria-label={t('common.previous')} onClick={() => setModuleIndex((moduleIndex - 1 + MODULES.length) % MODULES.length)}><ChevronLeft /></button>
+        <div>{MODULES.map((module, index) => <span key={module.id} className={index === moduleIndex ? 'is-active' : ''} />)}</div>
+        <button type="button" aria-label={t('common.next')} onClick={() => setModuleIndex((moduleIndex + 1) % MODULES.length)}><ChevronRight /></button>
+      </div>
+      <ShowcasePreview moduleIndex={moduleIndex} t={t} />
+      {moduleIndex === MODULES.length - 1 ? (
+        <GlowButton onClick={goNext}><span>{isAdmin ? t('onboarding.getStarted') : t('onboarding.next')}</span><ArrowRight /></GlowButton>
+      ) : <p className="onboarding-hint">{t('onboarding.showcaseHint')}</p>}
+    </div>
+  );
+
+  const input = (
+    label: string,
+    value: string,
+    setValue: (value: string) => void,
+    options: { type?: string; placeholder?: string; suffix?: React.ReactNode } = {},
+  ) => (
+    <label className="onboarding-field">
+      <span>{label}</span>
+      <span className="onboarding-input-wrap">
+        <input
+          type={options.type ?? 'text'}
+          value={value}
+          placeholder={options.placeholder}
+          onChange={(event) => { setValue(event.target.value); setError(''); }}
+        />
+        {options.suffix}
+      </span>
+    </label>
+  );
+
+  const renderWorkspace = () => (
+    <div className="onboarding-centered">
+      <section className="onboarding-glass-card">
+        <div className="onboarding-step-icon"><Users /></div>
+        <h1>{t('onboarding.step3Title')}</h1>
+        <p>{t('onboarding.workspaceDescription')}</p>
+        {input(t('onboarding.workspaceName'), familyName, setFamilyName, { placeholder: t('onboarding.exampleFamilyName') })}
+        {error && <p className="onboarding-error" role="alert">{error}</p>}
+        <div className="onboarding-form-actions">
+          <button type="button" className="onboarding-outline-button" onClick={goPrev}>{t('common.back')}</button>
+          <button type="button" className="onboarding-light-button" onClick={handleWorkspaceNext}>{t('onboarding.next')}</button>
+        </div>
+      </section>
+    </div>
+  );
+
+  const passwordToggle = (
+    <button type="button" className="onboarding-password-toggle" aria-label={t(showPassword ? 'onboarding.hidePassword' : 'onboarding.showPassword')} onClick={() => setShowPassword(!showPassword)}>
+      {showPassword ? <EyeOff /> : <Eye />}
+    </button>
+  );
+
+  const renderAccount = () => (
+    <div className="onboarding-centered">
+      <section className="onboarding-glass-card">
+        <div className="onboarding-step-icon"><UserPlus /></div>
+        <h1>{t('onboarding.step4Title')}</h1>
+        <p>{t('onboarding.accountDescription')}</p>
+        <div className="onboarding-fields">
+          {input(t('onboarding.firstName'), firstName, setFirstName, { placeholder: t('onboarding.firstNamePlaceholder') })}
+          {input(t('onboarding.lastName'), lastName, setLastName, { placeholder: t('onboarding.lastNamePlaceholder') })}
+          {input(t('onboarding.email'), email, setEmail, { type: 'email', placeholder: t('onboarding.emailPlaceholder') })}
+          {input(t('onboarding.password'), password, setPassword, { type: showPassword ? 'text' : 'password', placeholder: t('onboarding.passwordPlaceholder'), suffix: passwordToggle })}
+          {input(t('onboarding.confirmPassword'), passwordConfirm, setPasswordConfirm, { type: showPassword ? 'text' : 'password', placeholder: t('onboarding.confirmPasswordPlaceholder') })}
+        </div>
+        {error && <p className="onboarding-error" role="alert">{error}</p>}
+        <div className="onboarding-form-actions">
+          <button type="button" className="onboarding-outline-button" onClick={goPrev}>{t('common.back')}</button>
+          <button type="button" className="onboarding-light-button" disabled={isSubmitting} onClick={() => void handleCreateAdmin()}>
+            {isSubmitting ? t('onboarding.creatingAccount') : t('onboarding.createAccount')}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+
+  const renderDone = () => {
+    const title = isInfo ? t('onboarding.doneInfoTitle') : isAdmin ? t('onboarding.doneAdminTitle') : t('onboarding.doneUserTitle');
+    const description = isInfo ? t('onboarding.doneInfoDescription') : t('onboarding.doneWorkspaceDescription');
+    return (
+      <div className="onboarding-centered onboarding-done">
+        <div className="onboarding-done-icon"><CheckCircle2 /></div>
+        <h1>{title}</h1>
+        <p>{description}</p>
+        {error && <p className="onboarding-error" role="alert">{error}</p>}
+        <GlowButton disabled={isCompleting} onClick={() => void finish()}>
+          <span>{isInfo ? t('onboarding.goToLogin') : t('onboarding.openApp')}</span><Sparkles />
+        </GlowButton>
+      </div>
+    );
+  };
+
+  const renderStep = () => {
+    if (stepId === 'language') return renderLanguage();
+    if (stepId === 'welcome') return renderWelcome();
+    if (stepId === 'showcase') return renderShowcase();
+    if (stepId === 'workspace') return renderWorkspace();
+    if (stepId === 'account') return renderAccount();
+    return renderDone();
+  };
+
+  return (
+    <main className={`onboarding-shell onboarding-theme-${stepId}`}>
+      <button type="button" className="onboarding-skip" disabled={isCompleting} onClick={() => void skip()}>
+        {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
+      </button>
+      {currentStep > 0 && !['workspace', 'account', 'done'].includes(stepId) && (
+        <button type="button" className="onboarding-back" onClick={goPrev}><ChevronLeft />{t('common.back')}</button>
+      )}
+      <div className={`onboarding-transition ${transitioning ? 'is-transitioning' : ''}`} key={`${stepId}-${moduleIndex}`}>
+        {renderStep()}
+      </div>
+      {error && ['welcome', 'showcase'].includes(stepId) && <p className="onboarding-error" role="alert">{error}</p>}
+      {!['workspace', 'account'].includes(stepId) && <ProgressDots current={currentStep} total={steps.length} />}
+    </main>
+  );
+}

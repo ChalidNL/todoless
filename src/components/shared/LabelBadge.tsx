@@ -1,14 +1,20 @@
 import React from 'react';
 import { Home, Lock, Users } from 'lucide-react';
-import { Label } from '../../types';
+import type { LabelVisibility } from '../../types';
+
+type BadgeLabel = {
+  name: string;
+  color: string;
+  visibility?: LabelVisibility;
+};
 
 interface LabelBadgeProps {
-  label: Label;
+  label: BadgeLabel;
   onRemove?: (e?: React.MouseEvent) => void;
   size?: 'sm' | 'md';
 }
 
-const VisibilityIcon = ({ visibility }: { visibility: Label['visibility'] }) => {
+const VisibilityIcon = ({ visibility }: { visibility: LabelVisibility }) => {
   const cls = 'w-3 h-3 opacity-80';
   if (visibility === 'private') return <Lock className={cls} aria-label="Private" />;
   if (visibility === 'shared') return <Users className={cls} aria-label="Shared" />;

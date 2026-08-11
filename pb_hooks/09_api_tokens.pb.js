@@ -14,8 +14,8 @@ routerAdd('GET', '/api/api-tokens', (c) => {
       if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -28,9 +28,9 @@ routerAdd('GET', '/api/api-tokens', (c) => {
       var rawMemberStatus = user.get('member_status');
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -81,8 +81,8 @@ routerAdd('POST', '/api/api-tokens', (c) => {
       if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -95,16 +95,16 @@ routerAdd('POST', '/api/api-tokens', (c) => {
       var rawMemberStatus = user.get('member_status');
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
     } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
   }
   function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.randomString(len); }
-  function _ht(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
+  function _ht(tok) { return $security.sha256(tok); }
   try {
     var ba = _bam(c);
     if (ba) return ba;
@@ -167,7 +167,7 @@ routerAdd('POST', '/api/api-tokens', (c) => {
 });
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
-routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
+routerAdd('DELETE', '/api/api-tokens/{id}', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -176,8 +176,8 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
       if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -190,9 +190,9 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
       var rawMemberStatus = user.get('member_status');
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -208,7 +208,7 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (auth.fromToken) return c.json(403, { error: 'API tokens cannot manage API tokens' });
 
-    var tokenId = c.pathParam('id');
+    var tokenId = c.request.pathValue('id');
     if (!tokenId) return c.json(400, { error: 'Token ID is required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);
@@ -227,7 +227,7 @@ routerAdd('DELETE', '/api/api-tokens/:id', (c) => {
 });
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
-routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
+routerAdd('PATCH', '/api/api-tokens/{id}/toggle', (c) => {
   function _bam(c) {
     try {
       var authHeader = c.requestInfo().headers['authorization'];
@@ -236,8 +236,8 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
       if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
       var token = parts[1].trim();
       if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = (function(tok){try{return $security.SHA256(tok)}catch(e){var h=0;for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');}})(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
@@ -250,9 +250,9 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
       var rawMemberStatus = user.get('member_status');
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -268,7 +268,7 @@ routerAdd('PATCH', '/api/api-tokens/:id/toggle', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (auth.fromToken) return c.json(403, { error: 'API tokens cannot manage API tokens' });
 
-    var tokenId = c.pathParam('id');
+    var tokenId = c.request.pathValue('id');
     if (!tokenId) return c.json(400, { error: 'Token ID is required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);

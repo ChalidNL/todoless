@@ -19,6 +19,20 @@ import type {
 
 const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime() : undefined);
 
+const relationIds = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
+
+const taskLabelsFromRecord = (record: any): string[] => {
+  const canonical = relationIds(record.label);
+  return canonical.length > 0 ? canonical : relationIds(record.labels);
+};
+
+const canonicalTaskLabels = (labelId?: string | null, labels?: string[]): string[] => {
+  const result = relationIds(labels);
+  if (labelId && !result.includes(labelId)) result.unshift(labelId);
+  return result;
+};
+
 const normalizeUser = (record: any): User => ({
   id: record.id,
   email: record.email,
@@ -54,8 +68,8 @@ const normalizeTask = (record: any): Task => ({
   archivedAt: toTimestamp(record.archived_at),
   deleteAfter: toTimestamp(record.delete_after),
   isPrivate: !!record.is_private,
-  labels: record.label ? [record.label] : (Array.isArray(record.labels) ? record.labels : []),
-  labelId: record.label || undefined,
+  labels: taskLabelsFromRecord(record),
+  labelId: taskLabelsFromRecord(record)[0] || undefined,
   linkedItemIds: Array.isArray(record.linked_item_ids) ? record.linked_item_ids : [],
   linkedNoteIds: Array.isArray(record.linked_note_ids) ? record.linked_note_ids : [],
   subtaskIds: Array.isArray(record.subtask_ids) ? record.subtask_ids : [],
@@ -274,7 +288,13 @@ class PocketBaseClient {
     return { token: pb.authStore.token, user: normalizeUser(authData.record) };
   }
 
-  async registerAdmin(email: string, password: string, name: string, familyName?: string) {
+  async registerAdmin(
+    email: string,
+    password: string,
+    name: string,
+    familyName?: string,
+    language = getActiveLanguage(),
+  ) {
     const firstName = name.trim().split(' ')[0];
     const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : familyName || '';
     const response = await fetch('/api/register', {
@@ -289,7 +309,7 @@ class PocketBaseClient {
         name,
         family_name: familyName || 'My Family',
         user_type: 'family_member',
-        language: getActiveLanguage(),
+        language,
       }),
     });
 
@@ -378,13 +398,14 @@ class PocketBaseClient {
         this.showError('Not authenticated — please log in again');
         throw new Error('Not authenticated');
       }
+      const canonicalLabels = canonicalTaskLabels(task.labelId, task.labels);
       return await pb.collection('tasks').create({
         title: task.title,
         status: task.status || 'todo',
         blocked: task.blocked || false,
         focus: task.focus || false,
         blocked_comment: task.blockedComment,
-        priority: task.priority,
+        priority: task.priority || 'medium',
         horizon: task.horizon,
         assigned_to: task.assignedTo,
         sprint_id: task.sprintId,
@@ -392,8 +413,8 @@ class PocketBaseClient {
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         show_in_calendar: task.showInCalendar !== false,
         repeat_interval: task.repeatInterval,
-        labels: task.labelId ? [task.labelId] : (task.labels || []),
-        label: task.labelId || task.labels?.[0] || null,
+        labels: canonicalLabels,
+        label: canonicalLabels,
         is_private: task.isPrivate || false,
         archived: task.archived || false,
         archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
@@ -451,8 +472,11 @@ class PocketBaseClient {
         if (has(key)) payload[key] = updates[key];
       }
 
-      if (has('labelId')) payload.label = updates.labelId || null;
-      if (has('labels')) payload.label = updates.labels?.[0] || null;
+      if (has('labelId') || has('labels')) {
+        const canonicalLabels = canonicalTaskLabels(updates.labelId, updates.labels);
+        payload.labels = canonicalLabels;
+        payload.label = canonicalLabels;
+      }
 
       if (has('blockedComment')) payload.blocked_comment = updates.blockedComment;
       if (has('sprintId')) payload.sprint_id = updates.sprintId;
@@ -1052,7 +1076,7 @@ class PocketBaseClient {
   async getProjects(): Promise<Project[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('projects').getFullList({ filter: `user.id = "${userId}"`, sort: '-created' });
+    const list = await pb.collection('projects').getFullList({ filter: `user = "${userId}"` });
     return list.map(normalizeProject);
   }
 
@@ -1094,7 +1118,7 @@ class PocketBaseClient {
   async getReminders(): Promise<Reminder[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('reminders').getFullList({ filter: `user.id = "${userId}"`, sort: 'due_date' });
+    const list = await pb.collection('reminders').getFullList({ filter: `user = "${userId}"`, sort: 'reminder_time' });
     return list.map(normalizeReminder);
   }
 

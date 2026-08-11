@@ -21,4 +21,19 @@ describe('backend regression guards', () => {
     expect(hook).toContain('var actorBlockRecord = _freshAuth()');
     expect(hook).toContain('Cannot demote the owner');
   });
+
+  it('loads projects and reminders with fields that exist in their PocketBase schemas', () => {
+    const client = repoFile('src/lib/pocketbase-client.ts');
+
+    expect(client).toContain("pb.collection('projects').getFullList({ filter: `user = \"${userId}\"` })");
+    expect(client).toContain("pb.collection('reminders').getFullList({ filter: `user = \"${userId}\"`, sort: 'reminder_time' })");
+    expect(client).not.toContain("pb.collection('projects').getFullList({ filter: `user.id = \"${userId}\"`, sort: '-created' })");
+    expect(client).not.toContain("pb.collection('reminders').getFullList({ filter: `user.id = \"${userId}\"`, sort: 'due_date' })");
+  });
+
+  it('supplies the required default priority when quick-adding a task', () => {
+    const client = repoFile('src/lib/pocketbase-client.ts');
+
+    expect(client).toContain("priority: task.priority || 'medium'");
+  });
 });

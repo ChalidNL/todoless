@@ -8,23 +8,25 @@ describe('label based visibility contract', () => {
   const pbClient = readFileSync(resolve(__dirname, '../lib/pocketbase-client.ts'), 'utf8');
   const apiClient = readFileSync(resolve(__dirname, '../lib/api-client.ts'), 'utf8');
 
-  it('adds label visibility fields and a single task label relation', () => {
+  it('adds label visibility fields and a multi-select canonical task label relation', () => {
     expect(migration).toContain("name: 'visibility'");
     expect(migration).toContain("values: ['private', 'shared', 'family']");
     expect(migration).toContain("name: 'owner'");
     expect(migration).toContain("name: 'shared_with'");
     expect(migration).toContain("name: 'family'");
     expect(migration).toContain("name: 'label'");
-    expect(migration).toContain('maxSelect: 1');
+    expect(migration).toContain("new RelationField({ name: 'label'");
+    expect(migration).toContain('maxSelect: 99');
   });
 
   it('documents unlabeled tasks as family visible and enforces label visibility in task rules', () => {
-    expect(migration).toContain('Unlabeled tasks are family-visible');
-    expect(migration).toContain('label = ""');
-    expect(migration).toContain('label.visibility = "family"');
+    expect(migration).toContain('Unlabeled, non-private tasks remain family-visible');
+    expect(migration).toContain('is_private = false');
+    expect(migration).toContain('label:length = 0');
+    expect(migration).toContain('label.visibility:each = "family"');
     expect(migration).toContain('label.visibility = "shared"');
     expect(migration).toContain('label.visibility = "private"');
-    expect(migration).toContain('label.shared_with ?= @request.auth.id');
+    expect(migration).toContain('label.shared_with.id ?= @request.auth.id');
   });
 
   it('exposes label visibility fields in frontend types and both API clients', () => {
@@ -34,8 +36,9 @@ describe('label based visibility contract', () => {
     for (const source of [pbClient, apiClient]) {
       expect(source).toMatch(/visibility:\s*(record|r)\.visibility/);
       expect(source).toMatch(/sharedWith:\s*Array\.isArray\((record|r)\.shared_with\)/);
-      expect(source).toMatch(/labelId:\s*(record|r)\.label/);
-      expect(source).toMatch(/label:\s*(task|data)\.labelId/);
+      expect(source).toMatch(/labelId:\s*taskLabelsFromRecord\((record|r)\)\[0\]/);
+      expect(source).toMatch(/label:\s*canonicalLabels/);
+      expect(source).not.toMatch(/labels\?\.\[0\]/);
     }
   });
 });

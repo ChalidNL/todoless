@@ -2,79 +2,149 @@
 const { execFileSync } = require('node:child_process');
 const { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, chmodSync } = require('node:fs');
 const { resolve } = require('node:path');
+const sharp = require('sharp');
 
 const root = resolve(__dirname, '..');
 const publicDir = resolve(root, 'public');
 const iconDir = resolve(publicDir, 'icons');
-const logo = resolve(publicDir, 'logo-rainbow.png');
-const fallbackSource = resolve(iconDir, 'icon-source.png');
-const sizes = [192, 512];
+const iconBetaDir = resolve(publicDir, 'icons-beta');
+const svgSource = resolve(iconDir, 'icon-source.svg');
+const svgSourceBeta = resolve(iconDir, 'icon-source-beta.svg');
 
-if (!existsSync(logo) && existsSync(fallbackSource)) {
-  copyFileSync(fallbackSource, logo);
+const logoSrc = resolve(publicDir, 'logo-rainbow.png');
+const logoBetaSrc = resolve(publicDir, 'logo-rainbow-beta.png');
+
+async function generatePng(svgBuf, dir, size, filename, opts = {}) {
+  const contentSize = opts.contentSize ?? Math.round(size * 0.72);
+  const left = Math.round((size - contentSize) / 2);
+  const top = Math.round((size - contentSize) / 2);
+
+  const pngBuf = await sharp(svgBuf)
+    .resize(contentSize, contentSize)
+    .extend({
+      top, bottom: size - contentSize - top,
+      left, right: size - contentSize - left,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
+    .png()
+    .toBuffer();
+
+  const filepath = resolve(dir, filename);
+  writeFileSync(filepath, pngBuf);
+  console.log(`  ✓ ${filepath} (${size}x${size})`);
 }
-if (!existsSync(logo)) {
-  throw new Error(`Missing source icon: ${logo}`);
-}
 
-mkdirSync(iconDir, { recursive: true });
-copyFileSync(logo, fallbackSource);
-copyFileSync(logo, resolve(iconDir, 'logo-rainbow.png'));
-chmodSync(fallbackSource, 0o644);
-chmodSync(resolve(iconDir, 'logo-rainbow.png'), 0o644);
+async function generateSet(svgBuf, dir, suffix, label) {
+  mkdirSync(dir, { recursive: true });
 
-for (const size of sizes) {
-  const png = resolve(iconDir, `icon-${size}.png`);
-  const contentSize = Math.round(size * 0.72);
-  execFileSync('ffmpeg', [
-    '-y',
-    '-i', logo,
-    '-vf', `scale=${contentSize}:${contentSize}:force_original_aspect_ratio=decrease,pad=${size}:${size}:(ow-iw)/2:(oh-ih)/2:color=0x00000000,format=rgba`,
-    '-frames:v', '1',
-    png,
-  ], { stdio: 'ignore' });
+  // Base PNG from SVG
+  const basePng = await sharp(svgBuf).resize(512, 512).png().toBuffer();
+  const pngSource = resolve(dir, `icon-source${suffix}.png`);
+  writeFileSync(pngSource, basePng);
 
+  const logoSrcFile = resolve(publicDir, `logo-rainbow${suffix}.png`);
+  writeFileSync(logoSrcFile, basePng);
+
+  const logoIconFile = resolve(dir, `logo-rainbow${suffix}.png`);
+  writeFileSync(logoIconFile, basePng);
+  chmodSync(logoIconFile, 0o644);
+  chmodSync(logoSrcFile, 0o644);
+  console.log(`[${label}] Generated base PNG from SVG source`);
+
+  // PWA icon set
+  await generatePng(svgBuf, dir, 192, `icon-192${suffix}.png`);
+  await generatePng(svgBuf, dir, 512, `icon-512${suffix}.png`);
+  await generatePng(svgBuf, dir, 512, `icon-512-maskable${suffix}.png`, { contentSize: 340 });
+
+  // SVG wrappers
+  for (const size of [192, 512]) {
+    writeFileSync(
+      resolve(dir, `icon-${size}${suffix}.svg`),
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">\n  <image href="/icons${suffix ? '-beta' : ''}/icon-${size}${suffix}.png" width="${size}" height="${size}"/>\n</svg>\n`,
+    );
+  }
+
+  // Favicon SVG
+  const faviconPng = readFileSync(resolve(dir, `icon-512${suffix}.png`)).toString('base64');
   writeFileSync(
-    resolve(iconDir, `icon-${size}.svg`),
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">\n  <image href="/icons/icon-${size}.png" width="${size}" height="${size}"/>\n</svg>\n`,
+    resolve(dir, `favicon${suffix}.svg`),
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\n  <image href="data:image/png;base64,${faviconPng}" width="512" height="512"/>\n</svg>\n`,
   );
+  console.log(`  ✓ favicon${suffix}.svg`);
 }
 
-execFileSync('ffmpeg', [
-  '-y',
-  '-i', logo,
-  '-vf', 'scale=340:340:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000,format=rgba',
-  '-frames:v', '1',
-  resolve(iconDir, 'icon-512-maskable.png'),
-], { stdio: 'ignore' });
+async function main() {
+  const svgBuf = readFileSync(svgSource);
+  const svgBetaBuf = readFileSync(svgSourceBeta);
 
-const faviconPng = readFileSync(resolve(iconDir, 'icon-512.png')).toString('base64');
-writeFileSync(
-  resolve(publicDir, 'favicon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">\n  <image href="data:image/png;base64,${faviconPng}" width="512" height="512"/>\n</svg>\n`,
-);
+  // Generate regular set
+  await generateSet(svgBuf, iconDir, '', 'REGULAR');
 
-const manifest = {
-  name: 'todoless',
-  short_name: 'todoless',
-  description: 'Self-hosted productivity app',
-  start_url: '/',
-  scope: '/',
-  display: 'standalone',
-  display_override: ['standalone', 'minimal-ui'],
-  orientation: 'portrait',
-  background_color: '#f8f7ff',
-  theme_color: '#f8f7ff',
-  categories: ['productivity', 'utilities'],
-  icons: [
-    { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-    { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-    { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-  ],
-  screenshots: [],
-  launch_handler: { client_mode: 'navigate-existing' },
-};
-writeFileSync(resolve(publicDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-writeFileSync(resolve(publicDir, 'manifest.webmanifest'), `${JSON.stringify(manifest, null, 2)}\n`);
+  // Generate beta set
+  await generateSet(svgBetaBuf, iconBetaDir, '', 'BETA');
 
-console.log('Generated PWA icons, maskable icon, favicon and manifests from public/logo-rainbow.png');
+  // Manifest — regular
+  const manifest = {
+    name: 'todoless',
+    short_name: 'todoless',
+    description: 'Self-hosted productivity app',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
+    orientation: 'portrait',
+    background_color: '#f8f7ff',
+    theme_color: '#f8f7ff',
+    categories: ['productivity', 'utilities'],
+    icons: [
+      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    screenshots: [],
+    launch_handler: { client_mode: 'navigate-existing' },
+  };
+  writeFileSync(resolve(publicDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  writeFileSync(resolve(publicDir, 'manifest.webmanifest'), `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log('  ✓ manifest.json / manifest.webmanifest (regular)');
+
+  // Manifest — beta
+  const manifestBeta = {
+    name: 'todoless β',
+    short_name: 'todoless β',
+    description: 'Self-hosted productivity app (beta)',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
+    orientation: 'portrait',
+    background_color: '#f8f7ff',
+    theme_color: '#f8f7ff',
+    categories: ['productivity', 'utilities'],
+    icons: [
+      { src: '/icons-beta/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icons-beta/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons-beta/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+    screenshots: [],
+    launch_handler: { client_mode: 'navigate-existing' },
+  };
+  writeFileSync(resolve(publicDir, 'manifest-beta.json'), `${JSON.stringify(manifestBeta, null, 2)}\n`);
+  writeFileSync(resolve(publicDir, 'manifest-beta.webmanifest'), `${JSON.stringify(manifestBeta, null, 2)}\n`);
+  console.log('  ✓ manifest-beta.json / manifest-beta.webmanifest (beta)');
+
+  // Copy appropriate favicon for default (regular)
+  copyFileSync(resolve(iconDir, 'favicon.svg'), resolve(publicDir, 'favicon.svg'));
+  console.log('  ✓ favicon.svg → public/ (regular default)');
+
+  // Copy regular logo-rainbow to public/
+  copyFileSync(resolve(iconDir, 'logo-rainbow.png'), logoSrc);
+  console.log('  ✓ logo-rainbow.png → public/');
+
+  console.log('\nDone! PWA icon sets generated — regular + beta.');
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

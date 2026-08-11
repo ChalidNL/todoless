@@ -10,7 +10,52 @@ env:
   OWNER: chalidnl
 
 jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck full React source
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Run PocketBase contract tests
+        run: node --test tests/*.test.mjs
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Scan repository for secrets
+        run: npm run security:secrets
+
+      - name: Run production build
+        env:
+          VITE_POCKETBASE_URL: http://pocketbase:8090
+        run: npm run build
+
   build-and-push:
+    needs: quality-gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,6 +106,7 @@ jobs:
           build-args: |
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ steps.meta.outputs.branch }}
+            TODOLESS_TAG=${{ steps.meta.outputs.branch }}
 
       - name: Build & push pocketbase
         uses: docker/build-push-action@v5
