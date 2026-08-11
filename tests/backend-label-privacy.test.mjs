@@ -217,6 +217,39 @@ test('frontend clients propagate all labels to the canonical relation instead of
   }
 })
 
+test('invite flow keeps generated, entered, validated, and registered codes on one canonical contract', () => {
+  const backend = read('pb_hooks/main.pb.js')
+  const client = read('src/lib/pocketbase-client.ts')
+  const register = read('src/components/Register.tsx')
+  const migration = read('pb_migrations/z066_normalize_invite_codes.js')
+
+  assert.match(backend, /\$security\.randomString\(12\)\.toUpperCase\(\)/)
+  assert.equal((backend.match(/set\('id', \$security\.randomString\(15\)\.toLowerCase\(\)\)/g) || []).length, 2)
+  assert.match(migration, /record\.set\('code', normalized\)/)
+  assert.match(migration, /toUpperCase\(\)/)
+  assert.match(backend, /String\(q\.code \|\| ''\)\.trim\(\)\.toUpperCase\(\)/)
+  assert.match(backend, /String\(d\.invite_code \|\| ''\)\.trim\(\)\.toUpperCase\(\)/)
+  assert.match(register, /maxLength=\{12\}/)
+  assert.match(client, /return \{ id: data\.id, code: data\.code, status: 'valid', message: data\.message \|\| '' \}/)
+  assert.doesNotMatch(client, /data\.invite\.(id|code)/)
+})
+
+test('invite registration remains a mandatory end-to-end beta baseline', () => {
+  const baseline = read('tests/invite-flow-baseline.md')
+
+  for (const id of [
+    'BT-P0-001', 'BT-P0-002', 'BT-P0-003', 'BT-P0-004', 'BT-P0-005',
+    'BT-P0-006', 'BT-P0-007', 'BT-P0-008', 'BT-P0-009', 'BT-P0-010',
+    'BT-P0-011', 'BT-P0-012', 'BT-P0-013', 'BT-P0-014', 'BT-P0-015', 'BT-P0-016',
+  ]) {
+    assert.match(baseline, new RegExp(`\\b${id}\\b`))
+  }
+  assert.match(baseline, /separate browser context/i)
+  assert.match(baseline, /accepted member is visible/i)
+  assert.match(baseline, /invalid, expired, and reused/i)
+  assert.match(baseline, /desktop, tablet, and mobile/i)
+})
+
 test('all active token and agent management routes use PB 0.35 APIs and bound filters', () => {
   const main = read('pb_hooks/main.pb.js')
   const agents = read('pb_hooks/05_agents_routes.pb.js')
