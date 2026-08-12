@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Share2, Copy, Trash2, Plus, UserPlus, Check, Clock, X } from 'lucide-react';
@@ -10,6 +11,15 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
   const [currentInviteUrl, setCurrentInviteUrl] = useState('');
   const [currentInviteCode, setCurrentInviteCode] = useState('');
   const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!showShareModal) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showShareModal]);
 
   // Track previous trigger value to avoid double-firing on mount
   const prevTrigger = useRef(triggerGenerate);
@@ -236,34 +246,27 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
       )}
 
       {/* ── Share Modal (glassmorphism) ── */}
-      {showShareModal && (
+      {showShareModal && createPortal(
         <div
-          className="
-            fixed inset-0 z-50
-            flex items-center justify-center p-4
-            bg-black/40 backdrop-blur-sm
-          "
+          className="invite-share-overlay"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowShareModal(false);
           }}
         >
           <div
-            className="
-              bg-white/80 backdrop-blur-md
-              rounded-[24px] p-6 sm:p-8
-              max-w-md w-full max-h-[90vh] overflow-y-auto
-              shadow-[0_16px_48px_rgba(0,0,0,0.12)]
-              border border-white/50
-              animate-in
-            "
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invite-share-title"
+            className="invite-share-dialog"
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-extrabold text-neutral-800">
+            <div className="invite-share-header">
+              <h3 id="invite-share-title" className="text-xl font-extrabold text-neutral-800">
                 {t('invite.memberInviteTitle')}
               </h3>
               <button
                 onClick={() => setShowShareModal(false)}
+                aria-label={t('invite.close')}
                 className="
                   p-2 rounded-full
                   text-neutral-400 hover:text-neutral-600
@@ -275,7 +278,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="invite-share-content space-y-5">
               {/* Invite type badge */}
               <div className="flex items-center gap-2">
                 <span className="
@@ -315,13 +318,13 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
                 <label className="block text-sm font-semibold text-neutral-500 mb-2">
                   {t('invite.inviteLink')}
                 </label>
-                <div className="flex gap-2">
+                <div className="invite-share-link-row">
                   <input
                     type="text"
                     value={currentInviteUrl}
                     readOnly
                     className="
-                      flex-1 px-4 py-3
+                      min-w-0 flex-1 px-4 py-3
                       rounded-2xl
                       bg-white/60 backdrop-blur-sm
                       border border-neutral-200/60
@@ -387,7 +390,8 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
