@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { CompactTaskCard } from '../components/shared/CompactTaskCard';
 import type { Task } from '../types';
 
@@ -81,5 +81,18 @@ describe('CompactTaskCard attributes', () => {
     render(<CompactTaskCard task={parentTask} />);
 
     expect(screen.getByText('0/1')).toBeInTheDocument();
+  });
+
+  it('provides a visible save action when creating a label from a task', () => {
+    const addLabel = vi.fn();
+    useAppMock.mockReturnValue({ ...baseAppValue, addLabel });
+    render(<CompactTaskCard task={{ ...parentTask, labels: [] }} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Editor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit labels' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /label/i }), { target: { value: 'School' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save label' }));
+
+    expect(addLabel).toHaveBeenCalledWith(expect.objectContaining({ name: 'School', visibility: 'family' }));
   });
 });

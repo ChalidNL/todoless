@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare, Save } from 'lucide-react';
 import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
@@ -303,6 +303,17 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const visibleLabels = labels.filter((l) =>
     l.name.toLowerCase().includes(labelInput.trim().toLowerCase())
   );
+  const saveNewLabel = () => {
+    const name = labelInput.trim();
+    if (!name) return;
+    const existing = labels.find((label) => label.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!task.labels.includes(existing.id)) updateTask(task.id, { labels: [...task.labels, existing.id] });
+    } else {
+      addLabel({ name, color: '#3b82f6', visibility: 'family' });
+    }
+    setLabelInput('');
+  };
   const hasLabels = task.labels.length > 0;
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
@@ -633,23 +644,23 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       onChange={(e) => setLabelInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          const name = labelInput.trim();
-                          if (!name) return;
-                          const existing = labels.find((l) => l.name.toLowerCase() === name.toLowerCase());
-                          if (existing) {
-                            if (!task.labels.includes(existing.id)) {
-                              updateTask(task.id, { labels: [...task.labels, existing.id] });
-                            }
-                          } else {
-                            addLabel({ name, color: '#3b82f6', visibility: 'family' });
-                          }
-                          setLabelInput('');
+                          e.preventDefault();
+                          saveNewLabel();
                         }
                       }}
                       placeholder={t('tasks.labelInputPlaceholder')}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.labelInputAria')}
                     />
+                    <button
+                      type="button"
+                      onClick={saveNewLabel}
+                      disabled={!labelInput.trim()}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Save label"
+                    >
+                      <Save className="h-3.5 w-3.5" /> {t('common.save')}
+                    </button>
                     {hasLabels && (
                       <button onClick={clearAllLabels} className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm" aria-label={t('tasks.clearAllLabels')} title={t('common.clearAllTooltip')}>
                         <X className="w-4 h-4" />
