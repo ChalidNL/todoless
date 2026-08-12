@@ -78,10 +78,11 @@ export const AppHeader = ({
   sortOptions = [],
   sortAriaLabel = t('common.sort')
 }: AppHeaderProps) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {} } = useApp();
+  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {}, showCompletionMessage } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
@@ -129,7 +130,10 @@ export const AppHeader = ({
     }
     if (onAddEmpty) {
       onAddEmpty(trimmed || undefined);
+      return;
     }
+    showCompletionMessage(t('calendar.titleRequired'));
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -267,6 +271,7 @@ export const AppHeader = ({
             <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
               <input
+                ref={inputRef}
                 type="text"
                 value={inputText}
                 onChange={handleInputChange}

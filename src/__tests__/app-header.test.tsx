@@ -43,6 +43,19 @@ describe('AppHeader', () => {
     expect(onAddEmpty).toHaveBeenCalledTimes(1);
   });
 
+  it('gives explicit feedback when plus is clicked without a title', () => {
+    const onAdd = vi.fn();
+    const showCompletionMessage = vi.fn();
+    useAppMock.mockReturnValue({ ...baseAppValue, showCompletionMessage });
+
+    render(<AppHeader searchPlaceholder="Search tasks…" onAdd={onAdd} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(showCompletionMessage).toHaveBeenCalledWith('Title is required');
+    expect(document.activeElement).toBe(screen.getByPlaceholderText('Search tasks…'));
+  });
+
   it('uses the same add path for Enter as the plus button and clears the input', () => {
     const onAdd = vi.fn();
 
