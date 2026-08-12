@@ -36,4 +36,14 @@ describe('backend regression guards', () => {
 
     expect(client).toContain("priority: task.priority || 'medium'");
   });
+
+  it('allows family members to update and delete visible shared tasks', () => {
+    const migration = repoFile('pb_migrations/z066_family_shared_task_write_rules.js');
+
+    expect(migration).toContain('tasks.updateRule = TASK_FAMILY_WRITE_RULE');
+    expect(migration).toContain('tasks.deleteRule = TASK_FAMILY_WRITE_RULE');
+    expect(migration).toContain('is_private = false');
+    expect(migration).toContain('user.family_id = @request.auth.family_id');
+    expect(migration).toContain('label:length = 0');
+  });
 });
