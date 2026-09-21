@@ -114,10 +114,11 @@ export const FilterPanel = ({
                   </button>
                   <button
                     onClick={() => deleteFilter(filter.id)}
-                    className="p-1 hover:bg-neutral-200 rounded"
+                    className="grid h-8 w-8 place-items-center rounded hover:bg-neutral-200"
                     title={t('filters.deleteFilter')}
+                    aria-label={t('filters.deleteFilter')}
                   >
-                    <X className="w-3 h-3 text-neutral-400" />
+                    <X className="w-4 h-4 text-neutral-400" />
                   </button>
                 </div>
               ))}
@@ -153,17 +154,19 @@ export const FilterPanel = ({
                     setEditingLabelId(label.id);
                     setEditingLabelName(label.name);
                   }}
-                  className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-neutral-200 rounded transition-opacity"
+                  className="grid h-8 w-8 place-items-center rounded opacity-60 hover:opacity-100 hover:bg-neutral-200 transition-opacity"
                   title={t('filters.editLabel')}
+                  aria-label={t('filters.editLabel')}
                 >
-                  <Edit2 className="w-2.5 h-2.5 text-neutral-500" />
+                  <Edit2 className="w-4 h-4 text-neutral-500" />
                 </button>
                 <button
                   onClick={() => handleDeleteLabel(label.id)}
-                  className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-opacity"
+                  className="grid h-8 w-8 place-items-center rounded opacity-60 hover:opacity-100 hover:bg-red-100 transition-opacity"
                   title={t('filters.deleteLabel')}
+                  aria-label={t('filters.deleteLabel')}
                 >
-                  <Trash2 className="w-2.5 h-2.5 text-red-400" />
+                  <Trash2 className="w-4 h-4 text-red-400" />
                 </button>
               </div>
             ))}

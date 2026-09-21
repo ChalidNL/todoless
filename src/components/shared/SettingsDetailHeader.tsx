@@ -103,7 +103,7 @@ export function SettingsDetailHeader({
         <button
           type="button"
           onClick={onBack}
-          className="absolute left-4 top-4 inline-flex min-h-9 items-center gap-1 rounded-full bg-white/12 px-3 text-sm font-semibold text-white active:scale-[0.97]"
+          className="absolute left-4 top-4 inline-flex min-h-11 items-center gap-1 rounded-full bg-white/12 px-3 text-sm font-semibold text-white active:scale-[0.97]"
         >
           <ChevronLeft className="h-[18px] w-[18px]" />
           {t('common.back')}

@@ -135,7 +135,7 @@ export function LabelsView() {
           <article className="app-card app-animate-in flex flex-col gap-3 px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-black text-[var(--app-text)]">{t('settings.newLabel')}</span>
-              <button type="button" onClick={collapseAll} className="grid h-9 w-9 place-items-center rounded-full bg-[var(--app-bg)]"><X className="h-4 w-4" /></button>
+              <button type="button" onClick={collapseAll} className="grid h-11 w-11 place-items-center rounded-full bg-[var(--app-bg)]"><X className="h-4 w-4" /></button>
             </div>
             <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') createLabel(); }} />
             <div className="flex flex-wrap gap-2.5">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-9 w-9 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }} aria-label={color} />)}</div>

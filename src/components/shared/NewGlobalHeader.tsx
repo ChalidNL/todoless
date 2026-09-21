@@ -160,10 +160,10 @@ export const AppHeader = ({
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
       <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
-        <div className="mb-3 flex min-h-[36px] items-center justify-between px-0">
+        <div className="mb-3 flex min-h-[44px] items-center justify-between px-0">
           <a
             href="/settings/profile"
-            className="grid h-9 w-9 flex-shrink-0 place-items-center overflow-hidden rounded-full border-[2.5px] border-white/20 bg-[#1a1a2e] text-[13px] font-bold tracking-[-0.02em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] active:scale-[0.97]"
+            className="grid h-11 w-11 flex-shrink-0 place-items-center overflow-hidden rounded-full border-[2.5px] border-white/20 bg-[#1a1a2e] text-[13px] font-bold tracking-[-0.02em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] active:scale-[0.97]"
             aria-label={t('settings.yourProfile')}
           >
             <span>{initials}</span>
@@ -171,7 +171,7 @@ export const AppHeader = ({
           <AppLogo size="lg" />
           <a
             href="/settings/notifications"
-            className="relative grid h-9 w-9 flex-shrink-0 place-items-center rounded-full bg-white/60 text-[var(--app-text-muted)] active:scale-[0.97]"
+            className="relative grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-white/60 text-[var(--app-text-muted)] active:scale-[0.97]"
             aria-label="Notificaties"
           >
             <Bell className="h-[19px] w-[19px]" strokeWidth={1.8} />
@@ -185,7 +185,7 @@ export const AppHeader = ({
               <button
                 type="button"
                 onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                className="app-icon-button relative h-10 w-10 flex-shrink-0 border backdrop-blur-md hover:bg-[var(--app-surface)]"
+                className="app-icon-button relative h-11 w-11 flex-shrink-0 border backdrop-blur-md hover:bg-[var(--app-surface)]"
                 style={{ background: activeChipFilters.length > 0 ? `${theme.color}18` : 'rgba(255,255,255,0.82)', borderColor: activeChipFilters.length > 0 ? `${theme.color}40` : 'var(--app-border-subtle)', color: activeChipFilters.length > 0 ? theme.color : 'var(--app-text-muted)' }}
                 title={t('common.filtersTooltip')}
                 aria-label={t('common.filtersTooltip')}
@@ -201,8 +201,8 @@ export const AppHeader = ({
                   <div className="border-b border-[var(--app-border-subtle)] p-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-[var(--app-text-muted)]">{t('filters.title')}</span>
-                      <button type="button" onClick={() => setShowFilterDropdown(false)} className="rounded p-0.5 hover:bg-[var(--app-surface-2)]" aria-label={t('common.close')}>
-                        <X className="h-3.5 w-3.5 text-[var(--app-text-soft)]" />
+                      <button type="button" onClick={() => setShowFilterDropdown(false)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--app-surface-2)]" aria-label={t('common.close')}>
+                        <X className="h-4 w-4 text-[var(--app-text-soft)]" />
                       </button>
                     </div>
                   </div>
@@ -268,7 +268,7 @@ export const AppHeader = ({
           )}
 
           {showSearch && (
-            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 py-3 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
               <input
                 ref={inputRef}
@@ -277,7 +277,7 @@ export const AppHeader = ({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 placeholder={searchPlaceholder}
-                className="min-w-0 flex-1 bg-transparent p-0 text-[16px] font-medium text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
+                className="min-h-11 min-w-0 flex-1 bg-transparent p-0 text-[16px] font-medium text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
               />
             </div>
           )}
@@ -286,7 +286,7 @@ export const AppHeader = ({
             <button
               type="button"
               onClick={submitInput}
-              className="app-icon-button h-10 w-10 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              className="app-icon-button h-11 w-11 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
               style={{ color: theme.color }}
               title={submitAriaLabel}
               aria-label={submitAriaLabel}
@@ -299,7 +299,7 @@ export const AppHeader = ({
             <button
               type="button"
               onClick={onCancelInput}
-              className="app-icon-button h-10 w-10 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              className="app-icon-button h-11 w-11 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
               title={cancelAriaLabel}
               aria-label={cancelAriaLabel}
             >
@@ -324,7 +324,7 @@ export const AppHeader = ({
             <select
               value={sortValue}
               onChange={(event) => onSortChange?.(event.target.value)}
-              className="min-h-10 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
+              className="min-h-11 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
               style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
               aria-label={sortAriaLabel}
               data-component="shared-select"
