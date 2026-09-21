@@ -3054,6 +3054,20 @@ export function t(key: string, lang: Language = activeLanguage): string {
   return lookupTranslation(key, lang) ?? lookupTranslation(key, 'en') ?? key;
 }
 
+/** Backend (PocketBase) error messages that must never surface raw in the UI. */
+const PB_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  'failed to authenticate': 'auth.failedToAuthenticate',
+  'invite code is invalid_or_expired': 'auth.expiredInviteCode',
+};
+
+/** Translate known backend error messages; unknown messages pass through raw. */
+export function translatePbError(raw: string | null | undefined, fallbackKey: string): string {
+  const normalized = raw?.trim().toLowerCase().replace(/\.$/, '');
+  if (!normalized) return t(fallbackKey);
+  const key = PB_ERROR_MESSAGE_KEYS[normalized];
+  return key ? t(key) : raw ?? '';
+}
+
 export function formatDate(value: Date | number | string, options?: Intl.DateTimeFormatOptions, lang: Language = activeLanguage): string {
   return new Intl.DateTimeFormat(lang, options).format(new Date(value));
 }

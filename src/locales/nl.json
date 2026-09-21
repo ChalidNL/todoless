@@ -547,6 +547,7 @@
     "logIn": "Inloggen",
     "missingCredentials": "Vul e-mail en wachtwoord in",
     "invalidCredentials": "Ongeldige e-mail of wachtwoord",
+    "failedToAuthenticate": "Aanmelden mislukt.",
     "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
     "iHaveInviteCode": "Ik heb een invite-code",
     "joinTitle": "Word lid van todoless",

@@ -546,6 +546,7 @@
     "logIn": "Connexion",
     "missingCredentials": "Veuillez saisir votre e-mail et votre mot de passe",
     "invalidCredentials": "E-mail ou mot de passe invalide",
+    "failedToAuthenticate": "Échec de l'authentification.",
     "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
     "iHaveInviteCode": "J’ai un code d’invitation",
     "joinTitle": "Rejoindre todoless",

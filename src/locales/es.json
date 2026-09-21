@@ -546,6 +546,7 @@
     "logIn": "Iniciar sesión",
     "missingCredentials": "Por favor, introduce correo y contraseña",
     "invalidCredentials": "Correo o contraseña no válidos",
+    "failedToAuthenticate": "No se pudo autenticar.",
     "noAccountInviteHint": "¿No tienes cuenta? Contacta con tu administrador para una invitación.",
     "iHaveInviteCode": "Tengo un código de invitación",
     "joinTitle": "Únete a todoless",

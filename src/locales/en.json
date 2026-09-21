@@ -547,6 +547,7 @@
     "logIn": "Log In",
     "missingCredentials": "Please enter email and password",
     "invalidCredentials": "Invalid email or password",
+    "failedToAuthenticate": "Failed to authenticate.",
     "noAccountInviteHint": "Don't have an account? Contact your administrator for an invite.",
     "iHaveInviteCode": "I have an invite code",
     "joinTitle": "Join todoless",

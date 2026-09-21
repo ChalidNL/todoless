@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -69,6 +70,7 @@
     "globals": "^16.4.0",
     "jsdom": "^29.0.2",
     "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
     "vite": "^6.4.3",
@@ -77,7 +79,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "VITE_GIT_COMMIT=${VITE_GIT_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo 'local')} vite build",
+    "build": "VITE_GIT_COMMIT=${VITE_GIT_COMMIT:-$(git rev-parse --short HEAD 2>/dev/null || echo 'local')} vite build && node scripts/check-tailwind-css.mjs",
+    "check:css": "node scripts/check-tailwind-css.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",

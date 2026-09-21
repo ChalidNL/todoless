@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { t } from '../i18n/translations';
+import { t, translatePbError } from '../i18n/translations';
 
 interface LoginProps {
   onLogin: () => void;
@@ -31,7 +31,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
     setIsLoading(false);
 
     if (signInError) {
-      setError(signInError.message || t('auth.invalidCredentials'));
+      setError(translatePbError(signInError.message, 'auth.invalidCredentials'));
       return;
     }
 

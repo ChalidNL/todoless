@@ -3,7 +3,7 @@ import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
 import { api } from '../lib/pocketbase-client';
-import { t } from '../i18n/translations';
+import { t, translatePbError } from '../i18n/translations';
 
 interface RegisterProps {
   onRegister: () => void;
@@ -47,7 +47,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
       await api.validateInviteCode(inviteCode);
       setStep('create');
     } catch (validationError: any) {
-      setError(validationError?.message || t('auth.expiredInviteCode'));
+      setError(translatePbError(validationError?.message, 'auth.expiredInviteCode'));
     } finally {
       setIsLoading(false);
     }

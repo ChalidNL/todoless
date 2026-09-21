@@ -235,6 +235,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+@reference "tailwindcss";
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

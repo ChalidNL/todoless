@@ -546,6 +546,7 @@
     "logIn": "Anmelden",
     "missingCredentials": "Bitte gib E-Mail und Passwort ein",
     "invalidCredentials": "Ungültige E-Mail oder ungültiges Passwort",
+    "failedToAuthenticate": "Anmeldung fehlgeschlagen.",
     "noAccountInviteHint": "Noch kein Konto? Bitte deinen Administrator um eine Einladung.",
     "iHaveInviteCode": "Ich habe einen Einladungscode",
     "joinTitle": "todoless beitreten",
