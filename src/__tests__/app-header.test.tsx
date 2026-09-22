@@ -14,7 +14,6 @@ const baseAppValue = {
   toggleChipFilter: vi.fn(),
   clearChipFilters: vi.fn(),
   activeChipFilters: [],
-  addFilter: vi.fn(),
   showCompletionMessage: vi.fn(),
 };
 

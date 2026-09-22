@@ -7,72 +7,12 @@ import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
 import { EmptyState } from '../shared/EmptyState';
 import { SectionHeader } from '../shared/SectionHeader';
-import { SavedFilterControls } from '../shared/SavedFilterControls';
-
-function StoreFilterChips({ shops, activeIds, onToggle, onAll }: { shops: Array<{ id: string; name: string; color?: string }>; activeIds: string[]; onToggle: (shop: { id: string; name: string; color?: string }) => void; onAll: () => void }) {
-  return (
-    <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" aria-label="Store filters">
-      <button
-        type="button"
-        onClick={onAll}
-        className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black shadow-sm ${activeIds.length === 0 ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
-        style={activeIds.length === 0 ? { backgroundColor: '#ec4899' } : undefined}
-      >
-        <ShoppingCart className="h-3.5 w-3.5" />
-        Alle
-      </button>
-      {shops.map((shop) => {
-        const active = activeIds.includes(shop.id);
-        const color = shop.color || 'var(--app-primary)';
-        return (
-          <button
-            key={shop.id}
-            type="button"
-            onClick={() => onToggle(shop)}
-            className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black shadow-sm ${active ? 'text-white' : 'bg-white text-[var(--app-text-muted)]'}`}
-            style={active ? { backgroundColor: color } : { color }}
-          >
-            <ShoppingCart className="h-3.5 w-3.5" />
-            {shop.name}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 export const GroceriesView = () => {
-  const { items, shops = [], addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters, toggleChipFilter, clearChipFilters, filters, addFilter, deleteFilter } = useApp();
+  const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
-  const [showSavedFilters, setShowSavedFilters] = useState(false);
   const [sortMode, setSortMode] = useState<GrocerySortMode>('alpha');
-
-  const itemFilters = useMemo(() => filters.filter(f => f.type === 'item'), [filters]);
-
-  const applySavedFilter = (f: typeof filters[0]) => {
-    clearChipFilters();
-    if (f.chipFilters) {
-      for (const cf of f.chipFilters) {
-        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
-      }
-    }
-    setShowSavedFilters(false);
-    showCompletionMessage(`Filter: ${f.name}`);
-  };
-
-  const saveCurrentFilter = () => {
-    const name = window.prompt(t('settings.filterName'), '');
-    if (!name?.trim()) return;
-    addFilter({
-      name: name.trim(),
-      labelIds: [],
-      chipFilters: activeChipFilters.map((filter) => ({ ...filter })),
-      showCompleted: showBought,
-      type: 'item',
-    });
-    showCompletionMessage(t('filters.saved'));
-  };
 
   const filteredItems = useMemo(() => {
     let result = items;
@@ -123,10 +63,6 @@ export const GroceriesView = () => {
     showCompletionMessage(t('items.restocked'));
   };
 
-  const hasAnyFilter = activeChipFilters.length > 0;
-  const activeShopFilterIds = activeChipFilters.filter((f) => f.type === 'shop').map((f) => f.id);
-  const clearShopFilters = () => activeShopFilterIds.forEach((id) => toggleChipFilter('shop', id));
-
   return (
     <>
       <div className="sticky top-0 z-40">
@@ -147,25 +83,6 @@ export const GroceriesView = () => {
       </div>
       {/* Active items */}
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        {shops.length > 0 && (
-          <StoreFilterChips
-            shops={shops}
-            activeIds={activeShopFilterIds}
-            onToggle={(shop) => toggleChipFilter('shop', shop.id, shop.name, shop.color)}
-            onAll={clearShopFilters}
-          />
-        )}
-        <SavedFilterControls
-          filters={itemFilters}
-          open={showSavedFilters}
-          onOpenChange={setShowSavedFilters}
-          onApply={applySavedFilter}
-          onDelete={(filter) => {
-            deleteFilter(filter.id);
-            showCompletionMessage(t('filters.deleted'));
-          }}
-          onSave={saveCurrentFilter}
-        />
         {sortedActiveItems.length === 0 ? (
           <EmptyState title={t('groceries.empty') || 'No items yet'} icon={<ShoppingCart className="h-7 w-7" />} />
         ) : (

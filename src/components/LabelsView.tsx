@@ -157,14 +157,10 @@ export function LabelsView() {
               {/* Collapsed row */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full" style={{ backgroundColor: label.color || '#8b5cf6' }} />
-                {/* Label chip — tap to filter when collapsed */}
+                {/* Label chip — static display */}
                 <span
-                  className="inline-flex min-h-8 max-w-[130px] items-center gap-1.5 truncate rounded-full px-3 text-xs font-black cursor-pointer active:scale-95 transition-transform"
+                  className="inline-flex min-h-8 max-w-[130px] items-center gap-1.5 truncate rounded-full px-3 text-xs font-black"
                   style={{ backgroundColor: `${label.color || '#8b5cf6'}18`, color: label.color || '#8b5cf6' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // In read mode: use as filter (via the header search could be enhanced)
-                  }}
                 >
                   <Tag className="h-3 w-3" /> {label.name}
                 </span>

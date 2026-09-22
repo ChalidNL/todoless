@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Target, Lock, Tag } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, CheckSquare, Target, Lock } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
 
 import { DueDateNotifications } from './shared/DueDateNotifications';
@@ -8,48 +8,10 @@ import { t, formatDate } from '../i18n/translations';
 import { TaskCard } from './shared/TaskCard';
 import { SectionHeader } from './shared/SectionHeader';
 import { EmptyState } from './shared/EmptyState';
-import { SavedFilterControls } from './shared/SavedFilterControls';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
 
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
-
-interface SprintFilterChip {
-  id: string;
-  label: string;
-  count: number;
-  color: string;
-}
-
-function SprintFilterChips({
-  filters,
-  activeIds,
-  onToggle,
-}: {
-  filters: SprintFilterChip[];
-  activeIds: string[];
-  onToggle: (filter: SprintFilterChip) => void;
-}) {
-  return (
-    <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" aria-label="Sprint filters">
-      {filters.map((filter) => {
-        const active = activeIds.includes(filter.id);
-        return (
-          <button
-            key={filter.id}
-            type="button"
-            onClick={() => onToggle(filter)}
-            className={`app-chip inline-flex min-h-[var(--app-touch-target)] flex-shrink-0 items-center gap-2 px-3 text-xs font-black ${active ? 'text-white shadow-sm' : 'bg-white text-[var(--app-text-muted)] shadow-sm'}`}
-            style={active ? { backgroundColor: filter.color } : undefined}
-          >
-            <span>{filter.label}</span>
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{filter.count}</span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 const isDueWithin24h = (dueDate?: number): boolean => {
   if (!dueDate) return false;
@@ -64,15 +26,12 @@ const isOverdue = (dueDate?: number): boolean => {
 };
 
 export const TasksView = () => {
-  const { tasks, labels, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
+  const { tasks, activeChipFilters, addTask, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
   const [showFocus, setShowFocus] = useState(true);
-  const [showSavedFilters, setShowSavedFilters] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('alpha');
-
-  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
 
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
     if (!value.trim()) return;
@@ -88,42 +47,11 @@ export const TasksView = () => {
     showCompletionMessage(t('inbox.taskAdded'));
   };
 
-  const applySavedFilter = (f: typeof filters[0]) => {
-    clearChipFilters();
-    if (f.chipFilters) {
-      for (const cf of f.chipFilters) {
-        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
-      }
-    }
-    setShowSavedFilters(false);
-    showCompletionMessage(`Filter: ${f.name}`);
-  };
-
-  const saveCurrentFilter = () => {
-    const name = window.prompt(t('settings.filterName'), '');
-    if (!name?.trim()) return;
-    addFilter({
-      name: name.trim(),
-      labelIds: [...activeLabelFilters],
-      chipFilters: activeChipFilters.map((filter) => ({ ...filter })),
-      showCompleted,
-      type: 'task',
-    });
-    showCompletionMessage(t('filters.saved'));
-  };
-
   const getFilteredTasks = () => {
     let filtered = tasks;
 
     // Hide subtask tasks from main list
     filtered = filtered.filter(task => !(task.linkedType === 'task' && task.linkedTo));
-
-    // Label filters (existing)
-    if (activeLabelFilters.length > 0) {
-      filtered = filtered.filter(task =>
-        activeLabelFilters.every(filterId => task.labels.includes(filterId))
-      );
-    }
 
     // Chip filters (labels, assignee, shop, date, repeat, status)
     for (const f of activeChipFilters) {
@@ -221,22 +149,7 @@ export const TasksView = () => {
   const sortedRegularTasks = sortTasks(regularTasks);
   const sortedCompletedTasks = sortTasks(completedTasks);
 
-  const hasAnyFilter = activeChipFilters.length > 0;
-
-
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
-  const statusQuickFilters = [
-    { id: 'todo', label: t('dashboard.todoSprint'), count: regularTasks.length, color: '#16a34a' },
-    { id: 'focus', label: t('tasks.focus'), count: focusTasks.length, color: '#f97316' },
-    { id: 'blocked', label: t('dashboard.blocked'), count: blockedTasks.length, color: '#e11d48' },
-    { id: 'done', label: t('dashboard.doneSprint'), count: completedTasks.length, color: '#7c3aed' },
-  ];
-  const visibleTaskLabelIds = new Set(tasks.flatMap((task) => task.labels || []));
-  const visibleLabels = labels.filter((label) => visibleTaskLabelIds.has(label.id));
-  const activeLabelChipIds = activeChipFilters.filter((f) => f.type === 'label').map((f) => f.id);
-  const clearLabelChips = () => {
-    activeLabelChipIds.forEach((id) => toggleChipFilter('label', id));
-  };
 
   return (
     <>
@@ -257,63 +170,6 @@ export const TasksView = () => {
         />
       </div>
 
-      <div className="max-w-lg mx-auto px-4 pt-4">
-        {/* Single compact filter rail: quick filters + label chips + active inline × + Reset */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 hide-scrollbar">
-          <SprintFilterChips
-            filters={statusQuickFilters}
-            activeIds={activeChipFilters.filter((f) => f.type === 'status').map((f) => f.id)}
-            onToggle={(filter) => toggleChipFilter('status', filter.id, filter.label, filter.color)}
-          />
-          {visibleLabels.length > 0 && (
-            <>
-              {/* Separator */}
-              <div className="w-px h-6 bg-neutral-200 flex-shrink-0 mx-0.5" />
-              {visibleLabels.map((label) => {
-                const active = activeLabelChipIds.includes(label.id);
-                return (
-                  <button
-                    key={label.id}
-                    type="button"
-                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
-                    className="inline-flex min-h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-bold shadow-sm"
-                    style={{
-                      background: active ? `${label.color}18` : 'white',
-                      color: active ? label.color : 'var(--app-text-muted)',
-                      borderColor: active ? `${label.color}35` : 'var(--app-border-subtle)',
-                    }}
-                  >
-                    <Tag className="h-3 w-3" />
-                    {label.name}
-                  </button>
-                );
-              })}
-            </>
-          )}
-          {/* Reset ✕ — only when any filter is active */}
-          {hasAnyFilter && (
-            <button
-              type="button"
-              onClick={clearChipFilters}
-              className="inline-flex min-h-8 flex-shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-bold shadow-sm text-red-600 border-red-200 bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              <XIcon className="h-3 w-3" />
-              Reset
-            </button>
-          )}
-          <SavedFilterControls
-            filters={taskFilters}
-            open={showSavedFilters}
-            onOpenChange={setShowSavedFilters}
-            onApply={applySavedFilter}
-            onDelete={(filter) => {
-              deleteFilter(filter.id);
-              showCompletionMessage(t('filters.deleted'));
-            }}
-            onSave={saveCurrentFilter}
-          />
-        </div>
-      </div>
       <div className="max-w-lg mx-auto px-4 space-y-4">
         {isEmpty ? (
           <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />

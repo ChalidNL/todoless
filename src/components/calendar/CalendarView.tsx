@@ -117,6 +117,7 @@ export function CalendarView() {
           onAddEmpty={(value) => value ? openCreate(undefined, undefined, value) : openCreate(selectedDay)}
           showInputActions={false}
           showAdd={true}
+          showFilters={false}
           searchPlaceholder={t('calendar.searchPlaceholder', language)}
           type="calendar"
           count={items.length}

@@ -33,7 +33,7 @@ function SettingsNavItem({ href, icon, title, subtitle, external }: { href: stri
 }
 
 export const Settings = () => {
-  const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
+  const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
   const appVersion = __APP_VERSION__;
   const appCommitRaw = __APP_COMMIT__;

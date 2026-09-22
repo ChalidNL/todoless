@@ -35,7 +35,6 @@ const baseAppValue = {
   clearChipFilters: vi.fn(),
   isChipFilterActive: vi.fn().mockReturnValue(false),
   activeChipFilters: [],
-  addFilter: vi.fn(),
   refreshEntries: vi.fn(),
   showCompletionMessage: vi.fn(),
   moveTaskToStatus: vi.fn(),

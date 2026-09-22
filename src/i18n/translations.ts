@@ -167,8 +167,6 @@ interface TranslationStructure {
   };
   filters: {
     title: string;
-    noSavedFilters: string;
-    manageFilters: string;
   };
   groceries: {
     empty: string;
@@ -176,7 +174,6 @@ interface TranslationStructure {
   settings: {
     account: string;
     active: string;
-    addFilter: string;
     addLabel: string;
     addShop: string;
     addedBy: string;
@@ -215,7 +212,6 @@ interface TranslationStructure {
     enabled: string;
     expires: string;
     filterConditions: string;
-    filterName: string;
     filterViews: string;
     friday: string;
     integration: string;
@@ -233,7 +229,6 @@ interface TranslationStructure {
     noPermissions: string;
     noPendingAgents: string;
     noRegisteredAgents: string;
-    noSavedFilters: string;
     notifications: string;
     notificationsComingSoon: string;
     notificationsComingSoonHint: string;
@@ -581,8 +576,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
-      noSavedFilters: 'No saved filters',
-      manageFilters: 'Manage your saved filters here.',
     },
     groceries: {
       empty: 'No items yet',
@@ -590,7 +583,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Account',
       active: 'Active',
-      addFilter: 'Add Filter',
       addLabel: 'Add Label',
       addShop: 'Add Shop',
       addedBy: 'Added by',
@@ -629,7 +621,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Enabled',
       expires: 'Expires',
       filterConditions: 'Filter Conditions',
-      filterName: 'Filter Name',
       filterViews: 'Filter Views',
       friday: 'Friday',
       integration: 'Integration',
@@ -647,7 +638,6 @@ export const translations: Record<Language, TranslationStructure> = {
       noPermissions: 'No permissions',
       noPendingAgents: 'No pending agents',
       noRegisteredAgents: 'No registered agents',
-      noSavedFilters: 'No saved filters',
       notifications: 'Notifications',
       notificationsDueDate: 'Due date notifications',
       notificationsComingSoon: 'Coming soon',
@@ -989,8 +979,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filtres',
-      noSavedFilters: 'Aucun filtre enregistré',
-      manageFilters: 'Gérez vos filtres enregistrés ici.',
     },
     groceries: {
       empty: 'Aucun article',
@@ -998,7 +986,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Compte',
       active: 'Actif',
-      addFilter: 'Ajouter un filtre',
       addLabel: 'Ajouter une étiquette',
       addShop: 'Ajouter un magasin',
       addedBy: 'Ajouté par',
@@ -1037,7 +1024,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Activé',
       expires: 'Expire',
       filterConditions: 'Conditions du filtre',
-      filterName: 'Nom du filtre',
       filterViews: 'Vues filtrées',
       friday: 'Vendredi',
       integration: 'Intégration',
@@ -1055,7 +1041,6 @@ export const translations: Record<Language, TranslationStructure> = {
       noPermissions: 'Aucune permission',
       noPendingAgents: 'Aucun agent en attente',
       noRegisteredAgents: 'Aucun agent enregistré',
-      noSavedFilters: 'Aucun filtre enregistré',
       notifications: 'Notifications',
       notificationsDueDate: 'Notifications de date d\'échéance',
       notificationsComingSoon: 'Bientôt disponible',
@@ -1399,8 +1384,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
-      noSavedFilters: 'Geen opgeslagen filters',
-      manageFilters: 'Beheer je opgeslagen filters hier.',
     },
     groceries: {
       empty: 'Geen items',
@@ -1408,7 +1391,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Account',
       active: 'Actief',
-      addFilter: 'Filter toevoegen',
       addLabel: 'Label toevoegen',
       addShop: 'Winkel toevoegen',
       addedBy: 'Toegevoegd door',
@@ -1447,7 +1429,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Ingeschakeld',
       expires: 'Verloopt',
       filterConditions: 'Filter voorwaarden',
-      filterName: 'Filter naam',
       filterViews: 'Filter weergaven',
       friday: 'Vrijdag',
       integration: 'Integratie',
@@ -1465,7 +1446,6 @@ export const translations: Record<Language, TranslationStructure> = {
       noPermissions: 'Geen rechten',
       noPendingAgents: 'Geen wachtende agenten',
       noRegisteredAgents: 'Geen geregistreerde agenten',
-      noSavedFilters: 'Geen opgeslagen filters',
       notifications: 'Meldingen',
       notificationsDueDate: 'Deadline meldingen',
       notificationsComingSoon: 'Binnenkort beschikbaar',
@@ -1807,8 +1787,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filter',
-      noSavedFilters: 'Keine gespeicherten Filter',
-      manageFilters: 'Verwalte deine gespeicherten Filter hier.',
     },
     groceries: {
       empty: 'Keine Artikel',
@@ -1816,7 +1794,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Konto',
       active: 'Aktiv',
-      addFilter: 'Filter hinzufügen',
       addLabel: 'Etikett hinzufügen',
       addShop: 'Shop hinzufügen',
       addedBy: 'Hinzugefügt von',
@@ -1855,7 +1832,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Aktiviert',
       expires: 'Läuft ab',
       filterConditions: 'Filterbedingungen',
-      filterName: 'Filtername',
       filterViews: 'Filteransichten',
       friday: 'Freitag',
       integration: 'Integration',
@@ -1873,7 +1849,6 @@ export const translations: Record<Language, TranslationStructure> = {
       noPermissions: 'Keine Berechtigungen',
       noPendingAgents: 'Keine ausstehenden Agenten',
       noRegisteredAgents: 'Keine registrierten Agenten',
-      noSavedFilters: 'Keine gespeicherten Filter',
       notifications: 'Benachrichtigungen',
       notificationsDueDate: 'Fälligkeitsbenachrichtigungen',
       notificationsComingSoon: 'Demnächst verfügbar',
@@ -2184,10 +2159,10 @@ export const translations: Record<Language, TranslationStructure> = {
       sortAlpha: 'A-Z',
     },
     notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
-    filters: { title: 'Filtros', noSavedFilters: 'Sin filtros guardados', manageFilters: 'Administra tus filtros guardados aquí.' },
+    filters: { title: 'Filtros' },
     groceries: { empty: 'Sin artículos' },
     settings: {
-      account: 'Cuenta', active: 'Activo', addFilter: 'Añadir filtro', addLabel: 'Añadir etiqueta',
+      account: 'Cuenta', active: 'Activo', addLabel: 'Añadir etiqueta',
       addShop: 'Añadir tienda', addedBy: 'Añadido por', adminCountWarning: 'Aviso: cambiando el número de administradores',
       agentApproval: 'Aprobación de agente', agents: 'Agentes', apiDocumentation: 'Documentación API',
       apiTokens: 'Tokens API', appInfo: 'Info de la app', approve: 'Aprobar', approvedCount: 'Aprobado',
@@ -2198,12 +2173,12 @@ export const translations: Record<Language, TranslationStructure> = {
       currentPasswordIncorrect: 'La contraseña actual es incorrecta', days30: '30 días', days60: '60 días',
       days90: '90 días', deleteMember: 'Eliminar miembro', deleteMemberConfirm: '¿Eliminar este miembro?',
       demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', editProfile: 'Editar perfil',
-      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro', filterName: 'Nombre del filtro',
+      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro',
       filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
       language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
       newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
       noLabels: 'Aún no hay etiquetas', noLabelsHint: 'Crea una etiqueta con el botón +', noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
-      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', notificationsDueDate: 'Notificaciones de fecha límite', notificationsComingSoon: 'Próximamente', notificationsComingSoonHint: 'Las preferencias de notificación estarán disponibles en una futura actualización.', openSwaggerDocs: 'Abrir documentación Swagger',
+      notifications: 'Notificaciones', notificationsDueDate: 'Notificaciones de fecha límite', notificationsComingSoon: 'Próximamente', notificationsComingSoonHint: 'Las preferencias de notificación estarán disponibles en una futura actualización.', openSwaggerDocs: 'Abrir documentación Swagger',
       admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
       autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',
       firstAdmin: 'Primer admin', makeAdmin: 'Hacer admin', makeMember: 'Hacer miembro', owner: 'Propietario',
@@ -2280,8 +2255,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
   },
 };
-
-
 const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
   "en": {
     "auth": {
@@ -2657,8 +2630,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Smith Family"
     },
     "filters": {
-      "deleted": "Filter deleted",
-      "saved": "Filter saved",
       "saveFailed": "Failed to save filter",
       "saveUnavailable": "Filter saved (not yet implemented)",
       "taskOrShopPrompt": "Task or shop?",
@@ -2666,20 +2637,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Sort tasks",
       "priority": "Priority",
       "dueDate": "Due date",
-      "savedFilters": "Saved Filters",
-      "deleteFilter": "Delete filter",
-      "filterByLabel": "Filter by Label",
-      "editLabel": "Edit label",
-      "deleteLabel": "Delete label",
-      "labelNamePlaceholder": "Label name...",
-      "filterByAssignee": "Filter by Assignee",
-      "newFilterNamePlaceholder": "New filter name...",
-      "newLabel": "New label",
-      "saveJqlHint": "Saves current JQL query and label filters",
-      "saveLabelsHint": "Select labels above, then save as filter",
-      "noSavedFiltersHint": "No saved filters. Apply filters via chips and save them here.",
-      "applied": "Filter applied",
-      "noActiveFilters": "No active filters to save"
     },
     "settings": {
       "adminUpdated": "Admin updated",
@@ -2791,8 +2748,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Familie Jansen"
     },
     "filters": {
-      "deleted": "Filter verwijderd",
-      "saved": "Filter opgeslagen",
       "saveFailed": "Filter opslaan mislukt",
       "saveUnavailable": "Filter opgeslagen (nog niet geïmplementeerd)",
       "taskOrShopPrompt": "Taak of winkel?",
@@ -2800,20 +2755,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Taken sorteren",
       "priority": "Prioriteit",
       "dueDate": "Vervaldatum",
-      "savedFilters": "Opgeslagen filters",
-      "deleteFilter": "Filter verwijderen",
-      "filterByLabel": "Filter op label",
-      "editLabel": "Label bewerken",
-      "deleteLabel": "Label verwijderen",
-      "labelNamePlaceholder": "Labelnaam...",
-      "filterByAssignee": "Filter op toegewezen persoon",
-      "newFilterNamePlaceholder": "Nieuwe filternaam...",
-      "newLabel": "Nieuw label",
-      "saveJqlHint": "Slaat de huidige JQL-query en labelfilters op",
-      "saveLabelsHint": "Selecteer hierboven labels en sla ze op als filter",
-      "noSavedFiltersHint": "Geen opgeslagen filters. Pas filters toe via chips en sla ze hier op.",
-      "applied": "Filter toegepast",
-      "noActiveFilters": "Geen actieve filters om op te slaan"
     },
     "settings": {
       "adminUpdated": "Admin bijgewerkt",
@@ -2925,8 +2866,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Famille Dupont"
     },
     "filters": {
-      "deleted": "Filtre supprimé",
-      "saved": "Filtre enregistré",
       "saveFailed": "Échec de l’enregistrement du filtre",
       "saveUnavailable": "Filtre enregistré (pas encore implémenté)",
       "taskOrShopPrompt": "Tâche ou magasin ?",
@@ -2934,20 +2873,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Trier les tâches",
       "priority": "Priorité",
       "dueDate": "Échéance",
-      "savedFilters": "Filtres enregistrés",
-      "deleteFilter": "Supprimer le filtre",
-      "filterByLabel": "Filtrer par label",
-      "editLabel": "Modifier le label",
-      "deleteLabel": "Supprimer le label",
-      "labelNamePlaceholder": "Nom du label...",
-      "filterByAssignee": "Filtrer par assigné",
-      "newFilterNamePlaceholder": "Nouveau nom de filtre...",
-      "newLabel": "Nouveau label",
-      "saveJqlHint": "Enregistre la requête JQL actuelle et les filtres de labels",
-      "saveLabelsHint": "Sélectionnez des labels ci-dessus, puis enregistrez comme filtre",
-      "noSavedFiltersHint": "Aucun filtre enregistré. Appliquez des filtres via les chips et enregistrez-les ici.",
-      "applied": "Filtre appliqué",
-      "noActiveFilters": "Aucun filtre actif à enregistrer"
     },
     "settings": {
       "adminUpdated": "Admin mis à jour",

@@ -82,7 +82,7 @@ export const AppHeader = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {}, showCompletionMessage } = useApp();
+  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {}, showCompletionMessage } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
@@ -92,8 +92,6 @@ export const AppHeader = ({
     : 'CT';
   const notificationCount = 0;
   const isSortable = !!onSortChange && sortOptions.length > 0;
-
-  const typeFilters = filters.filter(f => f.type === type);
 
   const setInputText = (value: string) => {
     if (onInputValueChange) onInputValueChange(value);
@@ -142,20 +140,6 @@ export const AppHeader = ({
     e.stopPropagation();
     handleAdd();
   };
-
-  const applySavedFilter = (filterId: string) => {
-    const filter = filters.find(f => f.id === filterId);
-    if (!filter) return;
-    clearChipFilters();
-    if (filter.chipFilters) {
-      filter.chipFilters.forEach((cf: any) => {
-        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
-      });
-    }
-    setShowFilterDropdown(false);
-  };
-
-  const closeFilterSheet = () => setShowFilterDropdown(false);
 
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
@@ -235,31 +219,10 @@ export const AppHeader = ({
                     </div>
                     )}
 
-                    {/* Saved filters section */}
-                    {typeFilters.length > 0 && (
-                      <div className="border-t border-[var(--app-border-subtle)] pt-1 mt-0.5">
-                        {typeFilters.map(f => (
-                          <button
-                            key={f.id}
-                            type="button"
-                            onClick={() => applySavedFilter(f.id)}
-                            className="flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm hover:bg-[var(--app-surface-2)]"
-                          >
-                            <span className="truncate">{f.name}</span>
-                            <span className="ml-2 shrink-0 text-[10px] text-[var(--app-text-soft)]">
-                              {f.chipFilters?.length || 0}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    </div>
                   <div className="flex gap-2 border-t border-[var(--app-border-subtle)] p-2">
                     <button type="button" onClick={clearChipFilters} className="min-h-9 flex-1 rounded-full border border-[var(--app-border-subtle)] text-xs font-bold text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
                       {t('common.clearAllTooltip')}
-                    </button>
-                    <button type="button" onClick={closeFilterSheet} className="min-h-9 flex-1 rounded-full text-xs font-bold text-white" style={{ background: theme.color }}>
-                      {t('common.confirm')}
                     </button>
                   </div>
                 </div>
