@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Camera, Lock, Save } from 'lucide-react';
+import { Lock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t, SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
@@ -86,13 +86,6 @@ export function ProfileView() {
     }
   };
 
-  const handleAvatarUpload = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.click();
-  };
-
   return (
     <div className="app-shell-bg min-h-full pb-24">
       <div className="relative">
@@ -104,14 +97,6 @@ export function ProfileView() {
           avatarInitials={initials}
           onBack={() => navigate(-1)}
         />
-        <button
-          type="button"
-          onClick={handleAvatarUpload}
-          className="absolute right-[calc(50%-56px)] top-[108px] grid h-7 w-7 place-items-center rounded-full bg-white text-indigo-600 shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
-          aria-label="Avatar upload"
-        >
-          <Camera className="h-3.5 w-3.5" strokeWidth={2.5} />
-        </button>
       </div>
 
       <main className="mx-auto max-w-lg pt-4">

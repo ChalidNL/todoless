@@ -55,16 +55,29 @@ describe('AppHeader', () => {
     expect(document.activeElement).toBe(screen.getByPlaceholderText('Search tasks…'));
   });
 
-  it('uses the same add path for Enter as the plus button and clears the input', () => {
+  it('does not create a task when Enter is pressed in the search field', () => {
+    const onAdd = vi.fn();
+    const onSubmitInput = vi.fn();
+
+    render(<AppHeader searchPlaceholder="Search…" onAdd={onAdd} onSubmitInput={onSubmitInput} />);
+    const input = screen.getByPlaceholderText('Search…');
+    fireEvent.change(input, { target: { value: 'EnterTaken' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(onSubmitInput).not.toHaveBeenCalled();
+    expect(input).toHaveValue('EnterTaken');
+  });
+
+  it('creates a task via the plus button with text and clears the input', () => {
     const onAdd = vi.fn();
 
     render(<AppHeader searchPlaceholder="Search…" onAdd={onAdd} />);
     const input = screen.getByPlaceholderText('Search…');
-    fireEvent.change(input, { target: { value: 'EnterTaken' } });
-    const prevented = !fireEvent.keyDown(input, { key: 'Enter' });
+    fireEvent.change(input, { target: { value: 'PlusTaken' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
 
-    expect(prevented).toBe(true);
-    expect(onAdd).toHaveBeenCalledWith('EnterTaken');
+    expect(onAdd).toHaveBeenCalledWith('PlusTaken');
     expect(input).toHaveValue('');
   });
 });

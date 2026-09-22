@@ -217,7 +217,8 @@
     "clearAllLabels": "Clear all labels",
     "clearAssigneeAria": "Clear assignee",
     "removeAssignee": "Remove assignee",
-    "deleteTask": "Delete task"
+    "deleteTask": "Delete task",
+    "confirmDeleteCompleted": "Delete all completed tasks?"
   },
   "items": {
     "title": "Items",

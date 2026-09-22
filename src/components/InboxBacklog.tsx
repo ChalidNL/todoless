@@ -155,6 +155,7 @@ export const InboxBacklog = () => {
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
           searchPlaceholder={t('inbox.searchPlaceholder')}
+          showFilters={false}
           count={displayedTasks.length}
         />
       </div>

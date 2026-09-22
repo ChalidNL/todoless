@@ -87,7 +87,7 @@ describe('CalendarView UI', () => {
     vi.useRealTimers();
   });
 
-  it('creates a selected-day task from the calendar search input on Enter', () => {
+  it('does not create a task from the calendar search input on Enter', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
     render(<CalendarView />);
@@ -96,13 +96,8 @@ describe('CalendarView UI', () => {
     fireEvent.change(search, { target: { value: 'EnterAgenda' } });
     fireEvent.keyDown(search, { key: 'Enter' });
 
-    expect(addTask).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'EnterAgenda',
-      dueDate: new Date(2026, 5, 20, 0, 0, 0, 0).getTime(),
-      allDay: true,
-      showInCalendar: true,
-    }));
-    expect(search).toHaveValue('');
+    expect(addTask).not.toHaveBeenCalled();
+    expect(search).toHaveValue('EnterAgenda');
     vi.useRealTimers();
   });
 

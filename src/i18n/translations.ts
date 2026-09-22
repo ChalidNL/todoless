@@ -143,6 +143,7 @@ interface TranslationStructure {
     [key: string]: string;
   };
   tasks: {
+    confirmDeleteCompleted: string;
     [key: string]: string;
   };
   items: {
@@ -553,6 +554,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Mark sub-task as not done',
       subtasksTooltip: 'Sub-tasks',
       viewSubtasks: 'View sub-tasks',
+      confirmDeleteCompleted: 'Delete all completed tasks?',
     },
     items: {
       title: 'Items',
@@ -956,6 +958,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Marquer la sous-tâche comme non terminée',
       subtasksTooltip: 'Sous-tâches',
       viewSubtasks: 'Voir les sous-tâches',
+      confirmDeleteCompleted: 'Supprimer toutes les tâches terminées ?',
     },
     items: {
       title: 'Articles',
@@ -1361,6 +1364,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Sub-taak markeren als niet voltooid',
       subtasksTooltip: 'Sub-taken',
       viewSubtasks: 'Sub-taken bekijken',
+      confirmDeleteCompleted: 'Alle voltooide taken verwijderen?',
     },
     items: {
       title: 'Items',
@@ -1764,6 +1768,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Teilaufgabe als nicht erledigt markieren',
       subtasksTooltip: 'Teilaufgaben',
       viewSubtasks: 'Teilaufgaben anzeigen',
+      confirmDeleteCompleted: 'Alle abgeschlossenen Aufgaben löschen?',
     },
     items: {
       title: 'Artikel',
@@ -2142,7 +2147,9 @@ export const translations: Record<Language, TranslationStructure> = {
       workspaceNameMissing: 'Falta el nombre del espacio de trabajo',
       exampleFamilyName: 'Familia García',
     },
-    tasks: {},
+    tasks: {
+      confirmDeleteCompleted: '¿Eliminar todas las tareas completadas?',
+    },
     items: {
       title: 'Artículos',
       newItem: 'Nuevo artículo',

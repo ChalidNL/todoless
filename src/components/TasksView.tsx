@@ -274,6 +274,7 @@ export const TasksView = () => {
 
                   <button
                     onClick={() => {
+                      if (!window.confirm(t('tasks.confirmDeleteCompleted'))) return;
                       const doneIds = sortedCompletedTasks.map(t => t.id);
                       doneIds.forEach(id => deleteTask(id));
                       showCompletionMessage(`${doneIds.length} deleted`);

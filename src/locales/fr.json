@@ -217,7 +217,8 @@
     "clearAllLabels": "Effacer toutes les étiquettes",
     "clearAssigneeAria": "Effacer l'assigné",
     "removeAssignee": "Supprimer l'assigné",
-    "deleteTask": "Supprimer la tâche"
+    "deleteTask": "Supprimer la tâche",
+    "confirmDeleteCompleted": "Supprimer toutes les tâches terminées ?"
   },
   "items": {
     "title": "Articles",

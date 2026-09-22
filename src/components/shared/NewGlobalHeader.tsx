@@ -137,8 +137,6 @@ export const AppHeader = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    e.stopPropagation();
-    handleAdd();
   };
 
   return (

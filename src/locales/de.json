@@ -217,7 +217,8 @@
     "clearAllLabels": "Alle Etiketten löschen",
     "clearAssigneeAria": "Zugewiesene Person entfernen",
     "removeAssignee": "Zugewiesene Person entfernen",
-    "deleteTask": "Aufgabe löschen"
+    "deleteTask": "Aufgabe löschen",
+    "confirmDeleteCompleted": "Alle abgeschlossenen Aufgaben löschen?"
   },
   "items": {
     "title": "Artikel",

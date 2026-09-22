@@ -98,7 +98,7 @@ describe('Calendar Google-inspired UX', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
   });
 
-  it('creates from the header input on Enter once and clears the bar', () => {
+  it('does not create from the header input on Enter; Add button remains the explicit create path', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
     render(<CalendarView />);
@@ -109,10 +109,14 @@ describe('Calendar Google-inspired UX', () => {
     expect(fireEvent.keyDown(search, { key: 'Enter' })).toBe(false);
     fireEvent.keyDown(search, { key: 'Enter' });
 
+    expect(addTask).not.toHaveBeenCalled();
+    expect(search).toHaveValue('Enter saved task');
+    expect(document.activeElement).toBe(search);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(addTask).toHaveBeenCalledTimes(1);
     expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Enter saved task', showInCalendar: true }));
     expect(search).toHaveValue('');
-    expect(document.activeElement).toBe(search);
     vi.useRealTimers();
   });
 
