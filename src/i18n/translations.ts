@@ -88,6 +88,7 @@ interface TranslationStructure {
     remove: string;
     retry: string;
     save: string;
+    saved: string;
     search: string;
     searchDot: string;
     searchTooltip: string;
@@ -490,6 +491,7 @@ const translations: Record<Language, TranslationStructure> = {
       remove: 'Remove',
       retry: 'Retry',
       save: 'Save',
+      saved: 'Saved',
       search: 'Search',
       searchDot: 'Search...',
       searchTooltip: 'Search',
@@ -922,6 +924,7 @@ const translations: Record<Language, TranslationStructure> = {
       remove: 'Supprimer',
       retry: 'Réessayer',
       save: 'Enregistrer',
+      saved: 'Enregistré',
       search: 'Rechercher',
       searchDot: 'Rechercher...',
       searchTooltip: 'Rechercher',
@@ -1352,6 +1355,7 @@ const translations: Record<Language, TranslationStructure> = {
       remove: 'Verwijderen',
       retry: 'Opnieuw proberen',
       save: 'Opslaan',
+      saved: 'Opgeslagen',
       search: 'Zoeken',
       searchDot: 'Zoeken...',
       searchTooltip: 'Zoeken',
@@ -1784,6 +1788,7 @@ const translations: Record<Language, TranslationStructure> = {
       remove: 'Entfernen',
       retry: 'Erneut versuchen',
       save: 'Speichern',
+      saved: 'Gespeichert',
       search: 'Suchen',
       searchDot: 'Suchen...',
       searchTooltip: 'Suchen',
@@ -2214,6 +2219,7 @@ const translations: Record<Language, TranslationStructure> = {
       remove: 'Quitar',
       retry: 'Reintentar',
       save: 'Guardar',
+      saved: 'Guardado',
       search: 'Buscar',
       searchDot: 'Buscar...',
       searchTooltip: 'Buscar',
