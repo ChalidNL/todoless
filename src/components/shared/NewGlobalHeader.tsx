@@ -82,7 +82,7 @@ export const AppHeader = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], appSettings = {}, showCompletionMessage } = useApp();
+  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], tasks = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
@@ -90,7 +90,14 @@ export const AppHeader = ({
   const initials = currentUser
     ? `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT'
     : 'CT';
-  const notificationCount = 0;
+  const now = Date.now();
+  const reminderWindowMs = ((appSettings as any).reminderMinutes ?? 15) * 60 * 1000;
+  const dueSoonCount = (appSettings as any).taskReminders === false ? 0 : tasks.filter((task: any) => {
+    if (task.status === 'done' || !task.dueDate) return false;
+    return task.dueDate >= now && task.dueDate <= now + reminderWindowMs;
+  }).length;
+  const firedReminderCount = reminders.filter((reminder: any) => reminder.fired && !reminder.dismissed).length;
+  const notificationCount = dueSoonCount + firedReminderCount;
   const isSortable = !!onSortChange && sortOptions.length > 0;
 
   const setInputText = (value: string) => {
@@ -139,12 +146,19 @@ export const AppHeader = ({
     e.preventDefault();
   };
 
+  const handleHeaderNavigate = (path: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+
   return (
     <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
       <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
         <div className="mb-3 flex min-h-[44px] items-center justify-between px-0">
           <a
             href="/settings/profile"
+            onClick={handleHeaderNavigate('/settings/profile')}
             className="grid h-11 w-11 flex-shrink-0 place-items-center overflow-hidden rounded-full border-[2.5px] border-white/20 bg-[#1a1a2e] text-[13px] font-bold tracking-[-0.02em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] active:scale-[0.97]"
             aria-label={t('settings.yourProfile')}
           >
@@ -153,11 +167,12 @@ export const AppHeader = ({
           <AppLogo size="lg" />
           <a
             href="/settings/notifications"
+            onClick={handleHeaderNavigate('/settings/notifications')}
             className="relative grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-white/60 text-[var(--app-text-muted)] active:scale-[0.97]"
-            aria-label="Notificaties"
+            aria-label={t('settings.notifications')}
           >
             <Bell className="h-[19px] w-[19px]" strokeWidth={1.8} />
-            {notificationCount > 0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full border border-white bg-red-500" />}
+            {notificationCount > 0 && <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-red-500 px-1 text-[9px] font-black text-white">{notificationCount > 9 ? '9+' : notificationCount}</span>}
           </a>
         </div>
 

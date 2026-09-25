@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import { t } from '../../i18n/translations';
 
 interface SearchBarProps {
   value: string;
@@ -41,7 +42,7 @@ export function SearchBar({ value, onChange, onSubmit, placeholder = 'Search…'
           type="button"
           onClick={() => onChange('')}
           className="grid h-9 w-9 place-items-center rounded-full text-[var(--app-text-muted)] transition active:scale-[0.97] hover:bg-[var(--app-surface-2)]"
-          aria-label="Clear search"
+          aria-label={t('common.clearSearch')}
         >
           <X className="h-4 w-4" />
         </button>

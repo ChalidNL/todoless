@@ -23,7 +23,7 @@ export function CalendarImportExport() {
       anchor.click();
       URL.revokeObjectURL(url);
     } catch (error: any) {
-      showCompletionMessage?.(error?.message || 'Export failed');
+      showCompletionMessage?.(error?.message || t('ics.exportFailed'));
     } finally {
       setExporting(false);
     }
@@ -60,7 +60,7 @@ export function CalendarImportExport() {
         open={showImport}
         onClose={() => setShowImport(false)}
         onImported={({ created, updated }) => {
-          showCompletionMessage?.(`Imported: ${created} new, ${updated} updated`);
+          showCompletionMessage?.(t('ics.importedToast').replace('{created}', String(created)).replace('{updated}', String(updated)));
           void refreshEntries?.();
         }}
       />

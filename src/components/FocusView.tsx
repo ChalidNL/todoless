@@ -25,7 +25,7 @@ export function FocusView() {
         />
 
         {focusTasks.length === 0 ? (
-          <EmptyState title="Geen focus-taken" icon={<Target className="h-7 w-7" />} />
+          <EmptyState title={t('tasks.noFocusTasks')} icon={<Target className="h-7 w-7" />} />
         ) : (
           <div className="space-y-2">
             {focusTasks.map((task) => (
@@ -52,10 +52,10 @@ function FocusCard({ total, due, blocked, onStart }: { total: number; due: numbe
           </div>
           <p className="text-sm font-black uppercase tracking-[0.22em] text-white/75">Focus</p>
           <h2 className="mt-1 text-[34px] font-black leading-none tracking-[-0.06em]">{total}</h2>
-          <p className="mt-2 max-w-[220px] text-sm font-semibold text-white/85">Ademruimte voor de belangrijkste taken van vandaag.</p>
+          <p className="mt-2 max-w-[220px] text-sm font-semibold text-white/85">{t('tasks.focusHeroSubtitle')}</p>
         </div>
         <div className="min-w-[128px]">
-          <Button label="Focus starten" icon={Play} onClick={onStart} fullWidth={false} className="bg-white text-[var(--app-primary)] shadow-[0_0_36px_rgba(255,255,255,.7)]" />
+          <Button label={t('tasks.startFocus')} icon={Play} onClick={onStart} fullWidth={false} className="bg-white text-[var(--app-primary)] shadow-[0_0_36px_rgba(255,255,255,.7)]" />
         </div>
       </div>
       <div className="relative z-10 mt-5 grid grid-cols-3 gap-2">

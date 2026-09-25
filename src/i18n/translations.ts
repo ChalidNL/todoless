@@ -2956,6 +2956,73 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
   "es": {},
 };
 
+const releaseTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  en: {
+    common: { clearSearch: 'Clear search', done: 'Done', loadingTasks: 'Loading tasks', organizeFamilyLife: 'Organize Family Life.' },
+    tasks: { noFocusTasks: 'No focus tasks', focusHeroSubtitle: 'Breathing room for today’s most important tasks.', startFocus: 'Start focus', saveLabel: 'Save label' },
+    settings: {
+      notificationsActiveHint: 'Saved preferences apply to due-date reminders and header alerts.',
+      notificationsHint: 'Choose where TodoLess reminds you about due tasks.',
+      notificationsSaved: 'Notification preferences saved',
+      taskReminders: 'Task reminders', taskRemindersHint: 'Show alerts for tasks due soon.',
+      pushNotifications: 'Push notifications', pushNotificationsHint: 'Use browser/device notifications when available.',
+      emailNotifications: 'Email notifications', emailNotificationsHint: 'Send reminder emails when mail is configured.',
+      reminderLeadTime: 'Reminder lead time', reminderMinutes: '{minutes} minutes before', reminderOneDay: '1 day before',
+    },
+    ics: {
+      fileTooLarge: 'File too large (max 10 MB)', noIcsFiles: 'No .ics files found in the ZIP', parseFailed: 'Failed to parse file',
+      batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max 10 MB', parsingFile: 'Parsing {file}…', eventsFound: '{count} events found',
+      itemsCouldNotParse: '{count} items could not be parsed', date: 'Date', title: 'Title', time: 'Time', parseWarnings: '{count} parse warnings',
+      importEvents: 'Import {count} events', importingProgress: 'Importing… {current}/{total}', importComplete: 'Import complete',
+      importSummary: '{created} created · {updated} updated', skippedCount: '{count} skipped', errorsCount: '{count} errors',
+      googleHelpTitle: 'How to export from Google Calendar', googleHelpStep1: 'Open Google Calendar → ⚙ Settings', googleHelpStep2: 'Import & export → Export',
+      googleHelpStep3: 'Download the .zip file', googleHelpStep4: 'Upload it here — we extract the .ics automatically', exportFailed: 'Export failed',
+      importedToast: 'Imported: {created} new, {updated} updated',
+    },
+  },
+  nl: {
+    common: { clearSearch: 'Zoekopdracht wissen', done: 'Klaar', loadingTasks: 'Taken laden', organizeFamilyLife: 'Organiseer je gezinsleven.' },
+    tasks: { noFocusTasks: 'Geen focus-taken', focusHeroSubtitle: 'Ademruimte voor de belangrijkste taken van vandaag.', startFocus: 'Focus starten', saveLabel: 'Label opslaan' },
+    settings: {
+      notificationsActiveHint: 'Opgeslagen voorkeuren gelden voor deadline-reminders en header-meldingen.',
+      notificationsHint: 'Kies hoe TodoLess je herinnert aan taken met deadline.',
+      notificationsSaved: 'Meldingsvoorkeuren opgeslagen',
+      taskReminders: 'Taakreminders', taskRemindersHint: 'Toon meldingen voor taken die bijna verlopen.',
+      pushNotifications: 'Pushmeldingen', pushNotificationsHint: 'Gebruik browser-/apparaatmeldingen wanneer beschikbaar.',
+      emailNotifications: 'E-mailmeldingen', emailNotificationsHint: 'Stuur reminder-mails wanneer mail is geconfigureerd.',
+      reminderLeadTime: 'Reminder vooraf', reminderMinutes: '{minutes} minuten vooraf', reminderOneDay: '1 dag vooraf',
+    },
+    ics: {
+      fileTooLarge: 'Bestand te groot (max 10 MB)', noIcsFiles: 'Geen .ics-bestanden gevonden in de ZIP', parseFailed: 'Bestand lezen mislukt',
+      batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max 10 MB', parsingFile: '{file} verwerken…', eventsFound: '{count} events gevonden',
+      itemsCouldNotParse: '{count} items konden niet worden gelezen', date: 'Datum', title: 'Titel', time: 'Tijd', parseWarnings: '{count} parse-waarschuwingen',
+      importEvents: '{count} events importeren', importingProgress: 'Importeren… {current}/{total}', importComplete: 'Import voltooid',
+      importSummary: '{created} aangemaakt · {updated} bijgewerkt', skippedCount: '{count} overgeslagen', errorsCount: '{count} fouten',
+      googleHelpTitle: 'Exporteren vanuit Google Agenda', googleHelpStep1: 'Open Google Agenda → ⚙ Instellingen', googleHelpStep2: 'Importeren en exporteren → Exporteren',
+      googleHelpStep3: 'Download het .zip-bestand', googleHelpStep4: 'Upload het hier — wij halen de .ics automatisch uit de ZIP', exportFailed: 'Export mislukt',
+      importedToast: 'Geïmporteerd: {created} nieuw, {updated} bijgewerkt',
+    },
+  },
+  fr: {
+    common: { clearSearch: 'Effacer la recherche', done: 'Terminé', loadingTasks: 'Chargement des tâches', organizeFamilyLife: 'Organisez la vie de famille.' },
+    tasks: { noFocusTasks: 'Aucune tâche focus', focusHeroSubtitle: 'De l’espace pour les tâches les plus importantes du jour.', startFocus: 'Démarrer le focus', saveLabel: 'Enregistrer le label' },
+    settings: { notificationsActiveHint: 'Les préférences enregistrées s’appliquent aux rappels et alertes.', notificationsHint: 'Choisissez comment TodoLess vous rappelle les tâches à échéance.', notificationsSaved: 'Préférences de notification enregistrées', taskReminders: 'Rappels de tâches', taskRemindersHint: 'Afficher les alertes pour les tâches bientôt dues.', pushNotifications: 'Notifications push', pushNotificationsHint: 'Utiliser les notifications du navigateur/appareil si disponibles.', emailNotifications: 'Notifications e-mail', emailNotificationsHint: 'Envoyer des e-mails de rappel si la messagerie est configurée.', reminderLeadTime: 'Délai de rappel', reminderMinutes: '{minutes} minutes avant', reminderOneDay: '1 jour avant' },
+    ics: { fileTooLarge: 'Fichier trop volumineux (max 10 Mo)', noIcsFiles: 'Aucun fichier .ics trouvé dans le ZIP', parseFailed: 'Impossible d’analyser le fichier', batchFailed: 'Lot {batch} : {error}', maxFileSize: 'Max 10 Mo', parsingFile: 'Analyse de {file}…', eventsFound: '{count} événements trouvés', itemsCouldNotParse: '{count} éléments n’ont pas pu être analysés', date: 'Date', title: 'Titre', time: 'Heure', parseWarnings: '{count} avertissements d’analyse', importEvents: 'Importer {count} événements', importingProgress: 'Import… {current}/{total}', importComplete: 'Import terminé', importSummary: '{created} créés · {updated} mis à jour', skippedCount: '{count} ignorés', errorsCount: '{count} erreurs', googleHelpTitle: 'Exporter depuis Google Agenda', googleHelpStep1: 'Ouvrez Google Agenda → ⚙ Paramètres', googleHelpStep2: 'Importer et exporter → Exporter', googleHelpStep3: 'Téléchargez le fichier .zip', googleHelpStep4: 'Téléversez-le ici — nous extrayons automatiquement le .ics', exportFailed: 'Export échoué', importedToast: 'Importé : {created} nouveaux, {updated} mis à jour' },
+  },
+  de: {
+    common: { clearSearch: 'Suche löschen', done: 'Fertig', loadingTasks: 'Aufgaben werden geladen', organizeFamilyLife: 'Familienleben organisieren.' },
+    tasks: { noFocusTasks: 'Keine Fokus-Aufgaben', focusHeroSubtitle: 'Freiraum für die wichtigsten Aufgaben von heute.', startFocus: 'Fokus starten', saveLabel: 'Label speichern' },
+    settings: { notificationsActiveHint: 'Gespeicherte Einstellungen gelten für Erinnerungen und Header-Hinweise.', notificationsHint: 'Wähle, wie TodoLess dich an fällige Aufgaben erinnert.', notificationsSaved: 'Benachrichtigungseinstellungen gespeichert', taskReminders: 'Aufgabenerinnerungen', taskRemindersHint: 'Hinweise für bald fällige Aufgaben anzeigen.', pushNotifications: 'Push-Benachrichtigungen', pushNotificationsHint: 'Browser-/Gerätebenachrichtigungen verwenden, wenn verfügbar.', emailNotifications: 'E-Mail-Benachrichtigungen', emailNotificationsHint: 'Erinnerungs-E-Mails senden, wenn Mail konfiguriert ist.', reminderLeadTime: 'Erinnerung vorab', reminderMinutes: '{minutes} Minuten vorher', reminderOneDay: '1 Tag vorher' },
+    ics: { fileTooLarge: 'Datei zu groß (max. 10 MB)', noIcsFiles: 'Keine .ics-Dateien im ZIP gefunden', parseFailed: 'Datei konnte nicht gelesen werden', batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max. 10 MB', parsingFile: '{file} wird gelesen…', eventsFound: '{count} Termine gefunden', itemsCouldNotParse: '{count} Einträge konnten nicht gelesen werden', date: 'Datum', title: 'Titel', time: 'Zeit', parseWarnings: '{count} Lesewarnungen', importEvents: '{count} Termine importieren', importingProgress: 'Importieren… {current}/{total}', importComplete: 'Import abgeschlossen', importSummary: '{created} erstellt · {updated} aktualisiert', skippedCount: '{count} übersprungen', errorsCount: '{count} Fehler', googleHelpTitle: 'Aus Google Kalender exportieren', googleHelpStep1: 'Google Kalender öffnen → ⚙ Einstellungen', googleHelpStep2: 'Importieren & Exportieren → Exportieren', googleHelpStep3: '.zip-Datei herunterladen', googleHelpStep4: 'Hier hochladen — wir extrahieren die .ics automatisch', exportFailed: 'Export fehlgeschlagen', importedToast: 'Importiert: {created} neu, {updated} aktualisiert' },
+  },
+  es: {
+    common: { clearSearch: 'Borrar búsqueda', done: 'Listo', loadingTasks: 'Cargando tareas', organizeFamilyLife: 'Organiza la vida familiar.' },
+    tasks: { noFocusTasks: 'Sin tareas de enfoque', focusHeroSubtitle: 'Espacio para las tareas más importantes de hoy.', startFocus: 'Iniciar enfoque', saveLabel: 'Guardar etiqueta' },
+    settings: { notificationsActiveHint: 'Las preferencias guardadas se aplican a recordatorios y alertas.', notificationsHint: 'Elige cómo TodoLess te recuerda tareas con fecha límite.', notificationsSaved: 'Preferencias de notificación guardadas', taskReminders: 'Recordatorios de tareas', taskRemindersHint: 'Mostrar alertas para tareas próximas.', pushNotifications: 'Notificaciones push', pushNotificationsHint: 'Usar notificaciones del navegador/dispositivo si están disponibles.', emailNotifications: 'Notificaciones por correo', emailNotificationsHint: 'Enviar correos de recordatorio si el correo está configurado.', reminderLeadTime: 'Avisar con antelación', reminderMinutes: '{minutes} minutos antes', reminderOneDay: '1 día antes' },
+    ics: { fileTooLarge: 'Archivo demasiado grande (máx. 10 MB)', noIcsFiles: 'No se encontraron archivos .ics en el ZIP', parseFailed: 'No se pudo leer el archivo', batchFailed: 'Lote {batch}: {error}', maxFileSize: 'Máx. 10 MB', parsingFile: 'Analizando {file}…', eventsFound: '{count} eventos encontrados', itemsCouldNotParse: '{count} elementos no se pudieron leer', date: 'Fecha', title: 'Título', time: 'Hora', parseWarnings: '{count} advertencias de lectura', importEvents: 'Importar {count} eventos', importingProgress: 'Importando… {current}/{total}', importComplete: 'Importación completa', importSummary: '{created} creados · {updated} actualizados', skippedCount: '{count} omitidos', errorsCount: '{count} errores', googleHelpTitle: 'Exportar desde Google Calendar', googleHelpStep1: 'Abre Google Calendar → ⚙ Ajustes', googleHelpStep2: 'Importar y exportar → Exportar', googleHelpStep3: 'Descarga el archivo .zip', googleHelpStep4: 'Súbelo aquí — extraemos el .ics automáticamente', exportFailed: 'Error al exportar', importedToast: 'Importado: {created} nuevos, {updated} actualizados' },
+  },
+};
+
 function lookupNested(dict: unknown, key: string): string | undefined {
   const parts = key.split('.');
   let value: any = dict;
@@ -2972,6 +3039,8 @@ function lookupNested(dict: unknown, key: string): string | undefined {
 /** Simple translation helper: looks up nested key in language dict. */
 function lookupTranslation(key: string, lang: Language): string | undefined {
   const supportedLanguage = isSupportedUiLanguage(lang) ? lang : DEFAULT_UI_LANGUAGE;
+  const release = lookupNested(releaseTranslations[supportedLanguage], key);
+  if (release) return release;
   const overlay = lookupNested(overlayTranslations[supportedLanguage], key);
   if (overlay) return overlay;
   const extra = lookupNested(extraTranslations[supportedLanguage], key);

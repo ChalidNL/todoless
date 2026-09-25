@@ -24,6 +24,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+  const format = (key: string, values: Record<string, string | number>) =>
+    Object.entries(values).reduce((text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, 'g'), String(value)), t(key));
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,7 +35,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
     setFileName(file.name);
 
     if (file.size > MAX_FILE_SIZE) {
-      setError('File too large (max 10 MB)');
+      setError(t('ics.fileTooLarge'));
       return;
     }
 
@@ -47,7 +49,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
         // Google Calendar export — extract .ics from zip
         const icsFiles = await extractIcsFromZip(file);
         if (icsFiles.length === 0) {
-          setError('No .ics files found in the ZIP');
+          setError(t('ics.noIcsFiles'));
           setIsProcessing(false);
           return;
         }
@@ -75,7 +77,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
       setParseResult({ events, errors, dateRange });
       setStep('preview');
     } catch (e: any) {
-      setError(e?.message || 'Failed to parse file');
+      setError(e?.message || t('ics.parseFailed'));
     } finally {
       setIsProcessing(false);
     }
@@ -105,7 +107,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
           allErrors.push(...res.errors.map((e: any) => `${e.title || e.uid}: ${e.error}`));
         }
       } catch (e: any) {
-        allErrors.push(`Batch ${i / BATCH + 1}: ${e?.message || 'Failed'}`);
+        allErrors.push(format('ics.batchFailed', { batch: i / BATCH + 1, error: e?.message || t('common.error') }));
       }
     }
 
@@ -135,7 +137,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200">
           <h2 className="text-lg font-semibold text-neutral-900">
-            📅 {t('ics.importTitle') || 'Import Calendar (.ics)'}
+            📅 {t('ics.importTitle')}
           </h2>
           <button onClick={onClose} className="p-1 text-neutral-400 hover:text-neutral-600">
             <X className="w-5 h-5" />
@@ -148,8 +150,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
           {step === 'select' && (
             <div className="space-y-4">
               <p className="text-sm text-neutral-600">
-                {t('ics.importDescription') ||
-                  'Import appointments from Google Calendar, Apple Calendar, or any .ics file. The file is parsed in your browser — no data leaves your device until you confirm.'}
+                {t('ics.importDescription')}
               </p>
               <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center">
                 <input
@@ -166,9 +167,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                 >
                   <Upload className="w-10 h-10 text-neutral-400" />
                   <span className="text-neutral-600 font-medium">
-                    {t('ics.chooseFile') || 'Choose .ics or .zip file'}
+                    {t('ics.chooseFile')}
                   </span>
-                  <span className="text-xs text-neutral-400">Max 10 MB</span>
+                  <span className="text-xs text-neutral-400">{t('ics.maxFileSize')}</span>
                 </label>
               </div>
               {error && (
@@ -180,7 +181,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
               {isProcessing && (
                 <div className="flex items-center gap-2 text-neutral-600 text-sm">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Parsing {fileName}…
+                  {format('ics.parsingFile', { file: fileName })}
                 </div>
               )}
             </div>
@@ -194,14 +195,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                 <div>
                   <p className="font-medium text-blue-900">{fileName}</p>
                   <p className="text-sm text-blue-700">
-                    {parseResult.events.length} events found
+                    {format('ics.eventsFound', { count: parseResult.events.length })}
                     {parseResult.dateRange && (
                       <> · {new Date(parseResult.dateRange.start).toLocaleDateString()} – {new Date(parseResult.dateRange.end).toLocaleDateString()}</>
                     )}
                   </p>
                   {parseResult.errors.length > 0 && (
                     <p className="text-xs text-blue-600 mt-1">
-                      ⚠ {parseResult.errors.length} items could not be parsed
+                      ⚠ {format('ics.itemsCouldNotParse', { count: parseResult.errors.length })}
                     </p>
                   )}
                 </div>
@@ -212,9 +213,9 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                 <table className="w-full text-sm">
                   <thead className="bg-neutral-50">
                     <tr>
-                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">Date</th>
-                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">Title</th>
-                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">Time</th>
+                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">{t('ics.date')}</th>
+                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">{t('ics.title')}</th>
+                      <th className="text-left px-3 py-2 text-neutral-500 font-medium">{t('ics.time')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -227,7 +228,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                           {ev.title}
                         </td>
                         <td className="px-3 py-2 text-neutral-500">
-                          {ev.all_day ? 'All day' : new Date(ev.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {ev.all_day ? t('calendar.allDay') : new Date(ev.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
                       </tr>
                     ))}
@@ -238,7 +239,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
               {parseResult.errors.length > 0 && (
                 <details className="text-xs">
                   <summary className="text-amber-600 cursor-pointer">
-                    {parseResult.errors.length} parse warnings
+                    {format('ics.parseWarnings', { count: parseResult.errors.length })}
                   </summary>
                   <div className="mt-1 max-h-32 overflow-y-auto p-2 bg-amber-50 rounded">
                     {parseResult.errors.map((e, i) => (
@@ -256,7 +257,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                   onClick={handleImport}
                   className="flex-1 px-4 py-2 bg-violet-600 text-white rounded text-sm font-medium hover:bg-violet-700"
                 >
-                  Import {parseResult.events.length} events
+                  {format('ics.importEvents', { count: parseResult.events.length })}
                 </button>
               </div>
             </div>
@@ -268,7 +269,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
               <div className="flex items-center gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-violet-600" />
                 <span className="text-neutral-700">
-                  Importing… {progress.current}/{progress.total}
+                  {format('ics.importingProgress', { current: progress.current, total: progress.total })}
                 </span>
               </div>
               <div className="w-full bg-neutral-200 rounded-full h-2">
@@ -286,10 +287,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
               <div className="flex items-start gap-3 p-3 bg-green-50 rounded">
                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-medium text-green-900">Import complete</p>
+                  <p className="font-medium text-green-900">{t('ics.importComplete')}</p>
                   <p className="text-sm text-green-700">
-                    {importResult.created} created · {importResult.updated} updated
-                    {importResult.skipped > 0 && <> · {importResult.skipped} skipped</>}
+                    {format('ics.importSummary', { created: importResult.created, updated: importResult.updated })}
+                    {importResult.skipped > 0 && <> · {format('ics.skippedCount', { count: importResult.skipped })}</>}
                   </p>
                 </div>
               </div>
@@ -297,7 +298,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
               {importResult.errors?.length > 0 && (
                 <details className="text-xs">
                   <summary className="text-amber-600 cursor-pointer">
-                    {importResult.errors.length} errors
+                    {format('ics.errorsCount', { count: importResult.errors.length })}
                   </summary>
                   <div className="mt-1 max-h-32 overflow-y-auto p-2 bg-amber-50 rounded">
                     {importResult.errors.map((e: string, i: number) => (
@@ -311,7 +312,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
                 onClick={() => { handleReset(); onClose(); }}
                 className="w-full px-4 py-2 bg-neutral-900 text-white rounded text-sm font-medium hover:bg-neutral-800"
               >
-                Done
+                {t('common.done')}
               </button>
             </div>
           )}
@@ -321,12 +322,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
         {step === 'select' && (
           <div className="p-4 border-t border-neutral-200 bg-neutral-50 rounded-b-lg">
             <details className="text-xs text-neutral-500">
-              <summary className="cursor-pointer font-medium">How to export from Google Calendar</summary>
+              <summary className="cursor-pointer font-medium">{t('ics.googleHelpTitle')}</summary>
               <ol className="mt-2 ml-4 space-y-1 list-decimal">
-                <li>Open Google Calendar → ⚙ Settings</li>
-                <li>Import &amp; export → Export</li>
-                <li>Download the .zip file</li>
-                <li>Upload it here — we extract the .ics automatically</li>
+                <li>{t('ics.googleHelpStep1')}</li>
+                <li>{t('ics.googleHelpStep2')}</li>
+                <li>{t('ics.googleHelpStep3')}</li>
+                <li>{t('ics.googleHelpStep4')}</li>
               </ol>
             </details>
           </div>

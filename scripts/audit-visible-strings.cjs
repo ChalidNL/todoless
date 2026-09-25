@@ -15,7 +15,7 @@ function walk(dir) {
 }
 walk(root);
 
-const allowedProps = new Set(['className', 'type', 'value', 'key', 'id', 'name', 'htmlFor', 'href', 'to', 'variant', 'size', 'role', 'method', 'target', 'rel', 'viewBox', 'fill', 'stroke', 'strokeLinecap', 'strokeLinejoin', 'strokeWidth', 'd', 'cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'xmlns']);
+const allowedProps = new Set(['className', 'type', 'value', 'key', 'id', 'name', 'htmlFor', 'href', 'to', 'variant', 'size', 'role', 'method', 'target', 'rel', 'accept', 'viewBox', 'fill', 'stroke', 'strokeLinecap', 'strokeLinejoin', 'strokeWidth', 'd', 'cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'xmlns']);
 const visibleProps = new Set(['title', 'placeholder', 'aria-label', 'alt', 'label']);
 const internalWords = /^(GET|POST|PATCH|DELETE|PUT|task|item|human|agent|owner|admin|member|active|blocked|pending_approval|low|medium|high|urgent|none|auto|manual|light|dark|system|en|nl|fr|main|dev|true|false|button|submit|reset|checkbox|radio|dialog|status|alert)$/;
 const visibleWord = /[A-Za-zÀ-ÿ]/;
@@ -26,6 +26,7 @@ function skip(s){
   if (internalWords.test(s)) return true;
   if (/^[a-z0-9_-]+$/.test(s)) return true;
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return true;
+  if (s === 'noopener noreferrer') return true;
   if (/^(https?:|\/api\/|\.\/|\.\.\/|#|[A-Z_]+$)/.test(s)) return true;
   if (/[{}<>]/.test(s)) return true;
   if (/\b(bg|text|flex|grid|rounded|border|hover|focus|disabled|absolute|relative|fixed|w-|h-|px-|py-|gap-|space-y|items-|justify-)\b/.test(s)) return true;

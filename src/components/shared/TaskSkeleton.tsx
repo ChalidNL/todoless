@@ -1,10 +1,12 @@
+import { t } from '../../i18n/translations';
+
 interface TaskSkeletonProps {
   count?: number;
 }
 
 export function TaskSkeleton({ count = 3 }: TaskSkeletonProps) {
   return (
-    <div className="space-y-3" aria-label="Loading tasks">
+    <div className="space-y-3" aria-label={t('common.loadingTasks')}>
       {Array.from({ length: count }).map((_, index) => (
         <div key={index} className="app-card app-shimmer p-4">
           <div className="flex items-center gap-3">

@@ -657,7 +657,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       onClick={saveNewLabel}
                       disabled={!labelInput.trim()}
                       className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Save label"
+                      aria-label={t('tasks.saveLabel')}
                     >
                       <Save className="h-3.5 w-3.5" /> {t('common.save')}
                     </button>

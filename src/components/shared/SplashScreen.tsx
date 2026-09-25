@@ -1,4 +1,5 @@
 import { AppMark } from './AppLogo';
+import { t } from '../../i18n/translations';
 
 export function SplashScreen() {
   return (
@@ -10,8 +11,8 @@ export function SplashScreen() {
         </div>
         <div className="text-center">
           <p className="text-xl font-black tracking-[-0.04em] text-[var(--app-text)]">todoless</p>
-          <p className="mt-1 text-sm font-semibold italic tracking-[0.01em] text-slate-400">Organize Family Life.</p>
-          <p className="mt-2 text-xs font-bold uppercase tracking-[0.24em] text-[var(--app-text-muted)]">loading</p>
+          <p className="mt-1 text-sm font-semibold italic tracking-[0.01em] text-slate-400">{t('common.organizeFamilyLife')}</p>
+          <p className="mt-2 text-xs font-bold uppercase tracking-[0.24em] text-[var(--app-text-muted)]">{t('common.loading')}</p>
         </div>
       </div>
     </div>
