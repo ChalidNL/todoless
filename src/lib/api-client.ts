@@ -6,6 +6,7 @@
  */
 
 import { pb } from './pocketbase';
+import { getActiveLanguage } from '../i18n/translations';
 import type {
   Task,
   Item,
@@ -25,6 +26,20 @@ import type {
 const toISO = (timestamp?: number | string | null): string | null =>
   timestamp ? new Date(timestamp).toISOString() : null;
 
+const relationIds = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
+
+const taskLabelsFromRecord = (record: any): string[] => {
+  const canonical = relationIds(record.label);
+  return canonical.length > 0 ? canonical : relationIds(record.labels);
+};
+
+const canonicalTaskLabels = (labelId?: string | null, labels?: string[]): string[] => {
+  const result = relationIds(labels);
+  if (labelId && !result.includes(labelId)) result.unshift(labelId);
+  return result;
+};
+
 // --- Normalizers: PocketBase snake_case → Frontend camelCase ---
 const normalizeUser = (r: any): User => ({
   id: r.id, email: r.email, name: r.name || r.email || [r.first_name, r.last_name].filter(Boolean).join(' ') || r.display_name || r.id || '?',
@@ -42,7 +57,7 @@ const normalizeTask = (r: any): Task => ({
   repeatInterval: r.repeat_interval, completedAt: r.completed_at ? new Date(r.completed_at).getTime() : undefined,
   archived: !!r.archived, archivedAt: r.archived_at ? new Date(r.archived_at).getTime() : undefined,
   deleteAfter: r.delete_after ? new Date(r.delete_after).getTime() : undefined,
-  isPrivate: !!r.is_private, labels: Array.isArray(r.labels) ? r.labels : [],
+  isPrivate: !!r.is_private, labels: taskLabelsFromRecord(r), labelId: taskLabelsFromRecord(r)[0] || undefined,
   subtaskIds: Array.isArray(r.subtask_ids) ? r.subtask_ids : [],
   focus: !!r.focus,
   linkedTo: r.linked_to, linkedType: r.linked_type, flag: !!r.flag,
@@ -77,7 +92,12 @@ const normalizeNote = (r: any): Note => ({
 });
 
 const normalizeLabel = (r: any): Label => ({
-  id: r.id, name: r.name, color: r.color, isPrivate: !!r.is_private,
+  id: r.id, name: r.name, color: r.color,
+  visibility: r.visibility || (r.is_private ? 'private' : 'family'),
+  isPrivate: !!r.is_private,
+  owner: r.owner || r.user || undefined,
+  sharedWith: Array.isArray(r.shared_with) ? r.shared_with : [],
+  family: r.family || undefined,
   createdBy: r.user,
 });
 
@@ -149,7 +169,7 @@ export const api = {
     async register(email: string, password: string, name: string, inviteCode?: string) {
       await pb.collection('users').create({
         email, password, passwordConfirm: password, name,
-        username: email.split('@')[0], role: 'member',
+        username: email.split('@')[0], role: 'member', language: getActiveLanguage(),
       });
       if (inviteCode) {
         const invites = await pb.collection('invite_codes').getFullList({
@@ -177,6 +197,7 @@ export const api = {
     },
     async get(id: string): Promise<Task> { return normalizeTask(await pb.collection('tasks').getOne(id)); },
     async create(data: Partial<Task>): Promise<Task> {
+      const canonicalLabels = canonicalTaskLabels(data.labelId, data.labels);
       const record = await pb.collection('tasks').create({
         title: data.title, status: data.status || 'todo', blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
@@ -185,7 +206,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         show_in_calendar: data.showInCalendar,
-        repeat_interval: data.repeatInterval, labels: data.labels || [],
+        repeat_interval: data.repeatInterval, labels: canonicalLabels, label: canonicalLabels,
         is_private: data.isPrivate, archived: false, user: requireAuth().id,
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,
@@ -196,6 +217,8 @@ export const api = {
       return normalizeTask(record);
     },
     async update(id: string, data: Partial<Task>): Promise<Task> {
+      const hasLabelUpdate = Object.prototype.hasOwnProperty.call(data, 'labelId') || Object.prototype.hasOwnProperty.call(data, 'labels');
+      const canonicalLabels = hasLabelUpdate ? canonicalTaskLabels(data.labelId, data.labels) : undefined;
       const record = await pb.collection('tasks').update(id, {
         title: data.title, status: data.status, blocked: data.blocked,
         blocked_comment: data.blockedComment, priority: data.priority, horizon: data.horizon,
@@ -204,7 +227,7 @@ export const api = {
         end_time: toISO(data.endTime),
         all_day: data.allDay,
         repeat_interval: data.repeatInterval, completed_at: toISO(data.completedAt),
-        labels: data.labels, is_private: data.isPrivate, archived: data.archived,
+        labels: canonicalLabels, label: canonicalLabels, is_private: data.isPrivate, archived: data.archived,
         archived_at: toISO(data.archivedAt),
         linked_to: data.linkedTo, linked_type: data.linkedType, flag: data.flag,
         description: data.description, location: data.location,
@@ -319,18 +342,21 @@ export const api = {
   labels: {
     async list(): Promise<Label[]> {
       const userId = requireAuth().id;
-      const list = await pb.collection('labels').getFullList({ filter: `user = "${userId}" || is_private = false`, sort: 'name' });
+      const familyId = (requireAuth() as any).family_id;
+      const list = await pb.collection('labels').getFullList({ filter: familyId ? `family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}"` : `user = "${userId}" || owner = "${userId}"`, sort: 'name' });
       return list.map(normalizeLabel);
     },
     async create(data: Partial<Label>): Promise<Label> {
+      const auth = requireAuth() as any;
       const record = await pb.collection('labels').create({
-        name: data.name, color: data.color, is_private: data.isPrivate, user: requireAuth().id,
+        name: data.name, color: data.color, visibility: data.visibility || 'family', is_private: (data.visibility || 'family') === 'private', shared_with: data.sharedWith || [], owner: auth.id, family: auth.family_id || '', user: auth.id,
       } as any);
       return normalizeLabel(record);
     },
     async update(id: string, data: Partial<Label>): Promise<Label> {
+      const visibility = data.visibility || (data.isPrivate ? 'private' : undefined);
       const record = await pb.collection('labels').update(id, {
-        name: data.name, color: data.color, is_private: data.isPrivate,
+        name: data.name, color: data.color, visibility, is_private: visibility ? visibility === 'private' : data.isPrivate, shared_with: data.sharedWith,
       } as any);
       return normalizeLabel(record);
     },
@@ -439,7 +465,17 @@ export const api = {
       return list.map(normalizeUser);
     },
     async update(id: string, data: Partial<User>): Promise<User> {
-      return normalizeUser(await pb.collection('users').update(id, { name: data.name, role: data.role }));
+      const updated = await pb.collection('users').update(id, {
+        name: data.name,
+        role: data.role,
+        language: data.language,
+        first_name: data.firstName,
+        last_name: data.lastName,
+      });
+      if (id === pb.authStore.record?.id) {
+        pb.authStore.save(pb.authStore.token, updated);
+      }
+      return normalizeUser(updated);
     },
   },
 

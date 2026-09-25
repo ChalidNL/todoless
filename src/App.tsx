@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -11,13 +11,21 @@ import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
+import { MembersView } from './components/MembersView';
+import { LabelsView } from './components/LabelsView';
+import { ShopsView } from './components/ShopsView';
+import { ProfileView } from './components/ProfileView';
+import { SettingsPreferences } from './components/SettingsPreferences';
+import { NotificationsView } from './components/NotificationsView';
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
-import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays } from 'lucide-react';
-import { AppMark } from './components/shared/AppLogo';
+import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, CheckSquare } from 'lucide-react';
+import { SplashScreen } from './components/shared/SplashScreen';
 import { getOnboardingMode, OnboardingMode } from './lib/onboarding-gate';
 import { fetchSetupStatus } from './lib/bootstrap-status';
 import { t } from './i18n/translations';
+import { AppShell } from './components/layout/AppShell';
+import { BottomNavigation, type BottomNavItem } from './components/layout/BottomNavigation';
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -70,7 +78,8 @@ class ErrorBoundary extends React.Component<
 function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
-  const { completionMessage, tasks, items } = useApp();
+  const hasInitializedRef = useRef(false);
+  const { completionMessage, tasks, items, dataLoadState, loadError, retryLoad } = useApp();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
   const location = useLocation();
@@ -141,7 +150,7 @@ function AppContent() {
         return;
       }
 
-      if (mode === 'info' || mode === 'admin') {
+      if (mode === 'info') {
         // First check for register route — invite links bypass info slides
         const path = window.location.pathname.toLowerCase();
         if (path === '/register') {
@@ -169,16 +178,12 @@ function AppContent() {
     };
 
     void checkFirstRun();
+    hasInitializedRef.current = true;
   }, [loading, user]);
 
-  if (appScreen === 'checking') {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white shadow-sm border border-neutral-200">
-          <AppMark className="w-8 h-8 text-neutral-900 animate-pulse" />
-        </div>
-      </div>
-    );
+  // Only show splash on cold start (first render before effect runs)
+  if (appScreen === 'checking' && !hasInitializedRef.current) {
+    return <SplashScreen />;
   }
 
   if (appScreen === 'onboarding') {
@@ -188,7 +193,7 @@ function AppContent() {
         onComplete={() => {
           localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser((user as any)?.id ?? null));
 
-          if (onboardingMode === 'info' || onboardingMode === 'admin') {
+          if (onboardingMode === 'info' || (onboardingMode === 'admin' && !pb.authStore.isValid)) {
             setAppScreen('login');
           } else {
             setAppScreen('app');
@@ -210,60 +215,69 @@ function AppContent() {
     return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
-  const navItems: { to: string; label: string; icon: React.ReactNode }[] = [
-    { to: '/', label: t('common.inbox', language), icon: <InboxIcon className="w-5 h-5" /> },
-    { to: '/tasks', label: t('common.tasks', language), icon: <AppMark className="w-5 h-5" /> },
-    { to: '/calendar', label: t('common.calendar', language), icon: <CalendarDays className="w-5 h-5" /> },
-    { to: '/groceries', label: t('common.groceries', language), icon: <ShoppingCart className="w-5 h-5" /> },
-    { to: '/settings', label: t('common.settings', language), icon: <SettingsIcon className="w-5 h-5" /> },
+  if (dataLoadState === 'loading') {
+    return (
+      <main className="app-shell-bg grid min-h-screen place-items-center p-6" role="status" aria-live="polite">
+        <div className="app-surface flex items-center gap-3 rounded-[var(--app-radius-xl)] px-5 py-4 text-[var(--app-text-muted)]">
+          <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
+          <span>{t('common.loading', language)}</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (dataLoadState === 'error') {
+    return (
+      <main className="app-shell-bg grid min-h-screen place-items-center p-6">
+        <section className="app-surface w-full max-w-md rounded-[var(--app-radius-xl)] p-6 text-center" role="alert">
+          <h1 className="text-xl font-bold text-[var(--app-text)]">{t('common.error', language)}</h1>
+          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('auth.appErrorDescription', language)}</p>
+          <button
+            type="button"
+            onClick={() => void retryLoad()}
+            className="mt-5 min-h-[var(--app-touch-target)] rounded-[var(--app-radius-xl)] bg-[var(--app-primary)] px-5 font-bold text-white"
+          >
+            {t('common.retry', language)}
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  const navItems: BottomNavItem[] = [
+    { to: '/', label: t('nav.inbox', language), icon: <InboxIcon className="h-[22px] w-[22px]" />, activeColor: '#3b82f6', activeBg: '#eff6ff' },
+    { to: '/tasks', label: t('nav.tasks', language), icon: <CheckSquare className="h-[22px] w-[22px]" />, activeColor: '#22c55e', activeBg: '#f0fdf4' },
+    { to: '/calendar', label: t('nav.calendar', language), icon: <CalendarDays className="h-[22px] w-[22px]" />, activeColor: '#f97316', activeBg: '#fff7ed' },
+    { to: '/groceries', label: t('nav.groceries', language), icon: <ShoppingCart className="h-[22px] w-[22px]" />, activeColor: '#ec4899', activeBg: '#fdf2f8' },
+    { to: '/settings', label: t('nav.settings', language), icon: <SettingsIcon className="h-[22px] w-[22px]" />, activeColor: '#6366f1', activeBg: '#eef2ff' },
   ];
 
+  const toast = completionMessage ? (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+      <div className="app-surface px-4 py-2">
+        <p className="text-sm text-[var(--app-text-muted)]">{completionMessage}</p>
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="fixed inset-0 flex flex-col bg-neutral-50">
-      <main className="flex-1 min-h-0 overflow-y-auto">
+    <AppShell toast={toast} bottomNav={<BottomNavigation items={navItems} />}>
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
+          <Route path="/focus" element={<Navigate to="/tasks" replace />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/groceries" element={<GroceriesView />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/settings/profile" element={<ProfileView />} />
+          <Route path="/settings/preferences" element={<SettingsPreferences />} />
+          <Route path="/settings/members" element={<MembersView />} />
+          <Route path="/settings/labels" element={<LabelsView />} />
+          <Route path="/settings/shops" element={<ShopsView />} />
+          <Route path="/settings/notifications" element={<NotificationsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
-
-      {completionMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-          <div className="bg-white px-4 py-2 rounded-lg shadow-lg border border-neutral-200">
-            <p className="text-sm text-neutral-600">{completionMessage}</p>
-          </div>
-        </div>
-      )}
-
-      <nav className="flex-shrink-0 bg-white border-t border-neutral-200 z-40"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
-      >
-        <div className="max-w-xl mx-auto flex justify-around items-center">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0 py-1.5 px-3 min-h-[52px] transition-all active:scale-95 ${
-                  isActive
-                    ? 'text-neutral-900'
-                    : 'text-neutral-400 hover:text-neutral-600'
-                }`
-              }
-            >
-              <div className="relative">
-                {item.icon}
-              </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-    </div>
+    </AppShell>
   );
 }
 

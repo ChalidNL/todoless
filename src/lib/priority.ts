@@ -1,7 +1,7 @@
 import type { Priority } from '../types';
 
 export const PRIORITY_COLORS: Record<Priority, string> = {
-  low: '#6b7280',
+  low: '#3b82f6',
   medium: '#f59e0b',
   high: '#ef4444',
 };

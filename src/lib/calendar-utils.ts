@@ -46,7 +46,10 @@ export function buildCalendarItems({
   rangeStart: number;
   rangeEnd: number;
 }): CalendarItem[] {
-  const visibleTasks = tasks.filter((task) => task.showInCalendar !== false && task.status !== 'done');
+  // Calendar is a projection of the Tasks source: every non-completed task with a date belongs here.
+  // Some legacy/anonymized datasets have show_in_calendar=false for dated tasks; do not let that
+  // stale opt-in flag hide the canonical due_date from Agenda.
+  const visibleTasks = tasks.filter((task) => task.status !== 'done' && !task.archived);
 
   const recurringTasks = visibleTasks.filter((task) => task.repeatInterval);
   const nonRecurringTasks = visibleTasks.filter((task) => !task.repeatInterval);

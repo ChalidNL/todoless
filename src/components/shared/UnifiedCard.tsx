@@ -7,6 +7,7 @@ import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
 
 // Subtask icon: square with dot inside
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -25,7 +26,7 @@ interface UnifiedCardProps {
   type: 'task' | 'item';
 }
 
-type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | 'priority' | null;
+type UnifiedEditor = 'labels' | 'assignee' | 'schedule' | 'shop' | 'priority' | 'comment' | null;
 
 export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const { updateTask, updateItem, deleteTask, deleteItem, labels, users, shops, tasks, addLabel, addShop, toggleChipFilter, isChipFilterActive, swapEntity, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
@@ -117,7 +118,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
     <div
       ref={cardRef}
       onClick={trackInteraction}
-      className={`rounded-lg border transition-colors ${
+      className={`app-card ${showMenu ? 'app-card-expanded' : ''} rounded-lg border transition-colors ${
         isDone
           ? 'border-neutral-200 opacity-75'
           : isFocusHighlighted
@@ -142,10 +143,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           {/* Checkbox (button) */}
           <button
             onClick={handleToggle}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-              isDone
-                ? 'bg-neutral-900 border-neutral-900 text-white'
-                : 'border-neutral-300 hover:border-neutral-500'
+            className={`app-checkbox flex items-center justify-center flex-shrink-0 transition-colors ${
+              isDone ? 'app-checkbox-checked' : 'hover:border-[var(--app-primary)]'
             }`}
             aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
           >
@@ -153,7 +152,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </button>
 
           {/* Title */}
-          {showMenu ? (
+          {showMenu && isTask ? (
             <input
               type="text"
               value={titleDraft}
@@ -194,20 +193,22 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
           {/* Quantity [+][-] controls (items) — replaces static badge */}
           {!isTask && !isDone && (
-            <div className="flex items-center gap-0.5 flex-shrink-0">
+            <div className="flex min-h-[44px] flex-shrink-0 items-center gap-1 rounded-full bg-[var(--app-surface-2)] p-1 shadow-inner">
               <button
-                onClick={() => setQuantity(quantity - 1)}
-                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                type="button"
+                onClick={(event) => { event.stopPropagation(); setQuantity(quantity - 1); }}
+                className="grid h-9 min-h-9 w-9 place-items-center rounded-full bg-white text-base font-black text-[var(--app-primary)] shadow-sm active:scale-[0.97]"
                 aria-label={t('items.decreaseQuantity')}
               >
-                -
+                −
               </button>
-              <span className="text-xs font-medium text-neutral-600 border border-neutral-200 rounded px-2 py-0.5 min-w-[28px] text-center">
+              <span className="grid min-h-9 min-w-9 place-items-center text-center text-sm font-extrabold text-[var(--app-text)]">
                 {quantity}
               </span>
               <button
-                onClick={() => setQuantity(quantity + 1)}
-                className="w-6 h-6 text-xs border border-neutral-200 rounded hover:bg-neutral-50 text-neutral-700"
+                type="button"
+                onClick={(event) => { event.stopPropagation(); setQuantity(quantity + 1); }}
+                className="grid h-9 min-h-9 w-9 place-items-center rounded-full bg-[var(--app-primary)] text-base font-black text-white shadow-sm active:scale-[0.97]"
                 aria-label={t('items.increaseQuantity')}
               >
                 +
@@ -547,10 +548,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     const existing = labels.find(l => l.name.toLowerCase() === name.toLowerCase());
                     if (existing) {
                       if (!entity.labels.includes(existing.id)) {
-                        setValue({ labels: [...entity.labels, existing.id] });
+                        setValue({ labels: [existing.id], labelId: existing.id });
                       }
                     } else {
-                      addLabel({ name, color: '#3b82f6' });
+                      addLabel({ name, color: '#3b82f6', visibility: 'family', isPrivate: false, sharedWith: [] });
                     }
                     e.target.value = '';
                   }}
@@ -559,12 +560,12 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   aria-label={t('tasks.labelInputAria')}
                 />
                 <div className="flex flex-wrap gap-1">
-                  {labels.map(label => (
+                  {sortLabelsByVisibility(labels).map(label => (
                     <button
                       key={label.id}
                       onClick={() => {
                         const has = entity.labels.includes(label.id);
-                        setValue({ labels: has ? entity.labels.filter(id => id !== label.id) : [...entity.labels, label.id] });
+                        setValue({ labels: has ? [] : [label.id], labelId: has ? null : label.id });
                       }}
                       className={entity.labels.includes(label.id) ? 'ring-2 ring-neutral-900 rounded' : ''}
                     >

@@ -2,6 +2,7 @@
 import { execSync } from 'node:child_process';
 import { defineConfig, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react-swc';
+import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
@@ -20,6 +21,10 @@ const BUILD_VERSION = process.env.VITE_APP_VERSION || 'dev';
 const BUILD_COMMIT = getBuildCommit();
 const BUILD_TIMESTAMP = new Date().toISOString();
 const BUILD_ID = `${BUILD_VERSION}-${BUILD_COMMIT}-${BUILD_TIMESTAMP}`;
+const IS_BETA = process.env.VITE_BETA === 'true' || process.env.TODOLESS_TAG === 'pre' || process.env.TODOLESS_TAG === 'beta';
+const ICON_DIR = IS_BETA ? '/icons-beta' : '/icons';
+const APP_NAME = IS_BETA ? 'todoless β' : 'todoless';
+const APP_SHORT = IS_BETA ? 'todoless β' : 'todoless';
 
 function buildVersionAsset(): PluginOption {
   return {
@@ -43,6 +48,21 @@ function buildVersionAsset(): PluginOption {
   };
 }
 
+function betaIconTransform(): PluginOption {
+  if (!IS_BETA) return { name: 'beta-icon-transform', apply: 'build' as const };
+  return {
+    name: 'beta-icon-transform',
+    apply: 'build' as const,
+    transformIndexHtml(html) {
+      return html
+        .replace(/\/icons\//g, '/icons-beta/')
+        .replace(/\/favicon\.svg/g, '/icons-beta/favicon.svg')
+        .replace(/apple-mobile-web-app-title" content="todoless"/, 'apple-mobile-web-app-title" content="todoless β"')
+        .replace(/<title>todoless<\/title>/, '<title>todoless β</title>');
+    },
+  };
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(BUILD_VERSION),
@@ -51,37 +71,42 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    tailwindcss(),
     buildVersionAsset(),
+    betaIconTransform(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon-192.svg', 'icons/icon-512.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
+      includeAssets: [
+        `${ICON_DIR}/icon-192.svg`, `${ICON_DIR}/icon-512.svg`,
+        `${ICON_DIR}/icon-192.png`, `${ICON_DIR}/icon-512.png`,
+        `${ICON_DIR}/icon-512-maskable.png`,
+        IS_BETA ? 'logo-rainbow-beta.png' : 'logo-rainbow.png',
+      ],
       manifest: {
-        name: 'todoless',
-        short_name: 'todoless',
-        description: 'Self-hosted multi-user task manager',
-        theme_color: '#fafafa',
-        background_color: '#fafafa',
+        name: APP_NAME,
+        short_name: APP_SHORT,
+        description: IS_BETA ? 'Self-hosted productivity app (beta)' : 'Self-hosted multi-user task manager',
+        theme_color: '#f8f7ff',
+        background_color: '#f8f7ff',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
           {
-            src: 'icons/icon-192.png',
+            src: `${ICON_DIR}/icon-192.png`,
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'any'
           },
           {
-            src: 'icons/icon-512.png',
+            src: `${ICON_DIR}/icon-512.png`,
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any'
           },
           {
-            src: 'icons/icon-512.png',
+            src: `${ICON_DIR}/icon-512-maskable.png`,
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       },

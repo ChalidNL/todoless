@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { User, ApiToken, userDisplayName, Agent } from '../types';
+import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility, type User } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users } from 'lucide-react';
-import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
+import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
+import { Button } from './ui/AppButton';
 import { getMemberDisplayName, getMemberInitials, canChangeMemberRole, isOnlyAdmin, isSystemAdminRole } from '../lib/member-role-utils';
 import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { entityBg, entityBorder, entityColor } from '../lib/entity-colors';
@@ -14,9 +16,24 @@ import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
+import { CalendarImportExport } from './CalendarImportExport';
+import { sortLabelsByVisibility } from '../lib/label-utils';
+
+function SettingsNavItem({ href, icon, title, subtitle, external }: { href: string; icon: React.ReactNode; title: string; subtitle: string; external?: boolean }) {
+  return (
+    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="flex min-h-[var(--app-touch-target)] items-center gap-3 rounded-[20px] px-3 py-3 transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]">
+      <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-black text-[var(--app-text)]">{title}</span>
+        <span className="block truncate text-xs font-semibold text-[var(--app-text-muted)]">{subtitle}</span>
+      </span>
+      {external ? <ExternalLink className="h-5 w-5 text-[var(--app-text-soft)]" /> : <ChevronRight className="h-5 w-5 text-[var(--app-text-soft)]" />}
+    </a>
+  );
+}
 
 export const Settings = () => {
-  const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, filters, deleteFilter, showCompletionMessage } = useApp();
+  const { users, appSettings, updateAppSettings, updateUser, deleteUser, labels, addLabel, updateLabel, deleteLabel, shops, addShop, updateShop, deleteShop, tasks, showCompletionMessage } = useApp();
   const { signOut } = useAuth();
   const appVersion = __APP_VERSION__;
   const appCommitRaw = __APP_COMMIT__;
@@ -38,6 +55,8 @@ export const Settings = () => {
   const [showPreferences, setShowPreferences] = useState(false);
   const [newLabelName, setNewLabelName] = useState('');
   const [newLabelColor, setNewLabelColor] = useState('#3b82f6');
+  const [newLabelVisibility, setNewLabelVisibility] = useState<LabelVisibility>('family');
+  const [newLabelSharedWith, setNewLabelSharedWith] = useState<string[]>([]);
   const [newShopName, setNewShopName] = useState('');
   const [newShopColor, setNewShopColor] = useState('#3b82f6');
   const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
@@ -45,6 +64,8 @@ export const Settings = () => {
   const [editingLabelName, setEditingLabelName] = useState('');
   const [editingLabelColor, setEditingLabelColor] = useState('');
   const [editingLabelPrivate, setEditingLabelPrivate] = useState(false);
+  const [editingLabelVisibility, setEditingLabelVisibility] = useState<LabelVisibility>('family');
+  const [editingLabelSharedWith, setEditingLabelSharedWith] = useState<string[]>([]);
   const [editingShopId, setEditingShopId] = useState<string | null>(null);
   const [editingShopName, setEditingShopName] = useState('');
   const [editingShopColor, setEditingShopColor] = useState('');
@@ -86,6 +107,18 @@ export const Settings = () => {
     { value: 6, label: t('settings.saturday') },
   ] as const;
   const canManageMembers = currentUser?.role === 'admin' || currentUser?.role === 'owner';
+  const humanFamilyMembers = users.filter((user) => user.id !== currentUser?.id && (user.member_type || 'human') === 'human');
+  const labelVisibilityOptions: Array<{ value: LabelVisibility; label: string; description: string; icon: React.ElementType }> = [
+    { value: 'family', label: t('labels.visibilityFamily'), description: t('labels.visibilityFamilyDescription'), icon: Home },
+    { value: 'shared', label: t('labels.visibilityShared'), description: t('labels.visibilitySharedDescription'), icon: Users },
+    { value: 'private', label: t('labels.visibilityPrivate'), description: t('labels.visibilityPrivateDescription'), icon: Lock },
+  ];
+  const getVisibilityLabel = (visibility?: LabelVisibility) => labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.label || t('labels.visibilityFamily');
+  const sortedLabels = useMemo(() => sortLabelsByVisibility(labels), [labels]);
+  const VisibilityIcon = ({ visibility, className = 'w-3.5 h-3.5' }: { visibility?: LabelVisibility; className?: string }) => {
+    const Icon = labelVisibilityOptions.find((option) => option.value === (visibility || 'family'))?.icon || Home;
+    return <Icon className={className} />;
+  };
   const familyMembershipView = useMemo(
     () => buildFamilyMembershipView(users, currentUser?.family_id, familyName),
     [currentUser?.family_id, familyName, users]
@@ -304,6 +337,8 @@ export const Settings = () => {
   const openAddLabelModal = () => {
     setNewLabelColor(generateRandomColor());
     setNewLabelName('');
+    setNewLabelVisibility('family');
+    setNewLabelSharedWith([]);
     setShowAddLabelModal(true);
   };
 
@@ -315,20 +350,45 @@ export const Settings = () => {
 
   const handleAddLabel = () => {
     if (!newLabelName) return;
-    addLabel({ name: newLabelName, color: newLabelColor });
+    addLabel({
+      name: newLabelName,
+      color: newLabelColor,
+      visibility: newLabelVisibility,
+      isPrivate: newLabelVisibility === 'private',
+      sharedWith: newLabelVisibility === 'shared' ? newLabelSharedWith : [],
+    });
     setNewLabelName('');
     setNewLabelColor('#3b82f6');
+    setNewLabelVisibility('family');
+    setNewLabelSharedWith([]);
     setShowAddLabelModal(false);
   };
 
   const handleEditLabel = () => {
     if (!editingLabelId || !editingLabelName) return;
-    updateLabel(editingLabelId, { name: editingLabelName, color: editingLabelColor, isPrivate: editingLabelPrivate });
+    updateLabel(editingLabelId, {
+      name: editingLabelName,
+      color: editingLabelColor,
+      visibility: editingLabelVisibility,
+      isPrivate: editingLabelVisibility === 'private',
+      sharedWith: editingLabelVisibility === 'shared' ? editingLabelSharedWith : [],
+    });
     setEditingLabelId(null);
     setEditingLabelName('');
     setEditingLabelColor('');
     setEditingLabelPrivate(false);
+    setEditingLabelVisibility('family');
+    setEditingLabelSharedWith([]);
     setShowLabels(false);
+  };
+
+  const startEditingLabel = (label: Label) => {
+    setEditingLabelId(label.id);
+    setEditingLabelName(label.name);
+    setEditingLabelColor(label.color);
+    setEditingLabelPrivate(label.isPrivate || false);
+    setEditingLabelVisibility(label.visibility || (label.isPrivate ? 'private' : 'family'));
+    setEditingLabelSharedWith(label.sharedWith || []);
   };
 
   const handleDeleteLabel = (id: string) => {
@@ -526,633 +586,89 @@ export const Settings = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="app-shell-bg min-h-screen flex items-center justify-center">
         <p className="text-neutral-600">{t('common.noData')}</p>
       </div>
     );
   }
 
+  const displayName = userDisplayName(currentUser);
+  const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
+  const settingsItems = [
+    { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
+    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
+    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} ${t('settings.labels')}` },
+    { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: `${shops.length} ${t('settings.shops')}` },
+    { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
+    { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: t('settings.notifications'), sub: null },
+    { href: '/api/swagger', icon: Plug, color: '#0ea5e9', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
+  ];
+
   return (
     <>
-      
-      {/* Header */}
-      <div className="sticky top-0 z-40">
-        <NewGlobalHeader />
-      </div>
+      <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
 
-              <div className="max-w-2xl mx-auto px-4 pt-6 pb-20 space-y-6">
-        {/* User Profile */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-6">
-          <h2 className="text-lg font-semibold mb-4">{t('settings.yourProfile')}</h2>
-          
-          {profileError && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-              {profileError}
-            </div>
-          )}
+      <div className="mx-auto max-w-2xl pb-24 pt-3">
+        <a href="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
+          <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
+          <span className="relative grid h-[84px] w-[84px] place-items-center rounded-full border-[3px] border-white/60 bg-white/25 text-[32px] font-black text-white shadow-lg">
+            {initials}
+            <span className="absolute bottom-0 right-0 grid h-[26px] w-[26px] place-items-center rounded-full bg-white text-indigo-600 shadow-[0_2px_8px_rgba(0,0,0,0.15)]">
+              <Camera className="h-[13px] w-[13px]" strokeWidth={2.5} />
+            </span>
+          </span>
+          <span className="relative text-center text-white">
+            <span className="block text-xl font-black tracking-[-0.01em]">{displayName}</span>
+            <span className="mt-1 block text-sm font-semibold text-white/80">{currentUser.email}</span>
+          </span>
+        </a>
 
-          {!editingProfile ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {userDisplayName(currentUser).charAt(0)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold truncate">{userDisplayName(currentUser)}</p>
-                    <button
-                      onClick={handleProfileEdit}
-                      className="p-1.5 hover:bg-neutral-100 rounded transition-colors shrink-0"
-                      title={t('settings.editProfile')}
-                    >
-                      <Edit2 className="w-4 h-4 text-neutral-500" />
-                    </button>
-                  </div>
-                  <p className="text-sm text-neutral-500">{currentUser.firstName || currentUser.lastName
-                    ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ')
-                    : t('common.unknown')}</p>
-                  <p className="text-sm text-neutral-600 truncate">{currentUser.email}</p>
-                  <p className="text-xs text-neutral-500 capitalize mt-1">
-                    {t('settings.role')}: {currentUser.role || t('settings.member')}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    {t('settings.language')}: {getLanguageLabel(currentUser.language || 'en')}
-                  </p>
-                </div>
-              </div>
-
-              {/* Password Change */}
-              <div>
-                <label className="block text-sm text-neutral-600 mb-2">{t('settings.password')}</label>
-                {passwordError && (
-                  <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                    {passwordError}
-                  </div>
-                )}
-                {!editingPassword ? (
-                  <button
-                    onClick={() => { setEditingPassword(true); setPasswordError(''); }}
-                    className="text-sm text-neutral-600 hover:text-neutral-900 flex items-center gap-2"
-                  >
-                    {t('settings.changePassword')}
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder={t('settings.currentPassword')}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                    />
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder={t('settings.newPassword')}
-                        className="w-full px-3 py-2 pr-10 border border-neutral-200 rounded text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500 hover:text-neutral-700"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder={t('settings.confirmPassword')}
-                      className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                    />
-                    <div className="flex gap-2 pt-1">
-                      <button
-                        onClick={() => {
-                          setEditingPassword(false);
-                          setCurrentPassword('');
-                          setNewPassword('');
-                          setConfirmPassword('');
-                          setShowPassword(false);
-                          setPasswordError('');
-                        }}
-                        className="px-3 py-1.5 border border-neutral-200 rounded text-sm flex-1"
-                      >
-                        {t('common.cancel')}
-                      </button>
-                      <button
-                        onClick={handlePasswordChange}
-                        className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm flex-1"
-                      >
-                        {t('settings.update')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Profile Edit Form */
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-neutral-200 flex items-center justify-center text-2xl font-semibold shrink-0">
-                  {userDisplayName(currentUser).charAt(0)}
-                </div>
-                <div>
-                  <p className="text-sm text-neutral-500">{currentUser.email}</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.firstName')}</label>
-                <input
-                  type="text"
-                  value={editFirstName}
-                  onChange={(e) => setEditFirstName(e.target.value)}
-                  placeholder={t('onboarding.firstName')}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('onboarding.lastName')}</label>
-                <input
-                  type="text"
-                  value={editLastName}
-                  onChange={(e) => setEditLastName(e.target.value)}
-                  placeholder={t('onboarding.lastName')}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-neutral-600 mb-1">{t('settings.language')}</label>
-                <select
-                  value={editLanguage}
-                  onChange={(event) => setEditLanguage(event.target.value as SupportedUiLanguage)}
-                  className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
-                >
-                  {SUPPORTED_UI_LANGUAGES.map((lang) => (
-                    <option key={lang} value={lang}>{getLanguageLabel(lang)}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={handleCancelProfileEdit}
-                  className="flex-1 px-4 py-2 border border-neutral-200 rounded text-sm"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={handleProfileSave}
-                  className="flex-1 px-4 py-2 bg-neutral-900 text-white rounded text-sm"
-                >
-                  {t('common.save')}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowPreferences(!showPreferences)}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h2 className="text-lg font-semibold">{t('settings.preferences')}</h2>
-            {showPreferences ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
-            )}
-          </button>
-
-          {showPreferences && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-4">
-              <label className="block text-sm text-neutral-600 mb-1" htmlFor="first-day-of-week">{t('settings.firstDayOfWeek')}</label>
-              <select
-                id="first-day-of-week"
-                aria-label={t('settings.firstDayOfWeek')}
-                value={appSettings.sprintStartDay ?? 1}
-                onChange={(event) => updateAppSettings({ sprintStartDay: Number(event.target.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6 })}
-                className="w-full px-3 py-2 border border-neutral-200 rounded text-sm bg-white"
+        <div className="mx-4 mb-3 overflow-hidden rounded-[var(--app-radius-card)] bg-[var(--app-surface)] shadow-[var(--app-shadow-card)]">
+          {settingsItems.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                target={item.external ? '_blank' : undefined}
+                rel={item.external ? 'noopener noreferrer' : undefined}
+                className="flex min-h-[64px] items-center gap-3 px-4 py-3 text-left active:scale-[0.99]"
+                style={{ borderBottom: index < settingsItems.length - 1 ? '1px solid var(--app-border-subtle)' : 'none' }}
               >
-                {weekDays.map((day) => (
-                  <option key={day.value} value={day.value}>{day.label}</option>
-                ))}
-              </select>
-            </div>
-          )}
+                <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)]" style={{ background: `${item.color}15`, color: item.color }}>
+                  <Icon className="h-[18px] w-[18px]" strokeWidth={2.1} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold text-[var(--app-text)]">{item.label}</span>
+                  {item.sub && <span className="mt-0.5 block truncate text-xs font-medium text-[var(--app-text-muted)]">{item.sub}</span>}
+                </span>
+                {item.external ? <ExternalLink className="h-[15px] w-[15px] text-[var(--app-text-soft)]" /> : <ChevronRight className="h-[15px] w-[15px] text-[var(--app-text-soft)]" />}
+              </a>
+            );
+          })}
         </div>
 
-        {/* Team Members */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowTeamMembers(!showTeamMembers)}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h2 className="text-lg font-semibold">{t('members.title')}</h2>
-            {showTeamMembers ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
-            )}
-          </button>
-
-          {showTeamMembers && (
-            <>
-              {familyMembershipView.members.length === 0 ? (
-                <p className="text-sm text-neutral-500 py-4">{t('members.noMembers')}</p>
-              ) : (
-                <>
-                  <div className="rounded-2xl border border-violet-200 bg-violet-50/60 overflow-hidden">
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-violet-200/80">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-100 text-violet-700 flex-shrink-0">
-                        <Users className="h-4 w-4" />
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0 text-sm">
-                        <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-700">{t('members.familyLabel')}</span>
-                        <span className="font-semibold text-violet-950 truncate">{familyMembershipView.familyName}</span>
-                      </div>
-                    </div>
-
-                    <div className="divide-y divide-violet-100">
-                      {familyMembershipView.members.map(user => {
-                        const isCurrentUser = currentUser?.id === user.id;
-                        const isAdmin = isSystemAdminRole(user.role);
-                        const isOwner = user.role === 'owner';
-                        const isAgent = user.role === 'agent';
-                        const isActive = user.active ?? true;
-                        const canManageRole = canChangeMemberRole(currentUser, user);
-                        const displayName = getMemberDisplayName(user);
-                        const initials = getMemberInitials({
-                          firstName: user.firstName,
-                          lastName: user.lastName,
-                          displayName: user.displayName,
-                          name: user.name,
-                          email: user.email,
-                        });
-                        const memberRoleLabel = isOwner ? t('settings.owner') : isAdmin ? t('settings.admin') : isAgent ? t('agent.title').slice(0, -1) : t('settings.member');
-                        const userColor = entityColor(user.id);
-                        const disableMemberRole = isAdmin && isOnlyAdmin(familyMembershipView.members, user.id);
-                        const isEditingMember = editingMemberId === user.id;
-
-                        return (
-                          <div key={user.id} className="px-4 py-3 bg-white/70">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div
-                                className="w-8 h-8 min-w-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                                style={{ backgroundColor: userColor }}
-                              >
-                                {initials}
-                              </div>
-                              <div className="flex-1 min-w-0 text-sm">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <span className="font-medium text-neutral-900 truncate">{displayName || userDisplayName(user)}</span>
-                                  {isCurrentUser && (
-                                    <span
-                                      className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-medium uppercase tracking-wide flex-shrink-0 border"
-                                      style={{
-                                        backgroundColor: entityBg(user.id),
-                                        color: userColor,
-                                        borderColor: entityBorder(user.id),
-                                      }}
-                                    >
-                                      {t('settings.you')}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="block text-xs text-neutral-500 truncate mt-0.5">{user.email}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                <AttributeChip label={memberRoleLabel} color={userColor} active />
-                                <AttributeChip label={isActive ? t('settings.active') : t('settings.blocked')} color={isActive ? '#16a34a' : '#dc2626'} active />
-                                {isOwner && <AttributeChip icon={<Shield className="w-3.5 h-3.5" />} label={t('settings.firstAdmin')} color="#7c3aed" />}
-                                {canManageMembers && !isCurrentUser && !isOwner && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setEditingMemberId(isEditingMember ? null : user.id)}
-                                    className={`p-1.5 rounded transition-colors ${isEditingMember ? 'bg-violet-100 text-violet-700' : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700'}`}
-                                    aria-label={t('common.edit')}
-                                    title={t('common.edit')}
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {canManageMembers && !isCurrentUser && !isOwner && isEditingMember && (
-                              <div className="mt-2 ml-11 flex flex-wrap items-center gap-2">
-                                <span className="text-[11px] text-neutral-500">{t('settings.adminOnly')}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleMemberActive(user)}
-                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors"
-                                >
-                                  {isActive ? t('settings.deactivate') : t('settings.activate')}
-                                </button>
-                                {canManageRole && !isAdmin ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRoleChange(user.id, 'admin')}
-                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-violet-200 text-violet-700 hover:bg-violet-50 transition-colors"
-                                  >
-                                    {t('settings.makeAdmin')}
-                                  </button>
-                                ) : canManageRole ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRoleChange(user.id, 'member')}
-                                    disabled={disableMemberRole}
-                                    className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-neutral-200 text-neutral-700 hover:bg-neutral-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                  >
-                                    {t('settings.makeMember')}
-                                  </button>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMember(user)}
-                                  className="inline-flex items-center px-2.5 h-7 rounded-full text-xs font-medium border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                                >
-                                  {t('common.delete')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="border-t border-violet-200/80 px-4 py-3 bg-violet-50/40">
-                      <p className="mb-2 text-xs text-violet-800">{t('members.sameFamilyHint')}</p>
-                      {canManageMembers && (
-                        <div>
-                          <h3 className="text-sm font-semibold mb-1">{t('members.inviteMember')}</h3>
-                          <p className="mb-3 text-xs text-neutral-500">{t('settings.autoFamilyJoinHint')}</p>
-                          <InviteManager />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Labels Section */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowLabels(!showLabels)}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {t('settings.labels')}
-            </h2>
-            {showLabels ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
-            )}
-          </button>
-
-          {showLabels && (
-            <>
-              <button
-                onClick={openAddLabelModal}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-              >
-                <Plus className="w-4 h-4" />
-                {t('settings.addLabel')}
-              </button>
-
-              <div className="space-y-3">
-                {labels.map(label => (
-                  <div key={label.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <AttributeChip label={label.name} color={label.color} />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{label.name}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingLabelId(label.id);
-                          setEditingLabelName(label.name);
-                          setEditingLabelColor(label.color);
-                          setEditingLabelPrivate(label.isPrivate || false);
-                        }}
-                        className="p-1 hover:bg-neutral-100 rounded"
-                        title={t('common.edit')}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLabel(label.id)}
-                        className="p-1 hover:bg-neutral-100 rounded text-red-500"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Shops Section */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowShops(!showShops)}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              {t('settings.shops')}
-            </h2>
-            {showShops ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
-            )}
-          </button>
-
-          {showShops && (
-            <>
-              <button
-                onClick={openAddShopModal}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 mb-4"
-              >
-                <Plus className="w-4 h-4" />
-                {t('settings.addShop')}
-              </button>
-
-              <div className="space-y-3">
-                {shops.map(shop => (
-                  <div key={shop.id} className="flex items-center gap-3 p-3 border border-neutral-200 rounded">
-                    <AttributeChip label={shop.name} color={shop.color} />
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{shop.name}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingShopId(shop.id);
-                          setEditingShopName(shop.name);
-                          setEditingShopColor(shop.color);
-                        }}
-                        className="p-1 hover:bg-neutral-100 rounded"
-                        title={t('common.edit')}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteShop(shop.id)}
-                        className="p-1 hover:bg-neutral-100 rounded text-red-500"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Filter Views */}
-        <div className="mb-6 border-b border-neutral-200 pb-6">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center justify-between w-full mb-3"
-          >
-            <h2 className="text-lg font-semibold">{t('filters.title')}</h2>
-            {showFilters ? (
-              <ChevronUp className="w-5 h-5 text-neutral-500" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-neutral-500" />
-            )}
-          </button>
-
-          {showFilters && (
-            <>
-              {filters.length === 0 ? (
-                <p className="text-sm text-neutral-500">{t('filters.noSavedFilters')}</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {filters.map(f => (
-                    <div key={f.id} className="flex items-center justify-between p-2.5 border border-neutral-200 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{f.name}</p>
-                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase ${f.type === 'task' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                            {f.type === 'task' ? t('common.tasks') : t('common.items')}
-                          </span>
-                        </div>
-                        <p className="text-xs text-neutral-500 mt-0.5">
-                          {f.chipFilters?.length || f.labelIds.length || 0} condition{(f.chipFilters?.length || f.labelIds.length || 0) !== 1 ? 's' : ''}
-                          {f.chipFilters?.map(cf => (
-                            <span key={cf.id} className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
-                              style={{ backgroundColor: cf.color ? `${cf.color}20` : '#f3f4f6', color: cf.color || '#6b7280' }}
-                            >{cf.label || cf.id}</span>
-                          ))}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => { deleteFilter(f.id); showCompletionMessage(t('common.success')); }}
-                        className="p-1 text-neutral-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors"
-                        title={t('common.delete')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Integration Section — API Documentation */}
-          <div className="mb-6 border-b border-neutral-200 pb-6">
-            <button
-              onClick={toggleIntegrationsSection}
-              className="flex items-center justify-between w-full mb-3"
-            >
-              <h2 className="text-lg font-semibold">
-                {t('settings.integration')}
-              </h2>
-              {showIntegrations ? (
-                <ChevronUp className="w-5 h-5 text-neutral-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-neutral-500" />
-              )}
-            </button>
-
-            {showIntegrations && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold mb-2">{t('settings.apiDocumentation')}</h3>
-                  <a
-                    href="/api/swagger"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    {t('settings.openSwaggerDocs')}
-                  </a>
-                </div>
-              </div>
-            )}
-          </div>
-
-        {/* App Info */}
-        <div className="bg-white rounded-lg border border-neutral-200 p-4 space-y-2" data-testid="app-info">
+        <div className="mx-4 mb-3 rounded-[var(--app-radius-card)] bg-[var(--app-surface)] px-4 py-3 shadow-[var(--app-shadow-card)]" data-testid="app-info">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold text-neutral-900">{t('settings.appInfo')}</h3>
-            <button
-              onClick={handleCopyAppInfo}
-              className="inline-flex items-center gap-1.5 px-2 py-1 text-xs border border-neutral-200 rounded hover:bg-neutral-50"
-              aria-label={t('settings.copyAppInfo')}
-            >
-              <Copy className="w-3.5 h-3.5" />
-              {t('settings.copyAppInfo')}
+            <div className="min-w-0">
+              <div className="mb-1 text-sm font-semibold text-[var(--app-text-muted)]">{t('settings.appInfo')}</div>
+              <div className="truncate text-xs font-medium text-[var(--app-text-soft)]">{t('settings.version')}: {appVersion} · {appCommit}</div>
+            </div>
+            <button onClick={handleCopyAppInfo} className="inline-flex min-h-8 items-center gap-1 rounded-full border border-[var(--app-border-subtle)] bg-[var(--app-bg)] px-3 text-xs font-semibold text-[var(--app-text-muted)]" aria-label={t('settings.copyAppInfo')}>
+              <Copy className="h-3 w-3" /> {t('settings.copyAppInfo')}
             </button>
-          </div>
-          <div className="text-sm text-neutral-600">
-            <p><span className="font-medium text-neutral-800">{t('settings.version')}:</span> <code>{appVersion}</code></p>
-            <p><span className="font-medium text-neutral-800">{t('settings.commit')}:</span> <code>{appCommit}</code></p>
           </div>
           {updateAvailable && (
-            <div className="space-y-2 pt-1">
-              <p className="text-xs font-medium text-blue-700">{t('settings.updateAvailable')}</p>
-              <button
-                onClick={handleUpdateApp}
-                disabled={updatingApp}
-                className="w-full px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-wait"
-              >
-                <RefreshCw className={`w-3 h-3 ${updatingApp ? 'animate-spin' : ''}`} />
-                {updatingApp ? t('common.loading') : t('settings.update')}
-              </button>
-            </div>
+            <button onClick={handleUpdateApp} disabled={updatingApp} className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--app-primary-soft)] px-3 text-xs font-bold text-[var(--app-primary)] disabled:opacity-60">
+              <RefreshCw className={`h-3 w-3 ${updatingApp ? 'animate-spin' : ''}`} />
+              {updatingApp ? t('common.loading') : t('settings.update')}
+            </button>
           )}
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="w-full px-4 py-3 border-2 border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors font-medium flex items-center justify-center gap-2"
-        >
-          <LogOut className="w-5 h-5" />
-          {t('settings.logOut')}
-        </button>
+        <div className="mx-4 mb-8">
+          <Button label={t('settings.logOut')} icon={LogOut} onClick={handleLogout} variant="destructive" />
+        </div>
       </div>
 
       {/* Add Label Modal */}
@@ -1199,6 +715,31 @@ export const Settings = () => {
                     className="flex-1 px-3 py-2 border border-neutral-200 rounded font-mono text-sm"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
+                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                {labelVisibilityOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <label key={option.value} className="flex items-start gap-3 rounded-lg p-2 hover:bg-neutral-50">
+                      <input type="radio" name="new-label-visibility" value={option.value} checked={newLabelVisibility === option.value} onChange={() => setNewLabelVisibility(option.value)} className="mt-1" />
+                      <Icon className="mt-0.5 h-4 w-4 text-neutral-600" />
+                      <span><span className="block text-sm font-medium text-neutral-800">{option.label}</span><span className="block text-xs text-neutral-500">{option.description}</span></span>
+                    </label>
+                  );
+                })}
+                {newLabelVisibility === 'shared' && (
+                  <div className="space-y-2 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium text-neutral-500">{t('labels.sharedMembers')}</p>
+                    {humanFamilyMembers.map((member) => (
+                      <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input type="checkbox" checked={newLabelSharedWith.includes(member.id)} onChange={(e) => setNewLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />
+                        {userDisplayName(member)}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 pt-2">
                 <button
@@ -1313,6 +854,31 @@ export const Settings = () => {
                   <input id="edit-label-color" type="color" value={editingLabelColor} onChange={(e) => setEditingLabelColor(e.target.value)} className="sr-only" />
                   <input type="text" value={editingLabelColor} onChange={(e) => setEditingLabelColor(e.target.value)} placeholder="#3b82f6" className="flex-1 px-3 py-2 border border-neutral-200 rounded font-mono text-sm" />
                 </div>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
+                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                {labelVisibilityOptions.map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <label key={option.value} className="flex items-start gap-3 rounded-lg p-2 hover:bg-neutral-50">
+                      <input type="radio" name="edit-label-visibility" value={option.value} checked={editingLabelVisibility === option.value} onChange={() => setEditingLabelVisibility(option.value)} className="mt-1" />
+                      <Icon className="mt-0.5 h-4 w-4 text-neutral-600" />
+                      <span><span className="block text-sm font-medium text-neutral-800">{option.label}</span><span className="block text-xs text-neutral-500">{option.description}</span></span>
+                    </label>
+                  );
+                })}
+                {editingLabelVisibility === 'shared' && (
+                  <div className="space-y-2 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium text-neutral-500">{t('labels.sharedMembers')}</p>
+                    {humanFamilyMembers.map((member) => (
+                      <label key={member.id} className="flex items-center gap-2 text-sm text-neutral-700">
+                        <input type="checkbox" checked={editingLabelSharedWith.includes(member.id)} onChange={(e) => setEditingLabelSharedWith(prev => e.target.checked ? [...prev, member.id] : prev.filter(id => id !== member.id))} />
+                        {userDisplayName(member)}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-2">

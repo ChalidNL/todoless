@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Pré-rempli avec le nom de votre espace de travail, vous pouvez le modifier",
     "skip": "Passer",
     "selectLanguage": "Choisissez votre langue",
-    "languageStepTitle": "Choisissez Votre Langue",
+    "languageStepTitle": "Choisissez votre langue",
     "languageStepDesc": "Choisissez votre langue préférée pour commencer.",
     "step1Desc": "Votre assistant quotidien pour une productivité rapide et simple sans surcharge.",
     "step2Desc": "Suivez les courses avec les quantités et les magasins. Gardez votre liste de courses simple et organisée.",
@@ -112,7 +112,46 @@
     "welcome": "Bienvenue sur todoless",
     "workspaceName": "Nom de l'espace de travail",
     "workspaceNameMissing": "Le nom de l'espace de travail est manquant — revenez en arrière et saisissez-le",
-    "exampleFamilyName": "Famille Dupont"
+    "exampleFamilyName": "Famille Dupont",
+    "welcomeDescription": "Votre assistant familial pour les tâches, les courses et plus encore — simple et clair.",
+    "discoverFeatures": "Découvrir les fonctionnalités",
+    "showcaseHint": "Utilisez les flèches pour découvrir chaque fonctionnalité.",
+    "workspaceDescription": "Choisissez le nom partagé de votre espace familial.",
+    "accountDescription": "Créez le premier compte administrateur de cet espace.",
+    "doneAdminTitle": "Votre espace est prêt",
+    "doneInfoTitle": "Prêt à vous organiser ?",
+    "doneInfoDescription": "Connectez-vous ou utilisez une invitation pour rejoindre votre espace familial.",
+    "doneUserTitle": "Vous êtes prêt",
+    "doneWorkspaceDescription": "Tout est prêt. Ouvrez todoless et commencez.",
+    "openApp": "Ouvrir todoless",
+    "languageSaveFailed": "Votre préférence de langue n’a pas pu être enregistrée. Réessayez.",
+    "completionSaveFailed": "Votre progression d’intégration n’a pas pu être enregistrée. Réessayez.",
+    "module": {
+      "tasks": {
+        "title": "Tâches",
+        "tagline": "Notez et terminez ce qui compte."
+      },
+      "groceries": {
+        "title": "Courses",
+        "tagline": "Une liste partagée sans distraction."
+      },
+      "calendar": {
+        "title": "Calendrier",
+        "tagline": "Consultez les plans familiaux en un coup d’œil."
+      },
+      "rewards": {
+        "title": "Récompenses",
+        "tagline": "Célébrez les progrès ensemble."
+      },
+      "notes": {
+        "title": "Notes",
+        "tagline": "Gardez les détails utiles à portée de main."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Concentrez-vous ensemble sur le prochain objectif."
+      }
+    }
   },
   "tasks": {
     "title": "Tâches",
@@ -178,7 +217,8 @@
     "clearAllLabels": "Effacer toutes les étiquettes",
     "clearAssigneeAria": "Effacer l'assigné",
     "removeAssignee": "Supprimer l'assigné",
-    "deleteTask": "Supprimer la tâche"
+    "deleteTask": "Supprimer la tâche",
+    "confirmDeleteCompleted": "Supprimer toutes les tâches terminées ?"
   },
   "items": {
     "title": "Articles",
@@ -202,31 +242,13 @@
   },
   "filters": {
     "title": "Filtres",
-    "noSavedFilters": "Aucun filtre enregistré",
-    "manageFilters": "Gérez vos filtres enregistrés ici.",
-    "deleted": "Filtre supprimé",
-    "saved": "Filtre enregistré",
     "saveFailed": "Échec de l’enregistrement du filtre",
     "saveUnavailable": "Filtre enregistré (pas encore implémenté)",
     "taskOrShopPrompt": "Tâche ou magasin ?",
     "itemOrShopPrompt": "Article ou magasin ?",
     "sortTasks": "Trier les tâches",
     "priority": "Priorité",
-    "dueDate": "Date d’échéance",
-    "savedFilters": "Filtres enregistrés",
-    "deleteFilter": "Supprimer le filtre",
-    "filterByLabel": "Filtrer par étiquette",
-    "editLabel": "Modifier l’étiquette",
-    "deleteLabel": "Supprimer l’étiquette",
-    "labelNamePlaceholder": "Nom de l’étiquette...",
-    "filterByAssignee": "Filtrer par assigné",
-    "newFilterNamePlaceholder": "Nouveau nom de filtre...",
-    "applied": "Filtre appliqué",
-    "noActiveFilters": "Aucun filtre actif à enregistrer",
-    "newLabel": "Nouveau label",
-    "saveJqlHint": "Enregistre la requête JQL actuelle et les filtres de labels",
-    "saveLabelsHint": "Sélectionnez des labels ci-dessus, puis enregistrez comme filtre",
-    "noSavedFiltersHint": "Aucun filtre enregistré. Appliquez des filtres via les chips et enregistrez-les ici."
+    "dueDate": "Date d’échéance"
   },
   "groceries": {
     "empty": "Aucun article",
@@ -255,7 +277,6 @@
   "settings": {
     "account": "Compte",
     "active": "Actif",
-    "addFilter": "Ajouter un filtre",
     "addLabel": "Ajouter une étiquette",
     "addShop": "Ajouter un magasin",
     "addedBy": "Ajouté par",
@@ -294,7 +315,6 @@
     "enabled": "Activé",
     "expires": "Expire",
     "filterConditions": "Conditions du filtre",
-    "filterName": "Nom du filtre",
     "filterViews": "Vues filtrées",
     "friday": "Vendredi",
     "integration": "Intégration",
@@ -310,7 +330,6 @@
     "noPermissions": "Aucune permission",
     "noPendingAgents": "Aucun agent en attente",
     "noRegisteredAgents": "Aucun agent enregistré",
-    "noSavedFilters": "Aucun filtre enregistré",
     "notifications": "Notifications",
     "openSwaggerDocs": "Ouvrir la documentation Swagger",
     "admin": "Admin",
@@ -350,7 +369,7 @@
     "sprintSettings": "Paramètres de sprint",
     "sprintStartDay": "Jour de début du sprint",
     "sunday": "Dimanche",
-    "teamMembers": "Membres de l'équipe",
+    "teamMembers": "Famille",
     "theme": "Thème",
     "thursday": "Jeudi",
     "title": "Paramètres",
@@ -471,12 +490,12 @@
     "empty": "Vide"
   },
   "members": {
-    "title": "Membres",
+    "title": "Famille",
     "inviteMember": "Inviter un membre",
     "pendingInvites": "Invitations en attente",
     "noMembers": "Aucun membre",
     "role": "Rôle",
-    "manageMembers": "Gérer les membres",
+    "manageMembers": "Gérer la famille",
     "addMember": "Ajouter un membre",
     "familyLabel": "Famille",
     "sameFamilyHint": "Seuls les membres de la même famille sont affichés ici."
@@ -507,6 +526,7 @@
     "logIn": "Connexion",
     "missingCredentials": "Veuillez saisir votre e-mail et votre mot de passe",
     "invalidCredentials": "E-mail ou mot de passe invalide",
+    "failedToAuthenticate": "Échec de l'authentification.",
     "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
     "iHaveInviteCode": "J’ai un code d’invitation",
     "joinTitle": "Rejoindre todoless",
@@ -547,5 +567,12 @@
     "shortMonth": "Mensuel",
     "shortYear": "Annuel",
     "shortMonthPrefix": "Mois ·"
+  },
+  "nav": {
+    "inbox": "Boîte de réception",
+    "tasks": "Tâches",
+    "calendar": "Calendrier",
+    "groceries": "Courses",
+    "settings": "Paramètres"
   }
 }

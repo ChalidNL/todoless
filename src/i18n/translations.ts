@@ -1,8 +1,21 @@
+import enLocale from '../locales/en.json';
+import nlLocale from '../locales/nl.json';
+import frLocale from '../locales/fr.json';
+import deLocale from '../locales/de.json';
+import esLocale from '../locales/es.json';
+
 export type Language = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
 export const SUPPORTED_UI_LANGUAGES = ['nl', 'fr', 'en', 'de', 'es'] as const;
 export type SupportedUiLanguage = typeof SUPPORTED_UI_LANGUAGES[number];
 export const DEFAULT_UI_LANGUAGE: SupportedUiLanguage = 'en';
+const localeResources: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  en: enLocale,
+  nl: nlLocale,
+  fr: frLocale,
+  de: deLocale,
+  es: esLocale,
+};
 const STORAGE_LANGUAGE_KEY = 'app_language';
 let activeLanguage: Language = DEFAULT_UI_LANGUAGE;
 
@@ -87,6 +100,7 @@ interface TranslationStructure {
     unknown: string;
     warning: string;
     yes: string;
+    back: string;
   };
   onboarding: {
     accountCreationFailed: string;
@@ -129,6 +143,7 @@ interface TranslationStructure {
     [key: string]: string;
   };
   tasks: {
+    confirmDeleteCompleted: string;
     [key: string]: string;
   };
   items: {
@@ -153,8 +168,6 @@ interface TranslationStructure {
   };
   filters: {
     title: string;
-    noSavedFilters: string;
-    manageFilters: string;
   };
   groceries: {
     empty: string;
@@ -162,7 +175,6 @@ interface TranslationStructure {
   settings: {
     account: string;
     active: string;
-    addFilter: string;
     addLabel: string;
     addShop: string;
     addedBy: string;
@@ -201,7 +213,6 @@ interface TranslationStructure {
     enabled: string;
     expires: string;
     filterConditions: string;
-    filterName: string;
     filterViews: string;
     friday: string;
     integration: string;
@@ -214,11 +225,15 @@ interface TranslationStructure {
     newPassword: string;
     noApiTokens: string;
     noApiTokensYet: string;
+    noLabels: string;
+    noLabelsHint: string;
     noPermissions: string;
     noPendingAgents: string;
     noRegisteredAgents: string;
-    noSavedFilters: string;
     notifications: string;
+    notificationsComingSoon: string;
+    notificationsComingSoonHint: string;
+    notificationsDueDate: string;
     openSwaggerDocs: string;
     admin: string;
     adminOnly: string;
@@ -374,6 +389,7 @@ interface TranslationStructure {
     markAllDone: string;
     clearAll: string;
     empty: string;
+    taskAdded: string;
   };
   members: {
     title: string;
@@ -385,6 +401,7 @@ interface TranslationStructure {
     addMember: string;
     familyLabel: string;
     sameFamilyHint: string;
+    inviteSectionTitle: string;
   };
   agent: {
     title: string;
@@ -468,6 +485,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Unknown',
       warning: 'Warning',
       yes: 'Yes',
+      back: 'Back',
     },
     onboarding: {
       accountCreationFailed: 'Account creation failed. Please try again.',
@@ -476,7 +494,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Creating account…',
       email: 'Email',
       emailAlreadyInUse: 'This email is already in use. Try logging in.',
-      firstName: 'First name *',
+      firstName: 'First name',
       getStarted: 'Get Started',
       goToLogin: 'Go to login',
       lastName: 'Last name',
@@ -492,7 +510,7 @@ export const translations: Record<Language, TranslationStructure> = {
       pleaseEnterWorkspaceName: 'Please enter a workspace name',
       prefilledWithWorkspace: 'Pre-filled with your workspace name, you can change it',
       selectLanguage: 'Select your language',
-      languageStepTitle: 'Choose Your Language',
+      languageStepTitle: 'Choose your language',
       languageStepDesc: 'Pick your preferred language to get started.',
       skip: 'Skip',
       step1Desc: 'Your daily assistant for quick, simple productivity without overwhelm.',
@@ -512,6 +530,8 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Tasks',
       newTask: 'New Task',
       searchPlaceholder: 'Search tasks…',
+      labelInputPlaceholder: 'Add a label...',
+      noTasks: 'No tasks found',
       dueDate: 'Due Date',
       assignee: 'Assignee',
       labels: 'Labels',
@@ -534,6 +554,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Mark sub-task as not done',
       subtasksTooltip: 'Sub-tasks',
       viewSubtasks: 'View sub-tasks',
+      confirmDeleteCompleted: 'Delete all completed tasks?',
     },
     items: {
       title: 'Items',
@@ -557,8 +578,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
-      noSavedFilters: 'No saved filters',
-      manageFilters: 'Manage your saved filters here.',
     },
     groceries: {
       empty: 'No items yet',
@@ -566,7 +585,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Account',
       active: 'Active',
-      addFilter: 'Add Filter',
       addLabel: 'Add Label',
       addShop: 'Add Shop',
       addedBy: 'Added by',
@@ -605,7 +623,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Enabled',
       expires: 'Expires',
       filterConditions: 'Filter Conditions',
-      filterName: 'Filter Name',
       filterViews: 'Filter Views',
       friday: 'Friday',
       integration: 'Integration',
@@ -618,11 +635,15 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'New Password',
       noApiTokens: 'No API tokens',
       noApiTokensYet: 'No API tokens yet',
+      noLabels: 'No labels yet',
+      noLabelsHint: 'Create a label with the + button',
       noPermissions: 'No permissions',
       noPendingAgents: 'No pending agents',
       noRegisteredAgents: 'No registered agents',
-      noSavedFilters: 'No saved filters',
       notifications: 'Notifications',
+      notificationsDueDate: 'Due date notifications',
+      notificationsComingSoon: 'Coming soon',
+      notificationsComingSoonHint: 'Notification preferences will be available in a future update.',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
       adminOnly: 'Admin only',
@@ -663,7 +684,7 @@ export const translations: Record<Language, TranslationStructure> = {
       sprintStartDay: 'Sprint Start Day',
       firstDayOfWeek: 'First day of week',
       sunday: 'Sunday',
-      teamMembers: 'Team Members',
+      teamMembers: 'Family',
       theme: 'Theme',
       thursday: 'Thursday',
       title: 'Settings',
@@ -776,17 +797,19 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Mark All Done',
       clearAll: 'Clear All',
       empty: 'Empty',
+      taskAdded: 'Task added',
     },
     members: {
-      title: 'Members',
+      title: 'Family',
       inviteMember: 'Invite Member',
       pendingInvites: 'Pending Invites',
       noMembers: 'No members',
       role: 'Role',
-      manageMembers: 'Manage Members',
+      manageMembers: 'Manage Family',
       addMember: 'Add Member',
       familyLabel: 'Family',
       sameFamilyHint: 'Only members from the same family are shown here.',
+      inviteSectionTitle: 'Invite',
     },
     agent: {
       title: 'Agents',
@@ -868,6 +891,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Inconnu',
       warning: 'Avertissement',
       yes: 'Oui',
+      back: 'Retour',
     },
     onboarding: {
       accountCreationFailed: 'Échec de la création du compte. Veuillez réessayer.',
@@ -876,7 +900,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Création du compte…',
       email: 'E-mail',
       emailAlreadyInUse: 'Cet e-mail est déjà utilisé. Essayez de vous connecter.',
-      firstName: 'Prénom *',
+      firstName: 'Prénom',
       getStarted: 'Commencer',
       goToLogin: 'Aller à la connexion',
       lastName: 'Nom de famille',
@@ -934,6 +958,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Marquer la sous-tâche comme non terminée',
       subtasksTooltip: 'Sous-tâches',
       viewSubtasks: 'Voir les sous-tâches',
+      confirmDeleteCompleted: 'Supprimer toutes les tâches terminées ?',
     },
     items: {
       title: 'Articles',
@@ -957,8 +982,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filtres',
-      noSavedFilters: 'Aucun filtre enregistré',
-      manageFilters: 'Gérez vos filtres enregistrés ici.',
     },
     groceries: {
       empty: 'Aucun article',
@@ -966,7 +989,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Compte',
       active: 'Actif',
-      addFilter: 'Ajouter un filtre',
       addLabel: 'Ajouter une étiquette',
       addShop: 'Ajouter un magasin',
       addedBy: 'Ajouté par',
@@ -1005,7 +1027,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Activé',
       expires: 'Expire',
       filterConditions: 'Conditions du filtre',
-      filterName: 'Nom du filtre',
       filterViews: 'Vues filtrées',
       friday: 'Vendredi',
       integration: 'Intégration',
@@ -1018,11 +1039,15 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Nouveau mot de passe',
       noApiTokens: 'Aucun jeton API',
       noApiTokensYet: 'Pas encore de jetons API',
+      noLabels: 'Aucune étiquette',
+      noLabelsHint: 'Créez une étiquette avec le bouton +',
       noPermissions: 'Aucune permission',
       noPendingAgents: 'Aucun agent en attente',
       noRegisteredAgents: 'Aucun agent enregistré',
-      noSavedFilters: 'Aucun filtre enregistré',
       notifications: 'Notifications',
+      notificationsDueDate: 'Notifications de date d\'échéance',
+      notificationsComingSoon: 'Bientôt disponible',
+      notificationsComingSoonHint: 'Les préférences de notification seront disponibles dans une prochaine mise à jour.',
       openSwaggerDocs: 'Ouvrir la documentation Swagger',
       admin: 'Admin',
       adminOnly: 'Admin uniquement',
@@ -1063,7 +1088,7 @@ export const translations: Record<Language, TranslationStructure> = {
       sprintStartDay: 'Jour de début du sprint',
       firstDayOfWeek: 'Premier jour de la semaine',
       sunday: 'Dimanche',
-      teamMembers: 'Membres de l\'équipe',
+      teamMembers: 'Famille',
       theme: 'Thème',
       thursday: 'Jeudi',
       title: 'Paramètres',
@@ -1176,17 +1201,19 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Tout marquer comme fait',
       clearAll: 'Tout effacer',
       empty: 'Vide',
+      taskAdded: 'Tâche ajoutée',
     },
     members: {
-      title: 'Membres',
+      title: 'Famille',
       inviteMember: 'Inviter un membre',
       pendingInvites: 'Invitations en attente',
       noMembers: 'Aucun membre',
       role: 'Rôle',
-      manageMembers: 'Gérer les membres',
+      manageMembers: 'Gérer la famille',
       addMember: 'Ajouter un membre',
       familyLabel: 'Famille',
       sameFamilyHint: 'Seuls les membres de la même famille sont affichés ici.',
+      inviteSectionTitle: 'Inviter',
     },
     agent: {
       title: 'Agents',
@@ -1268,6 +1295,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Onbekend',
       warning: 'Waarschuwing',
       yes: 'Ja',
+      back: 'Terug',
     },
     onboarding: {
       accountCreationFailed: 'Account aanmaken mislukt. Probeer het opnieuw.',
@@ -1276,7 +1304,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Account aanmaken…',
       email: 'E-mail',
       emailAlreadyInUse: 'Dit e-mailadres is al in gebruik. Probeer in te loggen.',
-      firstName: 'Voornaam *',
+      firstName: 'Voornaam',
       getStarted: 'Aan de slag',
       goToLogin: 'Naar inloggen',
       lastName: 'Achternaam',
@@ -1312,6 +1340,8 @@ export const translations: Record<Language, TranslationStructure> = {
       title: 'Taken',
       newTask: 'Nieuwe taak',
       searchPlaceholder: 'Taken zoeken…',
+      labelInputPlaceholder: 'Voeg een label toe...',
+      noTasks: 'Geen taken gevonden',
       dueDate: 'Verloopdatum',
       assignee: 'Toegewezen aan',
       labels: 'Labels',
@@ -1334,6 +1364,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Sub-taak markeren als niet voltooid',
       subtasksTooltip: 'Sub-taken',
       viewSubtasks: 'Sub-taken bekijken',
+      confirmDeleteCompleted: 'Alle voltooide taken verwijderen?',
     },
     items: {
       title: 'Items',
@@ -1357,8 +1388,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
-      noSavedFilters: 'Geen opgeslagen filters',
-      manageFilters: 'Beheer je opgeslagen filters hier.',
     },
     groceries: {
       empty: 'Geen items',
@@ -1366,7 +1395,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Account',
       active: 'Actief',
-      addFilter: 'Filter toevoegen',
       addLabel: 'Label toevoegen',
       addShop: 'Winkel toevoegen',
       addedBy: 'Toegevoegd door',
@@ -1405,7 +1433,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Ingeschakeld',
       expires: 'Verloopt',
       filterConditions: 'Filter voorwaarden',
-      filterName: 'Filter naam',
       filterViews: 'Filter weergaven',
       friday: 'Vrijdag',
       integration: 'Integratie',
@@ -1418,11 +1445,15 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Nieuw wachtwoord',
       noApiTokens: 'Geen API tokens',
       noApiTokensYet: 'Nog geen API tokens',
+      noLabels: 'Nog geen labels',
+      noLabelsHint: 'Maak een label aan via de + knop',
       noPermissions: 'Geen rechten',
       noPendingAgents: 'Geen wachtende agenten',
       noRegisteredAgents: 'Geen geregistreerde agenten',
-      noSavedFilters: 'Geen opgeslagen filters',
       notifications: 'Meldingen',
+      notificationsDueDate: 'Deadline meldingen',
+      notificationsComingSoon: 'Binnenkort beschikbaar',
+      notificationsComingSoonHint: 'Notificatievoorkeuren komen binnenkort beschikbaar.',
       openSwaggerDocs: 'Open Swagger Docs',
       admin: 'Admin',
       adminOnly: 'Alleen admin',
@@ -1463,7 +1494,7 @@ export const translations: Record<Language, TranslationStructure> = {
       sprintStartDay: 'Sprint startdag',
       firstDayOfWeek: 'Eerste dag van de week',
       sunday: 'Zondag',
-      teamMembers: 'Teamleden',
+      teamMembers: 'Familie',
       theme: 'Thema',
       thursday: 'Donderdag',
       title: 'Instellingen',
@@ -1576,17 +1607,19 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Alles als gedaan markeren',
       clearAll: 'Alles wissen',
       empty: 'Leeg',
+      taskAdded: 'Taak toegevoegd',
     },
     members: {
-      title: 'Leden',
+      title: 'Familie',
       inviteMember: 'Lid uitnodigen',
       pendingInvites: 'Openstaande uitnodigingen',
       noMembers: 'Geen leden',
       role: 'Rol',
-      manageMembers: 'Leden beheren',
+      manageMembers: 'Familie beheren',
       addMember: 'Lid toevoegen',
       familyLabel: 'Familie',
       sameFamilyHint: 'Hier zie je alleen leden uit dezelfde familie.',
+      inviteSectionTitle: 'Uitnodigen',
     },
     agent: {
       title: 'Agenten',
@@ -1668,6 +1701,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Unbekannt',
       warning: 'Warnung',
       yes: 'Ja',
+      back: 'Zurück',
     },
     onboarding: {
       accountCreationFailed: 'Kontoerstellung fehlgeschlagen. Bitte versuchen Sie es erneut.',
@@ -1676,7 +1710,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Konto wird erstellt…',
       email: 'E-Mail',
       emailAlreadyInUse: 'Diese E-Mail wird bereits verwendet. Versuchen Sie sich anzumelden.',
-      firstName: 'Vorname *',
+      firstName: 'Vorname',
       getStarted: 'Loslegen',
       goToLogin: 'Zum Login',
       lastName: 'Nachname',
@@ -1734,6 +1768,7 @@ export const translations: Record<Language, TranslationStructure> = {
       markSubtaskAsNotDone: 'Teilaufgabe als nicht erledigt markieren',
       subtasksTooltip: 'Teilaufgaben',
       viewSubtasks: 'Teilaufgaben anzeigen',
+      confirmDeleteCompleted: 'Alle abgeschlossenen Aufgaben löschen?',
     },
     items: {
       title: 'Artikel',
@@ -1757,8 +1792,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filter',
-      noSavedFilters: 'Keine gespeicherten Filter',
-      manageFilters: 'Verwalte deine gespeicherten Filter hier.',
     },
     groceries: {
       empty: 'Keine Artikel',
@@ -1766,7 +1799,6 @@ export const translations: Record<Language, TranslationStructure> = {
     settings: {
       account: 'Konto',
       active: 'Aktiv',
-      addFilter: 'Filter hinzufügen',
       addLabel: 'Etikett hinzufügen',
       addShop: 'Shop hinzufügen',
       addedBy: 'Hinzugefügt von',
@@ -1805,7 +1837,6 @@ export const translations: Record<Language, TranslationStructure> = {
       enabled: 'Aktiviert',
       expires: 'Läuft ab',
       filterConditions: 'Filterbedingungen',
-      filterName: 'Filtername',
       filterViews: 'Filteransichten',
       friday: 'Freitag',
       integration: 'Integration',
@@ -1818,11 +1849,15 @@ export const translations: Record<Language, TranslationStructure> = {
       newPassword: 'Neues Passwort',
       noApiTokens: 'Keine API-Tokens',
       noApiTokensYet: 'Noch keine API-Tokens',
+      noLabels: 'Noch keine Labels',
+      noLabelsHint: 'Erstelle ein Label über die + Schaltfläche',
       noPermissions: 'Keine Berechtigungen',
       noPendingAgents: 'Keine ausstehenden Agenten',
       noRegisteredAgents: 'Keine registrierten Agenten',
-      noSavedFilters: 'Keine gespeicherten Filter',
       notifications: 'Benachrichtigungen',
+      notificationsDueDate: 'Fälligkeitsbenachrichtigungen',
+      notificationsComingSoon: 'Demnächst verfügbar',
+      notificationsComingSoonHint: 'Benachrichtigungseinstellungen werden in einem zukünftigen Update verfügbar sein.',
       openSwaggerDocs: 'Swagger-Dokumentation öffnen',
       admin: 'Admin',
       adminOnly: 'Nur Admin',
@@ -1863,7 +1898,7 @@ export const translations: Record<Language, TranslationStructure> = {
       sprintStartDay: 'Sprint-Starttag',
       firstDayOfWeek: 'Erster Wochentag',
       sunday: 'Sonntag',
-      teamMembers: 'Teammitglieder',
+      teamMembers: 'Familie',
       theme: 'Design',
       thursday: 'Donnerstag',
       title: 'Einstellungen',
@@ -1976,17 +2011,19 @@ export const translations: Record<Language, TranslationStructure> = {
       markAllDone: 'Alle als erledigt markieren',
       clearAll: 'Alles löschen',
       empty: 'Leer',
+      taskAdded: 'Aufgabe hinzugefügt',
     },
     members: {
-      title: 'Mitglieder',
+      title: 'Familie',
       inviteMember: 'Mitglied einladen',
       pendingInvites: 'Ausstehende Einladungen',
       noMembers: 'Keine Mitglieder',
       role: 'Rolle',
-      manageMembers: 'Mitglieder verwalten',
+      manageMembers: 'Familie verwalten',
       addMember: 'Mitglied hinzufügen',
       familyLabel: 'Familie',
       sameFamilyHint: 'Hier werden nur Mitglieder derselben Familie angezeigt.',
+      inviteSectionTitle: 'Einladen',
     },
     agent: {
       title: 'Agenten',
@@ -2068,6 +2105,7 @@ export const translations: Record<Language, TranslationStructure> = {
       unknown: 'Desconocido',
       warning: 'Advertencia',
       yes: 'Sí',
+      back: 'Volver',
     },
     onboarding: {
       accountCreationFailed: 'Error al crear la cuenta.',
@@ -2076,7 +2114,7 @@ export const translations: Record<Language, TranslationStructure> = {
       creatingAccount: 'Creando cuenta…',
       email: 'Correo electrónico',
       emailAlreadyInUse: 'Este correo ya está en uso.',
-      firstName: 'Nombre *',
+      firstName: 'Nombre',
       getStarted: 'Comenzar',
       goToLogin: 'Ir al inicio de sesión',
       lastName: 'Apellido',
@@ -2109,7 +2147,9 @@ export const translations: Record<Language, TranslationStructure> = {
       workspaceNameMissing: 'Falta el nombre del espacio de trabajo',
       exampleFamilyName: 'Familia García',
     },
-    tasks: {},
+    tasks: {
+      confirmDeleteCompleted: '¿Eliminar todas las tareas completadas?',
+    },
     items: {
       title: 'Artículos',
       newItem: 'Nuevo artículo',
@@ -2126,10 +2166,10 @@ export const translations: Record<Language, TranslationStructure> = {
       sortAlpha: 'A-Z',
     },
     notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
-    filters: { title: 'Filtros', noSavedFilters: 'Sin filtros guardados', manageFilters: 'Administra tus filtros guardados aquí.' },
+    filters: { title: 'Filtros' },
     groceries: { empty: 'Sin artículos' },
     settings: {
-      account: 'Cuenta', active: 'Activo', addFilter: 'Añadir filtro', addLabel: 'Añadir etiqueta',
+      account: 'Cuenta', active: 'Activo', addLabel: 'Añadir etiqueta',
       addShop: 'Añadir tienda', addedBy: 'Añadido por', adminCountWarning: 'Aviso: cambiando el número de administradores',
       agentApproval: 'Aprobación de agente', agents: 'Agentes', apiDocumentation: 'Documentación API',
       apiTokens: 'Tokens API', appInfo: 'Info de la app', approve: 'Aprobar', approvedCount: 'Aprobado',
@@ -2140,12 +2180,12 @@ export const translations: Record<Language, TranslationStructure> = {
       currentPasswordIncorrect: 'La contraseña actual es incorrecta', days30: '30 días', days60: '60 días',
       days90: '90 días', deleteMember: 'Eliminar miembro', deleteMemberConfirm: '¿Eliminar este miembro?',
       demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', editProfile: 'Editar perfil',
-      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro', filterName: 'Nombre del filtro',
+      enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro',
       filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
       language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
       newPassword: 'Nueva contraseña', noApiTokens: 'Sin tokens API', noApiTokensYet: 'Aún no hay tokens API',
-      noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
-      noSavedFilters: 'Sin filtros guardados', notifications: 'Notificaciones', openSwaggerDocs: 'Abrir documentación Swagger',
+      noLabels: 'Aún no hay etiquetas', noLabelsHint: 'Crea una etiqueta con el botón +', noPermissions: 'Sin permisos', noPendingAgents: 'Sin agentes pendientes', noRegisteredAgents: 'Sin agentes registrados',
+      notifications: 'Notificaciones', notificationsDueDate: 'Notificaciones de fecha límite', notificationsComingSoon: 'Próximamente', notificationsComingSoonHint: 'Las preferencias de notificación estarán disponibles en una futura actualización.', openSwaggerDocs: 'Abrir documentación Swagger',
       admin: 'Admin', adminOnly: 'Solo admin', activate: 'Activar', you: 'Tú',
       autoFamilyJoinHint: 'Los nuevos miembros se unen automáticamente a esta familia.', deactivate: 'Desactivar',
       firstAdmin: 'Primer admin', makeAdmin: 'Hacer admin', makeMember: 'Hacer miembro', owner: 'Propietario',
@@ -2159,7 +2199,7 @@ export const translations: Record<Language, TranslationStructure> = {
       role: 'Rol', saturday: 'Sábado', saveProfile: 'Guardar', selectDay: 'Seleccionar día',
       selectLanguage: 'Seleccionar idioma', shops: 'Tiendas', sprintSettings: 'Configuración de sprint',
       sprintStartDay: 'Día de inicio del sprint', firstDayOfWeek: 'Primer día de la semana', sunday: 'Domingo',
-      teamMembers: 'Miembros del equipo', theme: 'Tema', thursday: 'Jueves', title: 'Configuración',
+      teamMembers: 'Familia', theme: 'Tema', thursday: 'Jueves', title: 'Configuración',
       tokenName: 'Nombre del token', tokenPermissions: 'Permisos del token', tuesday: 'Martes',
       unblock: 'Desbloquear', unlimited: 'Ilimitado', unnamed: 'Sin nombre', update: 'Actualizar',
       updateAvailable: 'Nueva versión disponible', updated: 'Actualizado', version: 'Versión',
@@ -2206,12 +2246,12 @@ export const translations: Record<Language, TranslationStructure> = {
       inboxIsEmpty: 'La bandeja está vacía', selectAll: 'Seleccionar todo', deselectAll: 'Deseleccionar todo',
       cancelSelection: 'Cancelar selección', pushSelected: 'Mover seleccionados',
       searchPlaceholder: 'Buscar en la bandeja...', noTasksFound: 'No se encontraron tareas',
-      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío',
+      noResults: 'Sin resultados', markAllDone: 'Marcar todo como hecho', clearAll: 'Limpiar todo', empty: 'Vacío', taskAdded: 'Tarea añadida',
     },
     members: {
-      title: 'Miembros', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
+      title: 'Familia', inviteMember: 'Invitar miembro', pendingInvites: 'Invitaciones pendientes',
       noMembers: 'Sin miembros', role: 'Rol', manageMembers: 'Gestionar miembros', addMember: 'Añadir miembro',
-      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.',
+      familyLabel: 'Familia', sameFamilyHint: 'Solo se muestran aquí los miembros de la misma familia.', inviteSectionTitle: 'Invitar',
     },
     agent: {
       title: 'Agentes', createToken: 'Crear token', tokenCreated: 'Token creado', tokenRevoked: 'Token revocado',
@@ -2222,8 +2262,6 @@ export const translations: Record<Language, TranslationStructure> = {
     },
   },
 };
-
-
 const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
   "en": {
     "auth": {
@@ -2265,6 +2303,43 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Choose .ics or .zip file",
       "exportTitle": "Export Calendar",
       "exportButton": "Export as .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Private",
+      "visibilityFamily": "Family",
+      "visibilityShared": "Shared",
+      "visibilityPrivateDescription": "Only you see tasks with this label.",
+      "visibilityFamilyDescription": "Everyone in the family sees tasks with this label.",
+      "visibilitySharedDescription": "Only you and selected members see these tasks.",
+      "sharedMembers": "Shared members"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Geblokkeerd",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Taken",
+      "calendar": "Agenda",
+      "groceries": "Shop",
+      "settings": "Instellingen"
+    },
+    "members": {
+      "inviteSectionTitle": "Invite"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Search labels...",
+      "shopsSearchPlaceholder": "Search shops...",
+      "noShops": "No shops yet",
+      "noShopsHint": "Create a shop with the + button",
+      "newLabel": "New label",
+      "visibility": "Visibility",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Color",
+      "sortVisibility": "Visibility"
     }
   },
   "nl": {
@@ -2274,7 +2349,11 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "tasks": {
       "taskAdded": "Taak toegevoegd aan inbox",
-      "movedToBacklog": "Verplaatst naar backlog"
+      "movedToBacklog": "Verplaatst naar backlog",
+      "labelInputPlaceholder": "Voeg een label toe...",
+      "searchPlaceholder": "Taken zoeken...",
+      "noTasks": "Geen taken gevonden",
+      "addSubtask": "+ Nieuwe subtaak"
     },
     "common": {
       "previousSlide": "Vorige slide",
@@ -2307,6 +2386,43 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Kies .ics of .zip bestand",
       "exportTitle": "Agenda exporteren",
       "exportButton": "Exporteren als .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privé",
+      "visibilityFamily": "Familie",
+      "visibilityShared": "Gedeeld",
+      "visibilityPrivateDescription": "Alleen jij ziet taken met dit label.",
+      "visibilityFamilyDescription": "Iedereen in het gezin ziet taken met dit label.",
+      "visibilitySharedDescription": "Alleen jij en geselecteerde leden zien deze taken.",
+      "sharedMembers": "Gedeelde leden"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Geblokkeerd",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Taken",
+      "calendar": "Agenda",
+      "groceries": "Shop",
+      "settings": "Instellingen"
+    },
+    "members": {
+      "inviteSectionTitle": "Uitnodigen"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Zoek labels...",
+      "shopsSearchPlaceholder": "Zoek winkels...",
+      "noShops": "Nog geen winkels",
+      "noShopsHint": "Maak een winkel aan via de + knop",
+      "newLabel": "Nieuw label",
+      "visibility": "Zichtbaarheid",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Kleur",
+      "sortVisibility": "Zichtbaarheid"
     }
   },
   "fr": {
@@ -2349,6 +2465,43 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Choisir un fichier .ics ou .zip",
       "exportTitle": "Exporter l'agenda",
       "exportButton": "Exporter en .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privé",
+      "visibilityFamily": "Famille",
+      "visibilityShared": "Partagé",
+      "visibilityPrivateDescription": "Vous seul voyez les tâches avec ce label.",
+      "visibilityFamilyDescription": "Toute la famille voit les tâches avec ce label.",
+      "visibilitySharedDescription": "Seuls vous et les membres sélectionnés voyez ces tâches.",
+      "sharedMembers": "Membres partagés"
+    },
+    "dashboard": {
+      "inbox": "Inbox",
+      "todoSprint": "Sprint todo",
+      "blocked": "Bloqué",
+      "doneSprint": "Sprint fait"
+    },
+    "nav": {
+      "inbox": "Inbox",
+      "tasks": "Tâches",
+      "calendar": "Agenda",
+      "groceries": "Courses",
+      "settings": "Régl."
+    },
+    "members": {
+      "inviteSectionTitle": "Inviter"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Rechercher des étiquettes...",
+      "shopsSearchPlaceholder": "Rechercher des magasins...",
+      "noShops": "Pas encore de magasins",
+      "noShopsHint": "Créez un magasin avec le bouton +",
+      "newLabel": "Nouvelle étiquette",
+      "visibility": "Visibilité",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Couleur",
+      "sortVisibility": "Visibilité"
     }
   },
   "de": {
@@ -2358,6 +2511,43 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": ".ics oder .zip-Datei auswählen",
       "exportTitle": "Kalender exportieren",
       "exportButton": "Als .ics exportieren"
+    },
+    "labels": {
+      "visibilityPrivate": "Privat",
+      "visibilityFamily": "Familie",
+      "visibilityShared": "Geteilt",
+      "visibilityPrivateDescription": "Nur du siehst Aufgaben mit diesem Label.",
+      "visibilityFamilyDescription": "Alle in der Familie sehen Aufgaben mit diesem Label.",
+      "visibilitySharedDescription": "Nur du und ausgewählte Mitglieder sehen diese Aufgaben.",
+      "sharedMembers": "Geteilte Mitglieder"
+    },
+    "dashboard": {
+      "inbox": "Eingang",
+      "todoSprint": "Todo Sprint",
+      "blocked": "Blockiert",
+      "doneSprint": "Done Sprint"
+    },
+    "nav": {
+      "inbox": "Eingang",
+      "tasks": "Aufgaben",
+      "calendar": "Kal.",
+      "groceries": "Einkauf",
+      "settings": "Einst."
+    },
+    "members": {
+      "inviteSectionTitle": "Einladen"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Labels suchen...",
+      "shopsSearchPlaceholder": "Geschäfte suchen...",
+      "noShops": "Noch keine Geschäfte",
+      "noShopsHint": "Erstelle ein Geschäft mit der + Taste",
+      "newLabel": "Neues Label",
+      "visibility": "Sichtbarkeit",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Farbe",
+      "sortVisibility": "Sichtbarkeit"
     }
   },
   "es": {
@@ -2367,6 +2557,43 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "chooseFile": "Elegir archivo .ics o .zip",
       "exportTitle": "Exportar calendario",
       "exportButton": "Exportar como .ics"
+    },
+    "labels": {
+      "visibilityPrivate": "Privado",
+      "visibilityFamily": "Familia",
+      "visibilityShared": "Compartido",
+      "visibilityPrivateDescription": "Solo tú ves las tareas con esta etiqueta.",
+      "visibilityFamilyDescription": "Toda la familia ve las tareas con esta etiqueta.",
+      "visibilitySharedDescription": "Solo tú y los miembros seleccionados ven estas tareas.",
+      "sharedMembers": "Miembros compartidos"
+    },
+    "dashboard": {
+      "inbox": "Entrada",
+      "todoSprint": "Sprint todo",
+      "blocked": "Bloqueado",
+      "doneSprint": "Sprint hecho"
+    },
+    "nav": {
+      "inbox": "Entrada",
+      "tasks": "Tareas",
+      "calendar": "Cal.",
+      "groceries": "Compra",
+      "settings": "Ajustes"
+    },
+    "members": {
+      "inviteSectionTitle": "Invitar"
+    },
+    "settings": {
+      "labelsSearchPlaceholder": "Buscar etiquetas...",
+      "shopsSearchPlaceholder": "Buscar tiendas...",
+      "noShops": "Aún no hay tiendas",
+      "noShopsHint": "Crea una tienda con el botón +",
+      "newLabel": "Nueva etiqueta",
+      "visibility": "Visibilidad",
+      "sortAlpha": "A-Z",
+      "sortAlphaReverse": "Z-A",
+      "sortColor": "Color",
+      "sortVisibility": "Visibilidad"
     }
   },
 };
@@ -2410,8 +2637,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Smith Family"
     },
     "filters": {
-      "deleted": "Filter deleted",
-      "saved": "Filter saved",
       "saveFailed": "Failed to save filter",
       "saveUnavailable": "Filter saved (not yet implemented)",
       "taskOrShopPrompt": "Task or shop?",
@@ -2419,20 +2644,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Sort tasks",
       "priority": "Priority",
       "dueDate": "Due date",
-      "savedFilters": "Saved Filters",
-      "deleteFilter": "Delete filter",
-      "filterByLabel": "Filter by Label",
-      "editLabel": "Edit label",
-      "deleteLabel": "Delete label",
-      "labelNamePlaceholder": "Label name...",
-      "filterByAssignee": "Filter by Assignee",
-      "newFilterNamePlaceholder": "New filter name...",
-      "newLabel": "New label",
-      "saveJqlHint": "Saves current JQL query and label filters",
-      "saveLabelsHint": "Select labels above, then save as filter",
-      "noSavedFiltersHint": "No saved filters. Apply filters via chips and save them here.",
-      "applied": "Filter applied",
-      "noActiveFilters": "No active filters to save"
     },
     "settings": {
       "adminUpdated": "Admin updated",
@@ -2544,8 +2755,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Familie Jansen"
     },
     "filters": {
-      "deleted": "Filter verwijderd",
-      "saved": "Filter opgeslagen",
       "saveFailed": "Filter opslaan mislukt",
       "saveUnavailable": "Filter opgeslagen (nog niet geïmplementeerd)",
       "taskOrShopPrompt": "Taak of winkel?",
@@ -2553,20 +2762,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Taken sorteren",
       "priority": "Prioriteit",
       "dueDate": "Vervaldatum",
-      "savedFilters": "Opgeslagen filters",
-      "deleteFilter": "Filter verwijderen",
-      "filterByLabel": "Filter op label",
-      "editLabel": "Label bewerken",
-      "deleteLabel": "Label verwijderen",
-      "labelNamePlaceholder": "Labelnaam...",
-      "filterByAssignee": "Filter op toegewezen persoon",
-      "newFilterNamePlaceholder": "Nieuwe filternaam...",
-      "newLabel": "Nieuw label",
-      "saveJqlHint": "Slaat de huidige JQL-query en labelfilters op",
-      "saveLabelsHint": "Selecteer hierboven labels en sla ze op als filter",
-      "noSavedFiltersHint": "Geen opgeslagen filters. Pas filters toe via chips en sla ze hier op.",
-      "applied": "Filter toegepast",
-      "noActiveFilters": "Geen actieve filters om op te slaan"
     },
     "settings": {
       "adminUpdated": "Admin bijgewerkt",
@@ -2678,8 +2873,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "exampleFamilyName": "Famille Dupont"
     },
     "filters": {
-      "deleted": "Filtre supprimé",
-      "saved": "Filtre enregistré",
       "saveFailed": "Échec de l’enregistrement du filtre",
       "saveUnavailable": "Filtre enregistré (pas encore implémenté)",
       "taskOrShopPrompt": "Tâche ou magasin ?",
@@ -2687,20 +2880,6 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "sortTasks": "Trier les tâches",
       "priority": "Priorité",
       "dueDate": "Échéance",
-      "savedFilters": "Filtres enregistrés",
-      "deleteFilter": "Supprimer le filtre",
-      "filterByLabel": "Filtrer par label",
-      "editLabel": "Modifier le label",
-      "deleteLabel": "Supprimer le label",
-      "labelNamePlaceholder": "Nom du label...",
-      "filterByAssignee": "Filtrer par assigné",
-      "newFilterNamePlaceholder": "Nouveau nom de filtre...",
-      "newLabel": "Nouveau label",
-      "saveJqlHint": "Enregistre la requête JQL actuelle et les filtres de labels",
-      "saveLabelsHint": "Sélectionnez des labels ci-dessus, puis enregistrez comme filtre",
-      "noSavedFiltersHint": "Aucun filtre enregistré. Appliquez des filtres via les chips et enregistrez-les ici.",
-      "applied": "Filtre appliqué",
-      "noActiveFilters": "Aucun filtre actif à enregistrer"
     },
     "settings": {
       "adminUpdated": "Admin mis à jour",
@@ -2777,6 +2956,73 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
   "es": {},
 };
 
+const releaseTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = {
+  en: {
+    common: { clearSearch: 'Clear search', done: 'Done', loadingTasks: 'Loading tasks', organizeFamilyLife: 'Organize Family Life.' },
+    tasks: { noFocusTasks: 'No focus tasks', focusHeroSubtitle: 'Breathing room for today’s most important tasks.', startFocus: 'Start focus', saveLabel: 'Save label' },
+    settings: {
+      notificationsActiveHint: 'Saved preferences apply to due-date reminders and header alerts.',
+      notificationsHint: 'Choose where TodoLess reminds you about due tasks.',
+      notificationsSaved: 'Notification preferences saved',
+      taskReminders: 'Task reminders', taskRemindersHint: 'Show alerts for tasks due soon.',
+      pushNotifications: 'Push notifications', pushNotificationsHint: 'Use browser/device notifications when available.',
+      emailNotifications: 'Email notifications', emailNotificationsHint: 'Send reminder emails when mail is configured.',
+      reminderLeadTime: 'Reminder lead time', reminderMinutes: '{minutes} minutes before', reminderOneDay: '1 day before',
+    },
+    ics: {
+      fileTooLarge: 'File too large (max 10 MB)', noIcsFiles: 'No .ics files found in the ZIP', parseFailed: 'Failed to parse file',
+      batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max 10 MB', parsingFile: 'Parsing {file}…', eventsFound: '{count} events found',
+      itemsCouldNotParse: '{count} items could not be parsed', date: 'Date', title: 'Title', time: 'Time', parseWarnings: '{count} parse warnings',
+      importEvents: 'Import {count} events', importingProgress: 'Importing… {current}/{total}', importComplete: 'Import complete',
+      importSummary: '{created} created · {updated} updated', skippedCount: '{count} skipped', errorsCount: '{count} errors',
+      googleHelpTitle: 'How to export from Google Calendar', googleHelpStep1: 'Open Google Calendar → ⚙ Settings', googleHelpStep2: 'Import & export → Export',
+      googleHelpStep3: 'Download the .zip file', googleHelpStep4: 'Upload it here — we extract the .ics automatically', exportFailed: 'Export failed',
+      importedToast: 'Imported: {created} new, {updated} updated',
+    },
+  },
+  nl: {
+    common: { clearSearch: 'Zoekopdracht wissen', done: 'Klaar', loadingTasks: 'Taken laden', organizeFamilyLife: 'Organiseer je gezinsleven.' },
+    tasks: { noFocusTasks: 'Geen focus-taken', focusHeroSubtitle: 'Ademruimte voor de belangrijkste taken van vandaag.', startFocus: 'Focus starten', saveLabel: 'Label opslaan' },
+    settings: {
+      notificationsActiveHint: 'Opgeslagen voorkeuren gelden voor deadline-reminders en header-meldingen.',
+      notificationsHint: 'Kies hoe TodoLess je herinnert aan taken met deadline.',
+      notificationsSaved: 'Meldingsvoorkeuren opgeslagen',
+      taskReminders: 'Taakreminders', taskRemindersHint: 'Toon meldingen voor taken die bijna verlopen.',
+      pushNotifications: 'Pushmeldingen', pushNotificationsHint: 'Gebruik browser-/apparaatmeldingen wanneer beschikbaar.',
+      emailNotifications: 'E-mailmeldingen', emailNotificationsHint: 'Stuur reminder-mails wanneer mail is geconfigureerd.',
+      reminderLeadTime: 'Reminder vooraf', reminderMinutes: '{minutes} minuten vooraf', reminderOneDay: '1 dag vooraf',
+    },
+    ics: {
+      fileTooLarge: 'Bestand te groot (max 10 MB)', noIcsFiles: 'Geen .ics-bestanden gevonden in de ZIP', parseFailed: 'Bestand lezen mislukt',
+      batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max 10 MB', parsingFile: '{file} verwerken…', eventsFound: '{count} events gevonden',
+      itemsCouldNotParse: '{count} items konden niet worden gelezen', date: 'Datum', title: 'Titel', time: 'Tijd', parseWarnings: '{count} parse-waarschuwingen',
+      importEvents: '{count} events importeren', importingProgress: 'Importeren… {current}/{total}', importComplete: 'Import voltooid',
+      importSummary: '{created} aangemaakt · {updated} bijgewerkt', skippedCount: '{count} overgeslagen', errorsCount: '{count} fouten',
+      googleHelpTitle: 'Exporteren vanuit Google Agenda', googleHelpStep1: 'Open Google Agenda → ⚙ Instellingen', googleHelpStep2: 'Importeren en exporteren → Exporteren',
+      googleHelpStep3: 'Download het .zip-bestand', googleHelpStep4: 'Upload het hier — wij halen de .ics automatisch uit de ZIP', exportFailed: 'Export mislukt',
+      importedToast: 'Geïmporteerd: {created} nieuw, {updated} bijgewerkt',
+    },
+  },
+  fr: {
+    common: { clearSearch: 'Effacer la recherche', done: 'Terminé', loadingTasks: 'Chargement des tâches', organizeFamilyLife: 'Organisez la vie de famille.' },
+    tasks: { noFocusTasks: 'Aucune tâche focus', focusHeroSubtitle: 'De l’espace pour les tâches les plus importantes du jour.', startFocus: 'Démarrer le focus', saveLabel: 'Enregistrer le label' },
+    settings: { notificationsActiveHint: 'Les préférences enregistrées s’appliquent aux rappels et alertes.', notificationsHint: 'Choisissez comment TodoLess vous rappelle les tâches à échéance.', notificationsSaved: 'Préférences de notification enregistrées', taskReminders: 'Rappels de tâches', taskRemindersHint: 'Afficher les alertes pour les tâches bientôt dues.', pushNotifications: 'Notifications push', pushNotificationsHint: 'Utiliser les notifications du navigateur/appareil si disponibles.', emailNotifications: 'Notifications e-mail', emailNotificationsHint: 'Envoyer des e-mails de rappel si la messagerie est configurée.', reminderLeadTime: 'Délai de rappel', reminderMinutes: '{minutes} minutes avant', reminderOneDay: '1 jour avant' },
+    ics: { fileTooLarge: 'Fichier trop volumineux (max 10 Mo)', noIcsFiles: 'Aucun fichier .ics trouvé dans le ZIP', parseFailed: 'Impossible d’analyser le fichier', batchFailed: 'Lot {batch} : {error}', maxFileSize: 'Max 10 Mo', parsingFile: 'Analyse de {file}…', eventsFound: '{count} événements trouvés', itemsCouldNotParse: '{count} éléments n’ont pas pu être analysés', date: 'Date', title: 'Titre', time: 'Heure', parseWarnings: '{count} avertissements d’analyse', importEvents: 'Importer {count} événements', importingProgress: 'Import… {current}/{total}', importComplete: 'Import terminé', importSummary: '{created} créés · {updated} mis à jour', skippedCount: '{count} ignorés', errorsCount: '{count} erreurs', googleHelpTitle: 'Exporter depuis Google Agenda', googleHelpStep1: 'Ouvrez Google Agenda → ⚙ Paramètres', googleHelpStep2: 'Importer et exporter → Exporter', googleHelpStep3: 'Téléchargez le fichier .zip', googleHelpStep4: 'Téléversez-le ici — nous extrayons automatiquement le .ics', exportFailed: 'Export échoué', importedToast: 'Importé : {created} nouveaux, {updated} mis à jour' },
+  },
+  de: {
+    common: { clearSearch: 'Suche löschen', done: 'Fertig', loadingTasks: 'Aufgaben werden geladen', organizeFamilyLife: 'Familienleben organisieren.' },
+    tasks: { noFocusTasks: 'Keine Fokus-Aufgaben', focusHeroSubtitle: 'Freiraum für die wichtigsten Aufgaben von heute.', startFocus: 'Fokus starten', saveLabel: 'Label speichern' },
+    settings: { notificationsActiveHint: 'Gespeicherte Einstellungen gelten für Erinnerungen und Header-Hinweise.', notificationsHint: 'Wähle, wie TodoLess dich an fällige Aufgaben erinnert.', notificationsSaved: 'Benachrichtigungseinstellungen gespeichert', taskReminders: 'Aufgabenerinnerungen', taskRemindersHint: 'Hinweise für bald fällige Aufgaben anzeigen.', pushNotifications: 'Push-Benachrichtigungen', pushNotificationsHint: 'Browser-/Gerätebenachrichtigungen verwenden, wenn verfügbar.', emailNotifications: 'E-Mail-Benachrichtigungen', emailNotificationsHint: 'Erinnerungs-E-Mails senden, wenn Mail konfiguriert ist.', reminderLeadTime: 'Erinnerung vorab', reminderMinutes: '{minutes} Minuten vorher', reminderOneDay: '1 Tag vorher' },
+    ics: { fileTooLarge: 'Datei zu groß (max. 10 MB)', noIcsFiles: 'Keine .ics-Dateien im ZIP gefunden', parseFailed: 'Datei konnte nicht gelesen werden', batchFailed: 'Batch {batch}: {error}', maxFileSize: 'Max. 10 MB', parsingFile: '{file} wird gelesen…', eventsFound: '{count} Termine gefunden', itemsCouldNotParse: '{count} Einträge konnten nicht gelesen werden', date: 'Datum', title: 'Titel', time: 'Zeit', parseWarnings: '{count} Lesewarnungen', importEvents: '{count} Termine importieren', importingProgress: 'Importieren… {current}/{total}', importComplete: 'Import abgeschlossen', importSummary: '{created} erstellt · {updated} aktualisiert', skippedCount: '{count} übersprungen', errorsCount: '{count} Fehler', googleHelpTitle: 'Aus Google Kalender exportieren', googleHelpStep1: 'Google Kalender öffnen → ⚙ Einstellungen', googleHelpStep2: 'Importieren & Exportieren → Exportieren', googleHelpStep3: '.zip-Datei herunterladen', googleHelpStep4: 'Hier hochladen — wir extrahieren die .ics automatisch', exportFailed: 'Export fehlgeschlagen', importedToast: 'Importiert: {created} neu, {updated} aktualisiert' },
+  },
+  es: {
+    common: { clearSearch: 'Borrar búsqueda', done: 'Listo', loadingTasks: 'Cargando tareas', organizeFamilyLife: 'Organiza la vida familiar.' },
+    tasks: { noFocusTasks: 'Sin tareas de enfoque', focusHeroSubtitle: 'Espacio para las tareas más importantes de hoy.', startFocus: 'Iniciar enfoque', saveLabel: 'Guardar etiqueta' },
+    settings: { notificationsActiveHint: 'Las preferencias guardadas se aplican a recordatorios y alertas.', notificationsHint: 'Elige cómo TodoLess te recuerda tareas con fecha límite.', notificationsSaved: 'Preferencias de notificación guardadas', taskReminders: 'Recordatorios de tareas', taskRemindersHint: 'Mostrar alertas para tareas próximas.', pushNotifications: 'Notificaciones push', pushNotificationsHint: 'Usar notificaciones del navegador/dispositivo si están disponibles.', emailNotifications: 'Notificaciones por correo', emailNotificationsHint: 'Enviar correos de recordatorio si el correo está configurado.', reminderLeadTime: 'Avisar con antelación', reminderMinutes: '{minutes} minutos antes', reminderOneDay: '1 día antes' },
+    ics: { fileTooLarge: 'Archivo demasiado grande (máx. 10 MB)', noIcsFiles: 'No se encontraron archivos .ics en el ZIP', parseFailed: 'No se pudo leer el archivo', batchFailed: 'Lote {batch}: {error}', maxFileSize: 'Máx. 10 MB', parsingFile: 'Analizando {file}…', eventsFound: '{count} eventos encontrados', itemsCouldNotParse: '{count} elementos no se pudieron leer', date: 'Fecha', title: 'Título', time: 'Hora', parseWarnings: '{count} advertencias de lectura', importEvents: 'Importar {count} eventos', importingProgress: 'Importando… {current}/{total}', importComplete: 'Importación completa', importSummary: '{created} creados · {updated} actualizados', skippedCount: '{count} omitidos', errorsCount: '{count} errores', googleHelpTitle: 'Exportar desde Google Calendar', googleHelpStep1: 'Abre Google Calendar → ⚙ Ajustes', googleHelpStep2: 'Importar y exportar → Exportar', googleHelpStep3: 'Descarga el archivo .zip', googleHelpStep4: 'Súbelo aquí — extraemos el .ics automáticamente', exportFailed: 'Error al exportar', importedToast: 'Importado: {created} nuevos, {updated} actualizados' },
+  },
+};
+
 function lookupNested(dict: unknown, key: string): string | undefined {
   const parts = key.split('.');
   let value: any = dict;
@@ -2792,28 +3038,35 @@ function lookupNested(dict: unknown, key: string): string | undefined {
 
 /** Simple translation helper: looks up nested key in language dict. */
 function lookupTranslation(key: string, lang: Language): string | undefined {
-  const overlayDict = isSupportedUiLanguage(lang) ? overlayTranslations[lang] : undefined;
-  const overlay = lookupNested(overlayDict, key);
+  const supportedLanguage = isSupportedUiLanguage(lang) ? lang : DEFAULT_UI_LANGUAGE;
+  const release = lookupNested(releaseTranslations[supportedLanguage], key);
+  if (release) return release;
+  const overlay = lookupNested(overlayTranslations[supportedLanguage], key);
   if (overlay) return overlay;
-  const extraDict = isSupportedUiLanguage(lang) ? extraTranslations[lang] : undefined;
-  const extra = lookupNested(extraDict, key);
+  const extra = lookupNested(extraTranslations[supportedLanguage], key);
   if (extra) return extra;
-  const dict = translations[lang];
-  const parts = key.split('.');
-  let value: any = dict;
-  for (const part of parts) {
-    if (value && typeof value === 'object' && part in value) {
-      value = value[part];
-    } else {
-      return undefined;
-    }
-  }
-  return typeof value === 'string' ? value : undefined;
+  const inline = lookupNested(translations[lang], key);
+  if (inline) return inline;
+  return lookupNested(localeResources[supportedLanguage], key);
 }
 
 /** Simple translation helper: active language → English fallback → key. */
 export function t(key: string, lang: Language = activeLanguage): string {
   return lookupTranslation(key, lang) ?? lookupTranslation(key, 'en') ?? key;
+}
+
+/** Backend (PocketBase) error messages that must never surface raw in the UI. */
+const PB_ERROR_MESSAGE_KEYS: Record<string, string> = {
+  'failed to authenticate': 'auth.failedToAuthenticate',
+  'invite code is invalid_or_expired': 'auth.expiredInviteCode',
+};
+
+/** Translate known backend error messages; unknown messages pass through raw. */
+export function translatePbError(raw: string | null | undefined, fallbackKey: string): string {
+  const normalized = raw?.trim().toLowerCase().replace(/\.$/, '');
+  if (!normalized) return t(fallbackKey);
+  const key = PB_ERROR_MESSAGE_KEYS[normalized];
+  return key ? t(key) : raw ?? '';
 }
 
 export function formatDate(value: Date | number | string, options?: Intl.DateTimeFormatOptions, lang: Language = activeLanguage): string {

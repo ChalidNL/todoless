@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Vorausgefüllt mit deinem Arbeitsbereich-Namen, du kannst ihn ändern",
     "skip": "Überspringen",
     "selectLanguage": "Sprache wählen",
-    "languageStepTitle": "Wähle Deine Sprache",
+    "languageStepTitle": "Wähle deine Sprache",
     "languageStepDesc": "Wähle deine bevorzugte Sprache, um zu beginnen.",
     "step1Desc": "Dein täglicher Assistent für schnelle, einfache Produktivität ohne Überforderung.",
     "step2Desc": "Verfolge Einkäufe mit Mengen und Geschäften. Halte deine Einkaufsliste einfach und organisiert.",
@@ -112,7 +112,46 @@
     "welcome": "Willkommen bei todoless",
     "workspaceName": "Arbeitsbereich-Name",
     "workspaceNameMissing": "Arbeitsbereich-Name fehlt — gehe zurück und gib ihn ein",
-    "exampleFamilyName": "Familie Müller"
+    "exampleFamilyName": "Familie Müller",
+    "welcomeDescription": "Dein Familienassistent für Aufgaben, Einkäufe und mehr — einfach und übersichtlich.",
+    "discoverFeatures": "Funktionen entdecken",
+    "showcaseHint": "Nutze die Pfeile, um alle Funktionen zu entdecken.",
+    "workspaceDescription": "Wähle den gemeinsamen Namen für euren Familienbereich.",
+    "accountDescription": "Erstelle das erste Administratorkonto für diesen Bereich.",
+    "doneAdminTitle": "Euer Bereich ist bereit",
+    "doneInfoTitle": "Bereit für mehr Überblick?",
+    "doneInfoDescription": "Melde dich an oder nutze eine Einladung für euren Familienbereich.",
+    "doneUserTitle": "Du bist startklar",
+    "doneWorkspaceDescription": "Alles ist eingerichtet. Öffne todoless und lege los.",
+    "openApp": "todoless öffnen",
+    "languageSaveFailed": "Deine Spracheinstellung konnte nicht gespeichert werden. Versuche es erneut.",
+    "completionSaveFailed": "Dein Onboarding-Fortschritt konnte nicht gespeichert werden. Versuche es erneut.",
+    "module": {
+      "tasks": {
+        "title": "Aufgaben",
+        "tagline": "Erfasse und erledige, was wichtig ist."
+      },
+      "groceries": {
+        "title": "Einkäufe",
+        "tagline": "Eine gemeinsame Liste ohne Ablenkung."
+      },
+      "calendar": {
+        "title": "Kalender",
+        "tagline": "Familienpläne auf einen Blick."
+      },
+      "rewards": {
+        "title": "Belohnungen",
+        "tagline": "Feiert Fortschritte gemeinsam."
+      },
+      "notes": {
+        "title": "Notizen",
+        "tagline": "Wichtige Details immer griffbereit."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Konzentriert euch gemeinsam auf das nächste Ziel."
+      }
+    }
   },
   "tasks": {
     "title": "Aufgaben",
@@ -178,7 +217,8 @@
     "clearAllLabels": "Alle Etiketten löschen",
     "clearAssigneeAria": "Zugewiesene Person entfernen",
     "removeAssignee": "Zugewiesene Person entfernen",
-    "deleteTask": "Aufgabe löschen"
+    "deleteTask": "Aufgabe löschen",
+    "confirmDeleteCompleted": "Alle abgeschlossenen Aufgaben löschen?"
   },
   "items": {
     "title": "Artikel",
@@ -202,31 +242,13 @@
   },
   "filters": {
     "title": "Filter",
-    "noSavedFilters": "Keine gespeicherten Filter",
-    "manageFilters": "Verwalte deine gespeicherten Filter hier.",
-    "deleted": "Filter gelöscht",
-    "saved": "Filter gespeichert",
     "saveFailed": "Filter konnte nicht gespeichert werden",
     "saveUnavailable": "Filter gespeichert (noch nicht implementiert)",
     "taskOrShopPrompt": "Aufgabe oder Geschäft?",
     "itemOrShopPrompt": "Artikel oder Geschäft?",
     "sortTasks": "Aufgaben sortieren",
     "priority": "Priorität",
-    "dueDate": "Fälligkeitsdatum",
-    "savedFilters": "Gespeicherte Filter",
-    "deleteFilter": "Filter löschen",
-    "filterByLabel": "Nach Etikett filtern",
-    "editLabel": "Etikett bearbeiten",
-    "deleteLabel": "Etikett löschen",
-    "labelNamePlaceholder": "Etikett-Name...",
-    "filterByAssignee": "Nach zugewiesener Person filtern",
-    "newFilterNamePlaceholder": "Neuer Filtername...",
-    "applied": "Filter angewendet",
-    "noActiveFilters": "Keine aktiven Filter zum Speichern",
-    "newLabel": "Neues Etikett",
-    "saveJqlHint": "Speichert die aktuelle JQL-Abfrage und Etikettfilter",
-    "saveLabelsHint": "Wähle oben Etiketten aus und speichere sie als Filter",
-    "noSavedFiltersHint": "Keine gespeicherten Filter. Wende Filter über Chips an und speichere sie hier."
+    "dueDate": "Fälligkeitsdatum"
   },
   "groceries": {
     "empty": "Keine Artikel",
@@ -255,7 +277,6 @@
   "settings": {
     "account": "Konto",
     "active": "Aktiv",
-    "addFilter": "Filter hinzufügen",
     "addLabel": "Etikett hinzufügen",
     "addShop": "Geschäft hinzufügen",
     "addedBy": "Hinzugefügt von",
@@ -294,7 +315,6 @@
     "enabled": "Aktiviert",
     "expires": "Läuft ab",
     "filterConditions": "Filterbedingungen",
-    "filterName": "Filtername",
     "filterViews": "Filteransichten",
     "friday": "Freitag",
     "integration": "Integration",
@@ -310,7 +330,6 @@
     "noPermissions": "Keine Berechtigungen",
     "noPendingAgents": "Keine ausstehenden Agenten",
     "noRegisteredAgents": "Keine registrierten Agenten",
-    "noSavedFilters": "Keine gespeicherten Filter",
     "notifications": "Benachrichtigungen",
     "openSwaggerDocs": "Swagger-Dokumentation öffnen",
     "admin": "Admin",
@@ -350,7 +369,7 @@
     "sprintSettings": "Sprint-Einstellungen",
     "sprintStartDay": "Sprint-Starttag",
     "sunday": "Sonntag",
-    "teamMembers": "Teammitglieder",
+    "teamMembers": "Familie",
     "theme": "Theme",
     "thursday": "Donnerstag",
     "title": "Einstellungen",
@@ -471,12 +490,12 @@
     "empty": "Leer"
   },
   "members": {
-    "title": "Mitglieder",
+    "title": "Familie",
     "inviteMember": "Mitglied einladen",
     "pendingInvites": "Ausstehende Einladungen",
     "noMembers": "Keine Mitglieder",
     "role": "Rolle",
-    "manageMembers": "Mitglieder verwalten",
+    "manageMembers": "Familie verwalten",
     "addMember": "Mitglied hinzufügen",
     "familyLabel": "Familie",
     "sameFamilyHint": "Hier werden nur Mitglieder derselben Familie angezeigt."
@@ -507,6 +526,7 @@
     "logIn": "Anmelden",
     "missingCredentials": "Bitte gib E-Mail und Passwort ein",
     "invalidCredentials": "Ungültige E-Mail oder ungültiges Passwort",
+    "failedToAuthenticate": "Anmeldung fehlgeschlagen.",
     "noAccountInviteHint": "Noch kein Konto? Bitte deinen Administrator um eine Einladung.",
     "iHaveInviteCode": "Ich habe einen Einladungscode",
     "joinTitle": "todoless beitreten",
@@ -547,5 +567,12 @@
     "shortMonth": "Monatlich",
     "shortYear": "Jährlich",
     "shortMonthPrefix": "Mon ·"
+  },
+  "nav": {
+    "inbox": "Eingang",
+    "tasks": "Aufgaben",
+    "calendar": "Kalender",
+    "groceries": "Einkäufe",
+    "settings": "Einstellungen"
   }
 }

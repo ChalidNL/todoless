@@ -18,11 +18,9 @@ vi.mock('../components/shared/NewGlobalHeader', () => ({
 }));
 
 const baseAppValue = {
-  addFilter: vi.fn(),
   addItem: vi.fn(),
   activeChipFilters: [],
   clearChipFilters: vi.fn(),
-  deleteFilter: vi.fn(),
   filters: [],
   items: [
     {
@@ -44,10 +42,8 @@ describe('GroceriesView restock action', () => {
     vi.clearAllMocks();
     useAppMock.mockReturnValue({
       ...baseAppValue,
-      addFilter: vi.fn(),
       addItem: vi.fn(),
       clearChipFilters: vi.fn(),
-      deleteFilter: vi.fn(),
       showCompletionMessage: vi.fn(),
       toggleChipFilter: vi.fn(),
       uncheckAllDoneItems: vi.fn(),

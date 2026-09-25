@@ -1,8 +1,11 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { CalendarView } from '../components/calendar/CalendarView';
 import { Settings } from '../components/Settings';
+import { SettingsPreferences } from '../components/SettingsPreferences';
+import { LabelsView } from '../components/LabelsView';
 import type { Task } from '../types';
 
 const useAppMock = vi.fn();
@@ -18,7 +21,12 @@ vi.mock('../components/AuthProvider', () => ({
 }));
 
 vi.mock('../context/LanguageContext', () => ({
-  useLanguage: () => ({ language: 'en' }),
+  useLanguage: () => ({ language: 'en', t: (key: string) => ({
+    'ics.importTitle': 'Import Calendar (.ics)',
+    'ics.importDescription': 'Import appointments from Google Calendar, Apple Calendar, or any .ics file.',
+    'ics.exportTitle': 'Export Calendar',
+    'ics.exportButton': 'Export as .ics',
+  }[key] || key) }),
 }));
 
 vi.mock('../lib/pocketbase-client', () => ({
@@ -40,6 +48,15 @@ vi.mock('../lib/app-update', () => ({
   shouldShowUpdateButton: vi.fn().mockReturnValue(false),
 }));
 
+vi.mock('../lib/api-client', () => ({
+  api: {
+    tasks: {
+      icsExport: vi.fn().mockResolvedValue({ ics: 'BEGIN:VCALENDAR\nEND:VCALENDAR', count: 0 }),
+      icsImport: vi.fn().mockResolvedValue({ created: 0, updated: 0, skipped: 0 }),
+    },
+  },
+}));
+
 const baseAppValue = {
   tasks: [],
   addTask,
@@ -59,14 +76,11 @@ const baseAppValue = {
   addShop: vi.fn(),
   updateShop: vi.fn(),
   deleteShop: vi.fn(),
-  deleteFilter: vi.fn(),
   swapEntity: vi.fn(),
   toggleChipFilter: vi.fn(),
   clearChipFilters: vi.fn(),
   isChipFilterActive: vi.fn().mockReturnValue(false),
   activeChipFilters: [],
-  activeLabelFilters: [],
-  addFilter: vi.fn(),
   refreshEntries: vi.fn(),
   showCompletionMessage: vi.fn(),
   moveTaskToStatus: vi.fn(),
@@ -84,7 +98,7 @@ describe('Calendar Google-inspired UX', () => {
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: 844 });
   });
 
-  it('creates from the header input on Enter once and clears the bar', () => {
+  it('does not create from the header input on Enter; Add button remains the explicit create path', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 10, 7, 0, 0));
     render(<CalendarView />);
@@ -95,10 +109,14 @@ describe('Calendar Google-inspired UX', () => {
     expect(fireEvent.keyDown(search, { key: 'Enter' })).toBe(false);
     fireEvent.keyDown(search, { key: 'Enter' });
 
+    expect(addTask).not.toHaveBeenCalled();
+    expect(search).toHaveValue('Enter saved task');
+    expect(document.activeElement).toBe(search);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     expect(addTask).toHaveBeenCalledTimes(1);
     expect(addTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Enter saved task', showInCalendar: true }));
     expect(search).toHaveValue('');
-    expect(document.activeElement).toBe(search);
     vi.useRealTimers();
   });
 
@@ -154,8 +172,6 @@ describe('Calendar Google-inspired UX', () => {
     fireEvent.click(within(first).getByText('Alpha'));
     expect(calendarCard).toHaveStyle({ width: 'calc(100vw - 24px)', maxWidth: '430px' });
     expect(calendarCard).toHaveClass('max-w-none');
-    const titleEditor = within(calendarCard).getByLabelText('tasks.editTaskTitle');
-    expect(titleEditor).toHaveValue('Alpha');
   });
 
   it('uses the selected first day of week for week and month ranges', () => {
@@ -174,11 +190,38 @@ describe('Calendar Google-inspired UX', () => {
   });
 
   it('persists first day of week from Settings', () => {
-    render(<Settings />);
-    fireEvent.click(screen.getByRole('button', { name: /Preferences/i }));
+    render(<SettingsPreferences />, { wrapper: MemoryRouter });
     const select = screen.getByRole('combobox', { name: 'First day of week' });
     fireEvent.change(select, { target: { value: '0' } });
     expect(updateAppSettings).toHaveBeenCalledWith({ sprintStartDay: 0 });
+  });
+
+  it('places calendar import/export actions in Settings preferences instead of the calendar toolbar', () => {
+    const { unmount } = render(<SettingsPreferences />, { wrapper: MemoryRouter });
+    expect(screen.getByRole('button', { name: 'Import Calendar (.ics)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Export as .ics' })).toBeInTheDocument();
+    unmount();
+
+    render(<CalendarView />);
+    expect(screen.queryByRole('button', { name: 'Import Calendar (.ics)' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Export as .ics' })).not.toBeInTheDocument();
+  });
+
+  it('renders Settings labels as compact single-row items without duplicate label names', () => {
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      labels: [
+        { id: 'label-1', name: 'CAF', color: '#2563eb', visibility: 'family' },
+        { id: 'label-2', name: 'Personal', color: '#dc2626', visibility: 'private' },
+      ],
+    });
+
+    render(<LabelsView />);
+
+    const cafRow = screen.getByText('CAF').closest('article')!;
+    expect(cafRow).toHaveClass('app-card');
+    expect(within(cafRow).getAllByText('CAF')).toHaveLength(1);
+    expect(within(cafRow).getByText('Family')).toBeInTheDocument();
   });
 });
 

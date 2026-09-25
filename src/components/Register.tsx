@@ -3,7 +3,7 @@ import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
 import { api } from '../lib/pocketbase-client';
-import { t } from '../i18n/translations';
+import { t, translatePbError } from '../i18n/translations';
 
 interface RegisterProps {
   onRegister: () => void;
@@ -47,7 +47,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
       await api.validateInviteCode(inviteCode);
       setStep('create');
     } catch (validationError: any) {
-      setError(validationError?.message || t('auth.expiredInviteCode'));
+      setError(translatePbError(validationError?.message, 'auth.expiredInviteCode'));
     } finally {
       setIsLoading(false);
     }
@@ -102,171 +102,188 @@ export const Register = ({ onRegister }: RegisterProps) => {
 
   if (step === 'validate') {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-          <div className="flex items-center justify-center mb-8">
+      <main className="auth-shell app-shell-bg">
+        <section className="auth-card app-surface" aria-labelledby="invite-title">
+          <div className="auth-logo">
             <AppLogo size="lg" showText={true} variant="dark" />
           </div>
-          
-          <h1 className="text-2xl font-bold text-center mb-2">{t('auth.joinTitle')}</h1>
-          <p className="text-neutral-600 text-center mb-8 text-sm">
+
+          <h1 id="invite-title" className="auth-title">{t('auth.joinTitle')}</h1>
+          <p className="auth-subtitle">
             {t('auth.invitePrompt')}
           </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-neutral-600 mb-1">{t('auth.inviteCode')}</label>
+          <div className="auth-form">
+            <div className="auth-field">
+              <label htmlFor="register-invite" className="auth-label">{t('auth.inviteCode')}</label>
               <input
+                id="register-invite"
                 type="text"
+                autoComplete="one-time-code"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidateInvite()}
-                maxLength={6}
-                className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900 text-center text-2xl font-mono tracking-widest"
+                maxLength={12}
+                className="auth-input auth-invite-input"
                 placeholder="ABC123"
               />
             </div>
 
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <p className="auth-message auth-error" role="alert">{error}</p>
             )}
 
             <button
               onClick={() => handleValidateInvite()}
               disabled={isLoading}
-              className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+              className="auth-submit"
             >
               {isLoading ? <Loader2 className="animate-spin inline" size={16} /> : t('auth.validateCode')}
             </button>
 
-            <div className="text-center pt-4 border-t border-neutral-100">
-              <p className="text-xs text-neutral-500">
+            <div className="auth-footer">
+              <p>
                 {t('auth.alreadyHaveAccount')}{' '}
-                <a href="/" className="text-neutral-900 hover:underline font-medium">
+                <a href="/" className="text-indigo-600 hover:underline font-medium">
                   {t('auth.loginLink')}
                 </a>
               </p>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <div className="flex items-center justify-center mb-6">
+    <main className="auth-shell app-shell-bg">
+      <section className="auth-card app-surface" aria-labelledby="register-title">
+        <div className="auth-logo">
           <AppLogo size="lg" showText={true} variant="dark" />
         </div>
 
-        <div className="flex items-center justify-center gap-2 mb-6 bg-green-50 border border-green-200 rounded-lg p-3">
-          <CheckCircle2 className="w-5 h-5 text-green-600" />
-          <p className="text-sm text-green-800 font-medium">{t('auth.inviteValidated')}</p>
+        <div className="auth-validation-message">
+          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" aria-hidden="true" />
+          <p className="auth-message">{t('auth.inviteValidated')}</p>
         </div>
-        
-        <h1 className="text-2xl font-bold text-center mb-2">{t('auth.createAccountTitle')}</h1>
-        <p className="text-neutral-600 text-center mb-8 text-sm">
+
+        <h1 id="register-title" className="auth-title">{t('auth.createAccountTitle')}</h1>
+        <p className="auth-subtitle">
           {t('auth.createAccountSubtitle')}
         </p>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.firstName')}</label>
+        <div className="auth-form">
+          <div className="auth-field">
+            <label htmlFor="register-first-name" className="auth-label">{t('auth.firstName')}</label>
             <input
+              id="register-first-name"
               type="text"
+              autoComplete="given-name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              className="auth-input"
               placeholder="John"
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.lastName')}</label>
+          <div className="auth-field">
+            <label htmlFor="register-last-name" className="auth-label">{t('auth.lastName')}</label>
             <input
+              id="register-last-name"
               type="text"
+              autoComplete="family-name"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
-              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              className="auth-input"
               placeholder="Doe"
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
+          <div className="auth-field">
+            <label htmlFor="register-email" className="auth-label">{t('auth.email')}</label>
             <input
+              id="register-email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              className="auth-input"
               placeholder="you@example.com"
             />
           </div>
 
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.password')}</label>
-            <div className="relative">
+          <div className="auth-field">
+            <label htmlFor="register-password" className="auth-label">{t('auth.password')}</label>
+            <div className="auth-password-field">
               <input
+                id="register-password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="auth-input auth-password-input"
                 placeholder="••••••••"
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500"
+                className="auth-visibility-button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={t('auth.password')}
+                aria-pressed={showPassword}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            <p className="text-xs text-neutral-500 mt-1">{t('auth.passwordMinLengthShort')}</p>
+            <p className="auth-hint">{t('auth.passwordMinLengthShort')}</p>
           </div>
 
-          <div>
-            <label className="block text-sm text-neutral-600 mb-1">{t('auth.confirmPassword')}</label>
-            <div className="relative">
+          <div className="auth-field">
+            <label htmlFor="register-confirm-password" className="auth-label">{t('auth.confirmPassword')}</label>
+            <div className="auth-password-field">
               <input
+                id="register-confirm-password"
                 type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateAccount()}
-                className="w-full px-4 py-2 border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                className="auth-input auth-password-input"
                 placeholder="••••••••"
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-500"
+                className="auth-visibility-button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={t('auth.confirmPassword')}
+                aria-pressed={showConfirmPassword}
               >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm">{error}</p>
+            <p className="auth-message auth-error" role="alert">{error}</p>
           )}
 
           <button
             onClick={handleCreateAccount}
-            className="w-full bg-neutral-900 text-white py-3 rounded-lg hover:bg-neutral-800 transition-colors font-medium"
+            disabled={isLoading}
+            className="auth-submit"
           >
-            {isLoading ? <Loader2 className="animate-spin" size={16} /> : t('auth.createAccount')}
+            {isLoading ? <Loader2 className="animate-spin" size={18} /> : t('auth.createAccount')}
           </button>
 
-          <div className="text-center pt-4 border-t border-neutral-100">
-            <p className="text-xs text-neutral-500">
+          <div className="auth-footer">
+            <p>
               {t('auth.alreadyHaveAccount')}{' '}
-              <a href="/" className="text-neutral-900 hover:underline font-medium">
+              <a href="/" className="text-indigo-600 hover:underline font-medium">
                 {t('auth.loginLink')}
               </a>
             </p>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };

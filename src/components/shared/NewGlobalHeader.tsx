@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Filter, X, Save } from 'lucide-react';
+import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
-import { AppMark } from './AppLogo';
+import { AppLogo } from './AppLogo';
 
 interface AppHeaderProps {
+  screen?: 'inbox' | 'taken' | 'agenda' | 'shop' | 'leden' | 'labels' | 'focus' | 'instellingen';
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
   onAddEmpty?: (value?: string) => void;
@@ -21,23 +22,41 @@ interface AppHeaderProps {
   showFilters?: boolean;
   showSearch?: boolean;
   showAdd?: boolean;
+  count?: number | string;
+  sortValue?: string;
+  onSortChange?: (value: string) => void;
+  sortOptions?: Array<{ value: string; label: string }>;
+  sortAriaLabel?: string;
 }
 
-export function AddButton({ onClick }: { onClick: () => void }) {
+const SCREEN_THEMES = {
+  inbox: { color: '#3b82f6', bg: '#eff6ff', badgeLabel: 'INBOX', Icon: Inbox },
+  taken: { color: '#22c55e', bg: '#f0fdf4', badgeLabel: 'TAKEN', Icon: CheckSquare },
+  agenda: { color: '#f97316', bg: '#fff7ed', badgeLabel: 'AGENDA', Icon: CalendarDays },
+  shop: { color: '#ec4899', bg: '#fdf2f8', badgeLabel: 'SHOP', Icon: ShoppingCart },
+  leden: { color: '#06b6d4', bg: '#ecfeff', badgeLabel: 'FAMILIE', Icon: Users },
+  labels: { color: '#eab308', bg: '#fefce8', badgeLabel: 'LABELS', Icon: Tag },
+  focus: { color: '#8b5cf6', bg: '#f5f3ff', badgeLabel: 'FOCUS', Icon: Target },
+  instellingen: { color: '#6366f1', bg: '#eef2ff', badgeLabel: 'INSTELLINGEN', Icon: Settings },
+} as const;
+
+export function AddButton({ onClick, color = 'var(--app-primary)' }: { onClick: () => void; color?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="p-2 bg-white text-black rounded-md hover:bg-neutral-200 flex-shrink-0"
+      className="app-fab flex h-[var(--app-touch-target)] w-[var(--app-touch-target)] flex-shrink-0 items-center justify-center rounded-[16px]"
+      style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)`, boxShadow: `0 4px 12px ${color}40` }}
       title={t('common.addTooltip')}
       aria-label={t('common.addTooltip')}
     >
-      <Plus className="w-4 h-4" />
+      <Plus className="h-5 w-5" strokeWidth={2.6} />
     </button>
   );
 }
 
 export const AppHeader = ({
+  screen = 'inbox',
   onSearch,
   onAdd,
   onAddEmpty,
@@ -48,19 +67,38 @@ export const AppHeader = ({
   submitAriaLabel = t('common.save'),
   cancelAriaLabel = t('common.cancel'),
   showInputActions = true,
-  onFilter,
   searchPlaceholder = t('common.searchDot'),
   type = 'task',
   showFilters = true,
   showSearch = true,
-  showAdd = true
+  showAdd = true,
+  count,
+  sortValue,
+  onSortChange,
+  sortOptions = [],
+  sortAriaLabel = t('common.sort')
 }: AppHeaderProps) => {
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { filters, toggleChipFilter, clearChipFilters, activeChipFilters = [], addFilter, showCompletionMessage } = useApp();
-
-  const typeFilters = filters.filter(f => f.type === type);
+  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], tasks = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
+  const theme = SCREEN_THEMES[screen];
+  const BadgeIcon = theme.Icon;
+  const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
+  const displayName = currentUser ? `${currentUser.displayName || currentUser.name || [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || currentUser.email || ''}` : '';
+  const initials = currentUser
+    ? `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+|@/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT'
+    : 'CT';
+  const now = Date.now();
+  const reminderWindowMs = ((appSettings as any).reminderMinutes ?? 15) * 60 * 1000;
+  const dueSoonCount = (appSettings as any).taskReminders === false ? 0 : tasks.filter((task: any) => {
+    if (task.status === 'done' || !task.dueDate) return false;
+    return task.dueDate >= now && task.dueDate <= now + reminderWindowMs;
+  }).length;
+  const firedReminderCount = reminders.filter((reminder: any) => reminder.fired && !reminder.dismissed).length;
+  const notificationCount = dueSoonCount + firedReminderCount;
+  const isSortable = !!onSortChange && sortOptions.length > 0;
 
   const setInputText = (value: string) => {
     if (onInputValueChange) onInputValueChange(value);
@@ -97,174 +135,182 @@ export const AppHeader = ({
     }
     if (onAddEmpty) {
       onAddEmpty(trimmed || undefined);
+      return;
     }
+    showCompletionMessage(t('calendar.titleRequired'));
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    e.stopPropagation();
-    handleAdd();
   };
 
-  const applySavedFilter = (filterId: string) => {
-    const filter = filters.find(f => f.id === filterId);
-    if (!filter) return;
-    clearChipFilters();
-    if (filter.chipFilters) {
-      filter.chipFilters.forEach((cf: any) => {
-        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
-      });
-    }
-    setShowFilterDropdown(false);
-    showCompletionMessage(t('filters.applied'));
-  };
-
-  const saveCurrentFilter = () => {
-    if (activeChipFilters.length === 0) {
-      showCompletionMessage(t('filters.noActiveFilters'));
-      return;
-    }
-    const name = `Filter ${typeFilters.length + 1}`;
-    addFilter({
-      name,
-      type: type === 'item' ? 'item' : 'task',
-      labelIds: [],
-      chipFilters: activeChipFilters.map(f => ({ type: f.type, id: f.id, label: f.label, color: f.color })),
-    });
-    setShowFilterDropdown(false);
-    showCompletionMessage(t('filters.saved'));
+  const handleHeaderNavigate = (path: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   return (
-    <>
-      <div className="bg-black border-b border-neutral-800 sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-3 space-y-2">
-          <div className="flex items-center justify-center gap-2 text-white w-full">
-            <AppMark className="w-8 h-8 text-white" />
-            <span className="text-xl font-semibold tracking-tight">todoless</span>
-          </div>
+    <div className="sticky top-0 z-40 safe-top" style={{ background: theme.bg, borderBottom: `1px solid ${theme.color}18` }}>
+      <div className="mx-auto max-w-2xl px-[var(--app-space-screen-x)] pb-3 pt-3">
+        <div className="mb-3 flex min-h-[44px] items-center justify-between px-0">
+          <a
+            href="/settings/profile"
+            onClick={handleHeaderNavigate('/settings/profile')}
+            className="grid h-11 w-11 flex-shrink-0 place-items-center overflow-hidden rounded-full border-[2.5px] border-white/20 bg-[#1a1a2e] text-[13px] font-bold tracking-[-0.02em] text-white shadow-[0_2px_10px_rgba(0,0,0,0.25)] active:scale-[0.97]"
+            aria-label={t('settings.yourProfile')}
+          >
+            <span>{initials}</span>
+          </a>
+          <AppLogo size="lg" />
+          <a
+            href="/settings/notifications"
+            onClick={handleHeaderNavigate('/settings/notifications')}
+            className="relative grid h-11 w-11 flex-shrink-0 place-items-center rounded-full bg-white/60 text-[var(--app-text-muted)] active:scale-[0.97]"
+            aria-label={t('settings.notifications')}
+          >
+            <Bell className="h-[19px] w-[19px]" strokeWidth={1.8} />
+            {notificationCount > 0 && <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full border border-white bg-red-500 px-1 text-[9px] font-black text-white">{notificationCount > 9 ? '9+' : notificationCount}</span>}
+          </a>
+        </div>
 
-          <div className="flex items-center gap-2">
-            {showFilters && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                  className={`p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 ${
-                    activeChipFilters.length > 0 ? 'bg-neutral-800 ring-1 ring-neutral-600' : ''
-                  }`}
-                  title={t('common.filtersTooltip')}
-                >
-                  <Filter className="w-4 h-4" />
-                  {activeChipFilters.length > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {activeChipFilters.length}
-                    </span>
-                  )}
-                </button>
+        <div className="app-search-card flex items-center gap-2 bg-transparent p-0 shadow-none">
+          {showFilters && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                className="app-icon-button relative h-11 w-11 flex-shrink-0 border backdrop-blur-md hover:bg-[var(--app-surface)]"
+                style={{ background: activeChipFilters.length > 0 ? `${theme.color}18` : 'rgba(255,255,255,0.82)', borderColor: activeChipFilters.length > 0 ? `${theme.color}40` : 'var(--app-border-subtle)', color: activeChipFilters.length > 0 ? theme.color : 'var(--app-text-muted)' }}
+                title={t('common.filtersTooltip')}
+                aria-label={t('common.filtersTooltip')}
+              >
+                <SlidersHorizontal className="h-4 w-4" strokeWidth={2.2} />
+                {activeChipFilters.length > 0 && (
+                  <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full" style={{ background: theme.color }} />
+                )}
+              </button>
 
-                {showFilterDropdown && (
-                  <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-                    <div className="p-2 border-b border-neutral-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-neutral-600">{t('filters.title')}</span>
-                        <button onClick={() => setShowFilterDropdown(false)} className="p-0.5 hover:bg-neutral-100 rounded">
-                          <X className="w-3.5 h-3.5 text-neutral-400" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {activeChipFilters.length > 0 && (
-                      <div className="p-2 border-b border-neutral-100">
-                        <div className="flex flex-wrap gap-1">
-                          {activeChipFilters.map(f => (
-                            <span key={`${f.type}-${f.id}`}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                              style={{ backgroundColor: f.color ? `${f.color}20` : '#f3f4f6', color: f.color || '#6b7280' }}
-                            >
-                              {f.label || f.id}
-                              <button onClick={() => toggleChipFilter(f.type, f.id)} className="hover:opacity-70">
-                                <X className="w-2.5 h-2.5" />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                          <button onClick={saveCurrentFilter} className="flex-1 flex items-center justify-center gap-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100 py-1 rounded">
-                            <Save className="w-3 h-3" /> {t('common.save')}
-                          </button>
-                          <button onClick={clearChipFilters} className="flex-1 text-[10px] font-medium text-red-500 hover:bg-red-50 py-1 rounded">
-                            {t('common.clearAllTooltip')}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="p-1">
-                      {typeFilters.length === 0 ? (
-                        <p className="text-xs text-neutral-400 p-3 text-center">
-                          {t('filters.noSavedFiltersHint')}
-                        </p>
-                      ) : (
-                        typeFilters.map(f => (
-                          <button key={f.id} onClick={() => applySavedFilter(f.id)}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 rounded flex items-center justify-between"
-                          >
-                            <span className="truncate">{f.name}</span>
-                            <span className="text-[10px] text-neutral-400 ml-2 shrink-0">
-                              {f.chipFilters?.length || 0}
-                            </span>
-                          </button>
-                        ))
-                      )}
+              {showFilterDropdown && (
+                <div className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto backdrop-blur-xl bg-white/90 border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                  <div className="border-b border-[var(--app-border-subtle)] p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[var(--app-text-muted)]">{t('filters.title')}</span>
+                      <button type="button" onClick={() => setShowFilterDropdown(false)} className="grid h-9 w-9 place-items-center rounded-full hover:bg-[var(--app-surface-2)]" aria-label={t('common.close')}>
+                        <X className="h-4 w-4 text-[var(--app-text-soft)]" />
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-            )}
 
-            {showSearch && (
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder={searchPlaceholder}
-                  className="w-full px-3 py-2 bg-neutral-900 text-white border border-neutral-700 rounded-md focus:outline-none focus:border-neutral-500 text-sm"
-                />
-              </div>
-            )}
+                  <div className="p-1">
+                    {/* Predefined status filters — only for task screens (not shop/labels) */}
+                    {screen !== 'shop' && screen !== 'labels' && (
+                    <div className="flex flex-wrap gap-1 p-1.5">
+                      {[
+                        { id: 'todo', label: t('dashboard.todoSprint'), color: '#16a34a' },
+                        { id: 'focus', label: t('tasks.focus'), color: '#f97316' },
+                        { id: 'blocked', label: t('dashboard.blocked'), color: '#e11d48' },
+                        { id: 'done', label: t('dashboard.doneSprint'), color: '#7c3aed' },
+                      ].map((pf) => {
+                        const active = activeChipFilters.some((f: any) => f.type === 'status' && f.id === pf.id);
+                        return (
+                          <button
+                            key={pf.id}
+                            type="button"
+                            onClick={() => toggleChipFilter('status', pf.id, pf.label, pf.color)}
+                            className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                              active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                            }`}
+                            style={active ? { backgroundColor: pf.color } : undefined}
+                          >
+                            {pf.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    )}
 
-            {showInputActions && onSubmitInput && (
-              <button
-                type="button"
-                onClick={submitInput}
-                className="p-2 rounded-md flex-shrink-0 bg-white text-black hover:bg-neutral-200 focus:outline-none focus:ring-2 focus:ring-white/60"
-                title={submitAriaLabel}
-                aria-label={submitAriaLabel}
-              >
-                <Save className="w-4 h-4" />
-              </button>
-            )}
+                    </div>
+                  <div className="flex gap-2 border-t border-[var(--app-border-subtle)] p-2">
+                    <button type="button" onClick={clearChipFilters} className="min-h-9 flex-1 rounded-full border border-[var(--app-border-subtle)] text-xs font-bold text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
+                      {t('common.clearAllTooltip')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
-            {showInputActions && onCancelInput && (
-              <button
-                type="button"
-                onClick={onCancelInput}
-                className="p-2 rounded-md flex-shrink-0 text-white hover:bg-neutral-800 focus:outline-none focus:ring-2 focus:ring-white/50"
-                title={cancelAriaLabel}
-                aria-label={cancelAriaLabel}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
+          {showSearch && (
+            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
+              <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder={searchPlaceholder}
+                className="min-h-11 min-w-0 flex-1 bg-transparent p-0 text-[16px] font-medium text-[var(--app-text)] placeholder:text-[var(--app-text-soft)] focus:outline-none"
+              />
+            </div>
+          )}
 
-            {showAdd && <AddButton onClick={handleAdd} />}
+          {showInputActions && onSubmitInput && (
+            <button
+              type="button"
+              onClick={submitInput}
+              className="app-icon-button h-11 w-11 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              style={{ color: theme.color }}
+              title={submitAriaLabel}
+              aria-label={submitAriaLabel}
+            >
+              <Save className="h-4 w-4" />
+            </button>
+          )}
+
+          {showInputActions && onCancelInput && (
+            <button
+              type="button"
+              onClick={onCancelInput}
+              className="app-icon-button h-11 w-11 flex-shrink-0 bg-white/85 shadow-none hover:bg-[var(--app-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]/20"
+              title={cancelAriaLabel}
+              aria-label={cancelAriaLabel}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+
+          {showAdd && <AddButton onClick={handleAdd} color={theme.color} />}
+        </div>
+
+        {/* Active filter chips now inline in screen-specific filter bars — removed from global header */}
+
+        <div className="mt-3 flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
+            <span className="text-sm font-black tracking-[0.06em]" style={{ color: theme.color }}>{theme.badgeLabel}</span>
+            {count !== undefined && (
+              <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
+            )}
           </div>
+          {isSortable && (
+            <select
+              value={sortValue}
+              onChange={(event) => onSortChange?.(event.target.value)}
+              className="min-h-11 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
+              aria-label={sortAriaLabel}
+              data-component="shared-select"
+            >
+              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -2,14 +2,19 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare, Save } from 'lucide-react';
 import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
+import { entityColor } from '../../lib/entity-colors';
+import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
+import { PriorityIcon } from '../../lib/PriorityIcon';
+import { TaskMetaRow, type MetaRowData } from './TaskMetaRow';
+import { TaskActionBar } from './TaskActionBar';
 
-// Subtask icon: square with dot inside
+// Local subtask icon (still used by inline editor)
 const SubtaskIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
     <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.3" />
@@ -17,8 +22,6 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 import { AttributeChip } from './AttributeChip';
-import { entityColor } from '../../lib/entity-colors';
-import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -300,6 +303,17 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const visibleLabels = labels.filter((l) =>
     l.name.toLowerCase().includes(labelInput.trim().toLowerCase())
   );
+  const saveNewLabel = () => {
+    const name = labelInput.trim();
+    if (!name) return;
+    const existing = labels.find((label) => label.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!task.labels.includes(existing.id)) updateTask(task.id, { labels: [...task.labels, existing.id] });
+    } else {
+      addLabel({ name, color: '#3b82f6', visibility: 'family' });
+    }
+    setLabelInput('');
+  };
   const hasLabels = task.labels.length > 0;
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
@@ -370,7 +384,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
         data-testid={`compact-task-card-${task.id}`}
         data-component="CompactTaskCard"
         onClick={expandFromCardClick}
-        style={calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : undefined}
+        style={calendarBlock ? (calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : undefined) : Object.assign({ borderRadius: '20px', boxShadow: '0 2px 8px rgba(99,102,241,0.07), 0 1px 3px rgba(0,0,0,0.04)', border: '1px solid rgba(99,102,241,0.08)', transition: 'transform 150ms ease, box-shadow 150ms ease', WebkitTapHighlightColor: 'transparent' }, calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : {})}
         className={`${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'
@@ -387,16 +401,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'ring-1 ring-neutral-300 !bg-neutral-50' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'shadow-[0_0_20px_rgba(34,197,94,0.12),0_0_0_1px_rgba(34,197,94,0.15)] !bg-white' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
             {showCheckbox && (
               <button
                 onClick={handleToggle}
-                className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-200 active:scale-75 ${
                   isDone
-                    ? 'bg-neutral-900 border-neutral-900 text-white'
+                    ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 border-transparent text-white shadow-[0_2px_8px_rgba(34,197,94,0.3)]'
                     : 'border-neutral-300 hover:border-neutral-500'
                 }`}
                 aria-label={isDone ? t('common.markAsNotDone') : t('common.markAsDone')}
@@ -468,333 +482,157 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
             <div className="mt-0.5 truncate text-[10px] font-bold leading-tight text-violet-700">{calendarTimeLabel}</div>
           )}
 
-          {/* Line 2: chips — labels, assignee, date, repeat, subtask progress (always visible) */}
-          {!isDone && (hasLabels || assignedUser || (!hideDateChip && dateStr) || subtaskCount > 0 || (task.priority && PRIORITY_COLORS[task.priority]) || !!task.repeatInterval || hasComment) && (
-            <div className={`flex flex-wrap items-center gap-1 mt-1.5 ml-0.5 ${compact && !showMenu ? 'max-h-7 overflow-hidden' : ''}`}>
-              {task.labels.map((labelId) => {
-                const label = labels.find((l) => l.id === labelId);
-                return label ? (
-                  <AttributeChip
-                    key={label.id}
-                    icon={<Tag className="w-3.5 h-3.5" />}
-                    label={label.name}
-                    color={label.color}
-                    active={isLabelFiltered(label.id)}
-                    onClick={showMenu ? () => removeLabel(label.id) : () => toggleChipFilter('label', label.id, label.name, label.color)}
-                  />
-                ) : null;
-              })}
-              {assignedUser && (
-                  <AttributeChip
-                    icon={<User className="w-3.5 h-3.5" />}
-                    label={getCompactUserName(assignedUser)}
-                  color={assigneeColor}
-                  active={isAssigneeFiltered(assignedUser.id)}
-                  onClick={showMenu ? clearAssignee : () => toggleChipFilter('assignee', assignedUser.id, getCompactUserName(assignedUser), assigneeColor)}
-                />
-              )}
-              {dateStr && !hideDateChip && !isDone && (
-                <AttributeChip
-                  icon={<CalendarDays className="w-3.5 h-3.5" />}
-                  label={dateStr}
-                  color="#ea580c"
-                  active={isDateFiltered(dateStr)}
-                  onClick={showMenu ? clearAllSchedule : () => toggleChipFilter('date', dateStr)}
-                />
-              )}
-              {repeatLabel && !isDone && (
-                <AttributeChip
-                  icon={<RotateCcw className="w-3.5 h-3.5" />}
-                  label={repeatChipLabel || repeatLabel}
-                  color="#0f766e"
-                  active={isRepeatFiltered(task.repeatInterval)}
-                  onClick={showMenu ? clearAllSchedule : () => task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel)}
-                  maxWidthClassName="max-w-[92px]"
-                />
-              )}
-              {hasComment && (
-                <button
-                  type="button"
-                  onClick={() => openCommentEditor()}
-                  className="inline-flex items-center justify-center w-7 h-7 rounded-full text-blue-600 hover:bg-blue-50 transition-colors"
-                  aria-label={t('tasks.comment')}
-                  title={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-3.5 h-3.5" strokeWidth={1.75} />
-                </button>
-              )}
-              {subtaskCount > 0 && (
-                <AttributeChip
-                  icon={<SubtaskIcon className="w-3.5 h-3.5" />}
-                  label={`${completedSubtaskCount}/${subtaskCount}`}
-                  color="#8b5cf6"
-                />
-              )}
-              {task.priority && PRIORITY_COLORS[task.priority] && (
-                <AttributeChip
-                  icon={<AlertTriangle className="w-3.5 h-3.5" />}
-                  label={PRIORITY_LABELS[task.priority] || task.priority}
-                  color={PRIORITY_COLORS[task.priority] || '#6b7280'}
-                  onClick={showMenu ? clearPriority : () => toggleChipFilter('priority', task.priority, PRIORITY_LABELS[task.priority] || task.priority, PRIORITY_COLORS[task.priority] || '#6b7280')}
-                />
-              )}
-            </div>
+          {/* Meta row — shared component, visible in both collapsed AND expanded */}
+          {!isDone && (
+            <TaskMetaRow
+              data={{
+                labels: task.labels.map((labelId) => {
+                  const label = labels.find((l) => l.id === labelId);
+                  return label ? { id: label.id, name: label.name, color: label.color } : null;
+                }).filter(Boolean) as Array<{ id: string; name: string; color: string }>,
+                assignee: assignedUser ? {
+                  name: getCompactUserName(assignedUser),
+                  color: assigneeColor || '#6366f1',
+                  avatarUrl: assignedUser.avatarUrl,
+                  id: assignedUser.id,
+                } : null,
+                dateStr: !hideDateChip ? dateStr : null,
+                isOverdue,
+                repeatLabel: repeatLabel,
+                repeatChipLabel: repeatChipLabel || null,
+                repeatInterval: task.repeatInterval || null,
+                hasComment,
+                subtaskCount,
+                completedSubtaskCount,
+                priority: task.priority || null,
+              }}
+              expanded={showMenu}
+              themeColor="#22c55e"
+              // When collapsed: tap = filter toggle. When expanded: tap = open editor
+              onLabelClick={(id) => showMenu ? setActiveEditor('labels') : toggleChipFilter('label', id, labels.find(l => l.id === id)?.name || '', labels.find(l => l.id === id)?.color || '#6366f1')}
+              onAssigneeClick={() => showMenu ? setActiveEditor('assignee') : toggleChipFilter('assignee', assignedUser!.id, getCompactUserName(assignedUser!), assigneeColor)}
+              onDateClick={() => showMenu ? setActiveEditor('schedule') : toggleChipFilter('date', dateStr!)}
+              onRepeatClick={() => showMenu ? setActiveEditor('schedule') : task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel!)}
+              onCommentClick={() => openCommentEditor()}
+              onSubtaskClick={() => showMenu ? setActiveEditor('subtasks') : {}}
+              onPriorityClick={() => showMenu ? setActiveEditor('priority') : toggleChipFilter('priority', task.priority!, PRIORITY_LABELS[task.priority!] || task.priority!, PRIORITY_COLORS[task.priority!] || '#6b7280')}
+              isLabelFiltered={isLabelFiltered}
+              isAssigneeFiltered={isAssigneeFiltered(assignedUser?.id)}
+              isDateFiltered={isDateFiltered(dateStr!)}
+              isRepeatFiltered={isRepeatFiltered(task.repeatInterval)}
+            />
           )}
 
-          {/* Subtasks list — visible when selected or when subtasks exist */}{showMenu && (activeEditor === 'subtasks' || subtaskCount > 0) && (
-            <div className={`mt-2 pt-2 border-t space-y-1.5 ${subtaskCount > 0 ? 'border-purple-100' : 'border-neutral-100'}`}>
-              <div className="flex items-center justify-between px-1">
-                <span className={`text-xs font-medium ${subtaskCount > 0 ? 'text-purple-600' : 'text-neutral-500'}`}>
-                  {t('tasks.subtasks')} ({subtaskCount})
-                </span>
-                <button
-                  onClick={() => {
-                    const next = !subtaskEditMode;
-                    setSubtaskEditMode(next);
-                    if (!next) {
-                      setEditingSubtaskId(null);
-                      setEditingSubtaskTitle('');
-                    }
-                  }}
-                  className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title={t('tasks.subtasksEditTitle')}
-                  aria-label={t('tasks.subtasksEditAria')}
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {subtasks.map((subtask) => {
-                const isEditing = editingSubtaskId === subtask.id;
-                return (
-                  <div
-                    key={subtask.id}
-                    className={`flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded border ${
-                      subtaskCount > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-neutral-50 border-neutral-100'
-                    }`}
-                  >
-                    <button
-                      onClick={() => {
-                        if (subtask.status === 'done') {
-                          updateTask(subtask.id, { status: 'todo', completedAt: undefined });
-                        } else {
-                          updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
-                        }
-                      }}
-                      className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                        subtask.status === 'done'
-                          ? 'bg-neutral-900 border-neutral-900 text-white'
-                          : 'border-neutral-300 hover:border-neutral-500'
-                      }`}
-                      aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
-                    >
-                      {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
-                    </button>
-
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editingSubtaskTitle}
-                        onChange={(e) => setEditingSubtaskTitle(e.target.value)}
-                        onBlur={commitSubtaskEdit}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commitSubtaskEdit();
-                          if (e.key === 'Escape') {
-                            setEditingSubtaskId(null);
-                            setEditingSubtaskTitle('');
-                          }
-                        }}
-                        autoFocus
-                        className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
-                        aria-label={t('tasks.subtaskTitleEditAria')}
-                      />
-                    ) : (
-                      <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>
-                        {subtask.title}
-                      </span>
-                    )}
-
-                    {subtaskEditMode && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => startEditingSubtask(subtask)}
-                          className="p-1 rounded text-neutral-500 hover:bg-white hover:text-neutral-700 transition-colors"
-                          title={t('tasks.subtaskEditTitle')}
-                          aria-label={t('tasks.subtaskEditTitle')}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setSubtaskPendingDelete(subtask)}
-                          className="p-1 rounded text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
-                          title={t('tasks.subtaskDeleteTitle')}
-                          aria-label={t('tasks.subtaskDeleteTitle')}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              <div className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50 border-purple-200' : 'bg-neutral-50 border-dashed border-neutral-200'}`}>
-                <SubtaskIcon className={`w-4 h-4 flex-shrink-0 ${subtaskCount > 0 ? 'text-purple-500' : 'text-neutral-300'}`} />
-                <input
-                  type="text"
-                  value={subtaskTitle}
-                  onChange={(e) => setSubtaskTitle(e.target.value)}
-                  onFocus={() => setActiveEditor('subtasks')}
-                  onKeyDown={async (e) => {
-                    if (e.key === 'Enter') {
-                      await commitSubtask();
-                    }
-                  }}
-                  placeholder={t('tasks.newSubtaskTitle')}
-                  className="flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
-                  aria-label={t('tasks.newSubtaskTitle')}
-                />
-                {subtaskTitle.trim() && (
-                  <button
-                    onClick={commitSubtask}
-                    className="px-2 py-1 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors"
-                    aria-label={t('tasks.addSubtask')}
-                  >
-                    {t('common.add')}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Line 3: attributes behind expander — only when showMenu */}
+          {/* Expanded section — shared action bar + inline editors */}
           {showMenu && (
             <div className="mt-2 pt-2 border-t border-neutral-100">
-              <div>
-                {/* Attribute buttons */}
-              <div className={`flex items-center gap-2 ${calendarBlock ? 'flex-wrap' : ''}`}>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'labels' ? null : 'labels')}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasLabels || activeEditor === 'labels'
-                      ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.labelTooltip')}
-                  aria-label={t('tasks.editLabels')}
-                >
-                  <Tag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => {
-                    const next = activeEditor === 'assignee' ? null : 'assignee';
-                    setActiveEditor(next);
-                    if (next) setAssigneeSearch('');
-                  }}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasAssignee || activeEditor === 'assignee'
-                      ? 'bg-green-100 text-green-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.assigneeTooltip')}
-                  aria-label={t('tasks.editAssignee')}
-                >
-                  <User className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule')}
-                  className={`p-1.5 rounded transition-colors ${
-                    hasSchedule || activeEditor === 'schedule'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.scheduleTooltip')}
-                  aria-label={t('tasks.editSchedule')}
-                >
-                  <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks')}
-                  className={`p-1.5 rounded transition-colors ${
-                    subtaskCount > 0 || activeEditor === 'subtasks'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.subtasksTooltip')}
-                  aria-label={t('tasks.viewSubtasks')}
-                >
-                  <SubtaskIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'priority' ? null : 'priority')}
-                  className={`p-1.5 rounded transition-colors ${
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? 'text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  style={
-                    task.priority && PRIORITY_COLORS[task.priority]
-                      ? { backgroundColor: PRIORITY_COLORS[task.priority] }
-                      : undefined
-                  }
-                  title={t('tasks.priority')}
-                  aria-label={t('tasks.editPriority')}
-                >
-                  <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                {/* Focus toggle */}
-                <button
-                  onClick={() => updateTask(task.id, { focus: !task.focus })}
-                  className={`p-1.5 rounded transition-colors ${
-                    task.focus ? 'bg-orange-100 text-orange-700' : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={task.focus ? 'Remove focus' : 'Add focus'}
-                  aria-label={t('tasks.toggleFocus')}
-                >
-                  <Target className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => openCommentEditor()}
-                  className={`p-1.5 rounded transition-colors ${
-                    getCommentButtonActive(task) || activeEditor === 'comment'
-                      ? 'bg-neutral-900 text-white'
-                      : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.comment')}
-                  aria-label={t('tasks.comment')}
-                >
-                  <MessageSquare className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={handleToggleFlag}
-                  className={`p-1.5 rounded transition-colors ${task.flag ? 'bg-red-100 text-red-700' : 'hover:bg-neutral-100 text-neutral-500'}`}
-                  title={t('tasks.flagTooltip')}
-                  aria-label={t('tasks.toggleFlag')}
-                >
-                  <Flag className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <button
-                  onClick={() => setActiveEditor(activeEditor === 'others' ? null : 'others')}
-                  className={`p-1.5 rounded transition-colors ${
-                    activeEditor === 'others' ? 'bg-neutral-200 text-neutral-700' : 'hover:bg-neutral-100 text-neutral-500'
-                  }`}
-                  title={t('tasks.otherActions')}
-                  aria-label={t('tasks.otherActions')}
-                >
-                  <MoreHorizontal className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-                <div className="flex-1" />
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  onMouseEnter={() => setIsDeleteHover(true)}
-                  onMouseLeave={() => setIsDeleteHover(false)}
-                  className={`p-1.5 rounded transition-colors ${isDeleteHover ? 'bg-red-100 text-red-700' : 'text-red-600 hover:bg-red-50'}`}
-                  title={t('common.delete')}
-                  aria-label={t('tasks.deleteTask')}
-                >
-                  <Trash2 className="w-4 h-4" strokeWidth={1.75} />
-                </button>
-              </div>
+              {/* Action bar — color=status: set = colored, unset = neutral gray */}
+              <TaskActionBar
+                buttons={{
+                  label: {
+                    key: 'label',
+                    label: t('tasks.labelTooltip'),
+                    ariaLabel: t('tasks.editLabels'),
+                    Icon: Tag,
+                    isSet: hasLabels,
+                    color: labels.find(l => task.labels.includes(l.id))?.color || '#3b82f6',
+                    onClick: () => setActiveEditor(activeEditor === 'labels' ? null : 'labels'),
+                    active: activeEditor === 'labels',
+                  },
+                  assignee: {
+                    key: 'assignee',
+                    label: t('tasks.assigneeTooltip'),
+                    ariaLabel: t('tasks.editAssignee'),
+                    Icon: User,
+                    isSet: hasAssignee,
+                    color: assigneeColor || '#22c55e',
+                    onClick: () => { const n = activeEditor === 'assignee' ? null : 'assignee'; setActiveEditor(n); if (n) setAssigneeSearch(''); },
+                    active: activeEditor === 'assignee',
+                  },
+                  schedule: {
+                    key: 'schedule',
+                    label: t('tasks.scheduleTooltip'),
+                    ariaLabel: t('tasks.editSchedule'),
+                    Icon: CalendarDays,
+                    isSet: hasSchedule,
+                    color: '#ea580c',
+                    onClick: () => setActiveEditor(activeEditor === 'schedule' ? null : 'schedule'),
+                    active: activeEditor === 'schedule',
+                  },
+                  subtask: {
+                    key: 'subtask',
+                    label: t('tasks.subtasksTooltip'),
+                    ariaLabel: t('tasks.viewSubtasks'),
+                    Icon: MessageSquare as any, // placeholder, SubtaskIcon used in render
+                    isSet: subtaskCount > 0,
+                    color: '#8b5cf6',
+                    onClick: () => setActiveEditor(activeEditor === 'subtasks' ? null : 'subtasks'),
+                    active: activeEditor === 'subtasks',
+                  },
+                  priority: {
+                    key: 'priority',
+                    label: t('tasks.priority'),
+                    ariaLabel: t('tasks.editPriority'),
+                    Icon: AlertTriangle,
+                    isSet: task.priority && PRIORITY_COLORS[task.priority] ? true : false,
+                    color: task.priority ? PRIORITY_COLORS[task.priority] : undefined,
+                    onClick: () => setActiveEditor(activeEditor === 'priority' ? null : 'priority'),
+                    active: activeEditor === 'priority',
+                  },
+                  focus: {
+                    key: 'focus',
+                    label: task.focus ? 'Remove focus' : 'Add focus',
+                    ariaLabel: t('tasks.toggleFocus'),
+                    Icon: Target,
+                    isSet: !!task.focus,
+                    color: '#f97316',
+                    onClick: () => updateTask(task.id, { focus: !task.focus }),
+                    active: false,
+                  },
+                  comment: {
+                    key: 'comment',
+                    label: t('tasks.comment'),
+                    ariaLabel: t('tasks.comment'),
+                    Icon: MessageSquare,
+                    isSet: getCommentButtonActive(task),
+                    color: '#1e293b',
+                    onClick: () => openCommentEditor(),
+                    active: activeEditor === 'comment',
+                  },
+                  flag: {
+                    key: 'flag',
+                    label: t('tasks.flagTooltip'),
+                    ariaLabel: t('tasks.toggleFlag'),
+                    Icon: Flag,
+                    isSet: !!task.flag,
+                    color: '#ef4444',
+                    onClick: handleToggleFlag,
+                    active: false,
+                  },
+                  more: {
+                    key: 'more',
+                    label: t('tasks.otherActions'),
+                    ariaLabel: t('tasks.otherActions'),
+                    Icon: MoreHorizontal,
+                    isSet: false,
+                    color: undefined,
+                    onClick: () => setActiveEditor(activeEditor === 'others' ? null : 'others'),
+                    active: activeEditor === 'others',
+                  },
+                  delete: {
+                    key: 'delete',
+                    label: t('common.delete'),
+                    ariaLabel: t('tasks.deleteTask'),
+                    Icon: Trash2,
+                    isSet: true,
+                    color: '#ef4444',
+                    onClick: () => setShowDeleteConfirm(true),
+                    active: false,
+                  },
+                }}
+                themeColor="#22c55e"
+                activeEditor={activeEditor}
+              />
 
               {/* Label editor */}
               {activeEditor === 'labels' && (
@@ -806,30 +644,25 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       onChange={(e) => setLabelInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          const name = labelInput.trim();
-                          if (!name) return;
-                          const existing = labels.find((l) => l.name.toLowerCase() === name.toLowerCase());
-                          if (existing) {
-                            if (!task.labels.includes(existing.id)) {
-                              updateTask(task.id, { labels: [...task.labels, existing.id] });
-                            }
-                          } else {
-                            addLabel({ name, color: '#3b82f6' });
-                          }
-                          setLabelInput('');
+                          e.preventDefault();
+                          saveNewLabel();
                         }
                       }}
                       placeholder={t('tasks.labelInputPlaceholder')}
                       className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.labelInputAria')}
                     />
+                    <button
+                      type="button"
+                      onClick={saveNewLabel}
+                      disabled={!labelInput.trim()}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={t('tasks.saveLabel')}
+                    >
+                      <Save className="h-3.5 w-3.5" /> {t('common.save')}
+                    </button>
                     {hasLabels && (
-                      <button
-                        onClick={clearAllLabels}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label={t('tasks.clearAllLabels')}
-                        title={t('common.clearAllTooltip')}
-                      >
+                      <button onClick={clearAllLabels} className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm" aria-label={t('tasks.clearAllLabels')} title={t('common.clearAllTooltip')}>
                         <X className="w-4 h-4" />
                       </button>
                     )}
@@ -840,17 +673,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         key={label.id}
                         onClick={() => {
                           const has = task.labels.includes(label.id);
-                          updateTask(task.id, {
-                            labels: has ? task.labels.filter((id) => id !== label.id) : [...task.labels, label.id],
-                          });
+                          updateTask(task.id, { labels: has ? task.labels.filter((id) => id !== label.id) : [...task.labels, label.id] });
                         }}
                       >
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border ${
-                            task.labels.includes(label.id)
-                              ? 'ring-2 ring-neutral-900'
-                              : 'hover:border-neutral-400'
-                          }`}
+                          className="inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border"
                           style={{
                             backgroundColor: task.labels.includes(label.id) ? `${label.color}20` : undefined,
                             color: task.labels.includes(label.id) ? label.color : undefined,
@@ -865,7 +692,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </div>
               )}
 
-              {/* Assignee editor — X uses clearAssignee (null, same pattern as label) */}
+              {/* Assignee editor */}
               {activeEditor === 'assignee' && (
                 <div className="mt-2 relative">
                   <div className="flex items-center gap-2">
@@ -874,9 +701,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       value={assigneeSearch}
                       onChange={(e) => setAssigneeSearch(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && filteredUsers.length === 1) {
-                          commitAssignee(filteredUsers[0].id);
-                        }
+                        if (e.key === 'Enter' && filteredUsers.length === 1) commitAssignee(filteredUsers[0].id);
                         if (e.key === 'Escape') setActiveEditor(null);
                       }}
                       placeholder={t('tasks.searchAssigneePlaceholder')}
@@ -884,33 +709,20 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       aria-label={t('tasks.searchAssigneeAria')}
                     />
                     {hasAssignee && (
-                      <button
-                        onClick={clearAssignee}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm"
-                        aria-label={t('tasks.clearAssigneeAria')}
-                        title={t('tasks.removeAssignee')}
-                      >
+                      <button onClick={clearAssignee} className="p-1.5 text-red-500 hover:bg-red-50 rounded text-sm" aria-label={t('tasks.clearAssigneeAria')} title={t('tasks.removeAssignee')}>
                         <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
                   {filteredUsers.length > 0 && (
-                    <div className="absolute z-[100] mt-1 w-full bg-white border border-neutral-300 rounded-md shadow-[0_4px_16px_rgba(0,0,0,0.15)] ring-1 ring-black/5 max-h-40 overflow-y-auto">
+                    <div className="absolute z-[100] mt-1 w-full backdrop-blur-xl bg-white/90 border border-white/40 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-black/5 max-h-40 overflow-y-auto">
                       {filteredUsers.map((u) => (
                         <button
                           key={u.id}
-                          onClick={() => {
-                            const val = task.assignedTo === u.id ? null : u.id;
-                            commitAssignee(val);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 flex items-center gap-2 ${
-                            task.assignedTo === u.id ? 'bg-neutral-50 font-medium' : ''
-                          }`}
+                          onClick={() => { const val = task.assignedTo === u.id ? null : u.id; commitAssignee(val); }}
+                          className={`w-full text-left px-3 py-2 text-sm hover:bg-neutral-100 flex items-center gap-2 ${task.assignedTo === u.id ? 'bg-neutral-50 font-medium' : ''}`}
                         >
-                          <span
-                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0"
-                            style={{ backgroundColor: entityColor(u.id) }}
-                          >
+                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0" style={{ backgroundColor: entityColor(u.id) }}>
                             {getCompactUserName(u).charAt(0).toUpperCase()}
                           </span>
                           <span>{getCompactUserName(u)}</span>
@@ -922,7 +734,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </div>
               )}
 
-              {/* Schedule editor — X uses clearAllSchedule (null, same pattern as label) */}
+              {/* Schedule editor */}
               {activeEditor === 'schedule' && (
                 <div className="mt-2">
                   <div className="flex items-center gap-2">
@@ -930,10 +742,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       type="date"
                       value={dateValue}
                       onChange={(e) => {
-                        if (!e.target.value) {
-                          updateTask(task.id, { dueDate: null });
-                          return;
-                        }
+                        if (!e.target.value) { updateTask(task.id, { dueDate: null }); return; }
                         const nextDueDate = combineLocalDateAndTime(e.target.value, timeValue || '00:00') ?? parseLocalDateInputValue(e.target.value);
                         updateTask(task.id, { dueDate: nextDueDate });
                       }}
@@ -958,11 +767,82 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       aria-label={t('tasks.recurringIntervalAria')}
                     >
                       {getRepeatOptions(task.dueDate).map((option) => (
-                        <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>
-                          {option.label}
-                        </option>
+                        <option key={option.value || 'none'} value={option.value} disabled={option.disabled}>{option.label}</option>
                       ))}
                     </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Subtasks editor */}
+              {activeEditor === 'subtasks' && (
+                <div className="mt-2 pt-2 border-t space-y-1.5 border-purple-100">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs font-medium text-purple-600">{t('tasks.subtasks')} ({subtaskCount})</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = !subtaskEditMode;
+                        setSubtaskEditMode(next);
+                        if (!next) { setEditingSubtaskId(null); setEditingSubtaskTitle(''); }
+                      }}
+                      className={`p-1 rounded transition-colors ${subtaskEditMode ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-100 text-neutral-500'}`}
+                      title={t('tasks.subtasksEditTitle')}
+                      aria-label={t('tasks.subtasksEditAria')}
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  {subtasks.map((subtask) => {
+                    const isEditing = editingSubtaskId === subtask.id;
+                    return (
+                      <div key={subtask.id} className={`flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-neutral-50 border-neutral-100'}`}>
+                        <button
+                          type="button"
+                          onClick={() => { if (subtask.status === 'done') { updateTask(subtask.id, { status: 'todo', completedAt: undefined }); } else { updateTask(subtask.id, { status: 'done', completedAt: Date.now() }); } }}
+                          className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${subtask.status === 'done' ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 border-transparent text-white' : 'border-neutral-300 hover:border-neutral-500'}`}
+                          aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
+                        >
+                          {subtask.status === 'done' && <Check className="w-2.5 h-2.5" />}
+                        </button>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editingSubtaskTitle}
+                            onChange={(e) => setEditingSubtaskTitle(e.target.value)}
+                            onBlur={commitSubtaskEdit}
+                            onKeyDown={(e) => { if (e.key === 'Enter') commitSubtaskEdit(); if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); } }}
+                            autoFocus
+                            className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
+                            aria-label={t('tasks.subtaskTitleEditAria')}
+                          />
+                        ) : (
+                          <span className={`text-xs flex-1 truncate ${subtask.status === 'done' ? 'line-through text-neutral-400' : 'text-neutral-700'}`}>{subtask.title}</span>
+                        )}
+                        {subtaskEditMode && (
+                          <div className="flex items-center gap-1">
+                            <button type="button" onClick={() => startEditingSubtask(subtask)} className="p-1 rounded text-neutral-500 hover:bg-white hover:text-neutral-700 transition-colors" title={t('tasks.subtaskEditTitle')} aria-label={t('tasks.subtaskEditTitle')}><Edit2 className="w-3.5 h-3.5" /></button>
+                            <button type="button" onClick={() => setSubtaskPendingDelete(subtask)} className="p-1 rounded text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors" title={t('tasks.subtaskDeleteTitle')} aria-label={t('tasks.subtaskDeleteTitle')}><Trash2 className="w-3.5 h-3.5" /></button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div className={`flex items-center gap-1.5 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50 border-purple-200' : 'bg-neutral-50 border-dashed border-neutral-200'}`}>
+                    <SubtaskIcon className={`w-4 h-4 flex-shrink-0 ${subtaskCount > 0 ? 'text-purple-500' : 'text-neutral-300'}`} />
+                    <input
+                      type="text"
+                      value={subtaskTitle}
+                      onChange={(e) => setSubtaskTitle(e.target.value)}
+                      onFocus={() => setActiveEditor('subtasks')}
+                      onKeyDown={async (e) => { if (e.key === 'Enter') { await commitSubtask(); } }}
+                      placeholder={t('tasks.newSubtaskTitle')}
+                      className="flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
+                      aria-label={t('tasks.newSubtaskTitle')}
+                    />
+                    {subtaskTitle.trim() && (
+                      <button type="button" onClick={commitSubtask} className="px-2 py-1 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded transition-colors" aria-label={t('tasks.addSubtask')}>{t('common.add')}</button>
+                    )}
                   </div>
                 </div>
               )}
@@ -972,38 +852,16 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 <div className="mt-2 space-y-2">
                   <textarea
                     value={commentDraft}
-                    onChange={(e) => {
-                      setCommentDraft(e.target.value);
-                      if (commentError) setCommentError('');
-                    }}
+                    onChange={(e) => { setCommentDraft(e.target.value); if (commentError) setCommentError(''); }}
                     placeholder={t('tasks.commentPlaceholder')}
-                    className={`w-full min-h-[88px] text-sm px-3 py-2 border rounded resize-none ${
-                      commentError ? 'border-red-300 bg-red-50/40' : 'border-neutral-200 bg-white'
-                    }`}
+                    className={`w-full min-h-[88px] text-sm px-3 py-2 border rounded resize-none ${commentError ? 'border-red-300 bg-red-50/40' : 'border-neutral-200 bg-white'}`}
                     aria-label={t('tasks.comment')}
                     autoFocus
                   />
-                  {commentError && (
-                    <p className="text-xs text-red-600">{commentError}</p>
-                  )}
+                  {commentError && <p className="text-xs text-red-600">{commentError}</p>}
                   <div className="flex items-center justify-between gap-2">
-                    <button
-                      onClick={() => {
-                        setCommentDraft(task.blockedComment || '');
-                        setPendingFlagActivation(false);
-                        setCommentError('');
-                        setActiveEditor(null);
-                      }}
-                      className="px-3 py-1.5 border border-neutral-200 rounded text-sm text-neutral-600"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                    <button
-                      onClick={commitComment}
-                      className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm"
-                    >
-                      {pendingFlagActivation ? t('tasks.addCommentAndFlag') : t('common.save')}
-                    </button>
+                    <button type="button" onClick={() => { setCommentDraft(task.blockedComment || ''); setPendingFlagActivation(false); setCommentError(''); setActiveEditor(null); }} className="px-3 py-1.5 border border-neutral-200 rounded text-sm text-neutral-600">{t('common.cancel')}</button>
+                    <button type="button" onClick={commitComment} className="px-3 py-1.5 bg-neutral-900 text-white rounded text-sm">{pendingFlagActivation ? t('tasks.addCommentAndFlag') : t('common.save')}</button>
                   </div>
                 </div>
               )}
@@ -1012,31 +870,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               {activeEditor === 'priority' && (
                 <div className="mt-2">
                   <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        updateTask(task.id, { priority: null });
-                        setActiveEditor(null);
-                      }}
-                      className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                        !task.priority
-                          ? 'bg-neutral-900 text-white shadow-sm'
-                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                      }`}
-                    >
-                      None
-                    </button>
+                    <button type="button" onClick={() => { updateTask(task.id, { priority: null }); setActiveEditor(null); }} className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${!task.priority ? 'bg-neutral-900 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>None</button>
                     {PRIORITY_ORDER.map((p) => (
                       <button
                         key={p}
-                        onClick={() => {
-                          updateTask(task.id, { priority: p });
-                          setActiveEditor(null);
-                        }}
-                        className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${
-                          task.priority === p
-                            ? 'text-white shadow-sm'
-                            : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                        }`}
+                        type="button"
+                        onClick={() => { updateTask(task.id, { priority: p }); setActiveEditor(null); }}
+                        className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${task.priority === p ? 'text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                         style={task.priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
                       >
                         {PRIORITY_LABELS[p]}
@@ -1049,79 +889,38 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               {/* Others editor */}
               {activeEditor === 'others' && (
                 <div className="mt-2 space-y-1.5">
-                  <button
-                    onClick={() => swapEntity(task.id)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-neutral-200 hover:bg-neutral-50 transition-colors"
-                  >
+                  <button type="button" onClick={() => swapEntity(task.id)} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-neutral-200 hover:bg-neutral-50 transition-colors">
                     <ArrowLeftRight className="w-4 h-4 text-neutral-500" strokeWidth={1.75} />
                     <span>{t('tasks.swap')}</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
-                      if (task.linkedType === 'task' && task.linkedTo) {
-                        detachFromParentTask(task.linkedTo);
-                        updateTask(task.id, { linkedTo: null, linkedType: null });
-                        showCompletionMessage(t('tasks.promotedStandalone'));
-                        resetParentPicker();
-                        setActiveEditor(null);
-                        return;
-                      }
-
-                      setShowParentPicker((current) => !current);
-                      setParentSearch('');
+                      if (task.linkedType === 'task' && task.linkedTo) { detachFromParentTask(task.linkedTo); updateTask(task.id, { linkedTo: null, linkedType: null }); showCompletionMessage(t('tasks.promotedStandalone')); resetParentPicker(); setActiveEditor(null); return; }
+                      setShowParentPicker((current) => !current); setParentSearch('');
                     }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border transition-colors ${
-                      task.linkedType === 'task' && task.linkedTo
-                        ? 'border-purple-200 bg-purple-50 text-purple-700'
-                        : 'border-neutral-200 hover:bg-neutral-50'
-                    }`}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border transition-colors ${task.linkedType === 'task' && task.linkedTo ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-neutral-200 hover:bg-neutral-50'}`}
                   >
                     <GitBranch className="w-4 h-4" strokeWidth={1.75} />
                     <span>{task.linkedType === 'task' && task.linkedTo ? t('tasks.makeMainTask') : t('tasks.makeSubTask')}</span>
                   </button>
                   {!(task.linkedType === 'task' && task.linkedTo) && showParentPicker && (
                     <div className="rounded-lg border border-purple-200 bg-purple-50/60 p-2.5 space-y-2">
-                      <input
-                        type="text"
-                        value={parentSearch}
-                        onChange={(e) => setParentSearch(e.target.value)}
-                        placeholder={t('tasks.parentTaskSearchPlaceholder')}
-                        className="w-full text-sm px-3 py-2 border border-purple-200 rounded bg-white"
-                        autoFocus
-                      />
+                      <input type="text" value={parentSearch} onChange={(e) => setParentSearch(e.target.value)} placeholder={t('tasks.parentTaskSearchPlaceholder')} className="w-full text-sm px-3 py-2 border border-purple-200 rounded bg-white" autoFocus />
                       <div className="space-y-1">
-                        {parentTaskMatches.length > 0 ? (
-                          parentTaskMatches.map((parentTask) => (
-                            <button
-                              key={parentTask.id}
-                              onClick={() => linkToParentTask(parentTask)}
-                              className="w-full text-left px-3 py-2 rounded border border-white/70 bg-white hover:border-purple-300 hover:bg-purple-50 transition-colors"
-                            >
-                              <span className="block text-sm font-medium text-neutral-900 truncate">{parentTask.title}</span>
-                              {parentTask.dueDate && (
-                                <span className="block text-xs text-neutral-500 mt-0.5">
-                                  {formatDate(parentTask.dueDate, { month: 'short', day: 'numeric' })}
-                                </span>
-                              )}
-                            </button>
-                          ))
-                        ) : (
-                          <div className="px-3 py-2 text-xs text-neutral-500 bg-white rounded border border-dashed border-purple-200">
-                            {t('tasks.noMatchingParentTask')}
-                          </div>
+                        {parentTaskMatches.length > 0 ? parentTaskMatches.map((parentTask) => (
+                          <button key={parentTask.id} type="button" onClick={() => linkToParentTask(parentTask)} className="w-full text-left px-3 py-2 rounded border border-white/70 bg-white hover:border-purple-300 hover:bg-purple-50 transition-colors">
+                            <span className="block text-sm font-medium text-neutral-900 truncate">{parentTask.title}</span>
+                            {parentTask.dueDate && <span className="block text-xs text-neutral-500 mt-0.5">{formatDate(parentTask.dueDate, { month: 'short', day: 'numeric' })}</span>}
+                          </button>
+                        )) : (
+                          <div className="px-3 py-2 text-xs text-neutral-500 bg-white rounded border border-dashed border-purple-200">{t('tasks.noMatchingParentTask')}</div>
                         )}
                       </div>
                     </div>
                   )}
                   {task.status !== 'backlog' && (
-                    <button
-                      onClick={() => {
-                        moveTaskToStatus(task.id, 'backlog');
-                        showCompletionMessage(t('tasks.movedToBacklog'));
-                        setActiveEditor(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-                    >
+                    <button type="button" onClick={() => { moveTaskToStatus(task.id, 'backlog'); showCompletionMessage(t('tasks.movedToBacklog')); setActiveEditor(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">
                       <Inbox className="w-4 h-4" strokeWidth={1.75} />
                       <span>{t('tasks.inbox')}</span>
                     </button>
@@ -1129,7 +928,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 </div>
               )}
             </div>
-          </div>
           )}
         </div>
       </div>

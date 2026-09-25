@@ -8,33 +8,27 @@ const FILTER_PARAM_KEY = 'filters';
 
 interface ChipFilter { type: string; id: string; label?: string; color?: string; }
 
-// Read filters from URL search params
-function readFiltersFromUrl(): { labelFilters: string[]; chipFilters: ChipFilter[] } {
+// Read chip filters from URL search params
+function readFiltersFromUrl(): ChipFilter[] {
   const params = new URLSearchParams(window.location.search);
   const filtersParam = params.get(FILTER_PARAM_KEY);
-  if (!filtersParam) return { labelFilters: [], chipFilters: [] };
+  if (!filtersParam) return [];
 
-  const labelFilters: string[] = [];
   const chipFilters: ChipFilter[] = [];
 
   for (const part of filtersParam.split(',')) {
     const [type, ...idParts] = part.split(':');
     const id = idParts.join(':');
     if (!type || !id) continue;
-    if (type === 'label') {
-      labelFilters.push(id);
-    } else {
-      chipFilters.push({ type, id });
-    }
+    chipFilters.push({ type, id });
   }
 
-  return { labelFilters, chipFilters };
+  return chipFilters;
 }
 
-// Write filters to URL search params
-function writeFiltersToUrl(labelFilters: string[], chipFilters: ChipFilter[]) {
+// Write chip filters to URL search params
+function writeFiltersToUrl(chipFilters: ChipFilter[]) {
   const parts: string[] = [];
-  for (const lid of labelFilters) parts.push(`label:${lid}`);
   for (const f of chipFilters) parts.push(`${f.type}:${f.id}`);
   const url = new URL(window.location.href);
   if (parts.length > 0) {
@@ -50,7 +44,6 @@ import type {
   Note,
   Label,
   Shop,
-  Filter,
   AppSettings,
   ProgressStats,
   Sprint,
@@ -104,6 +97,7 @@ const entryToTask = (entry: Entry): Task => ({
   deleteAfter: entry.deleteAfter,
   isPrivate: entry.isPrivate ?? false,
   labels: entry.labels,
+  labelId: entry.labelId,
   linkedItemIds: entry.linkedItemIds,
   linkedNoteIds: entry.linkedNoteIds,
   subtaskIds: entry.subtaskIds,
@@ -130,12 +124,14 @@ const entryToTask = (entry: Entry): Task => ({
 });
 
 interface AppContextType {
+  dataLoadState: 'loading' | 'ready' | 'error';
+  loadError: string | null;
+  retryLoad: () => Promise<void>;
   items: Item[];
   tasks: Task[];
   notes: Note[];
   labels: Label[];
   shops: Shop[];
-  filters: Filter[];
   sprints: Sprint[];
   users: User[];
   inviteCodes: InviteCode[];
@@ -145,7 +141,6 @@ interface AppContextType {
   sharedView: boolean;
   appSettings: AppSettings;
   progressStats: ProgressStats;
-  activeLabelFilters: string[];
   completionMessage: string | null;
   currentSprint: Sprint | null;
   // Entry model
@@ -164,7 +159,6 @@ interface AppContextType {
   createLabel: (label: Omit<Label, 'id'>) => void;
   addShop: (shop: Omit<Shop, 'id'>) => void;
   createShop: (shop: Omit<Shop, 'id'>) => void;
-  addFilter: (filter: Omit<Filter, 'id'>) => void;
   addSprint: (sprint: Omit<Sprint, 'id'>) => void;
   addUser: (user: User) => void;
   updateItem: (id: string, updates: Partial<Item>) => void;
@@ -180,7 +174,6 @@ interface AppContextType {
   deleteNote: (id: string) => void;
   deleteLabel: (id: string) => void;
   deleteShop: (id: string) => void;
-  deleteFilter: (id: string) => void;
   deleteSprint: (id: string) => void;
   updateSprint: (id: string, updates: Partial<Sprint>) => void;
   startSprint: (id: string) => void;
@@ -189,10 +182,6 @@ interface AppContextType {
   archiveAllDoneTasks: () => void;
   deleteArchivedTasks: () => void;
   cleanupExpiredArchives: () => void;
-  moveFilterUp: (id: string) => void;
-  moveFilterDown: (id: string) => void;
-  toggleLabelFilter: (labelId: string) => void;
-  clearLabelFilters: () => void;
   activeChipFilters: {type: string; id: string; label?: string; color?: string}[];
   toggleChipFilter: (type: string, id: string, label?: string, color?: string) => void;
   clearChipFilters: () => void;
@@ -267,7 +256,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [labels, setLabels] = useState<Label[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [filters, setFilters] = useState<Filter[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
@@ -281,10 +269,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     tasksCompletedThisWeek: 0,
     lastWeekReset: getWeekStart(),
   });
-  const [activeLabelFilters, setActiveLabelFilters] = useState<string[]>(() => readFiltersFromUrl().labelFilters);
-  const [activeChipFilters, setActiveChipFilters] = useState<ChipFilter[]>(() => readFiltersFromUrl().chipFilters);
+  const [activeChipFilters, setActiveChipFilters] = useState<ChipFilter[]>(() => readFiltersFromUrl());
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
   const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
+  const [dataLoadState, setDataLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Entry model state
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -396,6 +385,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshAll = async () => {
+    setDataLoadState('loading');
+    setLoadError(null);
     if (!pb.authStore.isValid || !pb.authStore.record) {
       setItems([]);
       setTasks([]);
@@ -411,25 +402,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setReminders([]);
       setEntries([]);
       setAppSettings(defaultSettings);
+      setDataLoadState('ready');
       return;
     }
 
-    await Promise.all([
-      refreshItems(),
-      refreshTasks(),
-      refreshNotes(),
-      refreshLabels(),
-      refreshShops(),
-      refreshSprints(),
-      refreshUsers(),
-      refreshInvites(),
-      refreshRewards(),
-      refreshGoals(),
-      refreshProjects(),
-      refreshReminders(),
-      refreshSettings(),
-      refreshEntries(),
-    ]);
+    try {
+      await Promise.all([
+        refreshItems(),
+        refreshTasks(),
+        refreshNotes(),
+        refreshLabels(),
+        refreshShops(),
+        refreshSprints(),
+        refreshUsers(),
+        refreshInvites(),
+        refreshRewards(),
+        refreshGoals(),
+        refreshProjects(),
+        refreshReminders(),
+        refreshSettings(),
+        refreshEntries(),
+      ]);
+      setDataLoadState('ready');
+    } catch (error) {
+      setDataLoadState('error');
+      setLoadError(error instanceof Error && error.message ? error.message : t('common.error'));
+    }
   };
 
   useEffect(() => {
@@ -548,11 +546,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createShop = addShop;
-
-  const addFilter = (filter: Omit<Filter, 'id'>) => {
-    const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
-    setFilters((prev) => [...prev, { ...filter, id }]);
-  };
 
   const addSprint = (sprint: Omit<Sprint, 'id'>) => {
     void (async () => {
@@ -673,10 +666,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
-  const deleteFilter = (id: string) => {
-    setFilters((prev) => prev.filter((filter) => filter.id !== id));
-  };
-
   const deleteSprint = (id: string) => {
     void (async () => {
       await api.deleteSprint(id);
@@ -738,55 +727,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     effectiveTasks.filter((task) => task.archived && task.deleteAfter && task.deleteAfter < now).forEach((task) => deleteTask(task.id));
   };
 
-  const moveFilterUp = (id: string) => {
-    setFilters((prev) => {
-      const index = prev.findIndex((f) => f.id === id);
-      if (index <= 0) return prev;
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(index - 1, 0, item);
-      return next;
-    });
-  };
-
-  const moveFilterDown = (id: string) => {
-    setFilters((prev) => {
-      const index = prev.findIndex((f) => f.id === id);
-      if (index < 0 || index >= prev.length - 1) return prev;
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(index + 1, 0, item);
-      return next;
-    });
-  };
-
-  const toggleLabelFilter = (labelId: string) => {
-    setActiveLabelFilters((prev) => {
-      const next = prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId];
-      writeFiltersToUrl(next, activeChipFilters);
-      return next;
-    });
-  };
-
-  const clearLabelFilters = () => {
-    setActiveLabelFilters([]);
-    writeFiltersToUrl([], activeChipFilters);
-  };
-
   const toggleChipFilter = (type: string, id: string, label?: string, color?: string) => {
     setActiveChipFilters((prev) => {
       const exists = prev.find((f) => f.type === type && f.id === id);
       const next = exists ? prev.filter((f) => f !== exists) : [...prev, { type, id, label, color }];
-      const currentLabelFilters = activeLabelFilters;
-      writeFiltersToUrl(currentLabelFilters, next);
+      writeFiltersToUrl(next);
       return next;
     });
   };
 
   const clearChipFilters = () => {
     setActiveChipFilters([]);
-    const currentLabelFilters = activeLabelFilters;
-    writeFiltersToUrl(currentLabelFilters, []);
+    writeFiltersToUrl([]);
   };
 
   const isChipFilterActive = (type: string, id: string) =>
@@ -1020,18 +972,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const contextValue = useMemo(
     () => ({
+      dataLoadState,
+      loadError,
+      retryLoad: refreshAll,
       items: effectiveItems,
       tasks: effectiveTasks,
       notes,
       labels,
       shops,
-      filters,
       sprints,
       users,
       inviteCodes,
       appSettings,
       progressStats,
-      activeLabelFilters,
       completionMessage,
       currentSprint,
       // Entry model
@@ -1050,7 +1003,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       createLabel,
       addShop,
       createShop,
-      addFilter,
       addSprint,
       addUser,
       updateItem,
@@ -1066,7 +1018,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteNote,
       deleteLabel,
       deleteShop,
-      deleteFilter,
       deleteSprint,
       updateSprint: updateSprintFn,
       startSprint,
@@ -1075,10 +1026,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       archiveAllDoneTasks,
       deleteArchivedTasks,
       cleanupExpiredArchives,
-      moveFilterUp,
-      moveFilterDown,
-      toggleLabelFilter,
-      clearLabelFilters,
       activeChipFilters,
       toggleChipFilter,
       clearChipFilters,
@@ -1124,7 +1071,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       notes,
       labels,
       shops,
-      filters,
       sprints,
       users,
       inviteCodes,
@@ -1135,12 +1081,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       totalPoints,
       appSettings,
       progressStats,
-      activeLabelFilters,
       activeChipFilters,
       completionMessage,
       currentSprint,
       reminders,
       entries,
+      dataLoadState,
+      loadError,
     ],
   );
 

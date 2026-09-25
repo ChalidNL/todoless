@@ -98,7 +98,7 @@
     "prefilledWithWorkspace": "Vooringevuld met uw workspace naam, u kunt het wijzigen",
     "skip": "Overslaan",
     "selectLanguage": "Kies uw taal",
-    "languageStepTitle": "Kies Uw Taal",
+    "languageStepTitle": "Kies je taal",
     "languageStepDesc": "Kies uw voorkeurstaal om te beginnen.",
     "step1Desc": "Uw dagelijkse assistent voor snelle, eenvoudige productiviteit zonder overweldiging.",
     "step2Desc": "Volg boodschappen met hoeveelheden en winkels. Houd uw boodschappenlijst eenvoudig en georganiseerd.",
@@ -112,7 +112,46 @@
     "welcome": "Welkom bij todoless",
     "workspaceName": "Werkruimte naam",
     "workspaceNameMissing": "Werkruimte naam ontbreekt — ga terug en voer het in",
-    "exampleFamilyName": "Familie Jansen"
+    "exampleFamilyName": "Familie Jansen",
+    "welcomeDescription": "Jouw gezinsassistent voor taken, boodschappen en meer — simpel en overzichtelijk.",
+    "discoverFeatures": "Ontdek de mogelijkheden",
+    "showcaseHint": "Gebruik de pijlen om alle mogelijkheden te ontdekken.",
+    "workspaceDescription": "Kies de gedeelde naam voor de workspace van je gezin.",
+    "accountDescription": "Maak het eerste beheerdersaccount voor deze workspace.",
+    "doneAdminTitle": "Je workspace is klaar",
+    "doneInfoTitle": "Klaar om overzicht te krijgen?",
+    "doneInfoDescription": "Log in of gebruik een uitnodiging om bij je gezinsworkspace te komen.",
+    "doneUserTitle": "Je bent klaar",
+    "doneWorkspaceDescription": "Alles staat klaar. Open todoless en ga aan de slag.",
+    "openApp": "Open todoless",
+    "languageSaveFailed": "Je taalvoorkeur kon niet worden opgeslagen. Probeer het opnieuw.",
+    "completionSaveFailed": "Je onboardingvoortgang kon niet worden opgeslagen. Probeer het opnieuw.",
+    "module": {
+      "tasks": {
+        "title": "Taken",
+        "tagline": "Leg vast en rond af wat belangrijk is."
+      },
+      "groceries": {
+        "title": "Boodschappen",
+        "tagline": "Een gedeelde boodschappenlijst zonder ruis."
+      },
+      "calendar": {
+        "title": "Agenda",
+        "tagline": "Zie gezinsplannen in één oogopslag."
+      },
+      "rewards": {
+        "title": "Beloningen",
+        "tagline": "Vier samen de voortgang."
+      },
+      "notes": {
+        "title": "Notities",
+        "tagline": "Houd nuttige details dichtbij."
+      },
+      "sprint": {
+        "title": "Sprint",
+        "tagline": "Werk samen aan het volgende doel."
+      }
+    }
   },
   "tasks": {
     "title": "Taken",
@@ -134,7 +173,7 @@
     "subtaskAdded": "Sub-taak toegevoegd",
     "failedToCreateSubtask": "Sub-taak aanmaken mislukt",
     "newSubtaskTitle": "Nieuwe sub-taak titel",
-    "addSubtask": "Sub-taak toevoegen",
+    "addSubtask": "+ Nieuwe subtaak",
     "markSubtaskAsDone": "Sub-taak markeren als voltooid",
     "markSubtaskAsNotDone": "Sub-taak markeren als niet voltooid",
     "subtasksTooltip": "Sub-taken",
@@ -157,7 +196,8 @@
     "taskAdded": "Taak toegevoegd aan inbox",
     "movedToBacklog": "Verplaatst naar backlog",
     "noMatchingParentTask": "Geen passende hoofdtaak gevonden",
-    "searchPlaceholder": "Taken zoeken...",
+    "searchPlaceholder": "Taken zoeken…",
+    "labelInputPlaceholder": "Label toevoegen...",
     "searchAssigneePlaceholder": "Zoek lid...",
     "searchAssigneeAria": "Leden zoeken",
     "labelTooltip": "Labels",
@@ -169,7 +209,6 @@
     "flagTooltip": "Markeren",
     "toggleFlag": "Markering wisselen",
     "moveToBacklog": "Naar backlog",
-    "labelInputPlaceholder": "Label toevoegen...",
     "labelInputAria": "Label toevoegen",
     "dueDateAria": "Vervaldatum",
     "dueTimeAria": "Tijd",
@@ -178,7 +217,8 @@
     "clearAllLabels": "Alle labels wissen",
     "clearAssigneeAria": "Toegewezen persoon wissen",
     "removeAssignee": "Toegewezen persoon verwijderen",
-    "deleteTask": "Taak verwijderen"
+    "deleteTask": "Taak verwijderen",
+    "confirmDeleteCompleted": "Alle voltooide taken verwijderen?"
   },
   "items": {
     "title": "Items",
@@ -202,31 +242,13 @@
   },
   "filters": {
     "title": "Filters",
-    "noSavedFilters": "Geen opgeslagen filters",
-    "manageFilters": "Beheer je opgeslagen filters hier.",
-    "deleted": "Filter verwijderd",
-    "saved": "Filter opgeslagen",
     "saveFailed": "Filter opslaan mislukt",
     "saveUnavailable": "Filter opgeslagen (nog niet geïmplementeerd)",
     "taskOrShopPrompt": "Taak of winkel?",
     "itemOrShopPrompt": "Item of winkel?",
     "sortTasks": "Taken sorteren",
     "priority": "Prioriteit",
-    "dueDate": "Vervaldatum",
-    "savedFilters": "Opgeslagen filters",
-    "deleteFilter": "Filter verwijderen",
-    "filterByLabel": "Filter op label",
-    "editLabel": "Label bewerken",
-    "deleteLabel": "Label verwijderen",
-    "labelNamePlaceholder": "Labelnaam...",
-    "filterByAssignee": "Filter op toegewezen persoon",
-    "newFilterNamePlaceholder": "Nieuwe filternaam...",
-    "applied": "Filter toegepast",
-    "noActiveFilters": "Geen actieve filters om op te slaan",
-    "newLabel": "Nieuw label",
-    "saveJqlHint": "Slaat de huidige JQL-query en labelfilters op",
-    "saveLabelsHint": "Selecteer hierboven labels en sla ze op als filter",
-    "noSavedFiltersHint": "Geen opgeslagen filters. Pas filters toe via chips en sla ze hier op."
+    "dueDate": "Vervaldatum"
   },
   "groceries": {
     "empty": "Geen items",
@@ -255,7 +277,6 @@
   "settings": {
     "account": "Account",
     "active": "Actief",
-    "addFilter": "Filter toevoegen",
     "addLabel": "Label toevoegen",
     "addShop": "Winkel toevoegen",
     "addedBy": "Toegevoegd door",
@@ -294,7 +315,6 @@
     "enabled": "Ingeschakeld",
     "expires": "Verloopt",
     "filterConditions": "Filter voorwaarden",
-    "filterName": "Filter naam",
     "filterViews": "Filter weergaven",
     "friday": "Vrijdag",
     "integration": "Integratie",
@@ -310,7 +330,6 @@
     "noPermissions": "Geen rechten",
     "noPendingAgents": "Geen wachtende agenten",
     "noRegisteredAgents": "Geen geregistreerde agenten",
-    "noSavedFilters": "Geen opgeslagen filters",
     "notifications": "Meldingen",
     "openSwaggerDocs": "Open Swagger Docs",
     "admin": "Admin",
@@ -350,7 +369,7 @@
     "sprintSettings": "Sprint instellingen",
     "sprintStartDay": "Sprint startdag",
     "sunday": "Zondag",
-    "teamMembers": "Teamleden",
+    "teamMembers": "Familie",
     "theme": "Thema",
     "thursday": "Donderdag",
     "title": "Instellingen",
@@ -465,18 +484,19 @@
     "pushSelected": "Geselecteerde pushen",
     "searchPlaceholder": "Zoek in inbox...",
     "noTasksFound": "Geen taken gevonden",
+    "noTasks": "Geen taken gevonden",
     "noResults": "Geen resultaten",
     "markAllDone": "Alles als gedaan markeren",
     "clearAll": "Alles wissen",
     "empty": "Leeg"
   },
   "members": {
-    "title": "Leden",
+    "title": "Familie",
     "inviteMember": "Lid uitnodigen",
     "pendingInvites": "Openstaande uitnodigingen",
     "noMembers": "Geen leden",
     "role": "Rol",
-    "manageMembers": "Leden beheren",
+    "manageMembers": "Familie beheren",
     "addMember": "Lid toevoegen",
     "familyLabel": "Familie",
     "sameFamilyHint": "Hier zie je alleen leden uit dezelfde familie."
@@ -507,6 +527,7 @@
     "logIn": "Inloggen",
     "missingCredentials": "Vul e-mail en wachtwoord in",
     "invalidCredentials": "Ongeldige e-mail of wachtwoord",
+    "failedToAuthenticate": "Aanmelden mislukt.",
     "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
     "iHaveInviteCode": "Ik heb een invite-code",
     "joinTitle": "Word lid van todoless",
@@ -547,5 +568,12 @@
     "shortMonth": "Maandelijks",
     "shortYear": "Jaarlijks",
     "shortMonthPrefix": "Mnd ·"
+  },
+  "nav": {
+    "inbox": "Inbox",
+    "tasks": "Taken",
+    "calendar": "Agenda",
+    "groceries": "Boodschappen",
+    "settings": "Instellingen"
   }
 }

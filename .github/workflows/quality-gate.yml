@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+      - beta
+      - red
+      - dev
 
 jobs:
   quality-gate:
@@ -12,8 +15,10 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (full history)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,6 +37,15 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+
+      - name: Run PocketBase contract tests
+        run: node --test tests/*.test.mjs
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Scan repository for secrets
+        run: npm run security:secrets
 
       - name: Run production build
         env:

@@ -190,7 +190,8 @@ cronAdd('recurring-tasks', '0 * * * *', () => {
     archiveAction.submit()
 
     const newRecord = new Record(collection)
-    const labels = task.get('labels') || []
+    const rawCanonicalLabels = task.get('label') || task.get('labels') || []
+    const canonicalLabels = Array.isArray(rawCanonicalLabels) ? rawCanonicalLabels : [rawCanonicalLabels]
     const newData = new RecordUpsertAction($app, newRecord)
       .set('user', userId)
       .set('title', task.get('title'))
@@ -200,7 +201,8 @@ cronAdd('recurring-tasks', '0 * * * *', () => {
       .set('horizon', task.get('horizon') || '')
       .set('due_date', nextDate.toISOString())
       .set('repeat_interval', repeatInterval)
-      .set('labels', labels)
+      .set('labels', canonicalLabels)
+      .set('label', canonicalLabels)
       .set('is_private', task.get('is_private') || false)
       .set('archived', false)
 

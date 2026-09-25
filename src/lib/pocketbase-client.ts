@@ -1,4 +1,5 @@
 import { pb } from './pocketbase';
+import { getActiveLanguage } from '../i18n/translations';
 import type {
   AppSettings,
   CalendarEvent,
@@ -17,6 +18,20 @@ import type {
 } from '../types';
 
 const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime() : undefined);
+
+const relationIds = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
+
+const taskLabelsFromRecord = (record: any): string[] => {
+  const canonical = relationIds(record.label);
+  return canonical.length > 0 ? canonical : relationIds(record.labels);
+};
+
+const canonicalTaskLabels = (labelId?: string | null, labels?: string[]): string[] => {
+  const result = relationIds(labels);
+  if (labelId && !result.includes(labelId)) result.unshift(labelId);
+  return result;
+};
 
 const normalizeUser = (record: any): User => ({
   id: record.id,
@@ -53,7 +68,8 @@ const normalizeTask = (record: any): Task => ({
   archivedAt: toTimestamp(record.archived_at),
   deleteAfter: toTimestamp(record.delete_after),
   isPrivate: !!record.is_private,
-  labels: Array.isArray(record.labels) ? record.labels : [],
+  labels: taskLabelsFromRecord(record),
+  labelId: taskLabelsFromRecord(record)[0] || undefined,
   linkedItemIds: Array.isArray(record.linked_item_ids) ? record.linked_item_ids : [],
   linkedNoteIds: Array.isArray(record.linked_note_ids) ? record.linked_note_ids : [],
   subtaskIds: Array.isArray(record.subtask_ids) ? record.subtask_ids : [],
@@ -107,7 +123,11 @@ const normalizeLabel = (record: any): Label => ({
   id: record.id,
   name: record.name,
   color: record.color,
+  visibility: record.visibility || (record.is_private ? 'private' : 'family'),
   isPrivate: !!record.is_private,
+  owner: record.owner || record.user || undefined,
+  sharedWith: Array.isArray(record.shared_with) ? record.shared_with : [],
+  family: record.family || undefined,
   createdBy: record.user,
 });
 
@@ -258,7 +278,7 @@ class PocketBaseClient {
 
     const data = await response.json();
     if (data.status === 'valid') {
-      return { id: data.invite.id, code: data.invite.code, status: 'valid', message: data.message };
+      return { id: data.id, code: data.code, status: 'valid', message: data.message || '' };
     }
     throw new Error(data.message || `Invite code is ${data.status}`);
   }
@@ -268,7 +288,13 @@ class PocketBaseClient {
     return { token: pb.authStore.token, user: normalizeUser(authData.record) };
   }
 
-  async registerAdmin(email: string, password: string, name: string, familyName?: string) {
+  async registerAdmin(
+    email: string,
+    password: string,
+    name: string,
+    familyName?: string,
+    language = getActiveLanguage(),
+  ) {
     const firstName = name.trim().split(' ')[0];
     const lastName = name.trim().includes(' ') ? name.trim().substring(name.trim().indexOf(' ') + 1) : familyName || '';
     const response = await fetch('/api/register', {
@@ -283,6 +309,7 @@ class PocketBaseClient {
         name,
         family_name: familyName || 'My Family',
         user_type: 'family_member',
+        language,
       }),
     });
 
@@ -309,6 +336,7 @@ class PocketBaseClient {
       lastName,
       name,
       user_type: userType,
+      language: getActiveLanguage(),
     };
 
     const normalizedInviteCode = inviteCode?.trim().toUpperCase();
@@ -370,13 +398,14 @@ class PocketBaseClient {
         this.showError('Not authenticated — please log in again');
         throw new Error('Not authenticated');
       }
+      const canonicalLabels = canonicalTaskLabels(task.labelId, task.labels);
       return await pb.collection('tasks').create({
         title: task.title,
         status: task.status || 'todo',
         blocked: task.blocked || false,
         focus: task.focus || false,
         blocked_comment: task.blockedComment,
-        priority: task.priority,
+        priority: task.priority || 'medium',
         horizon: task.horizon,
         assigned_to: task.assignedTo,
         sprint_id: task.sprintId,
@@ -384,7 +413,8 @@ class PocketBaseClient {
         due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
         show_in_calendar: task.showInCalendar !== false,
         repeat_interval: task.repeatInterval,
-        labels: task.labels || [],
+        labels: canonicalLabels,
+        label: canonicalLabels,
         is_private: task.isPrivate || false,
         archived: task.archived || false,
         archived_at: task.archivedAt ? new Date(task.archivedAt).toISOString() : null,
@@ -440,6 +470,12 @@ class PocketBaseClient {
 
       for (const key of ['title', 'status', 'blocked', 'priority', 'horizon', 'labels', 'archived'] as const) {
         if (has(key)) payload[key] = updates[key];
+      }
+
+      if (has('labelId') || has('labels')) {
+        const canonicalLabels = canonicalTaskLabels(updates.labelId, updates.labels);
+        payload.labels = canonicalLabels;
+        payload.label = canonicalLabels;
       }
 
       if (has('blockedComment')) payload.blocked_comment = updates.blockedComment;
@@ -604,25 +640,33 @@ class PocketBaseClient {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
     const familyId = (pb.authStore.record as any)?.family_id;
-    const filter = familyId ? `user.family_id = "${familyId}"` : `user.id = "${userId}"`;
+    const filter = familyId ? `family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}"` : `user.id = "${userId}" || owner = "${userId}"`;
     const list = await pb.collection('labels').getFullList({ filter, sort: 'name' });
     return list.map(normalizeLabel);
   }
 
   async createLabel(label: Partial<Label>) {
+    const auth = pb.authStore.record as any;
     return pb.collection('labels').create({
       name: label.name,
       color: label.color,
-      is_private: label.isPrivate || false,
-      user: pb.authStore.record?.id,
+      visibility: label.visibility || 'family',
+      is_private: (label.visibility || 'family') === 'private',
+      shared_with: label.sharedWith || [],
+      owner: auth?.id,
+      family: auth?.family_id || '',
+      user: auth?.id,
     });
   }
 
   async updateLabel(id: string, updates: Partial<Label>) {
+    const visibility = updates.visibility || (updates.isPrivate ? 'private' : undefined);
     return pb.collection('labels').update(id, {
       name: updates.name,
       color: updates.color,
-      is_private: updates.isPrivate,
+      visibility,
+      is_private: visibility ? visibility === 'private' : updates.isPrivate,
+      shared_with: updates.sharedWith,
     });
   }
 
@@ -934,7 +978,7 @@ class PocketBaseClient {
     }
 
     // Self profile/password updates still use SDK directly.
-    return pb.collection('users').update(id, {
+    const updated = await pb.collection('users').update(id, {
       name: updates.name,
       first_name: updates.firstName,
       last_name: updates.lastName,
@@ -943,6 +987,12 @@ class PocketBaseClient {
       password: updates.password,
       passwordConfirm: updates.password,
     });
+
+    if (id === pb.authStore.record?.id) {
+      pb.authStore.save(pb.authStore.token, updated);
+    }
+
+    return updated;
   }
 
   async deleteUser(id: string) {
@@ -1026,7 +1076,7 @@ class PocketBaseClient {
   async getProjects(): Promise<Project[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('projects').getFullList({ filter: `user.id = "${userId}"`, sort: '-created' });
+    const list = await pb.collection('projects').getFullList({ filter: `user = "${userId}"` });
     return list.map(normalizeProject);
   }
 
@@ -1068,7 +1118,7 @@ class PocketBaseClient {
   async getReminders(): Promise<Reminder[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
-    const list = await pb.collection('reminders').getFullList({ filter: `user.id = "${userId}"`, sort: 'due_date' });
+    const list = await pb.collection('reminders').getFullList({ filter: `user = "${userId}"`, sort: 'reminder_time' });
     return list.map(normalizeReminder);
   }
 

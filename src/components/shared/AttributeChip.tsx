@@ -48,7 +48,7 @@ export const AttributeChip = ({
 
   return (
     <span
-      className={`inline-flex items-center ${compact ? 'justify-center w-7 px-0' : 'gap-1.5 px-2'} h-7 rounded-full text-xs font-medium leading-none border select-none ${
+      className={`app-chip inline-flex items-center ${compact ? 'justify-center w-7 px-0' : 'gap-1.5 px-2'} h-7 rounded-full text-xs font-medium leading-none border select-none ${
         onClick ? 'cursor-pointer hover:opacity-80 active:scale-95 transition-all' : ''
       }`}
       style={{ backgroundColor, color: textColor, borderColor, boxShadow }}

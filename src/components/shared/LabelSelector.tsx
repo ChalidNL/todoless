@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tag } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
 
 interface LabelSelectorProps {
   selectedLabelIds: string[];
@@ -33,7 +34,7 @@ export const LabelSelector = ({ selectedLabelIds, onLabelToggle, onToggleLabel }
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute left-0 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-20 min-w-[160px]">
-            {labels.map((label) => (
+            {sortLabelsByVisibility(labels).map((label) => (
               <button
                 key={label.id}
                 onClick={() => {

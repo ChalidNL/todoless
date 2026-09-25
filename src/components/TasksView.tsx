@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronDown, ChevronUp, Trash2, CheckSquare, X as XIcon, Save, ChevronRight, AlertTriangle, Clock, Target, Lock } from 'lucide-react';
-import { CompactTaskCard } from './shared/CompactTaskCard';
+import { ChevronDown, ChevronUp, Trash2, CheckSquare, Target, Lock } from 'lucide-react';
 import { NewGlobalHeader } from './shared/NewGlobalHeader';
-import { TopBar } from './shared/TopBar';
+
 import { DueDateNotifications } from './shared/DueDateNotifications';
-import { SharedSelect } from './shared/SharedSelect';
 import { t, formatDate } from '../i18n/translations';
+import { TaskCard } from './shared/TaskCard';
+import { SectionHeader } from './shared/SectionHeader';
+import { EmptyState } from './shared/EmptyState';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
 
@@ -25,19 +26,17 @@ const isOverdue = (dueDate?: number): boolean => {
 };
 
 export const TasksView = () => {
-  const { tasks, filters, activeLabelFilters, activeChipFilters, toggleChipFilter, clearChipFilters, addTask, addFilter, deleteFilter, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
+  const { tasks, activeChipFilters, addTask, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
   const [showFocus, setShowFocus] = useState(true);
-  const [showSavedFilters, setShowSavedFilters] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('alpha');
 
-  const taskFilters = useMemo(() => filters.filter(f => f.type === 'task'), [filters]);
-
   const handleAddTaskWithValue = (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number }) => {
+    if (!value.trim()) return;
     addTask({
-      title: value,
+      title: value.trim(),
       status: 'todo',
       blocked: false,
       labels: metadata?.labels || [],
@@ -45,17 +44,7 @@ export const TasksView = () => {
       dueDate: metadata?.dueDate,
       flag: false,
     });
-  };
-
-  const applySavedFilter = (f: typeof filters[0]) => {
-    clearChipFilters();
-    if (f.chipFilters) {
-      for (const cf of f.chipFilters) {
-        toggleChipFilter(cf.type, cf.id, cf.label, cf.color);
-      }
-    }
-    setShowSavedFilters(false);
-    showCompletionMessage(`Filter: ${f.name}`);
+    showCompletionMessage(t('inbox.taskAdded'));
   };
 
   const getFilteredTasks = () => {
@@ -63,13 +52,6 @@ export const TasksView = () => {
 
     // Hide subtask tasks from main list
     filtered = filtered.filter(task => !(task.linkedType === 'task' && task.linkedTo));
-
-    // Label filters (existing)
-    if (activeLabelFilters.length > 0) {
-      filtered = filtered.filter(task =>
-        activeLabelFilters.every(filterId => task.labels.includes(filterId))
-      );
-    }
 
     // Chip filters (labels, assignee, shop, date, repeat, status)
     for (const f of activeChipFilters) {
@@ -94,6 +76,12 @@ export const TasksView = () => {
           break;
         case 'priority':
           filtered = filtered.filter((t) => t.priority === f.id);
+          break;
+        case 'status':
+          if (f.id === 'focus') filtered = filtered.filter((t) => !!t.focus || (isDueWithin24h(t.dueDate) && t.priority === 'high'));
+          if (f.id === 'blocked') filtered = filtered.filter((t) => !!t.blocked);
+          if (f.id === 'todo') filtered = filtered.filter((t) => t.status === 'todo' && !t.blocked);
+          if (f.id === 'done') filtered = filtered.filter((t) => t.status === 'done');
           break;
       }
     }
@@ -161,146 +149,32 @@ export const TasksView = () => {
   const sortedRegularTasks = sortTasks(regularTasks);
   const sortedCompletedTasks = sortTasks(completedTasks);
 
-  const hasAnyFilter = activeChipFilters.length > 0;
-  const hasSavedFilters = taskFilters.length > 0;
-
   const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
 
   return (
     <>
       <div className="sticky top-0 z-40">
         <NewGlobalHeader
+          screen="taken"
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
           searchPlaceholder={t('tasks.searchPlaceholder')}
+          count={activeTasks.length}
+          sortValue={sortMode}
+          onSortChange={(value) => setSortMode(value as SortMode)}
+          sortOptions={[
+            { value: 'alpha', label: 'A-Z' },
+            { value: 'priority', label: t('filters.priority') },
+            { value: 'dueDate', label: t('filters.dueDate') },
+          ]}
         />
       </div>
 
-      {/* Filter bar — count ABOVE now */}
-      {(hasAnyFilter || hasSavedFilters) && (
-        <div className="bg-white border-b border-neutral-200 shadow-sm">
-          <div className="max-w-lg mx-auto px-4 py-2">
-            {/* Count above */}
-            <div className="text-xs font-semibold text-neutral-600 mb-1.5">
-              {!isEmpty
-                ? `${t('common.tasks')} (${activeTasks.length + completedTasks.length})`
-                : t('inbox.noResults')}
-            </div>
-            {/* Chips below */}
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1 flex-1 flex-wrap">
-                {activeChipFilters.map((f) => (
-                  <span
-                    key={`${f.type}-${f.id}`}
-                    className="inline-flex items-center gap-1.5 px-2 h-7 rounded-full text-xs font-normal leading-none border select-none"
-                    style={{
-                      backgroundColor: f.color ? `${f.color}20` : undefined,
-                      color: f.color ? f.color : undefined,
-                      borderColor: f.color ? `${f.color}40` : '#e5e7eb',
-                    }}
-                  >
-                    {f.label || f.id}
-                    <button onClick={() => toggleChipFilter(f.type, f.id)} className="ml-0.5 hover:opacity-70">
-                      <XIcon className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <button
-                onClick={clearChipFilters}
-                className="flex-shrink-0 p-1 text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title={t('common.clearAllTooltip')}
-              >
-                <XIcon className="w-3.5 h-3.5" />
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowSavedFilters(!showSavedFilters)}
-                  className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                  title={t('common.filters')}
-                  aria-label={t('common.filters')}
-                >
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showSavedFilters ? 'rotate-90' : ''}`} />
-                </button>
-                {showSavedFilters && hasSavedFilters && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-neutral-200 rounded-lg shadow-lg z-50 min-w-[180px] py-1">
-                    {taskFilters.map((f) => (
-                      <div key={f.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-neutral-50">
-                        <button
-                          onClick={() => applySavedFilter(f)}
-                          className="text-xs text-neutral-700 text-left flex-1 truncate"
-                        >
-                          {f.name}
-                        </button>
-                        <button
-                          onClick={() => { deleteFilter(f.id); showCompletionMessage(t('filters.deleted')); }}
-                          className="text-neutral-400 hover:text-red-500 ml-2 flex-shrink-0"
-                          title={t('common.delete')}
-                        >
-                          <XIcon className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => {
-                  try {
-                    const name = window.prompt(t('settings.filterName'), '');
-                    if (!name || !name.trim()) return;
-                    const typeRaw = window.prompt(t('filters.taskOrShopPrompt'), 'task');
-                    const ftype = (typeRaw || 'task').trim().toLowerCase();
-                    const validType = ftype === 'item' ? 'item' : 'task';
-                    addFilter({
-                      name: name.trim(),
-                      labelIds: activeLabelFilters,
-                      chipFilters: activeChipFilters.length > 0 ? activeChipFilters.map(c => ({...c})) : undefined,
-                      showCompleted: true,
-                      type: validType,
-                    });
-                    showCompletionMessage(t('filters.saved'));
-                  } catch(e) {
-                    showCompletionMessage(t('filters.saveFailed'));
-                  }
-                }}
-                className="flex-shrink-0 p-1.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded"
-                title={t('common.save')}
-                aria-label={t('common.save')}
-              >
-                <Save className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
-        {/* Empty state */}
+      <div className="max-w-lg mx-auto px-4 space-y-4">
         {isEmpty ? (
-          <div className="text-center py-16">
-            <CheckSquare className="w-12 h-12 text-neutral-200 mx-auto mb-3" />
-            <p className="text-neutral-400 text-sm">{t('inbox.empty')}</p>
-          </div>
+          <EmptyState title={t('inbox.empty')} icon={<CheckSquare className="h-7 w-7" />} />
         ) : (
           <>
-            {/* Tasks header with sort — always at top-right */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-semibold text-sm text-neutral-600">
-                {t('common.tasks')} ({activeTasks.length})
-              </h2>
-              <SharedSelect<SortMode>
-                value={sortMode}
-                onChange={setSortMode}
-                ariaLabel={t('filters.sortTasks')}
-                options={[
-                  { value: 'alpha', label: 'A-Z' },
-                  { value: 'priority', label: t('filters.priority') },
-                  { value: 'dueDate', label: t('filters.dueDate') },
-                ]}
-              />
-            </div>
-
             {/* OVERDUE section — always below sort header */}
             <DueDateNotifications />
 
@@ -309,7 +183,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowFocus(!showFocus)}
-                  className="flex items-center gap-2 w-full mb-2 px-1"
+                  className="mb-2 flex min-h-[var(--app-touch-target)] w-full items-center gap-2 px-1 text-left"
                 >
                   <Target className="w-4 h-4 text-orange-500" />
                   <h3 className="text-sm font-semibold text-orange-600">
@@ -324,7 +198,7 @@ export const TasksView = () => {
                 {showFocus && (
                   <div className="space-y-2">
                     {sortedFocusTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={true}
@@ -341,7 +215,7 @@ export const TasksView = () => {
               <div>
                 <button
                   onClick={() => setShowBlocked(!showBlocked)}
-                  className="flex items-center gap-2 w-full mb-2 px-1"
+                  className="mb-2 flex min-h-[var(--app-touch-target)] w-full items-center gap-2 px-1 text-left"
                 >
                   <Lock className="w-4 h-4 text-red-500" />
                   <h3 className="text-sm font-semibold text-red-600">
@@ -356,7 +230,7 @@ export const TasksView = () => {
                 {showBlocked && (
                   <div className="space-y-2">
                     {sortedBlockedTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={true}
@@ -371,7 +245,7 @@ export const TasksView = () => {
             {sortedRegularTasks.length > 0 && (
               <div className="space-y-2">
                 {sortedRegularTasks.map((task) => (
-                  <CompactTaskCard
+                  <TaskCard
                     key={task.id}
                     task={task}
                     showCheckbox={true}
@@ -386,7 +260,7 @@ export const TasksView = () => {
                 <div className="flex items-center justify-between w-full px-1 mb-2">
                   <button
                     onClick={() => setShowCompleted(!showCompleted)}
-                    className="flex items-center gap-2"
+                    className="flex min-h-[var(--app-touch-target)] items-center gap-2"
                   >
                     <h2 className="text-sm font-semibold text-neutral-700">
                       {t('common.completed')} ({sortedCompletedTasks.length})
@@ -400,6 +274,7 @@ export const TasksView = () => {
 
                   <button
                     onClick={() => {
+                      if (!window.confirm(t('tasks.confirmDeleteCompleted'))) return;
                       const doneIds = sortedCompletedTasks.map(t => t.id);
                       doneIds.forEach(id => deleteTask(id));
                       showCompletionMessage(`${doneIds.length} deleted`);
@@ -415,7 +290,7 @@ export const TasksView = () => {
                 {showCompleted && (
                   <div className="space-y-2">
                     {sortedCompletedTasks.map((task) => (
-                      <CompactTaskCard
+                      <TaskCard
                         key={task.id}
                         task={task}
                         showCheckbox={task.status === 'done'}

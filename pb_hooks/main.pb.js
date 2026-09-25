@@ -5,7 +5,7 @@
 // - c.requestInfo() call ONCE per request
 // - use info.body NOT info.data (PB 0.34 compat)
 // - $app.save(rec) for users throws "ReferenceError: tasks" (PB 0.34.2 bug)
-//   FIX: use var u = $app.unsafeWithoutHooks(); u.save(rec); with manual id/tokenKey
+//   FIX: use $app.save(rec) with manual id/tokenKey
 
 
 
@@ -20,6 +20,10 @@
   if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
   if (rec.get('all_day') === undefined || rec.get('all_day') === null) rec.set('all_day', false);
   if (!rec.get('start_time') && rec.get('due_date')) { rec.set('start_time', rec.get('due_date')); }
+  var createLabels = rec.get('label') || rec.get('labels') || [];
+  if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
+  rec.set('labels', createLabels);
+  rec.set('label', createLabels);
 
   // Request info - call ONCE, store reference
   var info = null;
@@ -86,9 +90,15 @@ onRecordUpdate('tasks', (e) => {
   try { info = e.requestInfo(); } catch(ex) {}
   if (info) {
     try {
-      var data = info.data || {};
+      var data = info.body || info.data || {};
       if (data && data.subtask_ids !== undefined) {
         e.record.set('subtask_ids', data.subtask_ids);
+      }
+      if (data && (data.labels !== undefined || data.label !== undefined)) {
+        var updateLabels = data.label !== undefined ? data.label : data.labels;
+        if (!Array.isArray(updateLabels)) updateLabels = updateLabels ? [String(updateLabels)] : [];
+        e.record.set('labels', updateLabels);
+        e.record.set('label', updateLabels);
       }
     } catch(err) { /* ignore */ }
   }
@@ -145,7 +155,7 @@ routerAdd('POST', '/api/validate-create', function(c) {
       rec.set('is_private', false);
     }
 
-    if (body.labels && Array.isArray(body.labels)) rec.set('labels', body.labels);
+    if (body.labels && Array.isArray(body.labels)) { rec.set('labels', body.labels); rec.set('label', body.labels); }
     if (body.assigned_to) rec.set('assigned_to', body.assigned_to);
     if (body.due_date) rec.set('due_date', body.due_date);
     if (body.priority) rec.set('priority', body.priority);
@@ -158,8 +168,7 @@ routerAdd('POST', '/api/validate-create', function(c) {
 
     var fid = String(auth.get('family_id') || '');
     if (fid) {
-      var familyFilter = 'user.family_id = "' + fid + '"';
-      var familyResults = $app.findRecordsByFilter(collName, familyFilter + ' && id = "' + rec.id + '"', '', 1, 0);
+      var familyResults = $app.findRecordsByFilter(collName, 'user.family_id = {:familyId} && id = {:recordId}', '', 1, 0, { familyId: fid, recordId: rec.id });
       if (familyResults.length === 0) {
         return c.json(500, { error: 'VALIDATION FAILED: record not queryable by family ' + fid });
       }
@@ -202,7 +211,7 @@ routerAdd('POST', '/api/invites/create', (c) => {
     }
 
     // Generate invite code with CSPRNG
-    var code = $security.randomString(12);
+    var code = $security.randomString(12).toUpperCase();
 
     var now = new Date();
     var expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
@@ -264,8 +273,11 @@ routerAdd('GET', '/api/validate-invite', (c) => {
     }
 
     return c.json(200, {
+      id: invites[0].id,
+      code: code,
       valid: true,
       status: 'valid',
+      message: 'Invite code is valid',
       family_id: inviter ? String(inviter.get('family_id') || '') : '',
       family_name: familyName,
       invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
@@ -277,9 +289,10 @@ routerAdd('GET', '/api/validate-invite', (c) => {
 routerAdd('POST', '/api/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
   var createUser = function(col, data) {
-    var u = $app.unsafeWithoutHooks();
+    var u = $app;
     var rec = new Record(col);
-    rec.set('id', $security.randomString(15));
+    rec.set('id', $security.randomString(15).toLowerCase());
+    rec.set('tokenKey', $security.randomString(50));
     rec.set('verified', false);
     rec.set('email', data.email);
     rec.set('password', data.password);
@@ -290,7 +303,7 @@ routerAdd('POST', '/api/register', (c) => {
     rec.set('family_id', data.family_id || '');
     rec.set('member_status', data.member_status || 'active');
     rec.set('member_type', data.member_type || 'family_member');
-    rec.set('language', ['nl', 'fr', 'en'].indexOf(String(data.language || '')) !== -1 ? data.language : 'en');
+    rec.set('language', ['nl', 'fr', 'en', 'de', 'es'].indexOf(String(data.language || '')) !== -1 ? data.language : 'en');
     u.save(rec);
     return rec;
   };
@@ -298,10 +311,10 @@ routerAdd('POST', '/api/register', (c) => {
   var createFamily = function(name, createdBy) {
     var fc = $app.findCollectionByNameOrId('families');
     var fam = new Record(fc);
-    fam.set('id', $security.randomString(15));
+    fam.set('id', $security.randomString(15).toLowerCase());
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
-    var u = $app.unsafeWithoutHooks();
+    var u = $app;
     u.save(fam);
     return fam;
   };
@@ -338,14 +351,15 @@ routerAdd('POST', '/api/register', (c) => {
         role: (memberType === 'agent') ? 'member' : 'admin',
         family_id: '',
         member_status: 'active',
-        member_type: memberType
+        member_type: memberType,
+        language: d.language
       });
 
       var fam = createFamily(d.family_name || 'My Family', rec.id);
 
       // Update user with family_id
       rec.set('family_id', fam.id);
-      var u = $app.unsafeWithoutHooks();
+      var u = $app;
       u.save(rec);
 
       return c.json(201, {
@@ -373,7 +387,8 @@ routerAdd('POST', '/api/register', (c) => {
       role: role,
       family_id: fid,
       member_status: 'active',
-      member_type: memberType
+      member_type: memberType,
+      language: d.language
     });
 
     // Mark invite as used
@@ -381,7 +396,7 @@ routerAdd('POST', '/api/register', (c) => {
     inviteRec.set('used', true);
     inviteRec.set('used_at', now);
     inviteRec.set('used_by', rec.id);
-    var uu = $app.unsafeWithoutHooks();
+    var uu = $app;
     uu.save(inviteRec);
 
     return c.json(201, {
@@ -402,8 +417,8 @@ routerAdd('GET', '/api/entries', (c) => {
       }
       var token = parts[1].trim();
       if (!token) return c.json(401, { 'error': 'Empty token' });
-      var hashed = (function(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} })(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       var rawEnabled = tokRec.get('enabled');
@@ -418,9 +433,9 @@ routerAdd('GET', '/api/entries', (c) => {
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; try { perms = JSON.parse(rawPerms || '[]'); } catch(e) { perms = []; }
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -434,11 +449,34 @@ routerAdd('GET', '/api/entries', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     var tokInfo = c.get('apiTokenInfo');
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
-    if (!_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
+    if (!_hasPerm('entries:read') && !_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
     function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
+    function _canAccessTask(r){
+      if(!r)return false;
+      var taskOwner=String(r.get('user')||'');
+      if(taskOwner===auth.id)return true;
+      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
+      var af=String(auth.get('family_id')||'');
+      if(!af||!_canRead(r))return false;
+      var ids=r.get('label')||r.get('labels')||[];
+      if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
+      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
+      for(var li=0;li<ids.length;li++){
+        var labelId=String(ids[li]||''); if(!labelId)continue;
+        var label=null; try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}
+        var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
+        var owner=String(label.get('owner')||label.get('user')||'');
+        var lf=String(label.get('family')||'');
+        if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
+        if(vis==='private'){if(owner!==auth.id)return false;}
+        else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}
+        else if(lf!==af)return false;
+      }
+      return true;
+    }
     var q = info.query || {};
-    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
-      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
+    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
     var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
       return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
@@ -467,8 +505,8 @@ routerAdd('POST', '/api/v1', (c) => {
       }
       var token = parts[1].trim();
       if (!token) return c.json(401, { 'error': 'Empty token' });
-      var hashed = (function(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} })(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = "'+hashed+'"','',1,0);
+      var hashed = $security.sha256(token);
+      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
       if (tokens.length === 0) return null;
       var tokRec = tokens[0];
       var rawEnabled = tokRec.get('enabled');
@@ -483,9 +521,9 @@ routerAdd('POST', '/api/v1', (c) => {
       if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
       if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = tokRec.get('permissions');
-      if (!rawPerms || (Array.isArray(rawPerms)&&rawPerms.length===0)) rawPerms = tokRec.get('scopes');
-      var perms = []; if (Array.isArray(rawPerms)) perms=rawPerms; else if (typeof rawPerms==='string') try { perms=JSON.parse(rawPerms); } catch(e){}
+      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
+      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
+      var perms = []; try { perms = JSON.parse(rawPerms || '[]'); } catch(e) { perms = []; }
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
@@ -519,13 +557,33 @@ routerAdd('POST', '/api/v1', (c) => {
     if(tokInfo && (action==='set_role'||action==='set_user_block'||action==='delete_user')) return c.json(403,{error:'API tokens cannot manage members'});
     if(reqPerm && !_hasPerm(reqPerm)) return c.json(403,{error:'Missing permission: '+reqPerm});
     function _canAccess(r){ if(!auth||!r)return false; var uid=String(r.get('user')||r.get('created_by')||''); if(uid&&uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
+    function _canAccessTask(r){
+      if(!r)return false; var taskOwner=String(r.get('user')||''); if(taskOwner===auth.id)return true;
+      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
+      var af=String(auth.get('family_id')||''); if(!af||!_canAccess(r))return false;
+      var ids=r.get('label')||r.get('labels')||[]; if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
+      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
+      for(var li=0;li<ids.length;li++){var labelId=String(ids[li]||'');if(!labelId)continue;var label=null;try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var owner=String(label.get('owner')||label.get('user')||'');var lf=String(label.get('family')||'');if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}if(vis==='private'){if(owner!==auth.id)return false;}else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}else if(lf!==af)return false;}
+      return true;
+    }
+    function _canAccessLabel(label){
+      if(!label)return false;
+      var owner=String(label.get('owner')||label.get('user')||''); if(owner===auth.id)return true;
+      var af=String(auth.get('family_id')||''); if(!af)return false;
+      var lf=String(label.get('family')||''); if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
+      if(lf!==af)return false;
+      var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
+      if(vis==='family')return true;
+      if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];return sw.indexOf(auth.id)!==-1;}
+      return false;
+    }
     function _freshAuth(){ if(!auth||!auth.id)return null; try { return $app.findRecordById('users', auth.id); } catch(e) { return null; } }
     function _isFamilyAdmin(user){ var r=String(user&&user.get('role')||''); return r==='admin'||r==='owner'; }
 
     if (action === 'list') {
     var q = info.query || {};
-      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
-        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
       var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
         return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
@@ -559,7 +617,9 @@ routerAdd('POST', '/api/v1', (c) => {
         var assign = String(gv(d,'assignee_id','')).trim();
         if (assign) rec.set('assigned_to', assign);
         var labs = d.labels;
-        if (Array.isArray(labs) && labs.length > 0) rec.set('labels', labs);
+        var canonicalLabels = Array.isArray(labs) ? labs : [];
+        rec.set('labels', canonicalLabels);
+        rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
         if (linkedTo) rec.set('linked_to', linkedTo);
         var linkedType = String(gv(d,'linked_type','')).trim();
@@ -609,7 +669,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
@@ -621,7 +682,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       rec.set('assigned_to',String(gv(d,'assignee_id','')));
       $app.save(rec);return c.json(200,{assigned:true});
     }
@@ -633,7 +695,8 @@ routerAdd('POST', '/api/v1', (c) => {
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
       var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
       if(!rec) return c.json(404,{error:'Entry not found'});
-      if(!_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
@@ -644,7 +707,7 @@ routerAdd('POST', '/api/v1', (c) => {
       if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
       var parent = $app.findRecordById('tasks', taskId);
       if (!parent) return c.json(404, { error: 'Parent task not found' });
-      if (!_canAccess(parent)) return c.json(404, { error: 'Parent task not found' });
+      if (!_canAccessTask(parent)) return c.json(404, { error: 'Parent task not found' });
       var existing = parent.get('subtask_ids') || [];
       if (!Array.isArray(existing)) existing = [];
       if (existing.indexOf(subtaskId) === -1) {
@@ -656,7 +719,7 @@ routerAdd('POST', '/api/v1', (c) => {
     }
 
     if (action === 'filters') {
-      var labels = $app.findRecordsByFilter('labels','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
+      var labels = $app.findRecordsByFilter('labels','', 'name',10000,0).filter(_canAccessLabel).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var shops = $app.findRecordsByFilter('shops','', 'name',10000,0).filter(_canAccess).map(function(r){return{id:r.id,name:r.get('name'),color:r.get('color')};});
       var af=String(auth.get('family_id')||''); var uf=af?'family_id = {:f}':'id = {:u}'; var up=af?{f:af}:{u:auth.id};
       var users = $app.findRecordsByFilter('users',uf,'name',10000,0,up).map(function(r){return{id:r.id,name:r.get('name')||r.get('email')||r.id};});
@@ -694,11 +757,11 @@ routerAdd('POST', '/api/v1', (c) => {
         return c.json(400, { error: 'Agents cannot be assigned admin or owner roles.' });
       }
 
-      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = "' + actorFamilyId + '" && (role = "admin" || role = "owner")', '', 10000, 0);
+      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
 
       // Keep a single admin/owner per family: promoting a new admin demotes the others in that family only.
       if (newRole === 'admin' || newRole === 'owner') {
-        var u2 = $app.unsafeWithoutHooks();
+        var u2 = $app;
         for (var i = 0; i < familyAdmins.length; i++) {
           if (familyAdmins[i].id !== targetId) {
             familyAdmins[i].set('role', 'member');
@@ -716,7 +779,7 @@ routerAdd('POST', '/api/v1', (c) => {
         if (otherAdmins.length === 0) return c.json(400, { error: 'You are the only admin. Promote someone else first.' });
       }
 
-      var u = $app.unsafeWithoutHooks();
+      var u = $app;
       target.set('role', newRole);
       u.save(target);
       return c.json(200, { success: true, user_id: targetId, role: newRole });
@@ -736,7 +799,7 @@ routerAdd('POST', '/api/v1', (c) => {
       var actorFamilyBlock = String(actorBlockRecord.get('family_id') || '').trim();
       if (!actorFamilyBlock || String(targetBlock.get('family_id') || '').trim() !== actorFamilyBlock) return c.json(403, { error: 'You can only manage members in your own family.' });
       if (String(targetBlock.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot block the owner' });
-      var ub = $app.unsafeWithoutHooks();
+      var ub = $app;
       targetBlock.set('member_status', blocked ? 'blocked' : 'active');
       ub.save(targetBlock);
       return c.json(200, { success: true, user_id: targetIdBlock, blocked: !!blocked });
@@ -778,17 +841,9 @@ routerAdd('GET', '/api/agent/counts', (c) => {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
-    // Get family members to scope tokens
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var allTokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var allTokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var pending = 0, approved = 0;
     for (var ti = 0; ti < allTokens.length; ti++) {
       var rawEnabled = allTokens[ti].get('enabled');
@@ -808,15 +863,8 @@ routerAdd('GET', '/api/agent/pending', (c) => {
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter + ' && enabled=false', '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId} && enabled = false' : 'user = {:userId} && enabled = false';
+    var tokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -852,7 +900,7 @@ routerAdd('POST', '/api/agent/approve', (c) => {
     $app.save(token);
 
     // Also update the invite's used flag if linked
-    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = {:tokenId}', '', 1, 0, { tokenId: tokenId });
     if (invites.length > 0) {
       var inv = invites[0];
       inv.set('used', true);
@@ -887,7 +935,7 @@ routerAdd('POST', '/api/agent/reject', (c) => {
     if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
 
     // Also delete linked invite
-    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = "' + tokenId + '"', '', 1, 0);
+    var invites = $app.findRecordsByFilter('invite_codes', 'token_id = {:tokenId}', '', 1, 0, { tokenId: tokenId });
     if (invites.length > 0) {
       $app.delete(invites[0]);
     }
@@ -906,15 +954,8 @@ routerAdd('GET', '/api/agent/list', (c) => {
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
     var fid = String(auth.get('family_id') || '');
-    var userIds = [];
-    if (fid) {
-      var members = $app.findRecordsByFilter('users', 'family_id = "' + fid + '"', '', 10000, 0);
-      for (var mi = 0; mi < members.length; mi++) { userIds.push('"' + members[mi].id + '"'); }
-    } else {
-      userIds.push('"' + auth.id + '"');
-    }
-    var userFilter = 'user.id = ' + userIds.join(' || user.id = ');
-    var tokens = $app.findRecordsByFilter('api_tokens', userFilter, '', 10000, 0);
+    var tokenFilter = fid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var tokens = $app.findRecordsByFilter('api_tokens', tokenFilter, '', 10000, 0, fid ? { familyId: fid } : { userId: auth.id });
     var agents = [];
     for (var ti = 0; ti < tokens.length; ti++) {
       var t = tokens[ti];
@@ -934,14 +975,14 @@ routerAdd('GET', '/api/agent/list', (c) => {
 });
 
 // DELETE /api/agent/:id — revoke token
-routerAdd('DELETE', '/api/agent/:id', (c) => {
+routerAdd('DELETE', '/api/agent/{id}', (c) => {
   try {
     var info = c.requestInfo();
     var auth = info && info.auth ? info.auth : null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin' && String(auth.get('role') || '') !== 'owner') return c.json(403, { error: 'Admin only' });
 
-    var tokenId = c.pathParam('id');
+    var tokenId = c.request.pathValue('id');
     if (!tokenId) return c.json(400, { error: 'id required' });
 
     var token = $app.findRecordById('api_tokens', tokenId);

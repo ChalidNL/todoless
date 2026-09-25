@@ -7,7 +7,7 @@ migrate(
     if (!users.fields.getByName('language')) {
       users.fields.add(new SelectField({
         name: 'language',
-        values: ['nl', 'fr', 'en'],
+        values: ['nl', 'fr', 'en', 'de', 'es'],
         maxSelect: 1,
         required: true,
       }));
@@ -18,7 +18,7 @@ migrate(
     const allUsers = app.findRecordsByFilter('users', '', '', 0, 0);
     for (const user of allUsers) {
       const current = String(user.get('language') || '');
-      if (['nl', 'fr', 'en'].indexOf(current) === -1) {
+      if (['nl', 'fr', 'en', 'de', 'es'].indexOf(current) === -1) {
         user.set('language', 'en');
         app.save(user);
       }
