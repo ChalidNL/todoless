@@ -415,7 +415,8 @@
     "labelNamePlaceholder": "Labelnaam",
     "shopNamePlaceholder": "Winkelnaam",
     "firstDayOfWeek": "Eerste dag van de week",
-    "preferences": "Voorkeuren"
+    "preferences": "Voorkeuren",
+    "documentation": "Documentatie"
   },
   "projects": {
     "title": "Projecten",

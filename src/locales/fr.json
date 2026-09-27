@@ -415,7 +415,8 @@
     "labelNamePlaceholder": "Nom de l’étiquette",
     "shopNamePlaceholder": "Nom du magasin",
     "firstDayOfWeek": "Premier jour de la semaine",
-    "preferences": "Préférences"
+    "preferences": "Préférences",
+    "documentation": "Documentation"
   },
   "projects": {
     "title": "Projets",

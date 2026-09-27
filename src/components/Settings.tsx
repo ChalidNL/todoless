@@ -5,9 +5,10 @@ import { useAuth } from './AuthProvider';
 import { userDisplayName } from '../types';
 import { t } from '../i18n/translations';
 import { Link } from 'react-router-dom';
-import { ChevronRight, LogOut, Copy, RefreshCw, ExternalLink, Camera, Plug, Users, UserCircle2, Tag, SlidersHorizontal, Bell, Store } from 'lucide-react';
+import { ChevronRight, LogOut, Copy, RefreshCw, ExternalLink, Camera, Users, UserCircle2, Tag, SlidersHorizontal, Bell, Store, BookOpen } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { Button } from './ui/AppButton';
+
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { copyTextToClipboard } from '../lib/clipboard';
 
@@ -86,6 +87,7 @@ export const Settings = () => {
     }
   };
 
+
   if (!currentUser) {
     return (
       <div className="app-shell-bg min-h-screen flex items-center justify-center">
@@ -96,6 +98,7 @@ export const Settings = () => {
 
   const displayName = userDisplayName(currentUser);
   const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
+  const docsUrl = import.meta.env.VITE_DOCS_URL || 'http://192.168.2.100:8090/docs/';
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
     { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
@@ -103,7 +106,7 @@ export const Settings = () => {
     { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: `${shops.length} ${t('settings.shops')}` },
     { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
     { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: t('settings.notifications'), sub: null },
-    { href: '/api/swagger', icon: Plug, color: '#0ea5e9', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
+    { href: docsUrl, icon: BookOpen, color: '#0ea5e9', label: t('settings.documentation'), sub: t('settings.apiDocumentation'), external: true },
   ];
 
   return (
