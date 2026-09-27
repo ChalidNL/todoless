@@ -398,7 +398,8 @@
     "labelNamePlaceholder": "Etikett-Name",
     "shopNamePlaceholder": "Geschäftsname",
     "firstDayOfWeek": "Erster Tag der Woche",
-    "preferences": "Einstellungen"
+    "preferences": "Einstellungen",
+    "documentation": "Dokumentation"
   },
   "projects": {
     "title": "Projekte",

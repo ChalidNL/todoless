@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
-import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility, type User } from '../types';
+import { userDisplayName, type Label, type LabelVisibility, type User } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
+import { ChevronRight, Edit2, Trash2, X, LogOut, Copy, Lock, ExternalLink, RefreshCw, Users, Home, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera, BookOpen } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
 import { Button } from './ui/AppButton';
@@ -14,7 +14,6 @@ import { buildFamilyMembershipView } from '../lib/member-family-utils';
 import { entityBg, entityBorder, entityColor } from '../lib/entity-colors';
 import { InviteManager } from './InviteManager';
 import { api } from '../lib/pocketbase-client';
-import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { CalendarImportExport } from './CalendarImportExport';
 import { sortLabelsByVisibility } from '../lib/label-utils';
@@ -59,7 +58,6 @@ export const Settings = () => {
   const [newLabelSharedWith, setNewLabelSharedWith] = useState<string[]>([]);
   const [newShopName, setNewShopName] = useState('');
   const [newShopColor, setNewShopColor] = useState('#3b82f6');
-  const [apiTokens, setApiTokens] = useState<ApiToken[]>([]);
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [editingLabelName, setEditingLabelName] = useState('');
   const [editingLabelColor, setEditingLabelColor] = useState('');
@@ -76,24 +74,10 @@ export const Settings = () => {
   const [editFirstName, setEditFirstName] = useState('');
   const [editLastName, setEditLastName] = useState('');
   const [editLanguage, setEditLanguage] = useState<SupportedUiLanguage>('en');
-  const [showAgentApproval, setShowAgentApproval] = useState(false);
-  const [pendingAgents, setPendingAgents] = useState<{id: string; email: string; name: string; created: string}[]>([]);
-  const [loadingAgents, setLoadingAgents] = useState(false);
-  const [approvingAgentId, setApprovingAgentId] = useState<string | null>(null);
-  const [rejectingAgentId, setRejectingAgentId] = useState<string | null>(null);
-  const [showIntegrations, setShowIntegrations] = useState(false);
-  const [pendingAgentsCount, setPendingAgentsCount] = useState(0);
-  const [approvedAgentsCount, setApprovedAgentsCount] = useState(0);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [updatingApp, setUpdatingApp] = useState(false);
   const [familyName, setFamilyName] = useState<string | undefined>(undefined);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
-
-  // Full Agents management
-  const [showAgents, setShowAgents] = useState(false);
-  const [allAgents, setAllAgents] = useState<Agent[]>([]);
-  const [loadingAllAgents, setLoadingAllAgents] = useState(false);
-  const [revokingAgentId, setRevokingAgentId] = useState<string | null>(null);
 
   const currentUser = users.find(u => u.id === appSettings.currentUserId);
   const getLanguageLabel = (lang: SupportedUiLanguage) => ({ nl: 'Nederlands', fr: 'Français', en: 'English', de: 'Deutsch', es: 'Español' })[lang];
@@ -416,174 +400,6 @@ export const Settings = () => {
     deleteShop(id);
   };
 
-  const loadApiTokens = async () => {
-    const tokens = await api.getApiTokens();
-    setApiTokens(tokens);
-  };
-
-  const handleDeleteToken = async (tokenId: string) => {
-    if (!window.confirm(t('settings.revokeTokenConfirm'))) return;
-    try {
-      await api.deleteApiToken(tokenId);
-      await loadApiTokens();
-      showCompletionMessage(t('agent.tokenRevoked'));
-    } catch (err: any) {
-      showCompletionMessage(err.message || t('common.error'));
-    }
-  };
-
-  const handleToggleToken = async (tokenId: string, enabled: boolean) => {
-    try {
-      await api.toggleApiToken(tokenId, enabled);
-      await loadApiTokens();
-    } catch (err: any) {
-      showCompletionMessage(err.message || t('common.error'));
-    }
-  };
-
-  const loadPendingAgents = async () => {
-    setLoadingAgents(true);
-    try {
-      const response = await fetch('/api/agent/pending', {
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPendingAgents(data.agents || []);
-      }
-    } catch {
-      showCompletionMessage(t('common.error'));
-    } finally {
-      setLoadingAgents(false);
-    }
-  };
-
-  const toggleAgentApprovalSection = async () => {
-    const next = !showAgentApproval;
-    setShowAgentApproval(next);
-    if (next && pendingAgents.length === 0) {
-      await loadPendingAgents();
-    }
-  };
-
-  const handleApproveAgent = async (agentId: string) => {
-    setApprovingAgentId(agentId);
-    try {
-      const response = await fetch(`/api/agent/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
-        body: JSON.stringify({ id: agentId }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setPendingAgents(prev => prev.filter(a => a.id !== agentId));
-        showCompletionMessage(t('agent.approved'));
-      } else {
-        showCompletionMessage(data.error || t('common.error'));
-      }
-    } catch {
-      showCompletionMessage(t('common.error'));
-    } finally {
-      setApprovingAgentId(null);
-    }
-  };
-
-  const handleRejectAgent = async (agentId: string) => {
-    if (!window.confirm(t('settings.rejectAgentConfirm'))) return;
-    setRejectingAgentId(agentId);
-    try {
-      const response = await fetch(`/api/agent/reject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pb.authStore.token}` },
-        body: JSON.stringify({ id: agentId }),
-      });
-      if (response.ok) {
-        setPendingAgents(prev => prev.filter(a => a.id !== agentId));
-        showCompletionMessage(t('agent.rejected'));
-      } else {
-        const data = await response.json();
-        showCompletionMessage(data.error || t('common.error'));
-      }
-    } catch {
-      showCompletionMessage(t('common.error'));
-    } finally {
-      setRejectingAgentId(null);
-    }
-  };
-
-  const loadAgentCounts = async () => {
-    try {
-      const response = await fetch('/api/agent/counts', {
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setPendingAgentsCount(data.pending || 0);
-        setApprovedAgentsCount(data.approved || 0);
-      }
-    } catch {
-      // Silently fail
-    }
-  };
-
-  const toggleIntegrationsSection = async () => {
-    const next = !showIntegrations;
-    setShowIntegrations(next);
-    if (next) {
-      await loadAgentCounts();
-    }
-  };
-
-  // Full Agents management functions
-  const loadAllAgents = async () => {
-    setLoadingAllAgents(true);
-    try {
-      const response = await fetch('/api/agent/list', {
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setAllAgents(data.agents || []);
-      } else {
-        showCompletionMessage(t('common.error'));
-      }
-    } catch {
-      showCompletionMessage(t('common.error'));
-    } finally {
-      setLoadingAllAgents(false);
-    }
-  };
-
-  const toggleAgentsSection = async () => {
-    const next = !showAgents;
-    setShowAgents(next);
-    if (next && allAgents.length === 0) {
-      await loadAllAgents();
-    }
-  };
-
-  const handleRevokeAgent = async (agentId: string) => {
-    if (!window.confirm(t('agent.revokeConfirm'))) return;
-    setRevokingAgentId(agentId);
-    try {
-      const response = await fetch(`/api/agent/${agentId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${pb.authStore.token}` },
-      });
-      if (response.ok) {
-        setAllAgents(prev => prev.filter(a => a.id !== agentId));
-        showCompletionMessage(t('agent.tokenRevoked'));
-      } else {
-        const data = await response.json();
-        showCompletionMessage(data.error || t('common.error'));
-      }
-    } catch {
-      showCompletionMessage(t('common.error'));
-    } finally {
-      setRevokingAgentId(null);
-    }
-  };
-
   if (!currentUser) {
     return (
       <div className="app-shell-bg min-h-screen flex items-center justify-center">
@@ -594,6 +410,7 @@ export const Settings = () => {
 
   const displayName = userDisplayName(currentUser);
   const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
+  const docsUrl = import.meta.env.VITE_DOCS_URL || 'http://192.168.2.100:8090/docs/';
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
     { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
@@ -601,7 +418,7 @@ export const Settings = () => {
     { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: `${shops.length} ${t('settings.shops')}` },
     { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
     { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: t('settings.notifications'), sub: null },
-    { href: '/api/swagger', icon: Plug, color: '#0ea5e9', label: t('settings.integration'), sub: t('settings.apiDocumentation'), external: true },
+    { href: docsUrl, icon: BookOpen, color: '#0ea5e9', label: t('settings.documentation'), sub: t('settings.apiDocumentation'), external: true },
   ];
 
   return (

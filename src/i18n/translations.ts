@@ -209,6 +209,7 @@ interface TranslationStructure {
     demote: string;
     demoteToMember: string;
     disabled: string;
+    documentation: string;
     editProfile: string;
     enabled: string;
     expires: string;
@@ -619,6 +620,7 @@ export const translations: Record<Language, TranslationStructure> = {
       demote: 'Demote',
       demoteToMember: 'Demote to Member',
       disabled: 'Disabled',
+      documentation: 'Documentation',
       editProfile: 'Edit Profile',
       enabled: 'Enabled',
       expires: 'Expires',
@@ -1023,6 +1025,7 @@ export const translations: Record<Language, TranslationStructure> = {
       demote: 'Rétrograder',
       demoteToMember: 'Rétrograder en membre',
       disabled: 'Désactivé',
+      documentation: 'Documentation',
       editProfile: 'Modifier le profil',
       enabled: 'Activé',
       expires: 'Expire',
@@ -1429,6 +1432,7 @@ export const translations: Record<Language, TranslationStructure> = {
       demote: 'Degraderen',
       demoteToMember: 'Degraderen tot lid',
       disabled: 'Uitgeschakeld',
+      documentation: 'Documentatie',
       editProfile: 'Profiel bewerken',
       enabled: 'Ingeschakeld',
       expires: 'Verloopt',
@@ -1833,6 +1837,7 @@ export const translations: Record<Language, TranslationStructure> = {
       demote: 'Herabstufen',
       demoteToMember: 'Zum Mitglied herabstufen',
       disabled: 'Deaktiviert',
+      documentation: 'Dokumentation',
       editProfile: 'Profil bearbeiten',
       enabled: 'Aktiviert',
       expires: 'Läuft ab',
@@ -2179,7 +2184,7 @@ export const translations: Record<Language, TranslationStructure> = {
       createApiToken: 'Crear token API', created: 'Creado', currentPassword: 'Contraseña actual',
       currentPasswordIncorrect: 'La contraseña actual es incorrecta', days30: '30 días', days60: '60 días',
       days90: '90 días', deleteMember: 'Eliminar miembro', deleteMemberConfirm: '¿Eliminar este miembro?',
-      demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', editProfile: 'Editar perfil',
+      demote: 'Degradar', demoteToMember: 'Degradar a miembro', disabled: 'Desactivado', documentation: 'Documentación', editProfile: 'Editar perfil',
       enabled: 'Activado', expires: 'Caduca', filterConditions: 'Condiciones del filtro',
       filterViews: 'Vistas de filtro', friday: 'Viernes', integration: 'Integración', labels: 'Etiquetas',
       language: 'Idioma', logOut: 'Cerrar sesión', member: 'Miembro', monday: 'Lunes', name: 'Nombre',
