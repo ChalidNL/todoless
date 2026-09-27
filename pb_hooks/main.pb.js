@@ -147,6 +147,10 @@ routerAdd('GET', '/api/version', (c) => {
 // (GH#30) — loaded via require(__hooks + '/lib/auth.js') from route callbacks.
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
+// NOTE: authorization here is `role` (admin/owner) only, checked below.
+// This codebase has no email-verification flow, and the `verified` field on
+// the users collection is NOT used as an authorization gate anywhere -- do
+// not assume it is a security control when touching this handler or others.
 routerAdd('POST', '/api/invites/create', (c) => {
   try {
     var info = c.requestInfo();
