@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
 import { api, isInvalidOldPasswordError, normalizeLabel } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
@@ -297,6 +297,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [dataLoadState, setDataLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Shared-view bookkeeping. The auto-switch to shared view (users.length > 1)
+  // must be known synchronously when tasks/items are fetched, otherwise boot
+  // starts a second round-trip that races the initial load (GH#76).
+  const sharedViewRef = useRef(false);
+  // Scope of the tasks/items currently (or about to be) stored in state, so the
+  // shared-view effect can skip redundant refetches when data already matches.
+  const entriesScopeRef = useRef<'all' | 'shared' | null>(null);
+  // Monotonic fetch sequence: the last *initiated* refresh wins, so a slow
+  // response can never overwrite a newer, correctly-scoped one.
+  const entriesFetchSeqRef = useRef(0);
+
   // Entry model state
   const [entries, setEntries] = useState<Entry[]>([]);
 
@@ -308,9 +319,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const effectiveTasks = derivedTasks.length > 0 ? derivedTasks : tasks;
   const effectiveItems = derivedItems.length > 0 ? derivedItems : items;
 
+  const refreshNotes = async () => setNotes(await api.getNotes());
   const refreshItems = async () => setItems(await api.getItems());
   const refreshTasks = async () => setTasks(await api.getTasks());
-  const refreshNotes = async () => setNotes(await api.getNotes());
   const refreshLabels = async () => setLabels(await api.getLabels());
   const refreshShops = async () => setShops(await api.getShops());
   const refreshSprints = async () => setSprints(await api.getSprints());
@@ -321,12 +332,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const refreshProjects = async () => setProjects(await api.getProjects());
   const refreshReminders = async () => setReminders(await api.getReminders());
 
-  // Entry model refresh - combines tasks + items into unified list
-  const refreshEntries = async () => {
+  // Entry model refresh - combines tasks + items into unified list.
+  // Scope-aware: in shared view (family with multiple members) only non-private
+  // tasks/items are shown, otherwise the full family list. The scope is resolved
+  // from sharedViewRef synchronously so callers never depend on React state
+  // timing (GH#76). A monotonic sequence makes the last *initiated* fetch win,
+  // so a slow response can never overwrite a newer, correctly-scoped one.
+  const refreshEntries = async (scope?: 'all' | 'shared') => {
+    const effectiveScope = scope ?? (sharedViewRef.current ? 'shared' : 'all');
+    const seq = ++entriesFetchSeqRef.current;
+    entriesScopeRef.current = effectiveScope;
+    const fetchTasks = effectiveScope === 'shared' ? api.getSharedTasks : api.getTasks;
+    const fetchItems = effectiveScope === 'shared' ? api.getSharedItems : api.getItems;
     const [fetchedTasks, fetchedItems] = await Promise.all([
-      api.getTasks(),
-      api.getItems(),
+      fetchTasks(),
+      fetchItems(),
     ]);
+    if (seq !== entriesFetchSeqRef.current) return;
     setTasks(fetchedTasks);
     setItems(fetchedItems);
     setEntries(buildEntries(fetchedTasks, fetchedItems));
@@ -392,6 +414,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }));
   };
 
+  // Keep the shared-view ref and state in sync. The ref lets async fetches
+  // (refreshEntries) read the current scope without waiting for a re-render.
+  const updateSharedView = (shared: boolean) => {
+    sharedViewRef.current = shared;
+    setSharedView(shared);
+  };
+
   const refreshAll = async () => {
     setDataLoadState('loading');
     setLoadError(null);
@@ -410,6 +439,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setReminders([]);
       setEntries([]);
       setAppSettings(defaultSettings);
+      entriesScopeRef.current = null;
       setDataLoadState('ready');
       return;
     }
@@ -479,7 +509,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (users.length > 1 && !sharedView) {
-      setSharedView(true);
+      updateSharedView(true);
     }
   }, [users.length]);
 
@@ -513,16 +543,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!pb.authStore.isValid) return;
-    if (sharedView) {
-      void (async () => {
-        setEntries([]);
-        setTasks(await api.getSharedTasks());
-        setItems(await api.getSharedItems());
-      })();
-    } else {
-      void refreshEntries();
-    }
-  }, [sharedView]);
+    if (dataLoadState === 'loading') return; // initial load owns the fetch
+    const nextScope = sharedView ? 'shared' : 'all';
+    // Data already loaded with the requested scope (boot resolved the shared
+    // mode before its single fetch) — do not start a second round-trip.
+    if (entriesScopeRef.current === nextScope) return;
+    // Scope changed: re-fetch with the new filter. Never clear the current
+    // lists before the replacement is loaded (no empty flash, no stale race).
+    void refreshEntries(nextScope);
+  }, [sharedView, dataLoadState]);
 
   useEffect(() => {
     if (completionMessage) {
@@ -1122,7 +1151,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       addGoal,
       updateGoal: updateGoalFn,
       deleteGoal,
-      setSharedView,
+      setSharedView: updateSharedView,
       refreshRewards,
       refreshGoals,
       addProject,
