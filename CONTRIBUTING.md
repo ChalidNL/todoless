@@ -13,7 +13,7 @@ Thanks for your interest in contributing! todoless is family data software — p
 
 1. **Issues** — Bug reports and feature ideas are welcome. Search existing issues first.
 2. **Pull requests** — Fork, branch, make your change, open a PR against `dev`. Keep PRs focused — one thing, well done.
-3. **Discussions** — For questions, ideas, or help, open a [discussion](https://github.com/ChalidNL/todoless/discussions).
+3. **Help & questions** — For questions, ideas, or help, open an [issue](https://github.com/ChalidNL/todoless/issues) (GitHub Discussions is disabled for this repository).
 
 ## Development setup
 
