@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             family_id: record.family_id,
             active: record.member_status ? record.member_status === 'active' : true,
           });
-        } catch (error) {
+        } catch {
           // Token expired or invalid
           pb.authStore.clear();
         }
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuth();
 
     // Listen to auth store changes
-    const unsubscribe = pb.authStore.onChange((token, record) => {
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (record) {
         setUser({
           id: record.id,

@@ -4,14 +4,14 @@ export interface AppVersionInfo {
   buildId?: string;
 }
 
-export function normalizeCommit(commit?: string | null): string {
+function normalizeCommit(commit?: string | null): string {
   const normalized = String(commit ?? '').trim();
   if (!normalized) return '';
   if (normalized === 'local') return 'local';
   return normalized.slice(0, 7);
 }
 
-export function normalizeBuildId(buildId?: string | null): string {
+function normalizeBuildId(buildId?: string | null): string {
   return String(buildId ?? '').trim();
 }
 

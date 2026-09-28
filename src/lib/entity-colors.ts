@@ -43,32 +43,3 @@ function hashString(str: string): number {
 export function entityColor(id: string): string {
   return PALETTE[hashString(id) % PALETTE.length];
 }
-
-/**
- * Return a light background tint of the entity color.
- * Uses CSS 8-digit hex alpha notation (supported in Chrome 62+, Firefox 49+, Safari 10+).
- */
-export function entityBg(id: string): string {
-  return entityColor(id) + '15';
-}
-
-/**
- * Return a medium border tint of the entity color (~25% opacity).
- */
-export function entityBorder(id: string): string {
-  return entityColor(id) + '40';
-}
-
-/**
- * Extract initials from a name (1–2 chars).
- * - "John Doe" → "JD"
- * - "Alice" → "AL"
- * - "Jean-Claude Van Damme" → "JV"
- */
-export function entityInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-  return name.slice(0, 2).toUpperCase();
-}

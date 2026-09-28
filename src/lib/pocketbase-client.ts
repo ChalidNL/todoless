@@ -477,7 +477,7 @@ class PocketBaseClient {
         ids.push(child.id);
         await pb.collection('tasks').update(parentId, { subtask_ids: ids });
       }
-    } catch (err) {
+    } catch {
       // Parent update failed — subtask created but won't show up linked
       // This shouldn't happen with valid auth
     }
@@ -1347,29 +1347,6 @@ class PocketBaseClient {
       const data = await response.json();
       throw new Error(data.error || 'Failed to toggle token');
     }
-  }
-
-  // ─── Daily Briefing ─────────────────────────────────────────────────────
-  async getBriefing(): Promise<any> {
-    const response = await fetch('/api/briefing', {
-      headers: { Authorization: `Bearer ${pb.authStore.token}` },
-    });
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to fetch briefing');
-    }
-    return response.json();
-  }
-
-  async generateBriefing(): Promise<any> {
-    const response = await fetch('/api/briefing/generate', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${pb.authStore.token}` },
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to generate briefing');
-    return data;
   }
 }
 

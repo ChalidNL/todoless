@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, Target, Lock } from 'lucide-react';
-import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { AppHeader } from './shared/NewGlobalHeader';
 
 import { DueDateNotifications } from './shared/DueDateNotifications';
 import { t, formatDate } from '../i18n/translations';
 import { TaskCard } from './shared/TaskCard';
-import { SectionHeader } from './shared/SectionHeader';
 import { EmptyState } from './shared/EmptyState';
 
 type SortMode = 'alpha' | 'priority' | 'dueDate';
@@ -20,13 +19,8 @@ const isDueWithin24h = (dueDate?: number): boolean => {
   return diff > 0 && diff <= 24 * 60 * 60 * 1000;
 };
 
-const isOverdue = (dueDate?: number): boolean => {
-  if (!dueDate) return false;
-  return dueDate < Date.now();
-};
-
 export const TasksView = () => {
-  const { tasks, activeChipFilters, addTask, uncheckAllDoneTasks, deleteTasks, showCompletionMessage } = useApp();
+  const { tasks, activeChipFilters, addTask, deleteTasks, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
@@ -154,7 +148,7 @@ export const TasksView = () => {
   return (
     <>
       <div className="sticky top-0 z-40">
-        <NewGlobalHeader
+        <AppHeader
           screen="taken"
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}

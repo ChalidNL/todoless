@@ -1,11 +1,3 @@
-export interface Family {
-  id: string;
-  name: string;
-  created_by: string;
-  created: string;
-  updated: string;
-}
-
 export type LabelVisibility = 'private' | 'shared' | 'family';
 
 export interface Label {
@@ -27,17 +19,16 @@ export interface Shop {
 }
 
 export type Priority = 'low' | 'medium' | 'high';
-export type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
-export type TaskStatus = 'backlog' | 'todo' | 'done';
+type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
+type TaskStatus = 'backlog' | 'todo' | 'done';
 export type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
-export type SprintStatus = 'planned' | 'active' | 'completed';
+type SprintStatus = 'planned' | 'active' | 'completed';
 export type RepeatInterval = 'day' | 'week' | 'month' | 'year' | 'month_weekday';
-export type ReminderRepeatInterval = 'hour' | 'day' | 'week' | 'month' | 'year';
 
-export type UserRole = 'owner' | 'admin' | 'member' | 'agent';
-export type MemberType = 'human' | 'agent';
-export type MemberStatus = 'pending_approval' | 'active' | 'blocked';
-export type UserLanguage = 'nl' | 'fr' | 'en' | 'de' | 'es';
+type UserRole = 'owner' | 'admin' | 'member' | 'agent';
+type MemberType = 'human' | 'agent';
+type MemberStatus = 'pending_approval' | 'active' | 'blocked';
+type UserLanguage = 'nl' | 'fr' | 'en' | 'de' | 'es';
 
 export interface User {
   id: string;
@@ -77,8 +68,6 @@ export interface InviteCode {
   type?: 'human';
   token?: string;
 }
-
-export type ItemLinkedType = 'task' | 'item';
 
 export interface Item {
   id: string;
@@ -204,16 +193,6 @@ export interface CalendarEvent {
   createdBy?: string;
 }
 
-export interface Filter {
-  id: string;
-  name: string;
-  labelIds: string[];
-  chipFilters?: {type: string; id: string; label?: string; color?: string}[];
-  showCompleted: boolean;
-  type: 'task' | 'item' | 'both';
-  query?: string;
-}
-
 export interface AppSettings {
   hasCompletedOnboarding?: boolean;
   setupComplete?: boolean;
@@ -259,7 +238,7 @@ export interface Goal {
   createdBy: string;
 }
 
-export type ProjectStatus = 'active' | 'completed' | 'archived';
+type ProjectStatus = 'active' | 'completed' | 'archived';
 
 export interface Project {
   id: string;
@@ -273,7 +252,7 @@ export interface Project {
   createdBy?: string;
 }
 
-export type ReminderSource = 'task' | 'item' | 'manual';
+type ReminderSource = 'task' | 'item' | 'manual';
 
 export interface Reminder {
   id: string;
@@ -345,40 +324,4 @@ export interface Entry {
   shopId?: string;
   quantity?: number;
   category?: string;
-}
-
-export interface ApiToken {
-  id: string;
-  name: string;
-  permissions: string[];
-  expires_at?: string;
-  enabled: boolean;
-  user: string;
-  created: string;
-  token?: string; // Only present on creation response
-}
-
-export type AgentStatus = 'pending' | 'approved' | 'rejected';
-
-export interface Agent {
-  id: string;
-  name: string;
-  email: string;
-  status: AgentStatus;
-  token?: string; // Only present on approval response
-  created: string;
-  updated?: string;
-}
-
-export type NotificationInboxKind = 'custom' | 'reminder' | 'system';
-export type NotificationInboxChannel = 'inbox' | 'push' | 'email';
-
-export interface NotificationInboxItem {
-  id: string;
-  title: string;
-  kind: NotificationInboxKind;
-  channel: NotificationInboxChannel;
-  read: boolean;
-  archived: boolean;
-  createdAt: number;
 }

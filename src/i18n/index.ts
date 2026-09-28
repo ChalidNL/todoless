@@ -7,7 +7,7 @@ import de from '../locales/de.json';
 import es from '../locales/es.json';
 import { DEFAULT_UI_LANGUAGE, getStoredLanguage, setActiveLanguage, type Language } from './translations';
 
-export const resources = {
+const resources = {
   nl: { translation: nl },
   fr: { translation: fr },
   en: { translation: en },
@@ -40,5 +40,3 @@ export async function changeAppLanguage(lang: Language) {
     document.documentElement.lang = next;
   }
 }
-
-export default i18n;

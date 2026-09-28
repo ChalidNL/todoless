@@ -1,4 +1,3 @@
-import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { AppHeader } from './NewGlobalHeader';
@@ -131,5 +130,3 @@ export function SettingsDetailHeader({
     </section>
   );
 }
-
-export default SettingsDetailHeader;
