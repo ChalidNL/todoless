@@ -117,6 +117,26 @@ function paperlessHandler(c) {
     return rec;
   }
 
+  function userLanguage(userId) {
+    try {
+      var user = $app.findRecordById('users', userId);
+      var lang = String(user.get('language') || 'en').toLowerCase();
+      if (['nl', 'fr', 'en', 'de', 'es'].indexOf(lang) !== -1) return lang;
+    } catch (e) {}
+    return 'en';
+  }
+
+  function paperlessSubtaskTitles(lang) {
+    var titles = {
+      nl: ['Controleren', 'Verwerken / actie ondernemen', 'Archiveren'],
+      fr: ['Vérifier', 'Traiter / agir', 'Archiver'],
+      en: ['Review', 'Process / take action', 'Archive'],
+      de: ['Prüfen', 'Verarbeiten / Maßnahme ergreifen', 'Archivieren'],
+      es: ['Revisar', 'Procesar / tomar acción', 'Archivar']
+    };
+    return titles[lang] || titles.en;
+  }
+
   function processDocument(docId) {
     if (alreadyProcessed(docId)) return { skipped: true, document_id: docId, reason: 'Already processed' };
     var configs = $app.findRecordsByFilter('integrations', 'type = "paperless" && enabled = true', '', 1, 0);
@@ -154,7 +174,7 @@ function paperlessHandler(c) {
     var parent = createTask(config, config.todoTag.toLowerCase() === 'todoless' ? 'Document: ' + title : title, '');
     var subtaskIds = [];
     if (config.todoTag.toLowerCase() === 'todoless') {
-      var titles = ['Controleren', 'Verwerken / actie ondernemen', 'Archiveren'];
+      var titles = paperlessSubtaskTitles(userLanguage(config.userId));
       for (var si = 0; si < titles.length; si++) subtaskIds.push(createTask(config, titles[si], parent.id).id);
       parent.set('subtask_ids', subtaskIds);
       $app.save(parent);
