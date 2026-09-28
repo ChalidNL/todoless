@@ -515,8 +515,8 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
       return c.json(403, { error: 'Access denied — member belongs to another family' });
     }
 
-    // Find token — sort '' since api_tokens has no 'created' column
-    var tokens = $app.findRecordsByFilter('api_tokens', 'user = {:userId}', '', 1, 0, { userId: targetUserId });
+    // Find token — newest first (api_tokens.created is an autodate field, GH#19)
+    var tokens = $app.findRecordsByFilter('api_tokens', 'user = {:userId}', '-created', 1, 0, { userId: targetUserId });
     if (tokens.length === 0) {
       return c.json(200, { hasToken: false, userId: targetUserId });
     }

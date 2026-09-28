@@ -902,7 +902,7 @@ routerAdd('GET', '/api/agent/pending', (c) => {
         name: String(t.get('name') || 'Agent'),
         email: '',
         status: 'pending',
-        created: t.get('created') || new Date().toISOString(),
+        created: t.get('created') || '',
       });
     }
     return c.json(200, { agents: agents });
@@ -995,7 +995,7 @@ routerAdd('GET', '/api/agent/list', (c) => {
         name: String(t.get('name') || 'Agent'),
         email: '',
         status: isEnabled ? 'approved' : 'pending',
-        created: t.get('created') || new Date().toISOString(),
+        created: t.get('created') || '',
         updated: t.get('updated') || '',
       });
     }

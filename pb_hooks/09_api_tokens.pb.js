@@ -106,7 +106,7 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
       id: rec.id, name: name, token: rawToken,
       permissions: rawPerms, enabled: true, token_type: 'personal_api_token',
       expires_at: body.expires_at || null, user: auth.id,
-      created: new Date().toISOString(),
+      created: rec.get('created'),
       message: 'Save this token — it will not be shown again.',
     });
   } catch(e) { return respondError(c, e, 500); }
