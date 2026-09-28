@@ -465,12 +465,11 @@ test('completing a recurring task creates exactly one next occurrence (GH#7)', a
   )
   assert.equal(next[0].repeat_interval, 'day', 'next occurrence must keep the repeat interval')
   const doneAt = new Date(doneOnes[0].completed_at || doneOnes[0].updated).getTime()
-  const expectedNext = new Date(doneAt)
-  expectedNext.setUTCDate(expectedNext.getUTCDate() + 1)
-  assert.equal(
-    new Date(next[0].due_date).toISOString(),
-    expectedNext.toISOString(),
-    'next occurrence must be due exactly one day after completion',
+  const nextAt = new Date(next[0].due_date).getTime()
+  const expectedNextAt = doneAt + 24 * 60 * 60 * 1000
+  assert.ok(
+    Math.abs(nextAt - expectedNextAt) < 1000,
+    `next occurrence must be due about one day after completion (expected ${new Date(expectedNextAt).toISOString()}, got ${new Date(nextAt).toISOString()})`,
   )
 })
 

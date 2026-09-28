@@ -4,7 +4,7 @@
 //
 // History: the legacy pb_hooks/cron/recurring-tasks.js lived in a subdirectory
 // without a .pb.js suffix, so PocketBase never loaded it (and it used the
-// pre-0.23 $app.dao()/RecordUpsertAction API that does not exist anymore).
+// pre-0.23 DAO/upsert action APIs that do not exist anymore).
 // Instead of an hourly cron this hook reacts to the status transition into
 // 'done' on the record update event, which fires for every persist path
 // (native collection API, /api/v1, /api/tasks, agent routes), so recurrence
