@@ -122,7 +122,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       email: { type: "string", format: "email" },
       name: { type: "string" },
       avatar: { type: "string", nullable: true },
-      role: { type: "string", enum: ["admin", "user", "assistant", "child"] },
+      role: { type: "string", enum: ["owner", "admin", "member", "agent"] },
       family_id: { type: "string", nullable: true },
       active: { type: "boolean", default: true },
     };
@@ -819,7 +819,10 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     ],
     paths: {
       // ── System ──
-      "/todoless/hook-health": {
+      // NOTE: paths below are real, verified routerAdd() registrations from pb_hooks/*.pb.js
+      // (DEF-API-001 fix — the previous "/todoless/*" tree here never existed as a route and
+      // returned 404 for every documented path; PocketBase serves these at /api/<path>).
+      "/hook-health": {
         get: {
           tags: ["System"],
           summary: "Health check",
@@ -830,7 +833,18 @@ routerAdd('GET', '/api/openapi.json', (c) => {
           },
         },
       },
-      "/todoless/setup-status": {
+      "/version": {
+        get: {
+          tags: ["System"],
+          summary: "Deployment version info",
+          description: "Returns branch/commit/env metadata for comparing deployments. No auth required.",
+          operationId: "getVersion",
+          responses: {
+            "200": { description: "Version info", content: { "application/json": { schema: { type: "object", properties: { branch: st(), commit: st(), env: st(), pb: st(), note: st() } } } } },
+          },
+        },
+      },
+      "/setup-status": {
         get: {
           tags: ["System", "Auth"],
           summary: "Setup status",
@@ -844,7 +858,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
           },
         },
       },
-      "/todoless/openapi.json": {
+      "/openapi.json": {
         get: {
           tags: ["System"],
           summary: "OpenAPI spec",
@@ -853,7 +867,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
           responses: { "200": { description: "OpenAPI spec" } },
         },
       },
-      "/todoless/docs": {
+      "/docs": {
         get: {
           tags: ["System"],
           summary: "Swagger UI",
@@ -862,228 +876,212 @@ routerAdd('GET', '/api/openapi.json', (c) => {
           responses: { "200": { description: "Swagger UI HTML page" } },
         },
       },
+      "/swagger": {
+        get: {
+          tags: ["System"],
+          summary: "Swagger UI (alias)",
+          description: "Alias of /api/docs.",
+          operationId: "getSwaggerUiAlias",
+          responses: { "200": { description: "Swagger UI HTML page" } },
+        },
+      },
 
       // ── Auth & Registration ──
-      "/todoless/register": {
+      "/register": {
         post: registerSchema(),
       },
-      "/todoless/validate-invite": {
+      "/validate-invite": {
         get: validateInviteSchema(),
+      },
+      "/validate-create": {
+        post: {
+          tags: ["Auth"],
+          summary: "Validate create (canonical path smoke test)",
+          description: "Creates a task/grocery and immediately re-queries it to verify the canonical save+read path works for the caller's family.",
+          operationId: "validateCreate",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { type: { type: "string", enum: ["task", "grocery"] }, title: st(), quantity: si(), shop_id: sn(), labels: sa({ type: "string" }), assigned_to: sn(), due_date: sn(), priority: sn(), status: sn() }, required: ["title"] } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Created and validated" }, "400": { description: "title required" }, "401": { description: "Unauthorized" } },
+        },
+      },
+      "/invites/create": {
+        post: {
+          tags: ["Invites"],
+          summary: "Create invite code (admin, server-side)",
+          description: "Admin/owner only. Generates a random uppercase invite code with 7-day expiry for the caller's family, bypassing PB API rules.",
+          operationId: "createInviteAdmin",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { type: { type: "string", enum: ["human"], default: "human" } } } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Invite created" }, "400": { description: "Bad request" }, "403": { description: "Admin only" } },
+        },
       },
 
       // ── Unified API v2 ──
-      "/todoless/api": {
+      "/v1": {
         post: unifiedApiSchema(),
       },
 
-      // ── Entries ──
-      "/todoless/entries": {
+      // ── Entries (unified read) ──
+      "/entries": {
         get: listEntriesSchema(),
       },
 
-      // ── Tasks CRUD ──
-      "/todoless/tasks": {
-        get: listTasksSchema(),
-        post: createTaskSchema(),
+      // ── Tasks (custom actions — full CRUD is via /api/collections/tasks/records) ──
+      "/tasks": {
+        post: {
+          tags: ["Tasks"], summary: "Create task (with optional subtasks)", operationId: "createTaskFast",
+          description: "Fast create endpoint. Accepts Bearer API token or PB session auth.",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: taskBodyProps(), required: ["title"] } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Task created", content: { "application/json": { schema: { "$ref": "#/components/schemas/Task" } } } }, "400": { description: "title is required" }, "401": { description: "Unauthorized" }, "403": { description: "Missing permission: tasks:write" } },
+        },
       },
-      "/todoless/tasks/{id}": {
-        get: getTaskSchema(),
-        patch: updateTaskSchema(),
-        delete: deleteTaskSchema(),
+      "/tasks/{taskId}/subtasks": {
+        post: {
+          tags: ["Tasks"], summary: "Add subtask to a task", operationId: "createSubtask",
+          parameters: [{ name: "taskId", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { title: st() }, required: ["title"] } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Subtask created" }, "404": { description: "Parent task not found" } },
+        },
       },
-
-      // ── Task Actions ──
-      "/todoless/tasks/{id}/archive": { post: archiveTaskSchema() },
-      "/todoless/tasks/archive-done": { post: archiveDoneTasksSchema() },
-      "/todoless/tasks/{id}/convert-to-item": { post: convertTaskToItemSchema() },
-      "/todoless/tasks/uncheck-all-done": { post: uncheckAllTasksSchema() },
-      "/todoless/tasks/{id}/move": { post: moveTaskSchema() },
-
-      // ── Items CRUD ──
-      "/todoless/items": {
-        get: listItemsSchema(),
-        post: createItemSchema(),
+      "/tasks/{taskId}": {
+        patch: {
+          tags: ["Tasks"], summary: "Update task (fast path)", operationId: "updateTaskFast",
+          parameters: [{ name: "taskId", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: taskBodyProps() } } } },
+          security: authRequired(),
+          responses: { "200": { description: "Task updated" }, "404": { description: "Not found" } },
+        },
       },
-      "/todoless/items/{id}": {
-        get: getItemSchema(),
-        patch: updateItemSchema(),
-        delete: deleteItemSchema(),
-      },
-      "/todoless/items/{id}/convert-to-task": { post: convertItemToTaskSchema() },
-      "/todoless/items/uncheck-all-done": { post: uncheckAllItemsSchema() },
-
-      // ── Calendar ──
-      "/todoless/calendar": {
-        get: listCalendarEventsSchema(),
-        post: createCalendarEventSchema(),
-      },
-      "/todoless/calendar/{id}": {
-        get: getCalendarEventSchema(),
-        patch: updateCalendarEventSchema(),
-        delete: deleteCalendarEventSchema(),
+      "/subtasks/{subtaskId}": {
+        patch: {
+          tags: ["Tasks"], summary: "Update subtask", operationId: "updateSubtask",
+          parameters: [{ name: "subtaskId", in: "path", required: true, schema: { type: "string" } }],
+          security: authRequired(),
+          responses: { "200": { description: "Subtask updated" }, "404": { description: "Not found" } },
+        },
       },
 
-      // ── Families ──
-      "/todoless/families": {
-        get: listFamiliesSchema(),
-        post: createFamilySchema(),
+      // ── Groceries (custom actions — full CRUD is via /api/collections/items/records) ──
+      "/groceries": {
+        post: {
+          tags: ["Items"], summary: "Create grocery item (fast path)", operationId: "createGroceryFast",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { title: st(), quantity: si(), shop_id: sn() }, required: ["title"] } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Item created", content: { "application/json": { schema: { "$ref": "#/components/schemas/Item" } } } } },
+        },
       },
-      "/todoless/families/{id}": { get: getFamilySchema() },
-      "/todoless/families/join/{id}": { post: joinFamilySchema() },
-      "/todoless/families/leave": { post: leaveFamilySchema() },
-
-      // ── Goals ──
-      "/todoless/goals": {
-        get: listGoalsSchema(),
-        post: createGoalSchema(),
-      },
-      "/todoless/goals/{id}": {
-        get: getGoalSchema(),
-        patch: updateGoalSchema(),
-        delete: deleteGoalSchema(),
+      "/groceries/{itemId}": {
+        patch: {
+          tags: ["Items"], summary: "Update grocery item (fast path)", operationId: "updateGroceryFast",
+          parameters: [{ name: "itemId", in: "path", required: true, schema: { type: "string" } }],
+          security: authRequired(),
+          responses: { "200": { description: "Item updated" }, "404": { description: "Not found" } },
+        },
       },
 
-      // ── Invites ──
-      "/todoless/invites": {
-        get: listInvitesSchema(),
-        post: createInviteSchema(),
-      },
-      "/todoless/invites/{id}": {
-        get: getInviteSchema(),
-        delete: deleteInviteSchema(),
-      },
-      "/todoless/invites/create": { post: createInviteServerSideSchema() },
-      "/todoless/invites/generate": { post: generateInviteSchema() },
-      "/todoless/invites/{id}/use": { post: useInviteSchema() },
-
-      // ── Labels ──
-      "/todoless/labels": {
-        get: listLabelsSchema(),
-        post: createLabelSchema(),
-      },
-      "/todoless/labels/{id}": {
-        get: getLabelSchema(),
-        patch: updateLabelSchema(),
-        delete: deleteLabelSchema(),
+      // ── Members (per-user personal API token) ──
+      "/members/{userId}/token": {
+        get: { tags: ["Users"], summary: "Get member's personal API token metadata", operationId: "getMemberToken", parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Token metadata (no secret)" } } },
+        post: { tags: ["Users"], summary: "Issue a personal API token for a member", operationId: "createMemberToken", parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "201": { description: "Token created — raw value shown once" } } },
+        delete: { tags: ["Users"], summary: "Revoke a member's personal API token", operationId: "deleteMemberToken", parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Revoked" } } },
       },
 
-      // ── Notes ──
-      "/todoless/notes": {
-        get: listNotesSchema(),
-        post: createNoteSchema(),
+      // ── Agent onboarding (admin approves/rejects pending api_tokens) ──
+      "/agent/counts": { get: { tags: ["Agents"], summary: "Pending/approved agent token counts", operationId: "agentCounts", security: authRequired(), responses: { "200": { description: "Counts", content: { "application/json": { schema: { type: "object", properties: { pending: si(), approved: si() } } } } } } } },
+      "/agent/pending": { get: { tags: ["Agents"], summary: "List pending agent tokens", operationId: "agentPending", security: authRequired(), responses: { "200": { description: "Pending agents" } } } },
+      "/agent/approve": { post: { tags: ["Agents"], summary: "Approve a pending agent token", operationId: "agentApprove", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { id: st() }, required: ["id"] } } } }, security: authRequired(), responses: { "200": { description: "Approved" }, "403": { description: "Admin only" } } } },
+      "/agent/reject": { post: { tags: ["Agents"], summary: "Reject (delete) a pending agent token", operationId: "agentReject", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { id: st() }, required: ["id"] } } } }, security: authRequired(), responses: { "200": { description: "Rejected" } } } },
+      "/agent/list": { get: { tags: ["Agents"], summary: "List all agent tokens with status", operationId: "agentList", security: authRequired(), responses: { "200": { description: "Agents" } } } },
+      "/agent/{id}": { delete: { tags: ["Agents"], summary: "Revoke an agent token", operationId: "agentRevoke", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" } } } },
+
+      // ── Agent API keys & dispatch (scoped external-agent access) ──
+      "/agent/keys": {
+        post: { tags: ["Agents"], summary: "Create agent API key", operationId: "createAgentKey", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { name: st(), permissions: sa({ type: "string" }) }, required: ["name", "permissions"] } } } }, security: authRequired(), responses: { "201": { description: "Key created — raw value shown once" } } },
+        get: { tags: ["Agents"], summary: "List agent API keys", operationId: "listAgentKeys", security: authRequired(), responses: { "200": { description: "Keys" } } },
       },
-      "/todoless/notes/{id}": {
-        get: getNoteSchema(),
-        patch: updateNoteSchema(),
-        delete: deleteNoteSchema(),
+      "/agent/keys/{id}/revoke": { post: { tags: ["Agents"], summary: "Revoke an agent API key", operationId: "revokeAgentKey", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Revoked" } } } },
+      "/agent/dispatch": {
+        post: { tags: ["Agents"], summary: "Dispatch an agent-scoped action", operationId: "agentDispatchPost", description: "Agent-key-authenticated CRUD dispatcher, scoped by key permissions.", security: [], responses: { "200": { description: "Result" }, "401": { description: "Invalid/missing API key" }, "403": { description: "Missing scope" } } },
+        get: { tags: ["Agents"], summary: "Dispatch an agent-scoped read", operationId: "agentDispatchGet", security: [], responses: { "200": { description: "Result" }, "401": { description: "Invalid/missing API key" } } },
       },
+      "/agent/auth-test": { get: { tags: ["Agents"], summary: "Verify an agent API key", operationId: "agentAuthTest", security: [], responses: { "200": { description: "Key is valid" }, "401": { description: "Invalid API key" } } } },
+      "/agent/audit-log": { get: { tags: ["Agents"], summary: "List agent audit log entries", operationId: "agentAuditLog", security: authRequired(), responses: { "200": { description: "Audit entries" } } } },
+
+      // ── Agent tasks & reminders (API-key scoped, API-005) ──
+      "/agent/tasks": { get: { tags: ["Agents", "Tasks"], summary: "List tasks assigned to the agent's user", operationId: "agentListTasks", security: [], responses: { "200": { description: "Tasks" }, "401": { description: "Invalid API key" }, "403": { description: "Missing scope" } } } },
+      "/agent/tasks/{id}": { patch: { tags: ["Agents", "Tasks"], summary: "Update a task assigned to the agent's user", operationId: "agentUpdateTask", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: [], responses: { "200": { description: "Updated" }, "403": { description: "Not assigned / missing scope" }, "404": { description: "Not found" } } } },
+      "/agent/reminders": {
+        post: { tags: ["Agents", "Reminders"], summary: "Create a reminder as an agent", operationId: "agentCreateReminder", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { title: st(), reminder_time: st() }, required: ["title", "reminder_time"] } } } }, security: [], responses: { "201": { description: "Reminder created" } } },
+        get: { tags: ["Agents", "Reminders"], summary: "List the agent user's reminders", operationId: "agentListReminders", parameters: [{ name: "include_fired", in: "query", schema: { type: "string", enum: ["true", "false"] } }], security: [], responses: { "200": { description: "Reminders" } } },
+      },
+
+      // ── Personal API tokens (Settings > API Integration) ──
+      "/api-tokens": {
+        get: { tags: ["Agents"], summary: "List personal API tokens", operationId: "listApiTokens", security: authRequired(), responses: { "200": { description: "Tokens (hash truncated)" } } },
+        post: { tags: ["Agents"], summary: "Create a personal API token", operationId: "createApiToken", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { name: st(), permissions: sa({ type: "string" }), expires_at: sn() }, required: ["name", "permissions"] } } } }, security: authRequired(), responses: { "201": { description: "Token created — raw value shown once" } } },
+      },
+      "/api-tokens/{id}": { delete: { tags: ["Agents"], summary: "Delete a personal API token", operationId: "deleteApiToken", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" } } } },
+      "/api-tokens/{id}/toggle": { patch: { tags: ["Agents"], summary: "Enable/disable a personal API token", operationId: "toggleApiToken", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Toggled" } } } },
 
       // ── Paperless ──
-      "/integrations/paperless/webhook": { post: paperlessWebhookSchema() },
-      "/integrations/paperless/poll": { get: paperlessPollSchema() },
-      "/integrations/paperless/test": { get: paperlessTestSchema() },
-      "/integrations/paperless/config": { post: paperlessConfigSchema() },
-      "/integrations/paperless/sync": { post: paperlessSyncSchema() },
-
-      // ── Projects ──
-      "/todoless/projects": {
-        get: listProjectsSchema(),
-        post: createProjectSchema(),
-      },
-      "/todoless/projects/{id}": {
-        get: getProjectSchema(),
-        patch: updateProjectSchema(),
-        delete: deleteProjectSchema(),
+      "/integrations/paperless/{action}": {
+        get: { tags: ["Paperless"], summary: "Paperless GET actions (poll, test)", operationId: "paperlessGet", parameters: [{ name: "action", in: "path", required: true, schema: { type: "string", enum: ["poll", "test"] } }], security: authRequired(), responses: { "200": { description: "Result" }, "503": { description: "Not configured/disabled" } } },
+        post: { tags: ["Paperless"], summary: "Paperless POST actions (webhook, config, sync)", operationId: "paperlessPost", parameters: [{ name: "action", in: "path", required: true, schema: { type: "string", enum: ["webhook", "config", "sync"] } }], security: [], responses: { "200": { description: "Result" }, "201": { description: "Created" }, "401": { description: "Invalid webhook secret" }, "503": { description: "Not configured" } } },
       },
 
-      // ── Reminders ──
-      "/todoless/reminders": {
-        get: listRemindersSchema(),
-        post: createReminderSchema(),
-      },
-      "/todoless/reminders/{id}": {
-        patch: updateReminderSchema(),
-        delete: deleteReminderSchema(),
-      },
-
-      // ── Rewards ──
-      "/todoless/rewards": {
-        get: listRewardsSchema(),
-        post: createRewardSchema(),
-      },
-      "/todoless/rewards/{id}": {
-        get: getRewardSchema(),
-        delete: deleteRewardSchema(),
+      // ── Mail ──
+      "/integrations/mail/webhook": {
+        post: {
+          tags: ["System"], summary: "Email-to-task webhook", operationId: "mailWebhook",
+          description: "Creates a task from an inbound email. Requires Bearer MAIL_WEBHOOK_SECRET.",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { from: st(), subject: st(), body: sn(), family_id: sn() }, required: ["from", "subject"] } } } },
+          security: [],
+          responses: { "201": { description: "Task created" }, "400": { description: "Missing from/subject" }, "401": { description: "Unauthorized" }, "404": { description: "No user found for sender" }, "503": { description: "Webhook secret not configured" } },
+        },
       },
 
-      // ── Settings ──
-      "/todoless/settings": {
-        get: getSettingsSchema(),
-        patch: updateSettingsSchema(),
-      },
+      // ── Companion (Doneday mobile/desktop companion app) ──
+      "/companion/devices/register": { post: { tags: ["System"], summary: "Register a companion device for push/notification delivery", operationId: "registerCompanionDevice", security: authRequired(), responses: { "200": { description: "Registered" } } } },
+      "/companion/notifications/test": { post: { tags: ["System"], summary: "Send a test notification to the caller's companion devices", operationId: "testCompanionNotification", security: authRequired(), responses: { "200": { description: "Sent" } } } },
 
-      // ── Shared Views ──
-      "/todoless/shared/tasks": { get: sharedTasksSchema() },
-      "/todoless/shared/items": { get: sharedItemsSchema() },
-      "/todoless/shared/notes": { get: sharedNotesSchema() },
+      // ── ICS calendar import/export ──
+      "/ics-import": { post: { tags: ["Calendar"], summary: "Import parsed .ics VEVENTs as tasks", operationId: "icsImport", security: authRequired(), responses: { "200": { description: "Import result" }, "400": { description: "Bad request" } } } },
+      "/ics-export": { get: { tags: ["Calendar"], summary: "Export tasks with due dates as an .ics feed", operationId: "icsExport", security: authRequired(), responses: { "200": { description: ".ics file", content: { "text/calendar": { schema: { type: "string" } } } } } } },
 
-      // ── Shops ──
-      "/todoless/shops": {
-        get: listShopsSchema(),
-        post: createShopSchema(),
+      // ── PocketBase collection records (primary data CRUD surface) ──
+      // Tasks, groceries, labels, notes, projects, sprints, reminders, rewards, shops,
+      // goals, families, users, invite_codes, app_settings, external_references,
+      // agent_keys and api_tokens are all read/written through these generic PocketBase
+      // REST endpoints, secured by each collection's API rules (not the custom routes above).
+      "/collections/{collection}/records": {
+        get: {
+          tags: ["System"], summary: "List/search records in a collection", operationId: "listCollectionRecords",
+          description: "Generic PocketBase collection listing. Valid collection names: tasks, items, calendar_events, families, goals, labels, notes, projects, reminders, rewards, shops, sprints, users, invite_codes, app_settings, external_references, agent_keys, api_tokens.",
+          parameters: [
+            { name: "collection", in: "path", required: true, schema: { type: "string" }, example: "tasks" },
+            { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+            { name: "perPage", in: "query", schema: { type: "integer", default: 30 } },
+            { name: "sort", in: "query", schema: { type: "string" }, example: "-created" },
+            { name: "filter", in: "query", schema: { type: "string" }, example: "status='todo'" },
+            { name: "expand", in: "query", schema: { type: "string" } },
+          ],
+          security: authRequired(),
+          responses: { "200": { description: "Paginated list" }, "400": { description: "Invalid filter" }, "403": { description: "Forbidden by collection API rules" } },
+        },
+        post: {
+          tags: ["System"], summary: "Create a record in a collection", operationId: "createCollectionRecord",
+          parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" }, example: "tasks" }],
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+          security: authRequired(),
+          responses: { "201": { description: "Created" }, "400": { description: "Validation error" }, "403": { description: "Forbidden by collection API rules" } },
+        },
       },
-      "/todoless/shops/{id}": {
-        get: getShopSchema(),
-        patch: updateShopSchema(),
-        delete: deleteShopSchema(),
-      },
-
-      // ── Sprints ──
-      "/todoless/sprints": {
-        get: listSprintsSchema(),
-        post: createSprintSchema(),
-      },
-      "/todoless/sprints/{id}": {
-        get: getSprintSchema(),
-        patch: updateSprintSchema(),
-        delete: deleteSprintSchema(),
-      },
-      "/todoless/sprints/new": { post: newSprintSchema() },
-      "/todoless/sprints/{id}/archive-tasks": { post: archiveSprintTasksSchema() },
-
-      // ── Users ──
-      "/todoless/users": { get: listUsersSchema() },
-      "/todoless/users/{id}": {
-        get: getUserSchema(),
-        patch: updateUserSchema(),
-      },
-
-      // ── AI ──
-      "/todoless/ai/config": {
-        get: getAiConfigSchema(),
-        post: configureAiSchema(),
-      },
-      "/todoless/ai/categorize": { post: aiCategorizeSchema() },
-      "/todoless/ai/suggest": { post: aiSuggestSchema() },
-      "/todoless/ai/chat": { post: aiChatSchema() },
-
-      // ── External References ──
-      "/todoless/external-references": {
-        get: listExternalRefsSchema(),
-        post: createExternalRefSchema(),
-      },
-      "/todoless/external-references/{id}": {
-        get: getExternalRefSchema(),
-        patch: updateExternalRefSchema(),
-        delete: deleteExternalRefSchema(),
-      },
-
-      // ── Agent Token & Permissions ──
-      "/todoless/agent/token": {
-        post: createAgentTokenSchema(),
-      },
-      "/todoless/agent/permissions": {
-        get: listAgentPermissionsSchema(),
+      "/collections/{collection}/records/{id}": {
+        get: { tags: ["System"], summary: "Get a single record", operationId: "getCollectionRecord", parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" } }, { name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Record" }, "404": { description: "Not found" } } },
+        patch: { tags: ["System"], summary: "Update a record", operationId: "updateCollectionRecord", parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" } }, { name: "id", in: "path", required: true, schema: { type: "string" } }], requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } }, security: authRequired(), responses: { "200": { description: "Updated" }, "404": { description: "Not found" } } },
+        delete: { tags: ["System"], summary: "Delete a record", operationId: "deleteCollectionRecord", parameters: [{ name: "collection", in: "path", required: true, schema: { type: "string" } }, { name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" }, "404": { description: "Not found" } } },
       },
     },
     components: {

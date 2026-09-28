@@ -32,6 +32,25 @@ const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 const getOnboardingSeenValueForUser = (userId?: string | null) =>
   userId ? `user:${userId}` : 'anon';
 
+// Known top-level app routes (mirrors the <Routes> tree below). Used so the
+// first-run/onboarding check can recognize an unmapped path and defer to the
+// Router's own wildcard redirect instead of unconditionally showing onboarding.
+const KNOWN_APP_PATHS = [
+  '/',
+  '/tasks',
+  '/focus',
+  '/calendar',
+  '/groceries',
+  '/settings',
+  '/settings/profile',
+  '/settings/preferences',
+  '/settings/members',
+  '/settings/labels',
+  '/settings/shops',
+  '/settings/notifications',
+  '/register',
+];
+
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; error: Error | null }
@@ -98,6 +117,17 @@ function AppContent() {
           setAppScreen('register');
           return;
         }
+      }
+
+      // DEF-ROUTE-001 fix: an authenticated user hitting an unrecognized deep
+      // link (e.g. a stale/bad URL) must never be routed into onboarding —
+      // send them straight to 'app' so the Router's own wildcard route
+      // (`<Route path="*" element={<Navigate to="/" replace />} />`) handles it.
+      const currentPath = window.location.pathname.toLowerCase();
+      const isKnownPath = KNOWN_APP_PATHS.includes(currentPath);
+      if (!isKnownPath && pb.authStore.isValid && user) {
+        setAppScreen('app');
+        return;
       }
 
       const onboardingSeenValue = localStorage.getItem(ONBOARDING_SEEN_KEY);
