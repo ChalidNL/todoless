@@ -227,6 +227,7 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 > ⚠️ **Important:** If you use a reverse proxy, configure it to terminate TLS. The todoless container only serves HTTP — do not expose port 7070 directly to the internet without HTTPS in front of it.
 
 ### Security hardening
+- **Reporting vulnerabilities:** see [SECURITY.md](SECURITY.md) for supported versions and how to privately report a vulnerability.
 - The PocketBase backend is not published to the host - only accessible internally via the nginx proxy. The admin dashboard at `/_/` is allow-listed to private networks only (see below).
 - Frontend container runs as an unprivileged Nginx user (uid 101) in a **read-only** filesystem with all capabilities dropped (`cap_drop: ALL`).
 - PocketBase container runs as a fixed non-root user (uid 1000) with all capabilities dropped (`cap_drop: ALL`, no `cap_add`).

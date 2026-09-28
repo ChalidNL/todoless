@@ -53,10 +53,11 @@ coverage/
 /docs/mvp-*
 compose-local.yml
 
-# Markdown docs: keep only the root README + CONTRIBUTING visible
+# Markdown docs: keep only the root README + CONTRIBUTING + SECURITY visible
 *.md
 !/README.md
 !/CONTRIBUTING.md
+!/SECURITY.md
 
 # Keep the public repo minimal
 /e2e/
