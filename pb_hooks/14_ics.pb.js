@@ -31,18 +31,25 @@ var _icsDt = function(ts) {
   }catch(e){return'';}
 };
 
-// Escape ICS text (fold long lines at 75 chars per RFC 5545)
-var _icsEscape = function(t) {
-  if(!t)return'';
-  t=String(t).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
-  // Fold lines longer than 75 chars
-  if(t.length<=75)return t;
+// Escape ICS text and fold the full "NAME:value" line at 75 octets per RFC 5545.
+// Folding must count the property name (RFC 5545 s3.1), so long SUMMARY/DESCRIPTION
+// lines stay within the limit; continuation lines carry 74 octets + leading space.
+var _icsLine = function(name,value) {
+  if(value===undefined||value===null)value='';
+  var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  var line=name+':'+text;
+  if(line.length<=75)return line;
   var out='';
-  while(t.length>75){
-    out+=t.substring(0,75)+'\r\n ';
-    t=t.substring(75);
+  var pos=0;
+  var take=75;
+  while(pos<line.length){
+    out+=line.substring(pos,pos+take);
+    pos+=take;
+    if(pos<line.length){
+      out+='\r\n ';
+      take=74;
+    }
   }
-  out+=t;
   return out;
 };
 
@@ -205,7 +212,7 @@ routerAdd('POST','/api/ics-import',function(c){
 // ─── GET /api/ics-export — Export tasks as .ics ─────────────────────
 routerAdd('GET','/api/ics-export',function(c){
   function icsDt(ts){if(!ts)return'';try{var d=new Date(ts);if(isNaN(d.getTime()))return'';return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0')+'T'+String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+String(d.getUTCSeconds()).padStart(2,'0')+'Z';}catch(e){return'';}}
-  function icsEscape(value){if(!value)return'';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');if(text.length<=75)return text;var out='';while(text.length>75){out+=text.substring(0,75)+'\r\n ';text=text.substring(75);}return out+text;}
+  function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');var line=name+':'+text;if(line.length<=75)return line;var out='';var pos=0;var take=75;while(pos<line.length){out+=line.substring(pos,pos+take);pos+=take;if(pos<line.length){out+='\r\n ';take=74;}}return out;}
   function genUid(taskId,familyId){return'todoless-'+String(taskId)+'@family-'+String(familyId);}
   function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
   try{
@@ -259,9 +266,10 @@ routerAdd('GET','/api/ics-export',function(c){
       var dtEnd='';
 
       if(allDay){
-        // All-day: DATE format (no time)
+        // All-day: DATE format (no time). RFC 5545: DTEND;VALUE=DATE is EXCLUSIVE,
+        // so a single-day event must end on the NEXT day.
         var sd=t.get('start_time')||t.get('due_date');
-        var ed=t.get('end_time')||sd;
+        var ed=t.get('end_time');
         if(sd){
           try{
             var d=new Date(String(sd).replace(' ','T'));
@@ -270,21 +278,26 @@ routerAdd('GET','/api/ics-export',function(c){
               var M=String(d.getMonth()+1).padStart(2,'0');
               var day=String(d.getDate()).padStart(2,'0');
               dtStart=y+M+day;
-              // For end date: all-day in iCal ends on the NEXT day
-              if(ed&&ed!==sd){
+              // Use the stored end date only when it is a real LATER day (imports store
+              // the exclusive DTEND, so it is already the day after the last event day).
+              if(ed){
                 try{
                   var d2=new Date(String(ed).replace(' ','T'));
                   if(!isNaN(d2.getTime())){
                     var y2=d2.getFullYear();
                     var M2=String(d2.getMonth()+1).padStart(2,'0');
                     var day2=String(d2.getDate()).padStart(2,'0');
-                    dtEnd=y2+M2+day2;
+                    var startKey=y+'-'+M+'-'+day;
+                    var endKey=y2+'-'+M2+'-'+day2;
+                    if(endKey>startKey)dtEnd=y2+M2+day2;
                   }
                 }catch(ex){}
               }
               if(!dtEnd){
-                // Default: same day
-                dtEnd=y+M+day;
+                // No explicit end (or end == start day): exclusive DTEND = start + 1 day
+                var dNext=new Date(d);
+                dNext.setDate(dNext.getDate()+1);
+                dtEnd=dNext.getFullYear()+String(dNext.getMonth()+1).padStart(2,'0')+String(dNext.getDate()).padStart(2,'0');
               }
             }
           }catch(ex2){}
@@ -314,7 +327,7 @@ routerAdd('GET','/api/ics-export',function(c){
       if(!dtStart)continue; // Skip tasks without valid dates
 
       ics+='BEGIN:VEVENT\r\n';
-      ics+='UID:'+icsEscape(uid)+'\r\n';
+      ics+=icsLine('UID',uid)+'\r\n';
       ics+='DTSTAMP:'+icsDt(Date.now())+'\r\n';
       if(allDay){
         ics+='DTSTART;VALUE=DATE:'+dtStart+'\r\n';
@@ -323,9 +336,9 @@ routerAdd('GET','/api/ics-export',function(c){
         ics+='DTSTART:'+dtStart+'\r\n';
         ics+='DTEND:'+dtEnd+'\r\n';
       }
-      ics+='SUMMARY:'+icsEscape(title)+'\r\n';
-      if(desc)ics+='DESCRIPTION:'+icsEscape(desc)+'\r\n';
-      if(loc)ics+='LOCATION:'+icsEscape(loc)+'\r\n';
+      ics+=icsLine('SUMMARY',title)+'\r\n';
+      if(desc)ics+=icsLine('DESCRIPTION',desc)+'\r\n';
+      if(loc)ics+=icsLine('LOCATION',loc)+'\r\n';
       if(rrule)ics+='RRULE:'+rrule+'\r\n';
       ics+='END:VEVENT\r\n';
     }
