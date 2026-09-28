@@ -35,6 +35,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const [titleDraft, setTitleDraft] = useState('');
   const [shopInput, setShopInput] = useState('');
   const [subtaskTitle, setSubtaskTitle] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Edit mode inactivity timeout (60s)
   const lastInteractionRef = useRef(Date.now());
@@ -96,7 +97,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   };
 
   const setQuantity = (next: number) => {
-    if (item) updateItem(item.id, { quantity: Math.max(0, next) });
+    if (item) updateItem(item.id, { quantity: Math.max(1, next) });
   };
 
   const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
@@ -197,7 +198,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
               <button
                 type="button"
                 onClick={(event) => { event.stopPropagation(); setQuantity(quantity - 1); }}
-                className="grid h-9 min-h-9 w-9 place-items-center rounded-full bg-white text-base font-black text-[var(--app-primary)] shadow-sm active:scale-[0.97]"
+                disabled={quantity <= 1}
+                className={`grid h-9 min-h-9 w-9 place-items-center rounded-full bg-white text-base font-black text-[var(--app-primary)] shadow-sm active:scale-[0.97] ${quantity <= 1 ? 'opacity-40 cursor-not-allowed' : ''}`}
                 aria-label={t('items.decreaseQuantity')}
               >
                 −
@@ -528,7 +530,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <ArrowLeftRight className="w-4 h-4" strokeWidth={1.75} />
               </button>
               <button
-                onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 className="p-1.5 rounded text-red-600 hover:bg-red-50"
                 title={t('common.delete')}
                 aria-label={t('common.delete')}
@@ -728,6 +730,29 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-medium text-neutral-900 mb-4">{t('items.confirmDelete')}</p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
+              >
+                {t('common.no')}
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+              >
+                {t('common.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
