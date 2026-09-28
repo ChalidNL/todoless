@@ -149,10 +149,21 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -321,10 +332,21 @@ routerAdd('GET', '/api/agent/keys', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -476,10 +498,21 @@ routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -625,10 +658,21 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -1120,10 +1164,21 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -1312,10 +1367,21 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
@@ -1447,10 +1513,21 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     for (var i = 0; i < candidates.length; i++) {
       var storedHash = candidates[i].get('key_hash');
       if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at
+        // Update last_used_at — throttled to at most one write per 60s (GH#29).
+        // Polling integrations (Home Assistant, dashboards) no longer cause a
+        // SQLite write on every request; the first request after the interval
+        // still records the timestamp.
         try {
-          candidates[i].set('last_used_at', new Date().toISOString());
-          $app.save(candidates[i]);
+          var lastUsedRaw = candidates[i].get('last_used_at');
+          var lastUsedMs = 0;
+          if (lastUsedRaw) {
+            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
+            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
+          }
+          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
+            candidates[i].set('last_used_at', new Date().toISOString());
+            $app.save(candidates[i]);
+          }
         } catch (_eu) {}
         return candidates[i];
       }
