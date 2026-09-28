@@ -143,7 +143,7 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
 
-> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth.
+> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z069` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth.
 
 > `POCKETBASE_ADMIN_*` are **runtime** variables read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)). `VITE_*` (e.g. `VITE_POCKETBASE_URL`) remain build-time only — not needed when using the pre-built GHCR images. `docker-compose.yml` passes `MAIL_WEBHOOK_SECRET`, `PAPERLESS_WEBHOOK_SECRET`, the `POCKETBASE_ADMIN_*` pair and the GH#51 bootstrap vars through to the pocketbase container via `${VAR:-}` — set them in your `.env` (copy `.env.example`).
 
