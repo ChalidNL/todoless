@@ -85,37 +85,48 @@ test('migration makes canonical label relation multi-select and backfills every 
   assert.deepEqual(Array.from(task.label), ['label-a', 'label-b'])
 })
 
-test('custom task routes enforce private and label visibility instead of bypassing collection rules', () => {
-  const source = read('pb_hooks/routes/tasks.js')
+test('live task visibility enforcement keeps private tasks and hidden labels away from non-owners', () => {
+  const authLib = read('pb_hooks/lib/auth.js')
+  const bootstrap = read('pb_hooks/16_bootstrap.pb.js')
 
-  assert.match(source, /is_private = false/)
-  assert.match(source, /label\.visibility:each = "family"/)
-  assert.match(source, /if \(!canViewTask\(record\)\)/)
+  // canAccessTaskForUser (lib/auth.js, GH#30) is the single live gate that
+  // enforces is_private and per-label visibility. It replaces the dead
+  // routes/tasks.js rules removed in GH#31.
+  assert.match(authLib, /function canAccessTaskForUser\(/)
+  assert.match(authLib, /record\.get\('is_private'\) === true/)
+  assert.match(authLib, /visibility === 'private' && labelOwner !== userId/)
+  assert.match(authLib, /visibility === 'shared'/)
+  // The bootstrap route re-applies the same gate over family-scoped fetches.
+  assert.match(bootstrap, /canAccessTaskForUser\(r, auth\)/)
 })
 
-test('custom task routes write every legacy label into the canonical relation on create and update', () => {
-  const source = read('pb_hooks/routes/tasks.js')
+test('record hooks write every label into the canonical relation on create and update', () => {
+  const main = read('pb_hooks/main.pb.js')
+  const authLib = read('pb_hooks/lib/auth.js')
 
-  assert.match(source, /set\('label', canonicalLabels\)/)
-  assert.match(source, /body\.has\('labels'\) \|\| body\.has\('label'\)/)
-  assert.doesNotMatch(source, /labels\s*\[0\]/)
-})
-
-test('recurring task generation copies the complete canonical label relation', () => {
-  const source = read('pb_hooks/cron/recurring-tasks.js')
-
-  assert.match(source, /task\.get\('label'\)/)
-  assert.match(source, /set\('label', canonicalLabels\)/)
-  assert.doesNotMatch(source, /labels\s*\[0\]/)
+  // Live canonical label write on create (main.pb.js onRecordCreate) and
+  // update (onRecordUpdate), replacing the dead routes/tasks.js dual-write.
+  assert.match(main, /rec\.set\('labels', createLabels\)/)
+  assert.match(main, /rec\.set\('label', createLabels\)/)
+  assert.match(main, /e\.record\.set\('labels', updateLabels\)/)
+  assert.match(main, /e\.record\.set\('label', updateLabels\)/)
+  // No first-label-only truncation in any live canonical write.
+  assert.doesNotMatch(main, /labels\s*\[0\]/)
+  assert.doesNotMatch(authLib, /labels\s*\[0\]/)
+  assert.match(authLib, /function setCanonicalTaskLabels\(/)
+  assert.match(authLib, /record\.set\('label', ids\)/)
 })
 
 test('task list route binds filter inputs and allow-lists sort fields', () => {
-  const source = read('pb_hooks/routes/tasks.js')
+  // Live equivalent of the dead routes/tasks.js list route (removed in GH#31):
+  // the agent task list in 03_agent_tasks.pb.js binds status via {:status} and
+  // falls back to '-created' unless the sort is allow-listed.
+  const source = read('pb_hooks/03_agent_tasks.pb.js')
 
   assert.match(source, /status = \{:status\}/)
-  assert.match(source, /findRecordsByFilter\('tasks', filter, sort, 0, 0, filterParams\)/)
+  assert.match(source, /findRecordsByFilter\('tasks',\s*filter,\s*sort,\s*100,\s*0,\s*params\)/)
   assert.match(source, /allowedSorts\.indexOf\(requestedSort\)/)
-  assert.doesNotMatch(source, /status = \\"' \+ status/)
+  assert.doesNotMatch(source, /status = "' \+ status/)
 })
 
 test('already-deployed databases receive a separate paginated fail-closed privacy upgrade', () => {

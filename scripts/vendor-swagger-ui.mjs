@@ -24,7 +24,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC_DIR = join(ROOT, 'node_modules', 'swagger-ui-dist')
 const DEST_DIR = join(ROOT, 'public', 'docs', 'swagger-ui')
 
-// Files required by pb_hooks/11_docs.pb.js (and legacy pb_hooks/routes/docs.js).
+// Files required by pb_hooks/11_docs.pb.js.
 // LICENSE.txt files shipped by the package are included for compliance.
 const FILES = [
   'swagger-ui.css',

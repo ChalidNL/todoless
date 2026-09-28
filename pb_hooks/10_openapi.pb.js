@@ -996,6 +996,22 @@ routerAdd('GET', '/api/openapi.json', (c) => {
           responses: { "200": { description: "Subtask updated" }, "404": { description: "Not found" } },
         },
       },
+      "/v1/tasks/batch-delete": {
+        post: {
+          tags: ["Tasks"], summary: "Batch delete tasks", operationId: "batchDeleteTasks",
+          description: "Deletes multiple tasks in a single call (frontend 'Delete completed', GH#87). Ported from legacy pb_hooks/routes/tasks.js into the loaded 12_api_routes.pb.js in GH#31. Verifies every id exists and is owned by the caller before mutating anything; detaches deleted subtasks from surviving parents. Accepts Bearer API token with tasks:write or PB session auth.",
+          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { ids: { type: "array", items: st(), example: ["abc123", "def456"] } }, required: ["ids"] } } } },
+          security: authRequired(),
+          responses: {
+            "200": { description: "Batch deleted", content: { "application/json": { schema: { type: "object", properties: { deleted: si(), ids: { type: "array", items: st() } } } } } },
+            "400": { description: "ids must be a non-empty array" },
+            "401": { description: "Unauthorized" },
+            "403": { description: "Forbidden (task not owned) or missing permission: tasks:write" },
+            "404": { description: "Task not found" },
+            "413": { description: "Payload too large: max 500 tasks per batch" },
+          },
+        },
+      },
 
       // ── Groceries (custom actions — full CRUD is via /api/collections/items/records) ──
       "/groceries": {

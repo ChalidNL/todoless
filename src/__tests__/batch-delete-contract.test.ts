@@ -14,7 +14,7 @@ describe('GH#87 — batch delete of completed tasks', () => {
   describe('source contract', () => {
     const tasksView = repoFile('src/components/TasksView.tsx');
     const client = repoFile('src/lib/pocketbase-client.ts');
-    const hook = repoFile('pb_hooks/routes/tasks.js');
+    const hook = repoFile('pb_hooks/12_api_routes.pb.js');
 
     it('does not issue one DELETE per completed task anymore', () => {
       expect(tasksView).not.toMatch(/doneIds\.forEach\(id => deleteTask\(id\)\)/);
@@ -29,8 +29,19 @@ describe('GH#87 — batch delete of completed tasks', () => {
 
     it('registers the batch-delete hook route with ownership checks', () => {
       expect(hook).toContain("'/api/v1/tasks/batch-delete'");
-      expect(hook).toContain("record.get('user') !== authRecord.id");
-      expect(hook).toContain('dao.deleteRecord(records[i])');
+      // ported from the legacy routes/tasks.js into 12_api_routes.pb.js (GH#31);
+      // ownership is checked against the resolved userId like sibling routes.
+      expect(hook).toContain("record.get('user') !== userId");
+      expect(hook).toContain("return c.json(403, { 'error': 'Forbidden', 'id': ids[i] })");
+      expect(hook).toContain('Payload too large: max 500 tasks per batch');
+      expect(hook).toMatch(/\$app\.delete\(records\[\w+\]\)/);
+    });
+
+    it('documents the route in the served OpenAPI spec (GH#65 parity gate)', () => {
+      const openapi = repoFile('pb_hooks/10_openapi.pb.js');
+      expect(openapi).toContain('"/v1/tasks/batch-delete"');
+      expect(openapi).toContain('summary: "Batch delete tasks"');
+      expect(openapi).toContain('"413": { description: "Payload too large: max 500 tasks per batch" }');
     });
   });
 

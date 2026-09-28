@@ -1,4 +1,4 @@
-// pb_hooks/routes/agents.js
+// Derived from legacy pb_hooks/routes/agents.js (removed in GH#31).
 // Agent API Access: API key management, agent-authenticated CRUD, audit logging
 // API-002
 

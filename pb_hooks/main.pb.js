@@ -162,13 +162,11 @@ routerAdd('GET', '/api/version', (c) => {
   });
 });
 
-// ─── Routes loaded from pb_hooks/routes/ ──
-// Note: routes/openapi.js registers GET /api/openapi.json (inline spec)
-// Note: routes/docs.js registers GET /api/docs + /api/swagger (Swagger UI HTML)
-// Note: routes/api-tokens.js registers CRUD for API tokens
-// Note: shared Bearer token / API-key helpers live in pb_hooks/lib/auth.js
+// ─── Route helpers ──
+// Legacy pb_hooks/routes/* and pb_hooks/cron/* were removed in GH#31 —
+// PocketBase only loads root-level *.pb.js hooks, so those files were dead
+// code. Shared Bearer token / API-key helpers live in pb_hooks/lib/auth.js
 // (GH#30) — loaded via require(__hooks + '/lib/auth.js') from route callbacks.
-// pb_hooks/routes/* is legacy reference code; PB only auto-loads root *.pb.js files.
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
 routerAdd('POST', '/api/invites/create', (c) => {

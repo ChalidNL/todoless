@@ -437,8 +437,7 @@ test('recurring task can be created and completed (api/v1 complete)', async () =
   const after = await api('GET', `/api/collections/tasks/records/${rec.data?.id}`, { token: adminToken })
   assert.equal(after.data?.status, 'done')
   assert.equal(after.data?.repeat_interval, 'day', 'repeat_interval must survive completion')
-  // NOTE: generating the NEXT occurrence is the hourly cron's job — see GH#7
-  // (t_gh3654983b): pb_hooks/cron/recurring-tasks.js is in a subdir, never loaded.
+  // NOTE: generating the NEXT occurrence is an (unimplemented) hourly-cron job — see GH#7.
 })
 
 // --- 7b. /api/v1 update action -----------------------------------------
