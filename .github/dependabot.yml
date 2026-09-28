@@ -1,0 +1,52 @@
+# Dependabot configuration — automated dependency updates (GH#47)
+#
+# Scope:
+#   - docker      : digest-pinned base images in Dockerfile.frontend / Dockerfile.pocketbase.
+#                   Dependabot bumps the `@sha256:...` digests when the tag moves.
+#   - npm         : frontend dependencies (package.json / package-lock.json).
+#   - github-actions : third-party actions in .github/workflows.
+#
+# docker-compose.yml intentionally stays on mutable tags (:latest / :beta) so user
+# installs receive updates; versioned tags are tracked separately (GH#47 follow-up).
+
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    groups:
+      docker-base-images:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 10
+    groups:
+      production-dependencies:
+        dependency-type: production
+      development-dependencies:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /.github
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

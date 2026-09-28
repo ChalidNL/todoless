@@ -1,4 +1,5 @@
-FROM ghcr.io/muchobien/pocketbase:0.35.1
+# Digest pinned for supply-chain integrity; Dependabot (docker ecosystem) bumps it weekly.
+FROM ghcr.io/muchobien/pocketbase:0.35.1@sha256:05d2aa0a38dfc7b50c8f2a2993967b58fb64b696434c19efa6a83562c3eafafe
 
 # Install curl for healthcheck (wget not available in this image)
 RUN apk add --no-cache curl
