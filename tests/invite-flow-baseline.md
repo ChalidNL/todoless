@@ -23,7 +23,7 @@ These tests are mandatory release evidence for every `red -> beta` promotion. Ru
 
 ## Evidence required
 
-- Exact deployed commit from `/version.json` and healthy `/api/health`.
+- Exact deployed commit from `/version.json` and healthy `/api/hook-health`.
 - Request status and UI outcome for each test ID.
 - User and family counts before and after the flow.
 - Confirmation that the accepted member is visible and belongs to the same family ID as the admin.
