@@ -297,6 +297,15 @@ routerAdd('POST', '/api/register', (c) => {
     if (!shouldBootstrap && !setupDone && !String(d.invite_code || '').trim()) {
       throw new BadRequestError('Registration requires a valid invite code once the first account exists.', {});
     }
+    // GH#15 — the very first account bootstraps a brand-new family and must be
+    // its admin. Agents can never hold admin/owner (see set_role's
+    // "Agents cannot be assigned admin or owner roles" guard below), so
+    // bootstrapping with user_type agent/family_assistant would strand the
+    // family with no admin and no UI path to create one. Require a human
+    // first; agents join afterwards via invite.
+    if (shouldBootstrap && memberType === 'agent') {
+      return c.json(400, { error: 'The first account must be a human user so the family has an admin. Register as a human first, then add agent accounts via invite.' });
+    }
     if (shouldBootstrap) {
       // ── First user / setup flow ──
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });

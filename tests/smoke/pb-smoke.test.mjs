@@ -93,6 +93,31 @@ test('setup-status reports a fresh instance', async () => {
   assert.equal(r.data?.setup_complete, false)
 })
 
+// --- 1b. GH#15 — bootstrapping with user_type agent must be rejected ---
+// so a fresh install can never end up with an admin-less family. Runs
+// before the real bootstrap below, while the DB still has zero users.
+test('bootstrap rejects user_type agent (GH#15)', async () => {
+  const r = await api('POST', '/api/register', {
+    body: {
+      email: 'agent-bootstrap@smoke.test', password: 'password123', passwordConfirm: 'password123',
+      name: 'Agent Bootstrap', family_name: 'Smoke Family', user_type: 'agent', language: 'en',
+    },
+  })
+  assert.equal(r.status, 400)
+  assert.ok(r.data?.error, 'expected an error message')
+
+  const r2 = await api('POST', '/api/register', {
+    body: {
+      email: 'assistant-bootstrap@smoke.test', password: 'password123', passwordConfirm: 'password123',
+      name: 'Assistant Bootstrap', family_name: 'Smoke Family', user_type: 'family_assistant', language: 'en',
+    },
+  })
+  assert.equal(r2.status, 400, 'legacy family_assistant alias must be rejected too')
+
+  const status = await api('GET', '/api/setup-status')
+  assert.equal(status.data?.has_users, false, 'rejected bootstrap attempts must not create a user')
+})
+
 // --- 2. First admin onboarding ---------------------------------------
 let admin = null
 let adminToken = null
