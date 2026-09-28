@@ -18,7 +18,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 );
 import { LabelBadge } from './LabelBadge';
 import { AttributeChip } from './AttributeChip';
-import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
+import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
 import { entityColor, entityBg } from '../../lib/entity-colors';
 
 interface UnifiedCardProps {
@@ -325,9 +325,9 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
             {isTask && entity.priority && PRIORITY_COLORS[entity.priority as Priority] && (
               <AttributeChip
                 icon={<AlertTriangle className="w-3.5 h-3.5" />}
-                label={PRIORITY_LABELS[entity.priority as Priority] || entity.priority}
+                label={t(PRIORITY_LABEL_KEYS[entity.priority as Priority])}
                 color={PRIORITY_COLORS[entity.priority as Priority] || '#6b7280'}
-                onClick={showMenu ? () => setValue({ priority: null }) : () => toggleChipFilter('priority', entity.priority!, PRIORITY_LABELS[entity.priority as Priority] || entity.priority, PRIORITY_COLORS[entity.priority as Priority] || '#6b7280')}
+                onClick={showMenu ? () => setValue({ priority: null }) : () => toggleChipFilter('priority', entity.priority!, t(PRIORITY_LABEL_KEYS[entity.priority as Priority]), PRIORITY_COLORS[entity.priority as Priority] || '#6b7280')}
               />
             )}
           </div>
@@ -533,8 +533,8 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={() => { moveTaskToStatus(entity.id, 'backlog'); showCompletionMessage(t('tasks.movedToBacklog')); }}
                   className="p-1.5 rounded transition-colors hover:bg-blue-50 text-blue-500"
-                  title={t('tasks.moveToBacklog') || 'Move to Backlog'}
-                  aria-label={t('tasks.moveToBacklog') || 'Move to Backlog'}
+                  title={t('tasks.moveToBacklog')}
+                  aria-label={t('tasks.moveToBacklog')}
                 >
                   <Inbox className="w-4 h-4" strokeWidth={1.75} />
                 </button>
@@ -739,7 +739,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       }`}
                       style={entity.priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
                     >
-                      {PRIORITY_LABELS[p]}
+                      {t(PRIORITY_LABEL_KEYS[p])}
                     </button>
                   ))}
                 </div>

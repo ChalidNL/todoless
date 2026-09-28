@@ -98,6 +98,7 @@ interface TranslationStructure {
     tasks: string;
     typeHere: string;
     unknown: string;
+    untitled: string;
     warning: string;
     yes: string;
     back: string;
@@ -486,6 +487,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tasks: 'Tasks',
       typeHere: 'Type here...',
       unknown: 'Unknown',
+      untitled: 'Untitled',
       warning: 'Warning',
       yes: 'Yes',
       back: 'Back',
@@ -560,6 +562,13 @@ export const translations: Record<Language, TranslationStructure> = {
       viewSubtasks: 'View sub-tasks',
       confirmDeleteCompleted: 'Delete all completed tasks?',
       confirmDeleteSubtaskTitle: 'Delete subtask "{title}"?',
+      addFocus: 'Add focus',
+      removeFocus: 'Remove focus',
+      moveToBacklog: 'Move to backlog',
+      deletedCount: '{n} deleted',
+      priorityLow: 'Low',
+      priorityMedium: 'Medium',
+      priorityHigh: 'High',
     },
     items: {
       title: 'Items',
@@ -784,6 +793,7 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Next',
       moreDetails: 'More details',
       fewerDetails: 'Fewer details',
+      moreCount: '+{n} more',
       titleRequired: 'Title is required',
       timeRequired: 'Start and end time are required',
       saveFailed: 'Could not save event',
@@ -896,6 +906,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tasks: 'Tâches',
       typeHere: 'Tapez ici...',
       unknown: 'Inconnu',
+      untitled: 'Sans titre',
       warning: 'Avertissement',
       yes: 'Oui',
       back: 'Retour',
@@ -968,6 +979,13 @@ export const translations: Record<Language, TranslationStructure> = {
       viewSubtasks: 'Voir les sous-tâches',
       confirmDeleteCompleted: 'Supprimer toutes les tâches terminées ?',
       confirmDeleteSubtaskTitle: 'Supprimer la sous-tâche « {title} » ?',
+      addFocus: 'Ajouter le focus',
+      removeFocus: 'Retirer le focus',
+      moveToBacklog: 'Déplacer vers le backlog',
+      deletedCount: '{n} supprimés',
+      priorityLow: 'Basse',
+      priorityMedium: 'Moyenne',
+      priorityHigh: 'Haute',
     },
     items: {
       title: 'Articles',
@@ -1192,6 +1210,7 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Suivant',
       moreDetails: 'Plus de détails',
       fewerDetails: 'Moins de détails',
+      moreCount: '+{n} de plus',
       titleRequired: 'Le titre est requis',
       timeRequired: 'Le début et la fin sont requis',
       saveFailed: 'Impossible d’enregistrer l’événement',
@@ -1304,6 +1323,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tasks: 'Taken',
       typeHere: 'Typ hier...',
       unknown: 'Onbekend',
+      untitled: 'Naamloos',
       warning: 'Waarschuwing',
       yes: 'Ja',
       back: 'Terug',
@@ -1378,6 +1398,13 @@ export const translations: Record<Language, TranslationStructure> = {
       viewSubtasks: 'Sub-taken bekijken',
       confirmDeleteCompleted: 'Alle voltooide taken verwijderen?',
       confirmDeleteSubtaskTitle: 'Subtaak "{title}" verwijderen?',
+      addFocus: 'Focus toevoegen',
+      removeFocus: 'Focus verwijderen',
+      moveToBacklog: 'Naar backlog verplaatsen',
+      deletedCount: '{n} verwijderd',
+      priorityLow: 'Laag',
+      priorityMedium: 'Medium',
+      priorityHigh: 'Hoog',
     },
     items: {
       title: 'Items',
@@ -1602,6 +1629,7 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Volgende',
       moreDetails: 'Meer details',
       fewerDetails: 'Minder details',
+      moreCount: '+{n} meer',
       titleRequired: 'Titel is verplicht',
       timeRequired: 'Start- en eindtijd zijn verplicht',
       saveFailed: 'Evenement opslaan mislukt',
@@ -1714,6 +1742,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tasks: 'Aufgaben',
       typeHere: 'Hier tippen...',
       unknown: 'Unbekannt',
+      untitled: 'Ohne Titel',
       warning: 'Warnung',
       yes: 'Ja',
       back: 'Zurück',
@@ -1786,6 +1815,13 @@ export const translations: Record<Language, TranslationStructure> = {
       viewSubtasks: 'Teilaufgaben anzeigen',
       confirmDeleteCompleted: 'Alle abgeschlossenen Aufgaben löschen?',
       confirmDeleteSubtaskTitle: 'Unteraufgabe „{title}" löschen?',
+      addFocus: 'Fokus hinzufügen',
+      removeFocus: 'Fokus entfernen',
+      moveToBacklog: 'In den Backlog verschieben',
+      deletedCount: '{n} gelöscht',
+      priorityLow: 'Niedrig',
+      priorityMedium: 'Mittel',
+      priorityHigh: 'Hoch',
     },
     items: {
       title: 'Artikel',
@@ -2010,6 +2046,7 @@ export const translations: Record<Language, TranslationStructure> = {
       next: 'Weiter',
       moreDetails: 'Mehr Details',
       fewerDetails: 'Weniger Details',
+      moreCount: '+{n} mehr',
       titleRequired: 'Titel ist erforderlich',
       timeRequired: 'Start- und Endzeit sind erforderlich',
       saveFailed: 'Ereignis konnte nicht gespeichert werden',
@@ -2122,6 +2159,7 @@ export const translations: Record<Language, TranslationStructure> = {
       tasks: 'Tareas',
       typeHere: 'Escribe aquí...',
       unknown: 'Desconocido',
+      untitled: 'Sin título',
       warning: 'Advertencia',
       yes: 'Sí',
       back: 'Volver',
@@ -2170,6 +2208,13 @@ export const translations: Record<Language, TranslationStructure> = {
     tasks: {
       confirmDeleteCompleted: '¿Eliminar todas las tareas completadas?',
       confirmDeleteSubtaskTitle: '¿Eliminar la subtarea "{title}"?',
+      addFocus: 'Añadir enfoque',
+      removeFocus: 'Quitar enfoque',
+      moveToBacklog: 'Mover al backlog',
+      deletedCount: '{n} eliminados',
+      priorityLow: 'Baja',
+      priorityMedium: 'Media',
+      priorityHigh: 'Alta',
     },
     items: {
       title: 'Artículos',
@@ -2259,7 +2304,7 @@ export const translations: Record<Language, TranslationStructure> = {
       saveEvent: 'Guardar evento', today: 'Hoy', location: 'Ubicación', repeat: 'Repetir',
       noEvents: 'Sin eventos', datedTask: 'Tarea con fecha', searchPlaceholder: 'Buscar en calendario...',
       viewLabel: 'Vista', previous: 'Anterior', next: 'Siguiente', moreDetails: 'Más detalles',
-      fewerDetails: 'Menos detalles', titleRequired: 'Título obligatorio', timeRequired: 'Hora obligatoria',
+      fewerDetails: 'Menos detalles', moreCount: '+{n} más', titleRequired: 'Título obligatorio', timeRequired: 'Hora obligatoria',
       saveFailed: 'Error al guardar',
     },
     inbox: {
@@ -2352,6 +2397,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "settings": {
       "labelsSearchPlaceholder": "Search labels...",
+      "membersSearchPlaceholder": "Search members...",
       "shopsSearchPlaceholder": "Search shops...",
       "noShops": "No shops yet",
       "noShopsHint": "Create a shop with the + button",
@@ -2435,6 +2481,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "settings": {
       "labelsSearchPlaceholder": "Zoek labels...",
+      "membersSearchPlaceholder": "Zoek leden...",
       "shopsSearchPlaceholder": "Zoek winkels...",
       "noShops": "Nog geen winkels",
       "noShopsHint": "Maak een winkel aan via de + knop",
@@ -2514,6 +2561,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "settings": {
       "labelsSearchPlaceholder": "Rechercher des étiquettes...",
+      "membersSearchPlaceholder": "Rechercher des membres...",
       "shopsSearchPlaceholder": "Rechercher des magasins...",
       "noShops": "Pas encore de magasins",
       "noShopsHint": "Créez un magasin avec le bouton +",
@@ -2560,6 +2608,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "settings": {
       "labelsSearchPlaceholder": "Labels suchen...",
+      "membersSearchPlaceholder": "Mitglieder suchen...",
       "shopsSearchPlaceholder": "Geschäfte suchen...",
       "noShops": "Noch keine Geschäfte",
       "noShopsHint": "Erstelle ein Geschäft mit der + Taste",
@@ -2606,6 +2655,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "settings": {
       "labelsSearchPlaceholder": "Buscar etiquetas...",
+      "membersSearchPlaceholder": "Buscar miembros...",
       "shopsSearchPlaceholder": "Buscar tiendas...",
       "noShops": "Aún no hay tiendas",
       "noShopsHint": "Crea una tienda con el botón +",

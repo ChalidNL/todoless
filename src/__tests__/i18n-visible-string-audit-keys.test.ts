@@ -9,15 +9,25 @@ const LANGUAGES: Language[] = ['en', 'nl', 'fr', 'de', 'es'];
 const REQUIRED_KEYS = [
   'auth.firstNamePlaceholder',
   'auth.lastNamePlaceholder',
+  'calendar.moreCount',
   'common.edit',
   'common.manage',
+  'common.untitled',
   'dashboard.blocked',
   'filters.none',
   'labels.visibilityFamily',
   'labels.visibilityPrivate',
   'labels.visibilityShared',
+  'settings.membersSearchPlaceholder',
+  'tasks.addFocus',
   'tasks.confirmDeleteSubtaskTitle',
+  'tasks.deletedCount',
   'tasks.focus',
+  'tasks.moveToBacklog',
+  'tasks.priorityHigh',
+  'tasks.priorityLow',
+  'tasks.priorityMedium',
+  'tasks.removeFocus',
 ];
 
 describe('GH#96 visible-string audit i18n keys resolve in every language', () => {

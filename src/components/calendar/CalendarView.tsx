@@ -190,7 +190,7 @@ function MonthGrid({ anchor, items, selectedDay, expandedTaskId, onExpandTask, o
                     <AgendaTaskCard item={item} startExpanded={expandedTaskId === item.id} />
                   </div>
                 ))}
-                {dayItems.length > 2 && <span className="block text-[9px] font-semibold text-neutral-500">+{dayItems.length - 2} more</span>}
+                {dayItems.length > 2 && <span className="block text-[9px] font-semibold text-neutral-500">{t('calendar.moreCount').replace('{n}', String(dayItems.length - 2))}</span>}
               </div>
             </div>
           );

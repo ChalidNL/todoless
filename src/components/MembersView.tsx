@@ -31,7 +31,7 @@ export function MembersView() {
       <SettingsDetailHeader
         mode="list"
         screen="leden"
-        searchPlaceholder={t('settings.membersSearchPlaceholder') || 'Zoek leden...'}
+        searchPlaceholder={t('settings.membersSearchPlaceholder')}
         onSearch={setSearch}
         onAdd={handleInvite}
         count={users.length}

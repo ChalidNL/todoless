@@ -277,7 +277,7 @@ export const TasksView = () => {
                       if (!window.confirm(t('tasks.confirmDeleteCompleted'))) return;
                       const doneIds = sortedCompletedTasks.map(t => t.id);
                       deleteTasks(doneIds);
-                      showCompletionMessage(`${doneIds.length} deleted`);
+                      showCompletionMessage(t('tasks.deletedCount').replace('{n}', String(doneIds.length)));
                     }}
                     className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                     title={t('common.delete')}

@@ -58,6 +58,13 @@ const likelyVisible = /\s|[.!?…:]|^(Generate|Share|Copy|Delete|Edit|Save|Cance
 // Capitalised single word (Zichtbaarheid, Geblokkeerd) or ALL-CAPS prose (TAKEN, FOCUS)
 const singleWordVisible = /^[A-ZÀ-Ý][A-Za-zÀ-ÿ'’\-]*$/;
 const allCapsVisible = /^[A-ZÀ-Ý]{2,}$/;
+// Standalone count/status suffixes that only make sense next to a number or
+// dynamic value ('+{n} more', '{n} deleted'). They must be routed through i18n
+// keys with {n} interpolation, never written as English literals.
+const COUNT_SUFFIX_WORDS = new Set([
+  'more', 'deleted', 'added', 'removed', 'updated', 'created',
+  'items', 'tasks', 'members', 'subtasks', 'groceries', 'notes',
+]);
 
 function clean(s) { return s.replace(/\s+/g, ' ').trim(); }
 
@@ -70,13 +77,18 @@ function skip(s) {
   if (!s || !visibleWord.test(s)) return true;
   if (internalWords.test(s)) return true;
   if (/^[a-z0-9_-]+$/.test(s)) return true;
+  if (/^[a-z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$/.test(s)) return true; // i18n key paths (tasks.priorityLow)
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return true;
   if (/^\d[\d.,:\s]*$/.test(s)) return true; // numbers / durations
   if (/^(https?:|\/api\/|\.\/|\.\.\/|#)/.test(s)) return true;
   if (/[<>]/.test(s)) return true; // markup-ish
   if (/^[A-Z][A-Z0-9_]*[_0-9][A-Z0-9_]*$/.test(s)) return true; // constants: API_URL, NODE_ENV, VITE_FOO
   if (/^[^\p{L}\p{N}]+$/u.test(s)) return true; // pure symbols: ×, •, —, … (Unicode-aware)
-  if (/\b(bg|text|flex|grid|rounded|border|hover|focus|disabled|absolute|relative|fixed|w-|h-|px-|py-|gap-|space-y|items-|justify-)\b/.test(s)) return true;
+  // CSS utility chains (all-lowercase tokens only, e.g. 'items-center gap-2',
+  // 'text-[11px] font-medium', 'hover:bg-red-50'). A capitalised multi-word
+  // string like 'Remove focus' is user-visible text, not a className, even
+  // when it contains a utility word (focus).
+  if (/^[a-z0-9_\-\[\].:%#]+(\s+[a-z0-9_\-\[\].:%#]+)*$/.test(s) && /\b(bg|text|flex|grid|rounded|border|hover|focus|disabled|absolute|relative|fixed|w-|h-|px-|py-|gap-|space-y|items-|justify-)\b/.test(s)) return true;
   return false;
 }
 
@@ -84,6 +96,20 @@ function staticTextOfTemplate(node) {
   let out = node.head ? node.head.text : '';
   if (node.templateSpans) for (const span of node.templateSpans) out += span.literal ? span.literal.text : '';
   return out;
+}
+
+function hasExpressionSibling(node) {
+  const parent = node.parent;
+  if (!parent || !parent.children) return false;
+  return parent.children.some((c) => c !== node && ts.isJsxExpression(c));
+}
+
+// A template/JSX fragment whose static parts reduce to a bare count suffix
+// (e.g. '+{n} more', '{n} deleted') — English-only unless localized.
+function countSuffixOf(text) {
+  if (/[/?#=&]/.test(text)) return null; // URL/path fragments are not count suffixes
+  const normalized = text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+  return normalized && COUNT_SUFFIX_WORDS.has(normalized) ? normalized : null;
 }
 
 function loc(sf, node) {
@@ -125,6 +151,22 @@ for (const file of files) {
   function visit(node) {
     if (ts.isJsxText(node)) {
       consider('jsx-text', node, node.getText(sf));
+      // '+{n} more' / '{n} deleted' — JSX splits these into text fragments
+      // around an expression; the Bare suffix alone is invisible to the
+      // single-word rules because it is lowercase.
+      const text = clean(node.getText(sf));
+      if (countSuffixOf(text) && hasExpressionSibling(node) && !hasIgnoreComment(node)) {
+        hits.push({ loc: loc(sf, node), kind: 'jsx-fragment-suffix', text });
+      }
+    }
+    // Template literals with substitutions whose static parts reduce to a bare
+    // count/status suffix ('{n} deleted', '+{n} more'). No JSX/prop context is
+    // required — any such literal is an English-only plural string.
+    if (ts.isTemplateExpression(node)) {
+      const staticText = clean(staticTextOfTemplate(node));
+      if (countSuffixOf(staticText) && !hasIgnoreComment(node)) {
+        hits.push({ loc: loc(sf, node), kind: 'tpl-suffix', text: staticText });
+      }
     }
     if (ts.isJsxAttribute(node)) {
       const prop = node.name.getText(sf);
@@ -144,6 +186,15 @@ for (const file of files) {
             if (ts.isConditionalExpression(e)) {
               for (const arm of [e.whenTrue, e.whenFalse]) {
                 if (ts.isStringLiteral(arm)) consider(`attr-expr:${prop}`, arm, arm.text);
+                if (ts.isNoSubstitutionTemplateLiteral(arm)) consider(`attr-expr:${prop}`, arm, arm.text);
+              }
+            }
+            // t('key') || 'Hardcoded fallback' — the fallback leaks into the
+            // English bundle whenever the key is missing/empty.
+            if (ts.isBinaryExpression(e) && e.operatorToken.getText(sf) === '||') {
+              for (const operand of [e.left, e.right]) {
+                if (ts.isStringLiteral(operand) || ts.isNoSubstitutionTemplateLiteral(operand)) consider(`attr-expr-||:${prop}`, operand, operand.text);
+                if (ts.isTemplateExpression(operand)) consider(`attr-expr-||:${prop}`, operand, staticTextOfTemplate(operand));
               }
             }
           }
@@ -173,7 +224,7 @@ for (const file of files) {
       const name = node.name.getText(sf);
       if (/shareData|fallbackText|message|title|text|label/i.test(name)) {
         const e = node.initializer;
-        if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) consider(`var:${name}`, e, e.getText(sf).slice(0, 160));
+        if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) consider(`var:${name}`, e, (e.text || e.getText(sf)).slice(0, 160));
         if (ts.isTemplateExpression(e)) consider(`var-tpl:${name}`, e, staticTextOfTemplate(e).slice(0, 160));
       }
     }
@@ -185,6 +236,23 @@ for (const file of files) {
         if (ts.isStringLiteral(v)) consider(`obj:${key}`, v, v.text);
         if (ts.isNoSubstitutionTemplateLiteral(v)) consider(`obj-tpl:${key}`, v, v.text);
         if (ts.isTemplateExpression(v)) consider(`obj-tpl:${key}`, v, staticTextOfTemplate(v));
+        // label: cond ? 'A' : 'B' — conditional arms on visible keys.
+        if (ts.isConditionalExpression(v)) {
+          for (const arm of [v.whenTrue, v.whenFalse]) {
+            if (ts.isStringLiteral(arm) || ts.isNoSubstitutionTemplateLiteral(arm)) consider(`obj-cond:${key}`, arm, arm.text);
+          }
+        }
+        // t('key') || 'Fallback' — hardcoded fallback on visible keys.
+        if (ts.isBinaryExpression(v) && v.operatorToken.getText(sf) === '||') {
+          for (const operand of [v.left, v.right]) {
+            if (ts.isStringLiteral(operand) || ts.isNoSubstitutionTemplateLiteral(operand)) consider(`obj-||:${key}`, operand, operand.text);
+          }
+        }
+      }
+      // Enum-style label maps ({ low: 'Low', medium: 'Medium', ... }) — the
+      // keys are not label-looking but the values are capitalized visible words.
+      if (/^(low|medium|high|urgent|none)$/.test(key) && ts.isStringLiteral(node.initializer)) {
+        consider(`obj-enum-label:${key}`, node.initializer, node.initializer.text);
       }
     }
     ts.forEachChild(node, visit);
