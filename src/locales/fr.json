@@ -214,6 +214,8 @@
     "dueDateAria": "Date d'échéance",
     "dueTimeAria": "Heure",
     "recurringIntervalAria": "Intervalle de répétition",
+    "nextOccurrence": "Prochaine",
+    "nextOccurrenceAria": "Prochaine occurrence",
     "editTaskTitle": "Modifier le titre",
     "clearAllLabels": "Effacer toutes les étiquettes",
     "clearAssigneeAria": "Effacer l'assigné",

@@ -214,6 +214,8 @@
     "dueDateAria": "Fälligkeitsdatum",
     "dueTimeAria": "Uhrzeit",
     "recurringIntervalAria": "Wiederholungsintervall",
+    "nextOccurrence": "Nächste",
+    "nextOccurrenceAria": "Nächste Wiederholung",
     "editTaskTitle": "Aufgabentitel bearbeiten",
     "clearAllLabels": "Alle Etiketten löschen",
     "clearAssigneeAria": "Zugewiesene Person entfernen",

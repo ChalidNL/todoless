@@ -18,6 +18,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 );
 import { LabelBadge } from './LabelBadge';
 import { AttributeChip } from './AttributeChip';
+import { RepeatNextPreview } from './RepeatNextPreview';
 import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
 import { entityColor } from '../../lib/entity-colors';
 
@@ -630,6 +631,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                     ))}
                   </select>
                 )}
+                {isTask && <RepeatNextPreview repeatInterval={task?.repeatInterval} dueDate={task?.dueDate} />}
               </div>
             )}
 

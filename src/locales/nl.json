@@ -214,6 +214,8 @@
     "dueDateAria": "Vervaldatum",
     "dueTimeAria": "Tijd",
     "recurringIntervalAria": "Herhalingsinterval",
+    "nextOccurrence": "Volgende",
+    "nextOccurrenceAria": "Volgende herhaling",
     "editTaskTitle": "Taaktitel bewerken",
     "clearAllLabels": "Alle labels wissen",
     "clearAssigneeAria": "Toegewezen persoon wissen",

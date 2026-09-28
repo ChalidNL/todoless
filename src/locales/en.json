@@ -214,6 +214,8 @@
     "dueDateAria": "Due date",
     "dueTimeAria": "Due time",
     "recurringIntervalAria": "Repeat interval",
+    "nextOccurrence": "Next",
+    "nextOccurrenceAria": "Next occurrence",
     "editTaskTitle": "Edit task title",
     "clearAllLabels": "Clear all labels",
     "clearAssigneeAria": "Clear assignee",
