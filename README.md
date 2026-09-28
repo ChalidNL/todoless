@@ -134,7 +134,7 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
 
-> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images. `docker-compose.yml` passes `MAIL_WEBHOOK_SECRET` and `PAPERLESS_WEBHOOK_SECRET` through to the pocketbase container via `${VAR:-}` from `.env`/`.env.example`.
+> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images. `docker-compose.yml` passes `MAIL_WEBHOOK_SECRET` and `PAPERLESS_WEBHOOK_SECRET` through to the pocketbase container via `${VAR:-}` — set them in your `.env` (copy `.env.example`).
 
 ### Logging & observability
 The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
