@@ -205,7 +205,7 @@ function paperlessHandler(c) {
     try {
       var test = send(config, '/tags/');
       return c.json(test.statusCode === 200 ? 200 : 502, { connected: test.statusCode === 200, configured: true, status: test.statusCode });
-    } catch (e) { return c.json(502, { error: 'Connection failed: ' + String(e), configured: true }); }
+    } catch (e) { return respondError(c, e, 502, 'Connection failed', { configured: true }); }
   }
   if (action === 'sync') {
     var docs = docsWithTag(config); var results = [];
