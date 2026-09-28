@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell, ChevronDown } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { t } from '../../i18n/translations';
+import { t, formatDate } from '../../i18n/translations';
 import { AppLogo } from './AppLogo';
+import { userDisplayName, type Priority, type RepeatInterval } from '../../types';
+import { entityColor } from '../../lib/entity-colors';
+import { getCompactUserName } from '../../lib/member-role-utils';
+import { sortLabelsByVisibility } from '../../lib/label-utils';
+import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../lib/priority';
+import { getRepeatChipLabel } from '../../lib/repeat-options';
 
 interface AppHeaderProps {
   screen?: 'inbox' | 'taken' | 'agenda' | 'shop' | 'leden' | 'labels' | 'focus' | 'instellingen';
@@ -82,7 +88,7 @@ export const AppHeader = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], tasks = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
+  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], tasks = [], labels = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
@@ -99,6 +105,30 @@ export const AppHeader = ({
   const firedReminderCount = reminders.filter((reminder: any) => reminder.fired && !reminder.dismissed).length;
   const notificationCount = dueSoonCount + firedReminderCount;
   const isSortable = !!onSortChange && sortOptions.length > 0;
+
+  // Screens whose views actually consume the chip filter engine (TasksView, InboxBacklog).
+  const isTaskFilterScreen = screen === 'inbox' || screen === 'taken';
+
+  const isFilterActive = (type: string, id: string) => activeChipFilters.some((f: any) => f.type === type && f.id === id);
+
+  // Distinct due dates already present in the task list — mirrors the exact date id
+  // used by the chip filter engine (formatDate with month short + day numeric).
+  const dateFilterOptions = useMemo(() => {
+    const byDate = new Map<string, number>();
+    for (const task of tasks) {
+      if (!task.dueDate) continue;
+      const ds = formatDate(task.dueDate, { month: 'short', day: 'numeric' });
+      const existing = byDate.get(ds);
+      if (existing === undefined || task.dueDate < existing) byDate.set(ds, task.dueDate);
+    }
+    return [...byDate.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .slice(0, 8)
+      .map(([ds]) => ds);
+  }, [tasks]);
+
+  const repeatFilterOptions: RepeatInterval[] = ['day', 'week', 'month', 'year', 'month_weekday'];
+  const priorityFilterOrder: Priority[] = ['high', 'medium', 'low'];
 
   const setInputText = (value: string) => {
     if (onInputValueChange) onInputValueChange(value);
@@ -230,6 +260,142 @@ export const AppHeader = ({
                         );
                       })}
                     </div>
+                    )}
+
+                    {/* Label / assignee / priority / repeat / date filters — only on task views whose filter engine consumes them */}
+                    {isTaskFilterScreen && (
+                      <>
+                        {labels.length > 0 && (
+                          <div className="border-t border-[var(--app-border-subtle)] px-1.5 pb-1 pt-2">
+                            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('tasks.labels')}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {sortLabelsByVisibility(labels).map((label) => {
+                                const active = isFilterActive('label', label.id);
+                                return (
+                                  <button
+                                    key={label.id}
+                                    type="button"
+                                    onClick={() => toggleChipFilter('label', label.id, label.name, label.color)}
+                                    aria-pressed={active}
+                                    className={`inline-flex min-h-7 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                                      active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                                    }`}
+                                    style={active ? { backgroundColor: label.color } : undefined}
+                                  >
+                                    {label.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {users.length > 0 && (
+                          <div className="border-t border-[var(--app-border-subtle)] px-1.5 pb-1 pt-2">
+                            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('tasks.assignee')}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {users.map((user) => {
+                                const active = isFilterActive('assignee', user.id);
+                                const name = getCompactUserName(user) || userDisplayName(user);
+                                const color = entityColor(user.id);
+                                return (
+                                  <button
+                                    key={user.id}
+                                    type="button"
+                                    onClick={() => toggleChipFilter('assignee', user.id, name, color)}
+                                    aria-pressed={active}
+                                    className={`inline-flex min-h-7 flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                                      active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                                    }`}
+                                    style={active ? { backgroundColor: color } : undefined}
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className="grid h-4 w-4 place-items-center rounded-full text-[9px] font-black text-white"
+                                      style={{ backgroundColor: color }}
+                                    >
+                                      {name.slice(0, 1).toUpperCase()}
+                                    </span>
+                                    {name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="border-t border-[var(--app-border-subtle)] px-1.5 pb-1 pt-2">
+                          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('filters.priority')}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {priorityFilterOrder.map((p) => {
+                              const active = isFilterActive('priority', p);
+                              return (
+                                <button
+                                  key={p}
+                                  type="button"
+                                  onClick={() => toggleChipFilter('priority', p, PRIORITY_LABELS[p], PRIORITY_COLORS[p])}
+                                  aria-pressed={active}
+                                  className={`inline-flex min-h-7 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                                    active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                                  }`}
+                                  style={active ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
+                                >
+                                  {PRIORITY_LABELS[p]}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="border-t border-[var(--app-border-subtle)] px-1.5 pb-1 pt-2">
+                          <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('repeat.repeat')}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {repeatFilterOptions.map((interval) => {
+                              const active = isFilterActive('repeat', interval);
+                              const label = getRepeatChipLabel(interval) || interval;
+                              return (
+                                <button
+                                  key={interval}
+                                  type="button"
+                                  onClick={() => toggleChipFilter('repeat', interval, label)}
+                                  aria-pressed={active}
+                                  className={`inline-flex min-h-7 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                                    active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                                  }`}
+                                  style={active ? { backgroundColor: '#6366f1' } : undefined}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {dateFilterOptions.length > 0 && (
+                          <div className="border-t border-[var(--app-border-subtle)] px-1.5 pb-1 pt-2">
+                            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('filters.dueDate')}</p>
+                            <div className="flex flex-wrap gap-1">
+                              {dateFilterOptions.map((ds) => {
+                                const active = isFilterActive('date', ds);
+                                return (
+                                  <button
+                                    key={ds}
+                                    type="button"
+                                    onClick={() => toggleChipFilter('date', ds)}
+                                    aria-pressed={active}
+                                    className={`inline-flex min-h-7 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+                                      active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+                                    }`}
+                                    style={active ? { backgroundColor: theme.color } : undefined}
+                                  >
+                                    {ds}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     </div>
