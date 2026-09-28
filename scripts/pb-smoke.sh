@@ -80,3 +80,47 @@ echo "[pb-smoke] PocketBase healthy. Running tests/smoke ..."
   cd "$ROOT"
   PB_URL="http://127.0.0.1:${PB_PORT}" node --test tests/smoke/*.test.mjs
 )
+
+# --- 5. GH#56: request/error logs must reach stdout + _logs ---------------
+# The request-logger middleware (pb_hooks/04_request_logger.pb.js) must have
+# written [pb-request] lines for both 2xx and 4xx traffic to the container
+# stdout/stderr (captured in serve.log) and mirrored the 4xx to _logs.
+echo "[pb-smoke] verifying request logs reach stdout (GH#56) ..."
+if ! grep -q "\[pb-request\]" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: no [pb-request] lines found in pocketbase stdout" >&2
+  exit 1
+fi
+if ! grep -q "\[pb-request\].*method=GET.*path=/api/hook-health.*status=200" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: missing 2xx [pb-request] line (hook-health 200)" >&2
+  exit 1
+fi
+if ! grep -Eq "\[pb-request\].*status=(400|401|403|404|429|5[0-9][0-9])" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: missing 4xx/5xx [pb-request] line" >&2
+  exit 1
+fi
+echo "[pb-smoke] stdout request logging OK"
+echo "[pb-smoke] verifying 4xx is mirrored into _logs (GH#56) ..."
+# PB persists $app.logger() rows asynchronously; retry a few seconds before failing.
+python3 - "$DATA_DIR/pb_data/auxiliary.db" <<'PY'
+import sqlite3, sys, time
+con = sqlite3.connect(sys.argv[1])
+try:
+    n = 0
+    for _ in range(10):
+        n = con.execute(
+            "SELECT COUNT(*) FROM _logs WHERE message IN ('client error request','failed request')"
+        ).fetchone()[0]
+        if n > 0:
+            break
+        time.sleep(1)
+    print(f"[pb-smoke] _logs mirror rows: {n}")
+    if n == 0:
+        print("[pb-smoke] ERROR: no warn/error request rows in _logs", file=sys.stderr)
+        sys.exit(1)
+except Exception as e:
+    print(f"[pb-smoke] ERROR inspecting _logs: {e}", file=sys.stderr)
+    sys.exit(1)
+finally:
+    con.close()
+PY
+echo "[pb-smoke] _logs mirror OK"
