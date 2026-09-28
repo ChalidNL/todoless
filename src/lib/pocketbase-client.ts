@@ -22,7 +22,7 @@ const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime(
 const toISO = (value?: number | string | null): string | null => (value ? new Date(value).toISOString() : null);
 
 /** Payload of the single-call boot endpoint (GH#75): raw records already normalized. */
-export interface BootstrapPayload {
+interface BootstrapPayload {
   tasks: Task[];
   items: Item[];
   notes: Note[];
