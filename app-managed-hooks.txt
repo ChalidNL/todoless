@@ -1,0 +1,83 @@
+# app-managed-hooks.txt - append-only manifest of every file the app has EVER
+# seeded into the pb_hooks runtime volume (GH#35). One relative path per line
+# (no 'pb_hooks/' prefix); entries are LC_ALL=C sort -u, subdirs included.
+#
+# On every start pocketbase-entrypoint.sh (remove_stale) prunes listed files
+# that are no longer bundled in the running image - renamed/removed upstream,
+# or absent on downgrade. Files NOT listed here are user-added and never
+# touched. Entries that are no longer bundled are exactly what gets pruned.
+#
+# APPEND-ONLY: never remove or rename an entry. When a bundled file is removed
+# or renamed, keep its old name here so existing installs prune the stale
+# file. CI lint: scripts/check-app-manifest.sh (currency + append-only).
+#
+# Regenerate (union of current files + ever-deleted files):
+#   git ls-tree -r --name-only HEAD -- pb_hooks | sed 's|^pb_hooks/||'
+#   git log --all --diff-filter=D --format= --name-only -- pb_hooks \
+#     | grep '^pb_hooks/' | sed 's|^pb_hooks/||' | sort -u
+00_rate_limiter.js
+01_api_token_auth.pb.js
+02_paperless.pb.js
+03_agent_tasks.pb.js
+04_agent_routes.pb.js
+04_public_rules.pb.js.disabled
+04_request_logger.pb.js
+05_agents_routes.pb.js
+07_mail.pb.js
+09_api_tokens.pb.js
+10_openapi.pb.js
+11_docs.pb.js
+12_api_routes.pb.js
+12_users.pb.js
+13_companion.pb.js
+13_legacy_routes.pb.js
+14_ics.pb.js
+15_member_status_gate.pb.js
+16_bootstrap.pb.js
+__tests__/validate-security-hooks.mjs
+_tmp_create.pb.js
+_tmp_debug.pb.js
+_tmp_debug2.pb.js
+cron/recurring-tasks.js
+cron/recurring-tasks.test.mjs
+fix_schema.pb.js
+lib/auth.js
+lib/errors.js
+lib/task-date-sync.js
+main.pb.js
+main.pb.js.bak
+main.pb.js.orig
+on_task_update.js
+routes/__tests__/validate-paperless.mjs
+routes/agent-tasks.js
+routes/agent.js
+routes/agents.js
+routes/ai.js
+routes/api-tokens.js
+routes/briefing.js
+routes/calendar.js
+routes/debug-register.js
+routes/docs.js
+routes/external-references.js
+routes/families.js
+routes/goals.js
+routes/invite-registration.js
+routes/invites.js
+routes/items.js
+routes/labels.js
+routes/notes.js
+routes/openapi.js
+routes/openapi.js.bak
+routes/openapi.original.js
+routes/paperless.js
+routes/projects.js
+routes/reminders.js
+routes/rewards.js
+routes/settings.js
+routes/shared.js
+routes/shops.js
+routes/sprints.js
+routes/task-actions.js
+routes/tasks.js
+routes/users.js
+test.js

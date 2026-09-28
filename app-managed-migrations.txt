@@ -1,0 +1,105 @@
+# app-managed-migrations.txt - append-only manifest of every file the app has
+# EVER seeded into the pb_migrations runtime volume (GH#35). One relative path
+# per line (no 'pb_migrations/' prefix); entries are LC_ALL=C sort -u.
+#
+# On every start pocketbase-entrypoint.sh (remove_stale) prunes listed files
+# that are no longer bundled in the running image - renamed/removed upstream,
+# or absent on downgrade. Files NOT listed here are user-added and never
+# touched. Entries that are no longer bundled are exactly what gets pruned.
+#
+# APPEND-ONLY: never remove or rename an entry. When a bundled file is removed
+# or renamed, keep its old name here so existing installs prune the stale
+# file. CI lint: scripts/check-app-manifest.sh (currency + append-only), wired
+# into quality-gate.yml and docker-publish.yml.
+#
+# Regenerate (union of current files + ever-deleted files + MIGRATION_RENAMES
+# old sides from pocketbase-entrypoint.sh):
+#   git ls-tree -r --name-only HEAD -- pb_migrations | sed 's|^pb_migrations/||'
+#   git log --all --diff-filter=D --format= --name-only -- pb_migrations \
+#     | grep '^pb_migrations/' | sed 's|^pb_migrations/||' | sort -u
+001_initial_schema.js
+002_cross_relations.js
+002_rewards_system.js
+003_rewards_system.js
+004_add_autodate_fields.js
+005_invite_registration_rules.js
+006_app_settings_singleton_per_user.js
+007_shared_view_rules.js
+008_add_onboarding_flags.js
+009_families.js
+010_open_user_registration.js
+011_fix_families_and_settings_rules.js
+012_fix_users_create_rule.js
+013_integrations.js
+014_projects.js
+015_ai_settings.js
+015_groceries_linked.js
+015_linked_entity_references.js
+015_notes_enhancements.js
+015_paperless_sync.js
+015_reminders.js
+015_sprint_status.js
+015_tasks_reminders_module.js
+016_add_item_private_field.js
+016_linked_entity_references.js
+017_notes_enhancements.js
+018_fix_security_p10.js
+019_fix_security_p10.js
+019_paperless_sync.js
+020_reminders.js
+021_sprint_status.js
+022_tasks_reminders_module.js
+023_add_item_private_field.js
+024_ai_settings.js
+025_fix_user_registration_rule.js
+026_task_family_rules.js
+027_add_assistant_role.js
+028_users_list_rule.js
+029_external_references.js
+030_add_name_fields.js
+031_agent_keys.js
+032_5_add_firstname_lastname.js
+032_agent_audit_log.js
+033_add_firstname_lastname.js
+033_api_tokens.js
+034_agent_approval.js
+035_briefings.js
+037_multi_user_shared_rules.js
+038_subtask_ids.js
+039_invite_type.js
+039_repeat_interval_options.js
+040_identity_model.js
+041_add_priority_values.js
+042_set_priority_values.js
+044_fix_shops_family_rules.js
+045_add_focus_field.js
+046_add_completed_by_field.js
+047_family_sharing_all_collections.js
+048_add_item_focus_field.js
+049_companion_devices.js
+049_family_scope_users.js
+050_companion_notifications.js
+050_enforce_single_family_admin.js
+051_lock_direct_user_registration.js
+052_lock_agent_audit_log_rules.js
+053_lock_direct_user_create_rule.js
+054_family_shop_write_rules.js
+055_user_language_preference.js
+056_calendar_rfc5545_events.js
+057_add_task_calendar_fields.js
+058_add_task_ics_fields.js
+059_allow_de_es_user_languages.js
+060_backfill_user_token_keys.js
+061_label_visibility.js
+071_rotate_user_token_keys.js
+072_lock_direct_user_delete_rule.js
+073_add_app_settings_notification_fields.js
+z061_label_visibility.js
+z062_enforce_label_privacy.js
+z063_fix_shared_label_rules.js
+z064_fix_agent_key_revocation.js
+z065_fix_empty_task_label_rules.js
+z066_family_shared_task_write_rules.js
+z066_normalize_invite_codes.js
+z067_enable_scheduled_backups.js
+z068_enforce_member_status_read_rules.js

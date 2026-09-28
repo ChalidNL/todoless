@@ -100,3 +100,14 @@ jobs:
 
       - name: Migration rename sync regression (GH#34)
         run: bash scripts/test-migration-sync.sh
+
+      - name: Stale bundled hook/migration pruning regression (GH#35)
+        run: bash scripts/test-stale-cleanup.sh
+
+      - name: App-managed manifest currency lint (GH#35)
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            bash scripts/check-app-manifest.sh HEAD~1
+          else
+            bash scripts/check-app-manifest.sh origin/main
+          fi
