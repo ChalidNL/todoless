@@ -120,8 +120,7 @@ routerAdd(
         totalTags: tags.count || 0,
       })
     } catch (e) {
-      return c.json(502, {
-        error: 'Connection failed: ' + e.message,
+      return respondError(c, e, 502, 'Connection failed', {
         configured: true,
       })
     }
@@ -389,7 +388,8 @@ function processPaperlessDocument(docId) {
     resp = paperlessFetch(config, '/documents/' + docId + '/')
   } catch (e) {
     recordProcessed(docId, null, null, 'error', e.message, config.userId)
-    return { error: 'Failed to fetch document: ' + e.message }
+    try { console.error('[paperless] fetch failed: ' + e.message); } catch (_x) {}
+    return { error: 'Failed to fetch document' }
   }
 
   if (resp.statusCode !== 200) {
