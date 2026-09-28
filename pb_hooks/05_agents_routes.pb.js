@@ -574,6 +574,17 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
 try {
     var agentKey = authFromApiKey(c);
     if (!agentKey) return c.json(401, { error: 'Invalid or missing API key' });
+    if (!agentKey.get('active')) return c.json(403, { error: 'API key is revoked' });
+
+    // Check expiry
+    var rawExpires = agentKey.get('expires_at');
+    if (rawExpires) {
+      var expMs = new Date(String(rawExpires).replace(' ', 'T')).getTime();
+      if (expMs > 0 && expMs < Date.now()) {
+        return c.json(403, { error: 'API key has expired' });
+      }
+    }
+
     if (!hasScope(agentKey, 'entries:read')) {
       return c.json(403, { error: 'Missing scope: entries:read' });
     }
