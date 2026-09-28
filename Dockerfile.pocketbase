@@ -19,6 +19,12 @@ RUN apk add --no-cache curl sqlite
 COPY pb_migrations/ /pb_migrations_bundled/
 COPY pb_hooks/ /pb_hooks_bundled/
 
+# GH#35: append-only manifests of every file the app has EVER seeded into the
+# pb_migrations/pb_hooks runtime volumes; the entrypoint prunes listed files that
+# are no longer bundled in this image (removed/renamed upstream) - never user files.
+COPY app-managed-migrations.txt /app-managed-migrations.txt
+COPY app-managed-hooks.txt /app-managed-hooks.txt
+
 # Entrypoint: seed pb_migrations/hooks from bundled files on first run or update,
 # then hand off to the real PocketBase binary.
 COPY pocketbase-entrypoint.sh /entrypoint.sh
