@@ -166,7 +166,7 @@ interface AppContextType {
   updateNote: (id: string, updates: Partial<Note>) => void;
   updateLabel: (id: string, updates: Partial<Label>) => void;
   updateShop: (id: string, updates: Partial<Shop>) => void;
-  updateAppSettings: (settings: Partial<AppSettings>) => void;
+  updateAppSettings: (settings: Partial<AppSettings>) => Promise<boolean>;
   updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
   deleteItem: (id: string) => void;
@@ -628,9 +628,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
-  const updateAppSettings = (settings: Partial<AppSettings>) => {
+  const updateAppSettings = async (settings: Partial<AppSettings>): Promise<boolean> => {
+    const previous = appSettings;
     setAppSettings((prev) => ({ ...prev, ...settings }));
-    void api.updateSettings(settings);
+    try {
+      await api.updateSettings(settings);
+      return true;
+    } catch (error) {
+      setAppSettings(previous);
+      const message = error instanceof Error ? error.message : t('settings.notificationsSaveFailed');
+      showCompletionMessage(message);
+      return false;
+    }
   };
 
   const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {
