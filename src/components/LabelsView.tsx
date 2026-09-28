@@ -6,7 +6,7 @@ import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { EmptyState } from './shared/EmptyState';
 import { Button } from './ui/AppButton';
-import type { Label } from '../types';
+import { userDisplayName, type Label } from '../types';
 
 const COLOR_PALETTE = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#ef4444', '#14b8a6', '#f43f5e', '#a855f7'];
 const VISIBILITY_ICON = { private: Lock, shared: Users, family: Home } as const;
@@ -35,6 +35,13 @@ export function LabelsView() {
   const [draftSharedWith, setDraftSharedWith] = useState<string[]>([]);
   const sortedLabels = sortLabelsByVisibility(labels).filter((label) => !search.trim() || label.name.toLowerCase().includes(search.trim().toLowerCase()));
 
+  // labels.updateRule/deleteRule are owner-only ('owner = @request.auth.id || user = @request.auth.id'),
+  // so edit/delete affordances must only be offered for labels this user owns. Other members'
+  // family/shared labels stay visible (listRule allows it) but render as read-only rows.
+  const currentUserId = appSettings.currentUserId;
+  const canManageLabel = (label: Label) =>
+    Boolean(currentUserId && (label.owner === currentUserId || label.createdBy === currentUserId));
+
   const expandLabel = (label: Label) => {
     setExpandedId(expandedId === label.id ? null : label.id);
     setDraftName(label.name);
@@ -46,6 +53,8 @@ export function LabelsView() {
   const collapseAll = () => { setExpandedId(null); };
 
   const saveLabelEdit = (id: string) => {
+    const label = labels.find((entry) => entry.id === id);
+    if (!label || !canManageLabel(label)) return;
     const name = draftName.trim();
     if (!name) return;
     updateLabel(id, {
@@ -152,6 +161,8 @@ export function LabelsView() {
           const visibility = label.visibility || (label.isPrivate ? 'private' : 'family');
           const Icon = VISIBILITY_ICON[visibility] || Home;
           const isExpanded = expandedId === label.id;
+          const canManage = canManageLabel(label);
+          const ownerName = userDisplayName(users.find((user) => user.id === (label.owner || label.createdBy)));
           return (
             <article key={label.id} className={`app-card app-animate-in ${isExpanded ? 'shadow-[0_0_20px_rgba(99,102,241,0.08),0_0_0_1px_rgba(99,102,241,0.1)]' : ''}`}>
               {/* Collapsed row */}
@@ -165,12 +176,18 @@ export function LabelsView() {
                   <Tag className="h-3 w-3" /> {label.name}
                 </span>
                 <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold capitalize text-[var(--app-text-muted)]"><Icon className="h-3 w-3" /> {visibilityLabel(visibility)}</span>
-                <button type="button" onClick={() => expandLabel(label)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`Edit ${label.name}`}>
-                  {isExpanded ? <ChevronUp className="h-[15px] w-[15px]" /> : <ChevronDown className="h-[15px] w-[15px]" />}
-                </button>
+                {canManage ? (
+                  <button type="button" onClick={() => expandLabel(label)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`Edit ${label.name}`}>
+                    {isExpanded ? <ChevronUp className="h-[15px] w-[15px]" /> : <ChevronDown className="h-[15px] w-[15px]" />}
+                  </button>
+                ) : (
+                  <span className="truncate text-[11px] font-medium text-[var(--app-text-muted)]" aria-label={`Read-only label by ${ownerName || 'another member'}`}>
+                    {ownerName ? `· ${ownerName}` : ''}
+                  </span>
+                )}
               </div>
-              {/* Expanded section — action bar */}
-              {isExpanded && (
+              {/* Expanded section — action bar (only offered for labels the current user owns) */}
+              {isExpanded && canManage && (
                 <div className="border-t border-neutral-100 px-4 py-3 space-y-3">
                   <input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder={t('settings.labelNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus />
                   <div className="flex flex-wrap gap-2">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-8 w-8 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 3px ${color}` : 'none' }} aria-label={color} />)}</div>
@@ -184,6 +201,7 @@ export function LabelsView() {
                       icon={Trash2}
                       variant="destructive"
                       onClick={() => {
+                        if (!canManageLabel(label)) return;
                         if (window.confirm(t('common.confirmDeleteTitle'))) {
                           deleteLabel(label.id);
                           collapseAll();

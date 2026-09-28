@@ -41,7 +41,10 @@ const baseApp = {
     { id: 'admin-1', name: 'Admin', email: 'admin@example.com', role: 'admin', active: true },
     member,
   ],
-  labels: [{ id: 'label-1', name: 'Family', color: '#6366f1', visibility: 'family' }],
+  labels: [
+    { id: 'label-1', name: 'Family', color: '#6366f1', visibility: 'family', owner: 'admin-1' },
+    { id: 'label-2', name: 'Member Label', color: '#22c55e', visibility: 'family', owner: 'member-1' },
+  ],
   shops: [{ id: 'shop-1', name: 'Market', color: '#ec4899' }],
   addLabel: vi.fn(),
   updateLabel: vi.fn(),
@@ -97,6 +100,48 @@ describe('redesign settings management parity', () => {
       isPrivate: false,
       sharedWith: ['member-1'],
     }));
+  });
+
+  it('offers edit controls only for labels owned by the current user', () => {
+    useAppMock.mockReturnValue({
+      ...baseApp,
+      labels: [
+        { id: 'label-1', name: 'Family', color: '#6366f1', visibility: 'family', owner: 'admin-1' },
+        { id: 'label-2', name: 'Member Label', color: '#22c55e', visibility: 'family', owner: 'member-1' },
+      ],
+    });
+
+    render(<LabelsView />);
+
+    expect(screen.getByRole('button', { name: 'Edit Family' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Edit Member Label' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+  });
+
+  it('labels another member owns render as read-only rows with an owner hint', () => {
+    useAppMock.mockReturnValue({
+      ...baseApp,
+      labels: [
+        { id: 'label-1', name: 'Family', color: '#6366f1', visibility: 'family', owner: 'admin-1' },
+        { id: 'label-2', name: 'Member Label', color: '#22c55e', visibility: 'family', owner: 'member-1' },
+      ],
+    });
+
+    render(<LabelsView />);
+
+    expect(screen.getByLabelText(/read-only label by Member One/i)).toBeTruthy();
+  });
+
+  it('does not offer edit or delete when a label has no resolved owner', () => {
+    useAppMock.mockReturnValue({
+      ...baseApp,
+      labels: [{ id: 'legacy-1', name: 'Legacy', color: '#6366f1', visibility: 'family' }],
+    });
+
+    render(<LabelsView />);
+
+    expect(screen.queryByRole('button', { name: 'Edit Legacy' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
   });
 
   it('requires confirmation and deletes a label from its expanded redesign card', () => {
