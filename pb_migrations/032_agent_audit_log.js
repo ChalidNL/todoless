@@ -1,6 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate(
   (app) => {
+    // Guard: skip if the collection already exists (idempotent re-run)
+    try {
+      app.findCollectionByNameOrId('agent_audit_log');
+      return;
+    } catch {}
+
     const agentKeys = app.findCollectionByNameOrId('agent_keys');
 
     const collection = new Collection({

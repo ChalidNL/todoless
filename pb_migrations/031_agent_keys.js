@@ -1,6 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate(
   (app) => {
+    // Guard: skip if the collection already exists (idempotent re-run)
+    try {
+      app.findCollectionByNameOrId('agent_keys');
+      return;
+    } catch {}
+
     const collection = new Collection({
       name: 'agent_keys',
       type: 'base',

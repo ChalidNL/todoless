@@ -7,16 +7,20 @@ migrate(
     const items = app.findCollectionByNameOrId('items');
 
     // linked_type: what kind of entity this item is linked to
-    items.fields.add(new SelectField({
-      name: 'linked_type',
-      values: ['task', 'item'],
-      maxSelect: 1,
-    }));
+    if (!items.fields.getByName('linked_type')) {
+      items.fields.add(new SelectField({
+        name: 'linked_type',
+        values: ['task', 'item'],
+        maxSelect: 1,
+      }));
+    }
 
     // linked_to: the ID of the linked entity
-    items.fields.add(new TextField({
-      name: 'linked_to',
-    }));
+    if (!items.fields.getByName('linked_to')) {
+      items.fields.add(new TextField({
+        name: 'linked_to',
+      }));
+    }
 
     app.save(items);
   },

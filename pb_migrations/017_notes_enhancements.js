@@ -3,49 +3,59 @@ migrate(
     const collection = app.findCollectionByNameOrId('notes');
 
     // @assignee — relation to user
-    collection.fields.add(
-      new Field({
-        name: 'assigned_to',
-        type: 'relation',
-        collectionId: '_pb_users_auth_',
-        cascadeDelete: false,
-        maxSelect: 1,
-      }),
-    );
+    if (!collection.fields.getByName('assigned_to')) {
+      collection.fields.add(
+        new Field({
+          name: 'assigned_to',
+          type: 'relation',
+          collectionId: '_pb_users_auth_',
+          cascadeDelete: false,
+          maxSelect: 1,
+        }),
+      );
+    }
 
     // //due date
-    collection.fields.add(
-      new Field({
-        name: 'due_date',
-        type: 'date',
-      }),
-    );
+    if (!collection.fields.getByName('due_date')) {
+      collection.fields.add(
+        new Field({
+          name: 'due_date',
+          type: 'date',
+        }),
+      );
+    }
 
     // //recurring interval
-    collection.fields.add(
-      new Field({
-        name: 'repeat_interval',
-        type: 'select',
-        values: ['week', 'month', 'year'],
-        maxSelect: 1,
-      }),
-    );
+    if (!collection.fields.getByName('repeat_interval')) {
+      collection.fields.add(
+        new Field({
+          name: 'repeat_interval',
+          type: 'select',
+          values: ['week', 'month', 'year'],
+          maxSelect: 1,
+        }),
+      );
+    }
 
     // !!private
-    collection.fields.add(
-      new Field({
-        name: 'is_private',
-        type: 'bool',
-      }),
-    );
+    if (!collection.fields.getByName('is_private')) {
+      collection.fields.add(
+        new Field({
+          name: 'is_private',
+          type: 'bool',
+        }),
+      );
+    }
 
     // ~linked (multiple links — JSON array of IDs)
-    collection.fields.add(
-      new Field({
-        name: 'linked_ids',
-        type: 'json',
-      }),
-    );
+    if (!collection.fields.getByName('linked_ids')) {
+      collection.fields.add(
+        new Field({
+          name: 'linked_ids',
+          type: 'json',
+        }),
+      );
+    }
 
     app.save(collection);
   },

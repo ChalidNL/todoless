@@ -6,53 +6,67 @@ migrate(
     // tasks.linked_item_ids -> JSON array of item IDs (tasks linked to groceries)
     // tasks.linked_note_ids -> JSON array of note IDs (tasks with supporting notes)
     const tasks = app.findCollectionByNameOrId('tasks');
-    tasks.fields.add(new Field({
-      type: 'json',
-      name: 'linked_item_ids',
-      required: false,
-    }));
-    tasks.fields.add(new Field({
-      type: 'json',
-      name: 'linked_note_ids',
-      required: false,
-    }));
+    if (!tasks.fields.getByName('linked_item_ids')) {
+      tasks.fields.add(new Field({
+        type: 'json',
+        name: 'linked_item_ids',
+        required: false,
+      }));
+    }
+    if (!tasks.fields.getByName('linked_note_ids')) {
+      tasks.fields.add(new Field({
+        type: 'json',
+        name: 'linked_note_ids',
+        required: false,
+      }));
+    }
     app.save(tasks);
 
     // items.linked_task_ids -> JSON array of task IDs (groceries linked to tasks)
     // items.linked_note_ids -> JSON array of note IDs (items with supporting notes)
     const items = app.findCollectionByNameOrId('items');
-    items.fields.add(new Field({
-      type: 'json',
-      name: 'linked_task_ids',
-      required: false,
-    }));
-    items.fields.add(new Field({
-      type: 'json',
-      name: 'linked_note_ids',
-      required: false,
-    }));
+    if (!items.fields.getByName('linked_task_ids')) {
+      items.fields.add(new Field({
+        type: 'json',
+        name: 'linked_task_ids',
+        required: false,
+      }));
+    }
+    if (!items.fields.getByName('linked_note_ids')) {
+      items.fields.add(new Field({
+        type: 'json',
+        name: 'linked_note_ids',
+        required: false,
+      }));
+    }
     app.save(items);
 
     // notes.linked_task_ids -> JSON array of task IDs (notes about tasks)
     // notes.linked_item_ids -> JSON array of item IDs (notes about items)
     // notes.project_id -> relation to projects (notes belonging to a project)
     const notes = app.findCollectionByNameOrId('notes');
-    notes.fields.add(new Field({
-      type: 'json',
-      name: 'linked_task_ids',
-      required: false,
-    }));
-    notes.fields.add(new Field({
-      type: 'json',
-      name: 'linked_item_ids',
-      required: false,
-    }));
-    notes.fields.add(new RelationField({
-      name: 'project_id',
-      collectionId: app.findCollectionByNameOrId('projects').id,
-      cascadeDelete: false,
-      maxSelect: 1,
-    }));
+    if (!notes.fields.getByName('linked_task_ids')) {
+      notes.fields.add(new Field({
+        type: 'json',
+        name: 'linked_task_ids',
+        required: false,
+      }));
+    }
+    if (!notes.fields.getByName('linked_item_ids')) {
+      notes.fields.add(new Field({
+        type: 'json',
+        name: 'linked_item_ids',
+        required: false,
+      }));
+    }
+    if (!notes.fields.getByName('project_id')) {
+      notes.fields.add(new RelationField({
+        name: 'project_id',
+        collectionId: app.findCollectionByNameOrId('projects').id,
+        cascadeDelete: false,
+        maxSelect: 1,
+      }));
+    }
     app.save(notes);
   },
   (app) => {
