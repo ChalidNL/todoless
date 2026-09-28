@@ -296,6 +296,17 @@ routerAdd('GET','/api/ics-export',function(c){
   function toUtcMs(v){if(!v)return NaN;try{if(typeof v.getTime==='function'){var gt=v.getTime();return isNaN(gt)?NaN:gt;}}catch(e){}var s=String(v).replace(' ','T').trim();if(!/Z$/i.test(s)&&!/[+-]\d{2}:?\d{2}$/.test(s))s+='Z';var d=new Date(s);return isNaN(d.getTime())?NaN:d.getTime();}
   function genUid(taskId,familyId){return'todoless-'+String(taskId)+'@family-'+String(familyId);}
   function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
+  // Empty PocketBase date fields are truthy DateTime objects in the JSVM
+  // (isZero() === true, String() === ''), so truthiness can never be used to
+  // detect a real date (GH#11). Returns true only when the field holds one.
+  function hasDate(record,field){
+    try{
+      var v=record.get(field);
+      if(!v)return false;
+      if(typeof v==='object'&&typeof v.isZero==='function')return !v.isZero();
+      return String(v).trim()!=='';
+    }catch(e){return false;}
+  }
   try{
     var info=c.requestInfo();
     var auth=(info&&info.auth)||c.get('authRecord')||null;
@@ -346,19 +357,27 @@ routerAdd('GET','/api/ics-export',function(c){
       var dtStart='';
       var dtEnd='';
 
+      // Empty PB date fields are truthy DateTime objects in the JSVM, so the
+      // old `t.get('start_time') || t.get('due_date')` fallback never fired
+      // and due-date-only tasks were dropped (GH#12). Detect real dates with
+      // hasDate() and prefer start_time, falling back to due_date.
+      var hasStart=hasDate(t,'start_time');
+      var hasDue=hasDate(t,'due_date');
+      var hasEnd=hasDate(t,'end_time');
+
       if(allDay){
         // All-day: DATE format (no time). RFC 5545: DTEND;VALUE=DATE is EXCLUSIVE,
         // so a single-day event must end on the NEXT day. Dates are derived in
         // Europe/Amsterdam (deterministic, not the server's local TZ).
-        var sd=t.get('start_time')||t.get('due_date');
-        var ed=t.get('end_time');
+        var sd=hasStart?t.get('start_time'):(hasDue?t.get('due_date'):'');
+        var ed=hasEnd?t.get('end_time'):'';
         var sdMs=toUtcMs(sd);
         if(!isNaN(sdMs)){
           var sdY=amsterdamYmd(sdMs);
           dtStart=sdY.y+sdY.M+sdY.d;
           // Use the stored end date only when it is a real LATER day (imports store
           // the exclusive DTEND, so it is already the day after the last event day).
-          var edMs=ed?toUtcMs(ed):NaN;
+          var edMs=toUtcMs(ed);
           if(!isNaN(edMs)){
             var edY=amsterdamYmd(edMs);
             if(edY.key>sdY.key)dtEnd=edY.y+edY.M+edY.d;
@@ -370,10 +389,10 @@ routerAdd('GET','/api/ics-export',function(c){
           }
         }
       }else{
-        // Timed event: DATE-TIME in UTC (parsed deterministically, Z assumed
-        // when the stored value carries no explicit timezone suffix)
-        var st=t.get('start_time');
-        var et=t.get('end_time');
+        // Timed event: DATE-TIME in UTC. Fall back to due_date when the task
+        // has no start_time so due-date-only tasks are exported too (GH#12).
+        var st=hasStart?t.get('start_time'):(hasDue?t.get('due_date'):'');
+        var et=hasEnd?t.get('end_time'):'';
         var stMs=toUtcMs(st);
         if(!isNaN(stMs)){
           dtStart=icsDt(stMs);
@@ -391,10 +410,12 @@ routerAdd('GET','/api/ics-export',function(c){
       ics+='DTSTAMP:'+icsDt(Date.now())+'\r\n';
       if(allDay){
         ics+='DTSTART;VALUE=DATE:'+dtStart+'\r\n';
-        ics+='DTEND;VALUE=DATE:'+dtEnd+'\r\n';
+        if(dtEnd)ics+='DTEND;VALUE=DATE:'+dtEnd+'\r\n';
       }else{
         ics+='DTSTART:'+dtStart+'\r\n';
-        ics+='DTEND:'+dtEnd+'\r\n';
+        // DTEND is optional for timed events; emit it only when a real end
+        // exists so the feed never carries an empty DTEND: line.
+        if(dtEnd)ics+='DTEND:'+dtEnd+'\r\n';
       }
       ics+=icsLine('SUMMARY',title)+'\r\n';
       if(desc)ics+=icsLine('DESCRIPTION',desc)+'\r\n';
