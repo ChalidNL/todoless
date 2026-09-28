@@ -2,6 +2,11 @@
 
 // Swagger UI HTML page for interactive API exploration
 // Served at: GET /api/v1/docs
+//
+// GH#64: swagger-ui-dist is vendored into public/docs/swagger-ui (committed to
+// the repo, see scripts/vendor-swagger-ui.mjs). The page makes zero external
+// calls (no CDN, validatorUrl disabled) so the nginx CSP can stay at
+// script-src 'self' and the docs work in air-gapped LANs.
 
 function swaggerHtmlHandler(c) {
   var html = '<!DOCTYPE html>\n'
@@ -11,7 +16,7 @@ function swaggerHtmlHandler(c) {
   html += '<meta name="viewport" content="width=device-width, initial-scale=1" />\n'
   html += '<meta name="description" content="todoless API - Swagger UI" />\n'
   html += '<title>todoless API - Swagger UI</title>\n'
-  html += '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" />\n'
+  html += '<link rel="stylesheet" href="/docs/swagger-ui/swagger-ui.css" />\n'
   html += '<style>\n'
   html += '  html { box-sizing: border-box; overflow-y: scroll; }\n'
   html += '  *, *:before, *:after { box-sizing: inherit; }\n'
@@ -26,7 +31,8 @@ function swaggerHtmlHandler(c) {
   html += '<body>\n'
   html += '<div class="version-badge">todoless API v1.0.0</div>\n'
   html += '<div id="swagger-ui"></div>\n'
-  html += '<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>\n'
+  html += '<script src="/docs/swagger-ui/swagger-ui-bundle.js"></script>\n'
+  html += '<script src="/docs/swagger-ui/swagger-ui-standalone-preset.js"></script>\n'
   html += '<script>\n'
   html += '  SwaggerUIBundle({\n'
   html += '    url: "/api/v1/openapi.json",\n'
@@ -34,9 +40,10 @@ function swaggerHtmlHandler(c) {
   html += '    deepLinking: true,\n'
   html += '    presets: [\n'
   html += '      SwaggerUIBundle.presets.apis,\n'
-  html += '      SwaggerUIBundle.SwaggerUIStandalonePreset\n'
+  html += '      SwaggerUIStandalonePreset\n'
   html += '    ],\n'
   html += '    layout: "StandaloneLayout",\n'
+  html += '    validatorUrl: null,\n'
   html += '    defaultModelsExpandDepth: 1,\n'
   html += '    defaultModelExpandDepth: 1,\n'
   html += '    docExpansion: "list",\n'

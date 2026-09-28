@@ -252,6 +252,24 @@ test('openapi.json serves a valid spec with paths', async () => {
   assert.ok(r.data?.paths && Object.keys(r.data.paths).length > 0, 'expected documented paths')
 })
 
+// --- 12. Docs page is fully vendored (GH#64) --------------------------------
+test('docs page (GET /api/docs) references only vendored swagger-ui assets', async () => {
+  const r = await api('GET', '/api/docs')
+  assert.equal(r.status, 200)
+  const html = typeof r.data === 'string' ? r.data : ''
+  assert.ok(html.includes('swagger-ui'), 'expected Swagger UI page')
+  assert.ok(!html.includes('jsdelivr'), 'docs page must not load from a CDN (GH#64)')
+  assert.ok(!html.includes('cdn.jsdelivr.net'), 'docs page must not reference cdn.jsdelivr.net (GH#64)')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui.css'), 'expected vendored swagger-ui.css')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui-bundle.js'), 'expected vendored swagger-ui-bundle.js')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui-standalone-preset.js'), 'expected vendored swagger-ui-standalone-preset.js')
+  // StandaloneLayout wiring: global preset (not SwaggerUIBundle.*, which does not exist)
+  assert.ok(html.includes('SwaggerUIStandalonePreset'), 'expected global SwaggerUIStandalonePreset reference')
+  assert.ok(!html.includes('SwaggerUIBundle.SwaggerUIStandalonePreset'), 'must not reference missing SwaggerUIBundle.SwaggerUIStandalonePreset')
+  // No external validator call (air-gapped LAN safe)
+  assert.ok(html.includes('validatorUrl: null'), 'expected validatorUrl: null to disable external validation')
+})
+
 test('every documented OpenAPI path is registered on the live server', { todo: 'OpenAPI path parity — GH#65 (t_ghcaa58e6a)' }, async () => {
   const r = await api('GET', '/api/openapi.json')
   assert.equal(r.status, 200)

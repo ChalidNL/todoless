@@ -1,0 +1,10 @@
+swagger-ui-dist 5.33.0
+Vendored from node_modules/swagger-ui-dist (npm) on 2026-09-28.
+See scripts/vendor-swagger-ui.mjs — run "npm run vendor:swagger-ui" to refresh after upgrades.
+
+sha256:
+  1ac324f7dcd27e4b9386b4bd6421271ec147e922a22c05ba24b11515e9aa6321  swagger-ui.css
+  62df541529080464a7660adc793eab7128c6193ce3be24ddc1e0e0a4a63edc2f  swagger-ui-bundle.js
+  63818894e4b04cd0e3180d9cb20761e227a939121e7484f8e1d528227c756f89  swagger-ui-bundle.js.LICENSE.txt
+  5243d492e14505e0cab87ac8b0195d0e615943e651743b2b698450a46eb470be  swagger-ui-standalone-preset.js
+  000580e4e2255ea6ccde0c47f6d75e2f703a1931298fde58756793b67c0daed9  swagger-ui-standalone-preset.js.LICENSE.txt
