@@ -30,6 +30,23 @@ function hasScope(agentKey, requiredScope) {
   return false;
 }
 
+function getClientIP(c) {
+  if (!c) return '';
+  try {
+    if (typeof c.realIP === 'function') {
+      var realIP = String(c.realIP() || '');
+      if (realIP) return realIP;
+    }
+  } catch (_e) {}
+  try {
+    if (typeof c.remoteIP === 'function') {
+      var remoteIP = String(c.remoteIP() || '');
+      if (remoteIP) return remoteIP;
+    }
+  } catch (_e) {}
+  return '';
+}
+
 function auditLog(agentKey, action, entityType, entityId, details, c) {
   try {
     var rec = new Record($app.findCollectionByNameOrId('agent_audit_log'));
@@ -39,7 +56,7 @@ function auditLog(agentKey, action, entityType, entityId, details, c) {
     rec.set('entity_type', entityType || '');
     rec.set('entity_id', entityId || '');
     rec.set('details', details || {});
-    rec.set('ip_address', String('' || ''));
+    rec.set('ip_address', getClientIP(c));
     rec.set('user', agentKey.get('user'));
     $app.save(rec);
   } catch (_e) {
@@ -196,7 +213,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -205,7 +222,7 @@ routerAdd('POST', '/api/agent/keys', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -379,7 +396,7 @@ routerAdd('GET', '/api/agent/keys', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -388,7 +405,7 @@ routerAdd('GET', '/api/agent/keys', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -545,7 +562,7 @@ routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -554,7 +571,7 @@ routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -705,7 +722,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -714,7 +731,7 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -1211,7 +1228,7 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -1220,7 +1237,7 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -1414,7 +1431,7 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -1423,7 +1440,7 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}
@@ -1560,7 +1577,7 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
     if (!userId) return null;
     try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
   }
-  function auditLog(agentKey, action, entityType, entityId, details) {
+  function auditLog(agentKey, action, entityType, entityId, details, c) {
     try {
       var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
       audit.set('agent_key_id', agentKey.id);
@@ -1569,7 +1586,7 @@ routerAdd('GET', '/api/agent/audit-log', function(c) {
       audit.set('entity_type', entityType || '');
       audit.set('entity_id', entityId || '');
       audit.set('details', details || {});
-      audit.set('ip_address', '');
+      audit.set('ip_address', getClientIP(c));
       audit.set('user', agentKey.get('user'));
       $app.save(audit);
     } catch (_e) {}

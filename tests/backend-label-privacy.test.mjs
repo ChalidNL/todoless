@@ -272,6 +272,19 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.match(agentTasks, /rec\.set\('user',a\.uid\)/)
 })
 
+test('agent audit logs persist the request client IP', () => {
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+
+  assert.match(agents, /function getClientIP\(c\)/)
+  assert.match(agents, /c\.realIP\(\)/)
+  assert.match(agents, /c\.remoteIP\(\)/)
+  assert.doesNotMatch(agents, /set\('ip_address',\s*(?:String\('' \|\| ''\)|'')\)/)
+
+  const auditLogDefinitions = agents.match(/function auditLog\(agentKey, action, entityType, entityId, details, c\)/g) || []
+  const ipWrites = agents.match(/set\('ip_address', getClientIP\(c\)\)/g) || []
+  assert.equal(auditLogDefinitions.length, ipWrites.length)
+})
+
 test('existing agent key schemas allow a persisted false revoked state', () => {
   const migration = read('pb_migrations/z064_fix_agent_key_revocation.js')
 
