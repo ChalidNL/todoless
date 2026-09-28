@@ -116,6 +116,7 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
     }
 
     // Validate permissions
+    var validResources = ['tasks','groceries','calendar'];
     var validPerms = ['tasks:read','tasks:write','tasks:delete','groceries:read','groceries:write','groceries:delete','calendar:read','calendar:write','tasks:*','groceries:*','calendar:*','*'];
     for (var pi = 0; pi < rawPerms.length; pi++) {
       var perm = String(rawPerms[pi] || '');
@@ -125,7 +126,9 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
       }
       if (!valid) {
         var pParts = perm.split(':');
-        if (pParts.length === 2 && pParts[1] === '*') { valid = true; }
+        // Same fix as 09_api_tokens.pb.js (GH#20): only accept
+        // "<resource>:*" for a known resource, not arbitrary strings.
+        if (pParts.length === 2 && pParts[1] === '*' && validResources.indexOf(pParts[0]) !== -1) { valid = true; }
       }
       if (!valid) return c.json(400, { error: 'Invalid permission: ' + perm });
     }
