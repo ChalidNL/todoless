@@ -171,4 +171,22 @@ case "$LOG_LEVEL" in
 esac
 export LOG_LEVEL
 
+# ── Superuser bootstrap (GH#50) ──────────────────────────────────────────
+# A stock install never gets a PocketBase superuser: the web onboarding only
+# creates an app admin, so the dashboard (/_) stays locked. When both
+# POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD are set, create or
+# update the superuser before serving (idempotent upsert, runs on every start).
+# Leaving them empty keeps the manual path (docker compose exec ... superuser
+# upsert) and adds no noise.
+if [ -n "${POCKETBASE_ADMIN_EMAIL:-}" ] && [ -n "${POCKETBASE_ADMIN_PASSWORD:-}" ]; then
+  echo "[entrypoint] upserting PocketBase superuser: ${POCKETBASE_ADMIN_EMAIL}"
+  if /usr/local/bin/pocketbase superuser upsert "${POCKETBASE_ADMIN_EMAIL}" "${POCKETBASE_ADMIN_PASSWORD}" --dir="${PB_DATA_DIR}"; then
+    echo "[entrypoint] superuser ready"
+  else
+    echo "[entrypoint] WARNING: superuser upsert failed - continuing anyway; check POCKETBASE_ADMIN_EMAIL/PASSWORD" >&2
+  fi
+elif [ -n "${POCKETBASE_ADMIN_EMAIL:-}" ] || [ -n "${POCKETBASE_ADMIN_PASSWORD:-}" ]; then
+  echo "[entrypoint] WARNING: set BOTH POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD to bootstrap the superuser (only one is set)" >&2
+fi
+
 exec /usr/local/bin/pocketbase "$@"

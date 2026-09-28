@@ -65,6 +65,10 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}  # inbound mail webhook shared secret (Bearer token); the mail webhook fails closed with 503 if unset
       PAPERLESS_WEBHOOK_SECRET: ${PAPERLESS_WEBHOOK_SECRET:-}  # Paperless-ngx webhook shared secret; the paperless webhook fails closed with 503 if unset
+      # GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
+      # The entrypoint runs `pocketbase superuser upsert` when both are set.
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data
@@ -86,6 +90,12 @@ services:
         - container: PAPERLESS_WEBHOOK_SECRET
           description:
             en_US: Paperless-ngx webhook shared secret
+        - container: POCKETBASE_ADMIN_EMAIL
+          description:
+            en_US: PocketBase admin (superuser) email - creates the dashboard login (/_/) on start (optional)
+        - container: POCKETBASE_ADMIN_PASSWORD
+          description:
+            en_US: PocketBase admin (superuser) password - set together with POCKETBASE_ADMIN_EMAIL (optional)
       volumes:
         - container: /pb_data
           description:
