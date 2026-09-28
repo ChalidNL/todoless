@@ -140,18 +140,6 @@
       "calendar": {
         "title": "Kalender",
         "tagline": "Familienpläne auf einen Blick."
-      },
-      "rewards": {
-        "title": "Belohnungen",
-        "tagline": "Feiert Fortschritte gemeinsam."
-      },
-      "notes": {
-        "title": "Notizen",
-        "tagline": "Wichtige Details immer griffbereit."
-      },
-      "sprint": {
-        "title": "Sprint",
-        "tagline": "Konzentriert euch gemeinsam auf das nächste Ziel."
       }
     }
   },

@@ -140,18 +140,6 @@
       "calendar": {
         "title": "Calendario",
         "tagline": "Consulta los planes familiares de un vistazo."
-      },
-      "rewards": {
-        "title": "Recompensas",
-        "tagline": "Celebrad juntos el progreso."
-      },
-      "notes": {
-        "title": "Notas",
-        "tagline": "Ten a mano los detalles útiles."
-      },
-      "sprint": {
-        "title": "Sprint",
-        "tagline": "Centraos juntos en el siguiente objetivo."
       }
     }
   },

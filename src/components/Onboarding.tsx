@@ -9,13 +9,10 @@ import {
   EyeOff,
   Globe,
   ListTodo,
-  NotebookPen,
   ShoppingCart,
   Sparkles,
-  Star,
   UserPlus,
   Users,
-  Zap,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PASSWORD_MIN_LENGTH } from '../lib/password';
@@ -41,13 +38,12 @@ const LANG_LABELS: Record<SupportedUiLanguage, string> = {
   es: 'Español',
 };
 
+// Only ship modules that actually exist in the app (GH#72): rewards, notes
+// and sprint are advertised nowhere else and must not be promised here.
 const MODULES = [
   { id: 'tasks', icon: ListTodo, color: '#8b5cf6' },
   { id: 'groceries', icon: ShoppingCart, color: '#10b981' },
   { id: 'calendar', icon: CalendarDays, color: '#0ea5e9' },
-  { id: 'rewards', icon: Star, color: '#f59e0b' },
-  { id: 'notes', icon: NotebookPen, color: '#f43f5e' },
-  { id: 'sprint', icon: Zap, color: '#6366f1' },
 ] as const;
 
 function GlowButton({ children, disabled, onClick }: { children: React.ReactNode; disabled?: boolean; onClick: () => void }) {
