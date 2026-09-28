@@ -66,10 +66,14 @@ PREV_MIG="$WORK/prev_migrations"   # previous release's migration files
 PREV_HOOKS="$WORK/prev_hooks"
 UPGRADE_MIG="$WORK/upgrade_migrations"  # volume simulation: prev ∪ current
 PID_FILE="$WORK/pb.pid"
+BIN_DIR=""  # PB download dir (removed on exit unless KEEP_WORK_DIR)
 
 cleanup() {
   if [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
     kill "$(cat "$PID_FILE")" 2>/dev/null || true
+  fi
+  if [[ -n "$BIN_DIR" && -z "${KEEP_WORK_DIR:-}" ]]; then
+    rm -rf "$BIN_DIR"
   fi
   if [[ -n "${KEEP_WORK_DIR:-}" ]]; then
     echo "[mig-upgrade] keeping work dir: $WORK"
@@ -90,6 +94,14 @@ else
   curl -fsSL "$URL" -o "$BIN_DIR/pb.zip"
   python3 -m zipfile -e "$BIN_DIR/pb.zip" "$BIN_DIR" >/dev/null
   chmod +x "$PB"
+fi
+# Guard against version drift: Dockerfile.pocketbase pins the PB image tag; the
+# harness must test the exact same version or the parity assertions compare
+# migrations run under different PB versions.
+DOCKERFILE_PB_VERSION="$(sed -n 's#.*pocketbase:\([0-9][0-9.]*\).*#\1#p' "$ROOT/Dockerfile.pocketbase" | head -1)"
+if [[ -n "$DOCKERFILE_PB_VERSION" && "$DOCKERFILE_PB_VERSION" != "$PB_VERSION" ]]; then
+  echo "[mig-upgrade] ERROR: PB_VERSION=${PB_VERSION} does not match Dockerfile.pocketbase (${DOCKERFILE_PB_VERSION}) — refusing to test a stale binary" >&2
+  exit 1
 fi
 echo "[mig-upgrade] using PB: $("$PB" --version)"
 
@@ -126,7 +138,10 @@ pb_start() { # data_dir migrations_dir hooks_dir port log_file label
     return 1
   fi
   echo "[mig-upgrade] booting $label (port $port, dir $(basename "$data"))"
-  "$PB" serve \
+  # Mirror the container: PB_VERSION is exported so the repo's /api/version
+  # hook (GH#33) reports the real pinned version instead of 'unknown' — the
+  # ownership guard below depends on it.
+  PB_VERSION="$PB_VERSION" "$PB" serve \
     --http="127.0.0.1:${port}" \
     --dir="$data" \
     --migrationsDir="$mig" \
@@ -148,6 +163,10 @@ pb_start() { # data_dir migrations_dir hooks_dir port log_file label
   done
   if [[ "$ready" != "1" ]]; then
     echo "[mig-upgrade] ERROR: $label did not become healthy on port ${port}" >&2
+    if grep -q "Error: failed to apply migration" "$log" 2>/dev/null; then
+      echo "[mig-upgrade] migration failure detected:" >&2
+      grep -m5 "Error: failed to apply migration" "$log" >&2 || true
+    fi
     echo "----- $label log ($log) -----" >&2
     cat "$log" >&2 || true
     return 1
@@ -391,9 +410,10 @@ dump_state "$DATA_DIR/data.db" "$WORK/upgrade.json"
 # Current shipped migration file list (from the repo, exactly what a fresh
 # install applies) — used to prove every file landed in _migrations once.
 find "$ROOT/pb_migrations" -maxdepth 1 -name '*.js' -printf '%f\n' | sort >"$WORK/current_migrations.txt"
-python3 - "$WORK/current_migrations.txt" "$WORK/fresh.json" "$WORK/upgrade.json" <<'PY'
+python3 - "$WORK/current_migrations.txt" "$WORK/fresh.json" "$WORK/upgrade.json" "${SNAPSHOT_DIR:-}" <<'PY'
 import json, sys
 cur_file, fresh_file, up_file = sys.argv[1], sys.argv[2], sys.argv[3]
+snapshot_mode = bool(sys.argv[4])
 current = sorted(x.strip() for x in open(cur_file) if x.strip())
 fresh = json.load(open(fresh_file))
 up = json.load(open(up_file))
@@ -405,20 +425,32 @@ def report(title, detail):
     print(f"FAIL: {title}")
     print(detail)
 
-# 8a. every current migration file must be recorded exactly once
-missing = [f for f in current if f not in up["migrations"]]
-if missing:
-    report("current migration files missing from upgraded _migrations",
-           f"  {missing}")
+# 8a. upgraded _migrations must be EXACTLY the current shipped file set —
+#     once each. Missing file = migration never ran; extra/stale row = a file
+#     removed or renamed without a MIGRATION_RENAMES entry, or a duplicate
+#     apply — exactly the GH#34 regression class this test guards.
+if set(up["migrations"]) != set(current):
+    missing = [f for f in current if f not in up["migrations"]]
+    extra = [f for f in up["migrations"] if f not in current]
+    if missing:
+        report("current migration files missing from upgraded _migrations",
+               f"  {missing}")
+    if extra:
+        report("stale/extra migration rows in upgraded _migrations "
+               "(removed or undeclared-renamed files)",
+               f"  {extra}")
 if len(up["migrations"]) != len(set(up["migrations"])):
     report("duplicate migration file rows in upgraded _migrations",
            f"  {[f for f in set(up['migrations']) if up['migrations'].count(f) > 1]}")
 
-# 8b. fresh control must also have applied every current file exactly once
-missing_fresh = [f for f in current if f not in fresh["migrations"]]
-if missing_fresh:
-    report("current migration files missing from FRESH _migrations (control broken)",
-           f"  {missing_fresh}")
+# 8b. fresh control must also have applied exactly the current file set once
+if set(fresh["migrations"]) != set(current):
+    report("fresh _migrations does not match the current file set (control broken)",
+           f"  missing: {[f for f in current if f not in fresh['migrations']]}\n"
+           f"  extra:   {[f for f in fresh['migrations'] if f not in current]}")
+if len(fresh["migrations"]) != len(set(fresh["migrations"])):
+    report("duplicate migration file rows in FRESH _migrations (control broken)",
+           f"  {[f for f in set(fresh['migrations']) if fresh['migrations'].count(f) > 1]}")
 
 # 8c. rules must be identical between fresh and upgraded (catches #36-style
 #     flips and non-idempotent body re-runs)
@@ -437,10 +469,13 @@ if fresh["backups"] != up["backups"]:
     report("settings.backups differ between fresh and upgraded",
            f"  fresh: {fresh['backups']}\n  upgraded: {up['backups']}")
 
-# 8e. seeded data must survive (non-empty counts in the upgraded instance)
-for table in ("users", "tasks", "items", "notes"):
-    if up["counts"].get(table) == 0:
-        report(f"seeded {table} missing after upgrade", f"  counts: {up['counts']}")
+# 8e. seeded data must survive (only meaningful when we seeded via the API —
+#      a provided SNAPSHOT_DIR may legitimately be sparse, and None means the
+#      table itself vanished, which is a failure either way)
+if not snapshot_mode:
+    for table in ("users", "tasks", "items", "notes"):
+        if up["counts"].get(table) in (None, 0):
+            report(f"seeded {table} missing after upgrade", f"  counts: {up['counts']}")
 
 print(f"[mig-upgrade] upgraded _migrations: {len(up['migrations'])} js rows "
       f"(current set = {len(current)} files)")
