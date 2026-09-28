@@ -3,6 +3,8 @@ name: Build & Publish Docker Images
 on:
   push:
     branches: [main, beta, red, dev]
+    # Publish semver image tags (:vX.Y.Z / :vX.Y) when a release tag (v*) is pushed
+    tags: ['v*']
   workflow_dispatch:
 
 env:
@@ -71,23 +73,47 @@ jobs:
       - name: Set Docker metadata
         id: meta
         run: |
-          if [ "${{ github.ref_name }}" = "main" ]; then
-            echo "fe_tag=latest" >> $GITHUB_OUTPUT
-            echo "pb_tag=latest" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref_name }}" = "beta" ]; then
-            echo "fe_tag=beta" >> $GITHUB_OUTPUT
-            echo "pb_tag=beta" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref_name }}" = "pre" ]; then
-            echo "fe_tag=pre" >> $GITHUB_OUTPUT
-            echo "pb_tag=pre" >> $GITHUB_OUTPUT
-          elif [ "${{ github.ref_name }}" = "red" ]; then
-            echo "fe_tag=red" >> $GITHUB_OUTPUT
-            echo "pb_tag=red" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            # Release tag (e.g. v0.3.0-beta) -> publish semver image tags, no leading 'v'.
+            # Stable tags (v0.3.0) additionally get :vX.Y so self-hosters can pin a line.
+            VER="${GITHUB_REF_NAME#v}"
+            FE="ghcr.io/chalidnl/todoless-frontend:${VER}"
+            PB="ghcr.io/chalidnl/todoless-pocketbase:${VER}"
+            MINOR=""
+            if [[ "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              MINOR="${VER%.*}"
+            fi
+            if [ -n "$MINOR" ]; then
+              FE="${FE}"$'\n'"ghcr.io/chalidnl/todoless-frontend:${MINOR}"
+              PB="${PB}"$'\n'"ghcr.io/chalidnl/todoless-pocketbase:${MINOR}"
+            fi
+            BRANCH="$GITHUB_REF_NAME"
           else
-            echo "fe_tag=dev" >> $GITHUB_OUTPUT
-            echo "pb_tag=dev" >> $GITHUB_OUTPUT
+            if [ "$GITHUB_REF_NAME" = "main" ]; then
+              T="latest"
+            elif [ "$GITHUB_REF_NAME" = "beta" ]; then
+              T="beta"
+            elif [ "$GITHUB_REF_NAME" = "pre" ]; then
+              T="pre"
+            elif [ "$GITHUB_REF_NAME" = "red" ]; then
+              T="red"
+            else
+              T="dev"
+            fi
+            FE="ghcr.io/chalidnl/todoless-frontend:${T}"
+            PB="ghcr.io/chalidnl/todoless-pocketbase:${T}"
+            BRANCH="$GITHUB_REF_NAME"
           fi
-          echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          FE="${FE}"$'\n'"ghcr.io/chalidnl/todoless-frontend:${GITHUB_SHA}"
+          PB="${PB}"$'\n'"ghcr.io/chalidnl/todoless-pocketbase:${GITHUB_SHA}"
+          echo "fe_tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${FE}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "pb_tags<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "${PB}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Generate OCI metadata labels
         id: oci
@@ -117,9 +143,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.oci.outputs.labels }}
-          tags: |
-            ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.fe_tag }}
-            ghcr.io/chalidnl/todoless-frontend:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.fe_tags }}
           build-args: |
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ steps.meta.outputs.branch }}
@@ -135,9 +159,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           labels: ${{ steps.oci.outputs.labels }}
-          tags: |
-            ghcr.io/chalidnl/todoless-pocketbase:${{ steps.meta.outputs.pb_tag }}
-            ghcr.io/chalidnl/todoless-pocketbase:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.pb_tags }}
           build-args: |
             TODOLESS_BRANCH=${{ steps.meta.outputs.branch }}
             COMMIT_SHA=${{ github.sha }}
