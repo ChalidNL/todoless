@@ -73,6 +73,7 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
     }
 
     // Validate permissions
+    var validResources = ['tasks','groceries','calendar'];
     var validPerms = ['tasks:read','tasks:write','tasks:delete','groceries:read','groceries:write','groceries:delete','calendar:read','calendar:write','tasks:*','groceries:*','calendar:*','*'];
     for (var pi = 0; pi < rawPerms.length; pi++) {
       var perm = String(rawPerms[pi] || '');
@@ -82,7 +83,10 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
       }
       if (!valid) {
         var pParts = perm.split(':');
-        if (pParts.length === 2 && pParts[1] === '*') { valid = true; }
+        // Only accept "<resource>:*" when <resource> is a known resource —
+        // otherwise arbitrary "xxx:*" strings (e.g. "admin:*") slipped past
+        // validation and got persisted on the token (GH#20).
+        if (pParts.length === 2 && pParts[1] === '*' && validResources.indexOf(pParts[0]) !== -1) { valid = true; }
       }
       if (!valid) return c.json(400, { error: 'Invalid permission: ' + perm });
       if ((perm === '*' || perm.indexOf(':*') > 0) && auth.role !== 'admin' && auth.role !== 'owner') return c.json(403, { error: 'Admin only permission: ' + perm });
