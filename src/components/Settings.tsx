@@ -226,17 +226,12 @@ export const Settings = () => {
       setPasswordError(t('settings.passwordSame'));
       return;
     }
-    // Verify current password by attempting to re-authenticate
-    try {
-      await api.login(currentUser.email, currentPassword);
-    } catch {
-      setPasswordError(t('settings.currentPasswordIncorrect'));
-      return;
-    }
-    // Update password via SDK
+    // PocketBase validates `oldPassword` server-side (GH#66); a wrong current
+    // password surfaces as a 400 validation error mapped in AppContext.
     const success = await updateUser(currentUser.id, {
       password: newPassword,
       passwordConfirm: newPassword,
+      oldPassword: currentPassword,
     } as Partial<User>);
     if (success) {
       setCurrentPassword('');
@@ -245,8 +240,6 @@ export const Settings = () => {
       setEditingPassword(false);
       setShowPassword(false);
       showCompletionMessage(t('settings.passwordUpdated'));
-    } else {
-      setPasswordError(t('common.error'));
     }
   };
 

@@ -1018,12 +1018,20 @@ class PocketBaseClient {
       last_name: updates.lastName,
       display_name: updates.displayName,
       language: updates.language,
+      oldPassword: updates.oldPassword,
       password: updates.password,
-      passwordConfirm: updates.password,
+      passwordConfirm: updates.passwordConfirm,
     });
 
     if (id === pb.authStore.record?.id) {
       pb.authStore.save(pb.authStore.token, updated);
+      // Changing your own password rotates the PocketBase authTokenKey, so the
+      // pre-change token is rejected by the very next API call (GH#66). Re-auth
+      // with the new password so the session stays valid. Admin-guarded updates
+      // of other users (id !== self) skip this path.
+      if (updates.password && updates.oldPassword && pb.authStore.record?.email) {
+        await pb.collection('users').authWithPassword(pb.authStore.record.email, updates.password);
+      }
     }
 
     return updated;
@@ -1324,6 +1332,20 @@ class PocketBaseClient {
     if (!response.ok) throw new Error(data.error || 'Failed to generate briefing');
     return data;
   }
+}
+
+/**
+ * True when a PocketBase error means the provided old password was missing or
+ * wrong. PocketBase 0.23+ returns a field-level validation error for the
+ * `oldPassword` field on self password change (GH#66).
+ */
+export function isInvalidOldPasswordError(error: unknown): boolean {
+  const anyError = error as { response?: { data?: Record<string, unknown> }; data?: Record<string, unknown> };
+  const response = anyError?.response;
+  const field = (response?.data?.oldPassword as { code?: string } | undefined)
+    ?? (anyError?.data?.oldPassword as { code?: string } | undefined);
+  const code = field?.code;
+  return code === 'validation_invalid_old_password' || code === 'validation_required';
 }
 
 export const api = new PocketBaseClient();

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
-import { api } from '../lib/pocketbase-client';
+import { api, isInvalidOldPasswordError } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
 import { pb } from '../lib/pocketbase';
 
@@ -610,6 +610,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
       return true;
     } catch (error) {
+      if (isInvalidOldPasswordError(error)) {
+        showCompletionMessage(t('settings.currentPasswordIncorrect'));
+        return false;
+      }
       const message = error instanceof Error ? error.message : 'Failed to update member';
       showCompletionMessage(message);
       return false;
