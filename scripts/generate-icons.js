@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const { execFileSync } = require('node:child_process');
 const { existsSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, chmodSync } = require('node:fs');
-const { resolve } = require('node:path');
+const { resolve, basename } = require('node:path');
 const sharp = require('sharp');
 
 const root = resolve(__dirname, '..');
@@ -37,6 +37,10 @@ async function generatePng(svgBuf, dir, size, filename, opts = {}) {
 async function generateSet(svgBuf, dir, suffix, label) {
   mkdirSync(dir, { recursive: true });
 
+  // URL prefix for SVG wrapper hrefs — derive it from the target directory so
+  // the beta set points at /icons-beta instead of the regular /icons set.
+  const hrefDir = `/${basename(dir)}`;
+
   // Base PNG from SVG
   const basePng = await sharp(svgBuf).resize(512, 512).png().toBuffer();
   const pngSource = resolve(dir, `icon-source${suffix}.png`);
@@ -60,7 +64,7 @@ async function generateSet(svgBuf, dir, suffix, label) {
   for (const size of [192, 512]) {
     writeFileSync(
       resolve(dir, `icon-${size}${suffix}.svg`),
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">\n  <image href="/icons${suffix ? '-beta' : ''}/icon-${size}${suffix}.png" width="${size}" height="${size}"/>\n</svg>\n`,
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">\n  <image href="${hrefDir}/icon-${size}${suffix}.png" width="${size}" height="${size}"/>\n</svg>\n`,
     );
   }
 
