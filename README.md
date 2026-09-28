@@ -231,7 +231,7 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 - The PocketBase backend is not published to the host - only accessible internally via the nginx proxy. The admin dashboard at `/_/` is allow-listed to private networks only (see below).
 - Frontend container runs as an unprivileged Nginx user (uid 101) in a **read-only** filesystem with all capabilities dropped (`cap_drop: ALL`).
 - PocketBase container runs as a fixed non-root user (uid 1000) with all capabilities dropped (`cap_drop: ALL`, no `cap_add`).
-- Use `:latest` or `:dev` tags for convenience; pin to specific digests in production.
+- Use `:latest` for quick trials; pin a release tag, commit SHA tag, or digest in production.
 - Validate SMTP before going live (invite/password-reset emails).
 
 ### Accessing the PocketBase dashboard (admin)

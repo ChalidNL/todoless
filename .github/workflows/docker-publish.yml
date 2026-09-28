@@ -2,8 +2,8 @@ name: Build & Publish Docker Images
 
 on:
   push:
-    branches: [main, beta, red, dev]
-    # Publish semver image tags (:vX.Y.Z / :vX.Y) when a release tag (v*) is pushed
+    branches: [main]
+    # Publish semver image tags (:X.Y.Z / :X.Y) when a release tag (v*) is pushed.
     tags: ['v*']
   workflow_dispatch:
 
@@ -106,8 +106,12 @@ jobs:
           set -euo pipefail
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then
             # Release tag (e.g. v0.3.0-beta) -> publish semver image tags, no leading 'v'.
-            # Stable tags (v0.3.0) additionally get :vX.Y so self-hosters can pin a line.
+            # Stable tags (v0.3.0) additionally get :X.Y so self-hosters can pin a line.
             VER="${GITHUB_REF_NAME#v}"
+            if [[ ! "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+              echo "Release tags must match vX.Y.Z or vX.Y.Z-prerelease; got ${GITHUB_REF_NAME}" >&2
+              exit 1
+            fi
             FE="ghcr.io/chalidnl/todoless-frontend:${VER}"
             PB="ghcr.io/chalidnl/todoless-pocketbase:${VER}"
             MINOR=""
@@ -120,19 +124,12 @@ jobs:
             fi
             BRANCH="$GITHUB_REF_NAME"
           else
-            if [ "$GITHUB_REF_NAME" = "main" ]; then
-              T="latest"
-            elif [ "$GITHUB_REF_NAME" = "beta" ]; then
-              T="beta"
-            elif [ "$GITHUB_REF_NAME" = "pre" ]; then
-              T="pre"
-            elif [ "$GITHUB_REF_NAME" = "red" ]; then
-              T="red"
-            else
-              T="dev"
+            if [ "$GITHUB_REF_NAME" != "main" ]; then
+              echo "Only main publishes the moving Docker tag; use a v* release tag for versioned images." >&2
+              exit 1
             fi
-            FE="ghcr.io/chalidnl/todoless-frontend:${T}"
-            PB="ghcr.io/chalidnl/todoless-pocketbase:${T}"
+            FE="ghcr.io/chalidnl/todoless-frontend:latest"
+            PB="ghcr.io/chalidnl/todoless-pocketbase:latest"
             BRANCH="$GITHUB_REF_NAME"
           fi
           FE="${FE}"$'\n'"ghcr.io/chalidnl/todoless-frontend:${GITHUB_SHA}"

@@ -1,6 +1,6 @@
 # Invite and family baseline tests
 
-These tests are mandatory release evidence for every `red -> beta` promotion. Run them against a disposable, freshly reset beta database. Do not run destructive setup steps against production.
+These tests are mandatory release evidence before cutting a `vX.Y.Z` release tag or promoting a build to production. Run them against a disposable, freshly reset non-production database. Do not run destructive setup steps against production.
 
 | ID | Required scenario | Pass condition |
 |---|---|---|
