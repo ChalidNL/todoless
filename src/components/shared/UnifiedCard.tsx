@@ -735,7 +735,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowDeleteConfirm(false)}>
           <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
-            <p className="text-sm font-medium text-neutral-900 mb-4">{t('items.confirmDelete')}</p>
+            <p className="text-sm font-medium text-neutral-900 mb-4">{isTask ? t('common.confirmDeleteTitle') : t('items.confirmDelete')}</p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
