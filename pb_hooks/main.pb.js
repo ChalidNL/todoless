@@ -106,7 +106,17 @@ onRecordUpdate('tasks', (e) => {
 
 // ─── Public API endpoints ────────────────────────────────────────────────
 
-routerAdd('GET', '/api/hook-health', (c) => c.json(200, { ok: true }));
+// Health endpoint for container healthchecks. Unlike /api/health this route only
+// exists if pb_hooks loaded successfully, and the cheap DB probe additionally
+// fails on a locked/corrupt database. Succeeds on a fresh (empty users) instance.
+routerAdd('GET', '/api/hook-health', (c) => {
+  try {
+    $app.findRecordsByFilter('users', 'id != ""', '', 1, 0);
+    return c.json(200, { ok: true });
+  } catch (err) {
+    return c.json(500, { ok: false, error: String((err && err.message) || err) });
+  }
+});
 
 // ── Version endpoint — returns deployment info for environment comparison ──
 routerAdd('GET', '/api/version', (c) => {

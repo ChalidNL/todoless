@@ -3,7 +3,7 @@
 # PocketBase integration smoke (GH#98)
 #
 # Boots a FRESH PocketBase with the repo's pb_hooks + pb_migrations on a temp
-# dir, waits for /api/health, then runs tests/smoke/pb-smoke.test.mjs against
+# dir, waits for /api/hook-health, then runs tests/smoke/pb-smoke.test.mjs against
 # it (node --test + global fetch). Teardown happens on EXIT.
 #
 # Usage:
@@ -61,7 +61,7 @@ PB_PID=$!
 # --- 3. Wait for readiness ---------------------------------------------------
 ready=0
 for i in $(seq 1 60); do
-  if curl -fsS "http://127.0.0.1:${PB_PORT}/api/health" >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:${PB_PORT}/api/hook-health" >/dev/null 2>&1; then
     ready=1
     break
   fi
