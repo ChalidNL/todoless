@@ -12,8 +12,17 @@ Thanks for your interest in contributing! todoless is family data software — p
 ## How to contribute
 
 1. **Issues** — Bug reports and feature ideas are welcome. Search existing issues first.
-2. **Pull requests** — Fork, branch, make your change, open a PR against `dev`. Keep PRs focused — one thing, well done.
+2. **Pull requests** — Fork, create a short-lived feature/fix branch, make your change, and open a PR against `main`. Keep PRs focused — one thing, well done.
 3. **Help & questions** — For questions, ideas, or help, open an [issue](https://github.com/ChalidNL/todoless/issues) (GitHub Discussions is disabled for this repository).
+
+## Branch and release model
+
+- `main` is the only integration branch and the source of truth.
+- Short-lived feature/fix branches are merged into `main` by PR after the quality gates pass.
+- The `dev`, `beta`, and `red` branches are retired for public contribution and release flow. Do not target new PRs at them and do not rely on them for Docker tags.
+- Every push to `main` builds the moving `:latest` images plus immutable `:<commit-sha>` images.
+- Release tags named `vX.Y.Z` or `vX.Y.Z-prerelease` build immutable semver images without the leading `v`. Stable `vX.Y.Z` tags also publish a `:X.Y` line tag.
+- Production installs should pin a release tag, semver line tag, commit SHA tag, or digest. `:latest` is convenient for fresh installs and demos, not a production pin.
 
 ## Development setup
 
