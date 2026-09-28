@@ -122,7 +122,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       email: { type: "string", format: "email" },
       name: { type: "string" },
       avatar: { type: "string", nullable: true },
-      role: { type: "string", enum: ["admin", "user", "assistant", "child"] },
+      role: { type: "string", enum: ["owner", "admin", "member", "agent"] },
       family_id: { type: "string", nullable: true },
       active: { type: "boolean", default: true },
     };
