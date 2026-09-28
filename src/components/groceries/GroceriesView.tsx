@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
-import { NewGlobalHeader } from '../shared/NewGlobalHeader';
+import { AppHeader } from '../shared/NewGlobalHeader';
 import { ChevronDown, ChevronUp, RotateCcw, ShoppingCart, Target } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { groupGroceriesByCategory, partitionFocusedGroceries, sortGroceriesAlpha, type GrocerySortMode } from '../../lib/grocery-view-utils';
@@ -66,7 +66,7 @@ export const GroceriesView = () => {
   return (
     <>
       <div className="sticky top-0 z-40">
-        <NewGlobalHeader
+        <AppHeader
           screen="shop"
           onSearch={setSearchQuery}
           onAdd={handleAddItem}

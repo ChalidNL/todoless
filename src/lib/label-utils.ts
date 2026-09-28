@@ -6,7 +6,7 @@ const VISIBILITY_ORDER: Record<LabelVisibility, number> = {
   private: 2,
 };
 
-export function labelVisibilityRank(visibility?: LabelVisibility): number {
+function labelVisibilityRank(visibility?: LabelVisibility): number {
   return VISIBILITY_ORDER[visibility || 'family'] ?? VISIBILITY_ORDER.family;
 }
 

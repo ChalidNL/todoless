@@ -13,7 +13,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export interface MetaRowData {
+interface MetaRowData {
   labels: Array<{ id: string; name: string; color: string }>;
   assignee: { name: string; color: string; avatarUrl?: string; id: string } | null;
   dateStr: string | null;
@@ -55,8 +55,6 @@ interface TaskMetaRowProps {
  */
 export const TaskMetaRow = React.memo(function TaskMetaRow({
   data,
-  expanded,
-  themeColor = '#22c55e',
   onLabelClick, onAssigneeClick, onDateClick, onRepeatClick, onCommentClick, onSubtaskClick, onPriorityClick,
   isLabelFiltered, isAssigneeFiltered, isDateFiltered, isRepeatFiltered,
 }: TaskMetaRowProps) {

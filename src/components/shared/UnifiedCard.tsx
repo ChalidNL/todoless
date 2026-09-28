@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Task, Item, userDisplayName, Priority, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
@@ -19,7 +19,7 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
 import { LabelBadge } from './LabelBadge';
 import { AttributeChip } from './AttributeChip';
 import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
-import { entityColor, entityBg } from '../../lib/entity-colors';
+import { entityColor } from '../../lib/entity-colors';
 
 interface UnifiedCardProps {
   entity: Task | Item;
@@ -121,7 +121,6 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const isShopFiltered = (id?: string) => id ? isChipFilterActive('shop', id) : false;
 
   const hasLabels = isTask && entity.labels.length > 0;
-  const hasAssignee = isTask && !!entity.assignedTo;
   const hasShop = !!currentShop;
 
   const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));

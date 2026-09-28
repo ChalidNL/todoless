@@ -8,7 +8,7 @@ const SAFE_FALLBACK: SetupStatus = {
   setupComplete: false,
 };
 
-export function normalizeSetupStatus(payload: unknown): SetupStatus {
+function normalizeSetupStatus(payload: unknown): SetupStatus {
   if (!payload || typeof payload !== 'object') {
     return SAFE_FALLBACK;
   }

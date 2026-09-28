@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { CompactTaskCard } from '../components/shared/CompactTaskCard';

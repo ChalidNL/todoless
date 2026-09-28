@@ -150,18 +150,6 @@ export function formatDateInputValue(timestamp: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function parseDateInputValue(value: string) {
-  return value ? new Date(value).getTime() : undefined;
-}
-
-export function toDateLabel(timestamp: number, locale = 'en') {
-  return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(timestamp));
-}
-
-export function toTimeLabel(timestamp: number, locale = 'en') {
-  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp));
-}
-
 function taskToItem(task: Task): CalendarItem {
   const placement = getTaskCalendarPlacement(task);
   if (!placement) {
