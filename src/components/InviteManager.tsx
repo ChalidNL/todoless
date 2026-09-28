@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Share2, Copy, Trash2, Plus, UserPlus, Check, Clock, X } from 'lucide-react';
+import { copyTextToClipboard } from '../lib/clipboard';
 
 export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: number }) => {
   const { inviteCodes, generateInviteCode, deleteInviteCode, showCompletionMessage } = useApp();
@@ -55,9 +56,9 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
     setShowShareModal(true);
   };
 
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(currentInviteUrl);
-    showCompletionMessage(t('invite.urlCopied'));
+  const handleCopyUrl = async () => {
+    const ok = await copyTextToClipboard(currentInviteUrl);
+    showCompletionMessage(ok ? t('invite.urlCopied') : t('invite.copyFailed'));
   };
 
   const handleShare = async () => {
@@ -82,24 +83,8 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
     const fallbackText = t('invite.copyText')
       .replace('{code}', currentInviteCode)
       .replace('{url}', currentInviteUrl);
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(fallbackText);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = fallbackText;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.top = '-9999px';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-      showCompletionMessage(t('common.copiedToClipboard'));
-    } catch {
-      showCompletionMessage(t('invite.shareFailed'));
-    }
+    const ok = await copyTextToClipboard(fallbackText);
+    showCompletionMessage(ok ? t('common.copiedToClipboard') : t('invite.shareFailed'));
   };
 
   return (
