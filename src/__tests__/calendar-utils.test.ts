@@ -2,12 +2,15 @@ import { describe, expect, it } from 'vitest';
 import type { Task } from '../types';
 import {
   buildCalendarItems,
+  calendarItemContinuesOnDay,
+  calendarItemCoversDay,
   expandRecurringTask,
   formatDateInputValue,
   getDefaultCalendarView,
   getStoredCalendarView,
   sameLocalDay,
   storeCalendarView,
+  type CalendarItem,
 } from '../lib/calendar-utils';
 
 describe('calendar utilities', () => {
@@ -101,6 +104,107 @@ describe('calendar utilities', () => {
     const value = Date.parse('2026-06-16T15:30:00.000Z');
     expect(formatDateInputValue(value)).toMatch(/^2026-06-16T/);
     expect(sameLocalDay(value, Date.parse('2026-06-16T20:00:00.000Z'))).toBe(true);
+  });
+
+  it('covers every day a timed entry spans, not only its start day (GH#82)', () => {
+    const friday1800 = new Date(2026, 8, 25, 18, 0, 0, 0).getTime();
+    const sunday1800 = new Date(2026, 8, 27, 18, 0, 0, 0).getTime();
+    const item: CalendarItem = {
+      id: 'trip',
+      kind: 'task',
+      title: 'Trip',
+      startTime: friday1800,
+      endTime: sunday1800,
+      allDay: false,
+      source: task({ id: 'trip', title: 'Trip' }),
+    };
+
+    expect(calendarItemCoversDay(item, friday1800)).toBe(true);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 26, 12, 0, 0, 0).getTime())).toBe(true);
+    expect(calendarItemCoversDay(item, sunday1800)).toBe(true);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 24, 12, 0, 0, 0).getTime())).toBe(false);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 28, 12, 0, 0, 0).getTime())).toBe(false);
+
+    // Continuation flag: middle and end days continue, the start day does not.
+    expect(calendarItemContinuesOnDay(item, friday1800)).toBe(false);
+    expect(calendarItemContinuesOnDay(item, new Date(2026, 8, 26, 12, 0, 0, 0).getTime())).toBe(true);
+    expect(calendarItemContinuesOnDay(item, new Date(2026, 8, 27, 12, 0, 0, 0).getTime())).toBe(true);
+  });
+
+  it('keeps single-day all-day items on their own day only', () => {
+    const friday = new Date(2026, 8, 25, 0, 0, 0, 0).getTime();
+    const item: CalendarItem = {
+      id: 'single',
+      kind: 'task',
+      title: 'Chore',
+      startTime: friday,
+      endTime: friday,
+      allDay: true,
+      source: task({ id: 'single', title: 'Chore' }),
+    };
+
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 25, 12, 0, 0, 0).getTime())).toBe(true);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 26, 12, 0, 0, 0).getTime())).toBe(false);
+    expect(calendarItemContinuesOnDay(item, new Date(2026, 8, 25, 12, 0, 0, 0).getTime())).toBe(false);
+  });
+
+  it('covers all-day spans across their full range with exclusive ICS end semantics (GH#82)', () => {
+    const friday = new Date(2026, 8, 25, 2, 0, 0, 0).getTime();
+    const mondayExclusive = new Date(2026, 8, 28, 2, 0, 0, 0).getTime();
+    const item: CalendarItem = {
+      id: 'festival',
+      kind: 'task',
+      title: 'Festival',
+      startTime: friday,
+      endTime: mondayExclusive,
+      allDay: true,
+      source: task({ id: 'festival', title: 'Festival' }),
+    };
+
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 25, 12, 0, 0, 0).getTime())).toBe(true);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 26, 12, 0, 0, 0).getTime())).toBe(true);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 27, 12, 0, 0, 0).getTime())).toBe(true);
+    // Exclusive end: the Monday boundary day is not covered.
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 28, 12, 0, 0, 0).getTime())).toBe(false);
+    expect(calendarItemCoversDay(item, new Date(2026, 8, 24, 12, 0, 0, 0).getTime())).toBe(false);
+  });
+
+  it('keeps multi-day all-day entries in ranges over their continuation days (GH#82)', () => {
+    const friday = new Date(2026, 8, 25, 0, 0, 0, 0).getTime();
+    const mondayExclusive = new Date(2026, 8, 28, 0, 0, 0, 0).getTime();
+    const tasks = [task({ id: 'festival', title: 'Festival', dueDate: friday, allDay: true, endTime: mondayExclusive })];
+
+    // Visible range covers only Saturday + Sunday: the entry must still appear.
+    const weekend = buildCalendarItems({
+      tasks,
+      rangeStart: new Date(2026, 8, 26, 0, 0, 0, 0).getTime(),
+      rangeEnd: new Date(2026, 8, 27, 23, 59, 59, 999).getTime(),
+    });
+    expect(weekend).toHaveLength(1);
+    expect(weekend[0]).toMatchObject({ id: 'festival', allDay: true });
+    expect(calendarItemCoversDay(weekend[0], new Date(2026, 8, 27, 12, 0, 0, 0).getTime())).toBe(true);
+
+    // Visible range covers only the exclusive-end Monday: the entry is absent.
+    const mondayOnly = buildCalendarItems({
+      tasks,
+      rangeStart: new Date(2026, 8, 28, 0, 0, 0, 0).getTime(),
+      rangeEnd: new Date(2026, 8, 28, 23, 59, 59, 999).getTime(),
+    });
+    expect(mondayOnly).toHaveLength(0);
+  });
+
+  it('includes timed multi-day entries in ranges spanning their continuation days (GH#82)', () => {
+    const friday1800 = new Date(2026, 8, 25, 18, 0, 0, 0).getTime();
+    const sunday1800 = new Date(2026, 8, 27, 18, 0, 0, 0).getTime();
+    const tasks = [task({ id: 'trip', title: 'Trip', dueDate: friday1800, startTime: friday1800, endTime: sunday1800 })];
+
+    const items = buildCalendarItems({
+      tasks,
+      rangeStart: new Date(2026, 8, 26, 0, 0, 0, 0).getTime(),
+      rangeEnd: new Date(2026, 8, 27, 23, 59, 59, 999).getTime(),
+    });
+    expect(items).toHaveLength(1);
+    expect(calendarItemCoversDay(items[0], new Date(2026, 8, 26, 12, 0, 0, 0).getTime())).toBe(true);
   });
 });
 

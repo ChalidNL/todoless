@@ -474,7 +474,8 @@
     "threeDays": "3 jours",
     "week": "Semaine",
     "workweek": "Semaine de travail",
-    "month": "Mois"
+    "month": "Mois",
+    "continued": "Suite"
   },
   "inbox": {
     "title": "Boîte de réception",

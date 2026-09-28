@@ -474,7 +474,8 @@
     "threeDays": "3 días",
     "week": "Semana",
     "workweek": "Semana laboral",
-    "month": "Mes"
+    "month": "Mes",
+    "continued": "Continuación"
   },
   "inbox": {
     "title": "Bandeja de entrada",

@@ -474,7 +474,8 @@
     "threeDays": "3 days",
     "week": "Week",
     "workweek": "Work week",
-    "month": "Month"
+    "month": "Month",
+    "continued": "Continued"
   },
   "inbox": {
     "title": "Inbox",

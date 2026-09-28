@@ -474,7 +474,8 @@
     "threeDays": "3 Tage",
     "week": "Woche",
     "workweek": "Arbeitswoche",
-    "month": "Monat"
+    "month": "Monat",
+    "continued": "Fortsetzung"
   },
   "inbox": {
     "title": "Posteingang",

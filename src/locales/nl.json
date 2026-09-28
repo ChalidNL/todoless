@@ -474,7 +474,8 @@
     "threeDays": "3 dagen",
     "week": "Week",
     "workweek": "Werkweek",
-    "month": "Maand"
+    "month": "Maand",
+    "continued": "Vervolg"
   },
   "inbox": {
     "title": "Inbox",
