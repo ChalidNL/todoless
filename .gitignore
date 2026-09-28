@@ -59,17 +59,7 @@ compose-local.yml
 !/CONTRIBUTING.md
 
 # Keep the public repo minimal
-/docs/
-!/docs/assets/
-!/docs/assets/*
 /e2e/
-/src/**/__tests__/
-/src/**/*.test.ts
-/src/**/*.test.tsx
-/src/**/*.spec.ts
-/src/**/*.spec.tsx
-/pb_hooks/__tests__/
-/pb_hooks/**/__tests__/
 *.bak
 *.orig
 *.disabled
