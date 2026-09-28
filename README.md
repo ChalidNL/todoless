@@ -77,8 +77,13 @@ sudo mkdir -p /DATA/AppData/todoless/pb_data
 sudo mkdir -p /DATA/AppData/todoless/pb_migrations
 sudo mkdir -p /DATA/AppData/todoless/pb_hooks
 ```
+The PocketBase container runs as a fixed non-root user (uid 1000), so the
+directories must be owned by that user:
+```bash
+sudo chown -R 1000:1000 /DATA/AppData/todoless/pb_data /DATA/AppData/todoless/pb_migrations /DATA/AppData/todoless/pb_hooks
+```
 
-> **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting.
+> **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting, and chown those paths to uid 1000 as above.
 
 ### 3. Run
 ```bash
@@ -101,7 +106,7 @@ The app is exposed on port **7070** by default. To change it, set `TODOLESS_PORT
 ```yaml
 # docker-compose.yml (no edit needed)
 ports:
-  - target: 80
+  - target: 8080
     published: "${TODOLESS_PORT:-7070}"
 ```
 ```bash
@@ -155,6 +160,28 @@ docker compose up -d
 ```
 PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless/releases) for breaking changes before updating.
 
+### Updating to the non-root images (GH#45)
+
+Since the 2026-09-28 release both containers run as **non-root** users: the
+frontend as uid 101 (`nginx-unprivileged`) and PocketBase as uid 1000. If you
+are upgrading an install that was created before that release, your storage
+directories are still owned by root and PocketBase will refuse to start until
+they are migrated **once**:
+
+```bash
+cd todoless
+git pull
+docker compose stop
+sudo chown -R 1000:1000 /DATA/AppData/todoless/pb_data \
+    /DATA/AppData/todoless/pb_migrations \
+    /DATA/AppData/todoless/pb_hooks
+docker compose pull
+docker compose up -d
+```
+
+Fresh installs (see [Quick Start](#-quick-start)) already chown the directories
+during setup, so no extra step is needed there. The command is safe to rerun.
+
 ### Backups
 
 PocketBase's built-in backup is enabled by default: it creates a **consistent zip snapshot every day at 02:00** (server time) and **keeps the last 7 backups**. Backups live in `pb_data/backups` (on the host: `/DATA/AppData/todoless/pb_data/backups`) and include the database plus all uploaded files. Download or restore them under **Settings → Backups** in the admin dashboard — you can also change the schedule/retention or mirror backups to S3-compatible storage there.
@@ -190,8 +217,8 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 
 ### Security hardening
 - The PocketBase backend is not published to the host — only accessible internally via the nginx proxy.
-- Frontend container runs **read-only** with minimal privileges.
-- PocketBase container drops all capabilities except what it needs (`CHOWN`, `DAC_OVERRIDE`).
+- Frontend container runs as an unprivileged Nginx user (uid 101) in a **read-only** filesystem with all capabilities dropped (`cap_drop: ALL`).
+- PocketBase container runs as a fixed non-root user (uid 1000) with all capabilities dropped (`cap_drop: ALL`, no `cap_add`).
 - Use `:latest` or `:dev` tags for convenience; pin to specific digests in production.
 - Validate SMTP before going live (invite/password-reset emails).
 

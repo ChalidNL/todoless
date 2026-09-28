@@ -13,4 +13,15 @@ COPY pb_hooks/ /pb_hooks_bundled/
 COPY pocketbase-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# GH#45: run as a fixed non-root UID (1000) so the container needs no privileges
+# at all — the compose service drops ALL capabilities and adds none. The runtime
+# volumes (/pb_data, /pb_migrations, /pb_hooks) must be writable by uid 1000;
+# existing installs must run the one-time host chown documented in README
+# ("Updating -> Non-root images") before upgrading. Fresh named volumes inherit
+# this ownership from the image directories below.
+RUN mkdir -p /pb_data /pb_migrations /pb_hooks \
+ && chown -R 1000:1000 /pb_data /pb_migrations /pb_hooks
+
+USER 1000:1000
+
 ENTRYPOINT ["/entrypoint.sh"]

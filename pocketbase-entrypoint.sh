@@ -1,4 +1,24 @@
 #!/bin/sh
+# GH#45: this image runs as a fixed non-root UID (1000), and the compose service
+# drops ALL capabilities (no cap_add). The runtime volumes must therefore be
+# writable by uid 1000. Installations that predate the non-root images have
+# root-owned volumes — migrate them once on the host (see README -> Updating):
+#
+#   docker compose stop
+#   sudo chown -R 1000:1000 <host>/pb_data <host>/pb_migrations <host>/pb_hooks
+#   docker compose up -d
+#
+# Fail fast instead of starting PocketBase against unwritable volumes: without
+# migrations/hooks/DB access the app would come up half-broken.
+for dir in /pb_data /pb_migrations /pb_hooks; do
+  if [ ! -d "$dir" ] || [ ! -w "$dir" ] || [ ! -x "$dir" ]; then
+    echo "[entrypoint] ERROR: $dir is not writable by uid $(id -u)." >&2
+    echo "[entrypoint] Run the one-time host chown documented in README (Updating -> Non-root images)," >&2
+    echo "[entrypoint] e.g.: sudo chown -R 1000:1000 <host-path>/pb_data <host-path>/pb_migrations <host-path>/pb_hooks" >&2
+    exit 1
+  fi
+done
+
 # Seed bundled PocketBase migrations/hooks into runtime volumes.
 # Bundled files in the image are the source of truth for app-managed scripts.
 
