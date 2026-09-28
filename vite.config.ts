@@ -90,7 +90,10 @@ export default defineConfig({
         appShort: APP_SHORT,
       }),
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        // Vendored Swagger UI assets (GH#64) are served same-origin from /docs/
+        // by nginx; do not precache them into every PWA install (1.9 MB).
+        globIgnores: ['docs/**'],
       }
     })
   ],

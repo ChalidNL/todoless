@@ -19,6 +19,7 @@
 // Env: PB_URL (default http://127.0.0.1:8090)
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 
 const BASE = process.env.PB_URL || 'http://127.0.0.1:8090'
 
@@ -276,6 +277,36 @@ test('openapi.json serves a valid spec with paths', async () => {
   assert.equal(r.status, 200)
   assert.ok(r.data?.openapi, 'expected openapi version')
   assert.ok(r.data?.paths && Object.keys(r.data.paths).length > 0, 'expected documented paths')
+})
+
+// --- 12. Docs page is fully vendored (GH#64) --------------------------------
+test('docs page (GET /api/docs) references only vendored swagger-ui assets', async () => {
+  const r = await api('GET', '/api/docs')
+  assert.equal(r.status, 200)
+  const html = typeof r.data === 'string' ? r.data : ''
+  assert.ok(html.includes('swagger-ui'), 'expected Swagger UI page')
+  assert.ok(!html.includes('jsdelivr'), 'docs page must not load from a CDN (GH#64)')
+  assert.ok(!html.includes('cdn.jsdelivr.net'), 'docs page must not reference cdn.jsdelivr.net (GH#64)')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui.css'), 'expected vendored swagger-ui.css')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui-bundle.js'), 'expected vendored swagger-ui-bundle.js')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui-standalone-preset.js'), 'expected vendored swagger-ui-standalone-preset.js')
+  assert.ok(html.includes('/docs/swagger-ui/swagger-ui-init.js'), 'expected vendored swagger-ui-init.js')
+  // No inline script: the bootstrap lives in swagger-ui-init.js (same-origin,
+  // allowed by CSP script-src 'self'). Inline scripts would need 'unsafe-inline'.
+  assert.ok(!html.includes('SwaggerUIBundle({'), 'docs page must not inline the SwaggerUIBundle init (GH#64)')
+  assert.ok(!html.includes('SwaggerUIBundle.SwaggerUIStandalonePreset'), 'must not reference missing SwaggerUIBundle.SwaggerUIStandalonePreset')
+})
+
+test('vendored swagger-ui-init.js is self-contained and external-call-free (GH#64)', () => {
+  const init = readFileSync(new URL('../../public/docs/swagger-ui/swagger-ui-init.js', import.meta.url), 'utf8')
+  assert.ok(init.includes('SwaggerUIBundle({'), 'expected SwaggerUIBundle init')
+  // Standalone preset global (not SwaggerUIBundle.*, which does not exist)
+  assert.ok(init.includes('SwaggerUIStandalonePreset'), 'expected global SwaggerUIStandalonePreset reference')
+  assert.ok(!init.includes('SwaggerUIBundle.SwaggerUIStandalonePreset'), 'must not reference missing SwaggerUIBundle.SwaggerUIStandalonePreset')
+  // No external validator call / no outbound URLs (air-gapped LAN safe)
+  assert.ok(init.includes('validatorUrl: null'), 'expected validatorUrl: null to disable external validation')
+  const externalUrls = init.match(/https?:\/\//g) || []
+  assert.equal(externalUrls.length, 0, `init must contain no external URLs (found ${externalUrls.length})`)
 })
 
 test('every documented OpenAPI path is registered on the live server', { todo: 'OpenAPI path parity — GH#65 (t_ghcaa58e6a)' }, async () => {
