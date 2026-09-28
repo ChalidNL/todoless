@@ -139,18 +139,6 @@
       "calendar": {
         "title": "Agenda",
         "tagline": "Zie gezinsplannen in één oogopslag."
-      },
-      "rewards": {
-        "title": "Beloningen",
-        "tagline": "Vier samen de voortgang."
-      },
-      "notes": {
-        "title": "Notities",
-        "tagline": "Houd nuttige details dichtbij."
-      },
-      "sprint": {
-        "title": "Sprint",
-        "tagline": "Werk samen aan het volgende doel."
       }
     }
   },

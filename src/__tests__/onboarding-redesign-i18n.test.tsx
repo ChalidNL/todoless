@@ -223,7 +223,7 @@ describe('red onboarding visual and localization contract', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     fireEvent.click(await screen.findByRole('button', { name: /Discover/i }));
     await screen.findByText('Capture and finish what matters.');
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 2; index += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     }
     fireEvent.click(await screen.findByRole('button', { name: /Get Started/i }));
@@ -251,5 +251,35 @@ describe('red onboarding visual and localization contract', () => {
       expect(app).toContain(`t('${key}', language)`);
     }
     expect(app).not.toMatch(/label:\s*'(?:Taken|Agenda|Instellingen|Boodschappen)'/);
+  });
+
+  it('only advertises modules that actually exist in the app (GH#72)', async () => {
+    const onboarding = readFileSync(resolve(__dirname, '../components/Onboarding.tsx'), 'utf8');
+    for (const ghost of ["id: 'rewards'", "id: 'notes'", "id: 'sprint'"]) {
+      expect(onboarding).not.toContain(ghost);
+    }
+
+    render(
+      <LanguageProvider>
+        <Onboarding mode="admin" onComplete={vi.fn()} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Discover/i }));
+
+    expect(await screen.findByText('Capture and finish what matters.')).toBeInTheDocument();
+    for (const ghostCopy of ['Celebrate progress together.', 'Keep useful details close.', 'Focus together on the next goal.']) {
+      expect(screen.queryByText(ghostCopy)).not.toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('A shared shopping list without the noise.')).toBeInTheDocument();
+    expect(screen.queryByText('Celebrate progress together.')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByText('See family plans at a glance.')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /Get Started/i }));
   });
 });
