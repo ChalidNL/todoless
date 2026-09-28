@@ -688,6 +688,27 @@ routerAdd('POST', '/api/v1', (c) => {
       $app.save(rec);return c.json(200,{assigned:true});
     }
 
+    if (action === 'update') {
+      var id = String(gv(d,'id','')).trim();
+      var type = String(gv(d,'type','')).trim();
+      if(!id) return c.json(400,{error:'id required'});
+      if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
+      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      if(!rec) return c.json(404,{error:'Entry not found'});
+      if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      var changed = [];
+      if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
+      if (d.status !== undefined && type === 'task') { rec.set('status', String(d.status)); changed.push('status'); }
+      if (d.due_date !== undefined && type === 'task') { rec.set('due_date', (d.due_date === '' || d.due_date === null) ? null : String(d.due_date)); changed.push('due_date'); }
+      if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
+      if (d.assignee_id !== undefined) { rec.set('assigned_to', d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id)); changed.push('assignee_id'); }
+      if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
+      if (type === 'grocery' && d.quantity !== undefined) { var qty = parseInt(d.quantity, 10); if (isNaN(qty) || qty < 1) qty = 1; rec.set('quantity', qty); changed.push('quantity'); }
+      $app.save(rec);
+      return c.json(200, { updated: true, id: rec.id, type: type, changed: changed });
+    }
+
     if (action === 'delete') {
       var id = String(gv(d,'id','')).trim();
       var type = String(gv(d,'type','')).trim();
