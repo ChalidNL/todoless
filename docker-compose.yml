@@ -65,10 +65,21 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}  # inbound mail webhook shared secret (Bearer token); the mail webhook fails closed with 503 if unset
       PAPERLESS_WEBHOOK_SECRET: ${PAPERLESS_WEBHOOK_SECRET:-}  # Paperless-ngx webhook shared secret; the paperless webhook fails closed with 503 if unset
-      # GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
+# GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
       # The entrypoint runs `pocketbase superuser upsert` when both are set.
       POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-}
       POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-}
+      # PocketBase settings bootstrap (GH#51) — read by migration z067 on
+      # first start; empty values are ignored (settings are applied once).
+      APP_NAME: ${APP_NAME:-}
+      APP_URL: ${APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TRUSTED_PROXY_HEADERS: ${TRUSTED_PROXY_HEADERS:-}
+      TRUSTED_PROXY_USE_LEFTMOST_IP: ${TRUSTED_PROXY_USE_LEFTMOST_IP:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data
