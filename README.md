@@ -58,7 +58,7 @@ todoless is a small gift back to people who just want to organise daily life, on
 
 ## Quick Start
 
-todoless runs as three Docker containers: **nginx frontend**, **PocketBase backend** (database + auth + API), and an optional **MCP server**. All orchestrated with Docker Compose.
+todoless runs as two Docker containers: **nginx frontend** and **PocketBase backend** (database + auth + API), orchestrated with Docker Compose.
 
 ### Requirements
 - A machine that can run **Docker** and **Docker Compose** (Linux, Raspberry Pi 4+, NAS, or any always-on computer).
@@ -123,10 +123,10 @@ The `.env.example` file documents available variables. Not all are used by the p
 
 | Variable | What it does |
 |---|---|
-| `TZ` | Timezone (default: `Europe/Amsterdam`) |
+| `TZ` | Timezone (default: `Europe/Amsterdam`, hardcoded in compose) |
 | `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
 
-> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
+> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images. Vars annotated as unused in `.env.example` are kept for future wiring and have no effect on the shipped compose.
 
 ---
 

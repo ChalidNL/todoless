@@ -25,10 +25,11 @@ cp .env.example .env  # edit as needed
 npm run dev            # frontend dev server
 ```
 
-For the full stack with PocketBase:
+The repo ships one `docker-compose.yml`, used both for production and local use — it pulls the pre-built PocketBase image, so it's the fastest way to get a backend running locally while you iterate on the frontend with `npm run dev`:
 ```bash
-docker compose -f docker-compose.dev.yml up
+docker compose up -d pocketbase
 ```
+There is no separate dev compose file. If you need to test frontend + backend together in containers, run the full stack the same way production does (see [README Quick Start](README.md#quick-start)).
 
 ## Quality checks
 
