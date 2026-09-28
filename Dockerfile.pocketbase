@@ -10,8 +10,9 @@ ENV TODOLESS_BRANCH=$TODOLESS_BRANCH
 ENV COMMIT_SHA=$COMMIT_SHA
 ENV PB_VERSION=$PB_VERSION
 
-# Install curl for healthcheck (wget not available in this image)
-RUN apk add --no-cache curl
+# curl for the healthcheck; sqlite (provides the sqlite3 CLI) for the
+# migration-rename sync (GH#34) in pocketbase-entrypoint.sh.
+RUN apk add --no-cache curl sqlite
 
 # Copy migration and hook files into the image so they are always present,
 # even on a fresh install with empty runtime volumes.
