@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
 import { api, isInvalidOldPasswordError } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
@@ -166,7 +166,7 @@ interface AppContextType {
   updateNote: (id: string, updates: Partial<Note>) => void;
   updateLabel: (id: string, updates: Partial<Label>) => void;
   updateShop: (id: string, updates: Partial<Shop>) => void;
-  updateAppSettings: (settings: Partial<AppSettings>) => void;
+  updateAppSettings: (settings: Partial<AppSettings>) => Promise<boolean>;
   updateUser: (id: string, updates: Partial<User>) => Promise<boolean>;
   deleteUser: (id: string) => Promise<boolean>;
   deleteItem: (id: string) => void;
@@ -251,6 +251,27 @@ const defaultSettings: AppSettings = {
   reminderMinutes: 15,
 };
 
+// Single source of truth for the task/item -> unified entries mapping.
+// Used by BOTH the legacy refreshEntries() path and the GH#75 bootstrap path
+// so the two can never diverge.
+const buildEntries = (fetchedTasks: Task[], fetchedItems: Item[]): Entry[] => {
+  const taskEntries: Entry[] = fetchedTasks.map(t => ({
+    ...t,
+    type: 'task' as const,
+    completed: t.status === 'done',
+  }));
+  const itemEntries: Entry[] = fetchedItems.map(i => ({
+    ...i,
+    type: 'item' as const,
+    status: i.completed ? 'done' as const : 'todo' as const,
+    blocked: false,
+    flag: false,
+    focus: i.focus ?? false,
+    completed: i.completed,
+  }));
+  return [...taskEntries, ...itemEntries];
+};
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<Item[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -266,7 +287,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [sharedView, setSharedView] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
-  const [progressStats, setProgressStats] = useState<ProgressStats>({
+  const [progressStats] = useState<ProgressStats>({
     tasksCompletedThisWeek: 0,
     lastWeekReset: getWeekStart(),
   });
@@ -306,32 +327,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       api.getTasks(),
       api.getItems(),
     ]);
-    const taskEntries: Entry[] = fetchedTasks.map(t => ({
-      ...t,
-      type: 'task' as const,
-      completed: t.status === 'done',
-    }));
-    const itemEntries: Entry[] = fetchedItems.map(i => ({
-      ...i,
-      type: 'item' as const,
-      status: i.completed ? 'done' as const : 'todo' as const,
-      blocked: false,
-      flag: false,
-      focus: i.focus ?? false,
-      completed: i.completed,
-    }));
     setTasks(fetchedTasks);
     setItems(fetchedItems);
-    setEntries([...taskEntries, ...itemEntries]);
+    setEntries(buildEntries(fetchedTasks, fetchedItems));
   };
 
   const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
     void (async () => {
       if (entry.type === 'task') {
-        const { type, completed, ...taskData } = entry;
+        const { completed, ...taskData } = entry;
         await api.createTask({ ...taskData, status: completed ? 'done' : 'todo' });
       } else {
-        const { type, status, blocked, blockedComment, flag, ...itemData } = entry;
+        const { blocked, blockedComment, flag, ...itemData } = entry;
         await api.createItem(itemData);
       }
       await refreshEntries();
@@ -343,10 +350,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
       const entry = entries.find(e => e.id === id);
       if (entry?.type === 'task') {
-        const { type, completed, ...taskUpdates } = updates;
+        const { completed, ...taskUpdates } = updates;
         await api.updateTask(id, taskUpdates);
       } else if (entry?.type === 'item') {
-        const { type, status, blocked, blockedComment, flag, ...itemUpdates } = updates;
+        const { blocked, blockedComment, flag, ...itemUpdates } = updates;
         await api.updateItem(id, itemUpdates);
       }
       await refreshEntries();
@@ -408,26 +415,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await Promise.all([
-        refreshItems(),
-        refreshTasks(),
-        refreshNotes(),
-        refreshLabels(),
-        refreshShops(),
-        refreshSprints(),
-        refreshUsers(),
-        refreshInvites(),
-        refreshRewards(),
-        refreshGoals(),
-        refreshProjects(),
-        refreshReminders(),
-        refreshSettings(),
-        refreshEntries(),
-      ]);
+      // GH#75: single family-scoped bootstrap call instead of 14 parallel
+      // collection fetches. Sprints/rewards/goals/projects are deliberately
+      // NOT fetched at boot (no component renders them from this state).
+      const boot = await api.getBootstrap();
+      setTasks(boot.tasks);
+      setItems(boot.items);
+      setNotes(boot.notes);
+      setLabels(boot.labels);
+      setShops(boot.shops);
+      setUsers(boot.users);
+      setInviteCodes(boot.invites);
+      setReminders(boot.reminders);
+      setEntries(buildEntries(boot.tasks, boot.items));
+      if (boot.settings) {
+        setAppSettings(prev => ({
+          ...prev,
+          ...boot.settings,
+          currentUserId: pb.authStore.record?.id,
+          hasCompletedOnboarding: true,
+        }));
+      } else {
+        // No settings record yet — let the legacy path create the default.
+        await refreshSettings();
+      }
       setDataLoadState('ready');
     } catch (error) {
-      setDataLoadState('error');
-      setLoadError(error instanceof Error && error.message ? error.message : t('common.error'));
+      // Fallback: legacy per-collection refresh MINUS the collections the UI
+      // never shows (sprints/rewards/goals/projects).
+      console.error('refreshAll: /api/bootstrap failed, falling back to per-collection refresh', error);
+      try {
+        await Promise.all([
+          refreshItems(),
+          refreshTasks(),
+          refreshNotes(),
+          refreshLabels(),
+          refreshShops(),
+          refreshUsers(),
+          refreshInvites(),
+          refreshReminders(),
+          refreshSettings(),
+          refreshEntries(),
+        ]);
+        setDataLoadState('ready');
+      } catch (error2) {
+        setDataLoadState('error');
+        setLoadError(error2 instanceof Error && error2.message ? error2.message : t('common.error'));
+      }
     }
   };
 
@@ -594,9 +628,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
-  const updateAppSettings = (settings: Partial<AppSettings>) => {
+  const updateAppSettings = async (settings: Partial<AppSettings>): Promise<boolean> => {
+    const previous = appSettings;
     setAppSettings((prev) => ({ ...prev, ...settings }));
-    void api.updateSettings(settings);
+    try {
+      await api.updateSettings(settings);
+      return true;
+    } catch (error) {
+      setAppSettings(previous);
+      const message = error instanceof Error ? error.message : t('settings.notificationsSaveFailed');
+      showCompletionMessage(message);
+      return false;
+    }
   };
 
   const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {

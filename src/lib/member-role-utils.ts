@@ -2,22 +2,8 @@ import { User } from '../types';
 
 type CompactUser = Partial<Pick<User, 'firstName' | 'lastName' | 'displayName' | 'name' | 'email' | 'role' | 'member_type'>> & Pick<User, 'email'>;
 
-export function isSystemAdminRole(role?: User['role'] | null): boolean {
+function isSystemAdminRole(role?: User['role'] | null): boolean {
   return role === 'admin' || role === 'owner';
-}
-
-export function getMemberRoleLabel(user?: Pick<User, 'role'> | null): string {
-  if (!user) return 'Member';
-  if (user.role === 'agent') return 'Agent';
-  if (isSystemAdminRole(user.role)) return 'Admin';
-  return 'Member';
-}
-
-export function getMemberRoleColor(user?: Pick<User, 'role'> | null): string {
-  if (!user) return '#6b7280';
-  if (user.role === 'agent') return '#2563eb';
-  if (isSystemAdminRole(user.role)) return '#7c3aed';
-  return '#0f766e';
 }
 
 export function getCompactUserName(user?: CompactUser | null): string {

@@ -1,9 +1,7 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { CalendarView } from '../components/calendar/CalendarView';
-import { Settings } from '../components/Settings';
 import { SettingsPreferences } from '../components/SettingsPreferences';
 import { LabelsView } from '../components/LabelsView';
 import type { Task } from '../types';

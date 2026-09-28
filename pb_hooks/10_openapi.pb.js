@@ -344,6 +344,46 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       { name: "shop_id", in: "query", schema: { type: "string" } },
     ];
   }
+
+  function bootstrapSchema() {
+    return {
+      tags: ["Bootstrap"],
+      summary: "Load all data for the app boot in one call",
+      description: "Returns the raw records for every collection the UI renders at boot (tasks, items, notes, labels, shops, users, invites, reminders, settings), scoped to the authenticated user's family. Privacy rules are re-applied server-side because the hook query path bypasses collection listRules. Settings is a single record or null; the client creates its default when missing.",
+      operationId: "loadBootstrap",
+      security: authRequired(),
+      responses: {
+        "200": {
+          description: "Boot payload",
+          content: { "application/json": { schema: {
+            type: "object",
+            properties: {
+              tasks: { type: "array", items: { "$ref": "#/components/schemas/Task" } },
+              items: { type: "array", items: { "$ref": "#/components/schemas/Item" } },
+              notes: { type: "array", items: { "$ref": "#/components/schemas/Note" } },
+              labels: { type: "array", items: { "$ref": "#/components/schemas/Label" } },
+              shops: { type: "array", items: { "$ref": "#/components/schemas/Shop" } },
+              users: { type: "array", items: { "$ref": "#/components/schemas/User" } },
+              invites: { type: "array", items: { "$ref": "#/components/schemas/Invite" } },
+              reminders: { type: "array", items: { "$ref": "#/components/schemas/Reminder" } },
+              settings: { type: "object", nullable: true, properties: {
+                setup_complete: { type: "boolean", default: false },
+                sprint_duration: { type: "string", example: "2weeks" },
+                sprint_start_day: { type: "integer", default: 1 },
+                language: { type: "string", example: "en" },
+                archive_retention_days: { type: "integer", default: 30 },
+                auto_cleanup: { type: "boolean", default: true },
+                theme: { type: "string", example: "light" },
+                user: { type: "string" },
+              } },
+            },
+          } } },
+        },
+        "401": { description: "Unauthorized" },
+        "403": { description: "API token lacks entries/tasks/groceries read permission" },
+      },
+    };
+  }
   
   function crudGetPost(pathSchema) {
     return pathSchema;
@@ -913,6 +953,11 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       // ── Entries (unified read) ──
       "/entries": {
         get: listEntriesSchema(),
+      },
+
+      // ── Bootstrap (single call app boot, GH#75) ──
+      "/bootstrap": {
+        get: bootstrapSchema(),
       },
 
       // ── Tasks (custom actions — full CRUD is via /api/collections/tasks/records) ──

@@ -21,6 +21,19 @@ const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime(
 
 const toISO = (value?: number | string | null): string | null => (value ? new Date(value).toISOString() : null);
 
+/** Payload of the single-call boot endpoint (GH#75): raw records already normalized. */
+interface BootstrapPayload {
+  tasks: Task[];
+  items: Item[];
+  notes: Note[];
+  labels: Label[];
+  shops: Shop[];
+  users: User[];
+  invites: InviteCode[];
+  reminders: Reminder[];
+  settings: AppSettings | null;
+}
+
 const relationIds = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
 
@@ -464,7 +477,7 @@ class PocketBaseClient {
         ids.push(child.id);
         await pb.collection('tasks').update(parentId, { subtask_ids: ids });
       }
-    } catch (err) {
+    } catch {
       // Parent update failed — subtask created but won't show up linked
       // This shouldn't happen with valid auth
     }
@@ -920,6 +933,10 @@ class PocketBaseClient {
       auto_cleanup: updates.autoCleanup,
       theme: updates.theme,
       briefing_enabled: updates.briefingEnabled,
+      notification_email: updates.notificationEmail,
+      notification_push: updates.notificationPush,
+      task_reminders: updates.taskReminders,
+      reminder_minutes: updates.reminderMinutes,
     };
     if (updates.setupComplete !== undefined) {
       payload.setup_complete = updates.setupComplete;
@@ -932,6 +949,32 @@ class PocketBaseClient {
 
     const created = await pb.collection('app_settings').create({ user: userId, ...payload });
     return normalizeSettings(created);
+  }
+
+  /**
+   * One-call boot payload (GH#75): replaces the 14-request refreshAll sequence.
+   * Uses a raw fetch (same pattern as createInvite) because the endpoint is a
+   * custom hook route, not a PocketBase collection SDK call.
+   */
+  async getBootstrap(): Promise<BootstrapPayload> {
+    const response = await fetch('/api/bootstrap', {
+      headers: { 'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '' },
+    });
+    if (!response.ok) {
+      throw new Error(`Bootstrap request failed with status ${response.status}`);
+    }
+    const data = await response.json();
+    return {
+      tasks: (data.tasks || []).map(normalizeTask),
+      items: (data.items || []).map(normalizeItem),
+      notes: (data.notes || []).map(normalizeNote),
+      labels: (data.labels || []).map(normalizeLabel),
+      shops: (data.shops || []).map(normalizeShop),
+      users: (data.users || []).map(normalizeUser),
+      invites: (data.invites || []).map(normalizeInvite),
+      reminders: (data.reminders || []).map(normalizeReminder),
+      settings: data.settings ? normalizeSettings(data.settings) : null,
+    };
   }
 
   async getInvites(): Promise<InviteCode[]> {
@@ -1308,29 +1351,6 @@ class PocketBaseClient {
       const data = await response.json();
       throw new Error(data.error || 'Failed to toggle token');
     }
-  }
-
-  // ─── Daily Briefing ─────────────────────────────────────────────────────
-  async getBriefing(): Promise<any> {
-    const response = await fetch('/api/briefing', {
-      headers: { Authorization: `Bearer ${pb.authStore.token}` },
-    });
-    if (!response.ok) {
-      if (response.status === 404) return null;
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to fetch briefing');
-    }
-    return response.json();
-  }
-
-  async generateBriefing(): Promise<any> {
-    const response = await fetch('/api/briefing/generate', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${pb.authStore.token}` },
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to generate briefing');
-    return data;
   }
 }
 

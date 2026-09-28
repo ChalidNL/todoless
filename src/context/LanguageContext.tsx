@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import i18n, { changeAppLanguage } from '../i18n';
+import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { changeAppLanguage } from '../i18n';
 import {
   DEFAULT_UI_LANGUAGE,
   getStoredLanguage,
@@ -63,5 +63,3 @@ export function useLanguage() {
   }
   return context;
 }
-
-export { i18n };

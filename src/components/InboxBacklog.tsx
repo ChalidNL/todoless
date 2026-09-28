@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { NewGlobalHeader } from './shared/NewGlobalHeader';
+import { AppHeader } from './shared/NewGlobalHeader';
 import { Inbox, Rows2, AlertTriangle, Check, ArrowRight, CheckCheck } from 'lucide-react';
 import { t, formatDate } from '../i18n/translations';
 import { StatCard } from './shared/StatCard';
-import { SectionHeader } from './shared/SectionHeader';
 import { EmptyState } from './shared/EmptyState';
 import { TaskCard } from './shared/TaskCard';
 
@@ -150,7 +149,7 @@ export const InboxBacklog = () => {
   return (
     <>
       <div className="sticky top-0 z-40">
-        <NewGlobalHeader
+        <AppHeader
           screen="inbox"
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}

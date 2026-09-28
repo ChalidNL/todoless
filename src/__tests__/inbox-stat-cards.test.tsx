@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { InboxBacklog } from '../components/InboxBacklog';
@@ -25,7 +24,7 @@ vi.mock('../context/AppContext', () => ({
 }));
 
 vi.mock('../components/shared/NewGlobalHeader', () => ({
-  NewGlobalHeader: () => <div data-testid="global-header" />,
+  AppHeader: () => <div data-testid="global-header" />,
 }));
 
 vi.mock('../components/shared/CompactTaskCard', () => ({

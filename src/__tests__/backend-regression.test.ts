@@ -37,6 +37,15 @@ describe('backend regression guards', () => {
     expect(client).toContain("priority: task.priority || 'medium'");
   });
 
+  it('sends the four notification preference fields in the updateSettings payload (GH#69)', () => {
+    const client = repoFile('src/lib/pocketbase-client.ts');
+
+    expect(client).toContain('notification_email: updates.notificationEmail');
+    expect(client).toContain('notification_push: updates.notificationPush');
+    expect(client).toContain('task_reminders: updates.taskReminders');
+    expect(client).toContain('reminder_minutes: updates.reminderMinutes');
+  });
+
   it('allows family members to update and delete visible shared tasks', () => {
     const migration = repoFile('pb_migrations/z066_family_shared_task_write_rules.js');
 

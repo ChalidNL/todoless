@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
