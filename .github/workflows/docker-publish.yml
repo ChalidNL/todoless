@@ -89,6 +89,16 @@ jobs:
           fi
           echo "branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
 
+      - name: Generate OCI metadata labels
+        id: oci
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/chalidnl/todoless-frontend
+            ghcr.io/chalidnl/todoless-pocketbase
+          tags: |
+            type=ref,event=branch
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -106,6 +116,7 @@ jobs:
           file: Dockerfile.frontend
           push: true
           platforms: linux/amd64
+          labels: ${{ steps.oci.outputs.labels }}
           tags: |
             ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.fe_tag }}
             ghcr.io/chalidnl/todoless-frontend:${{ github.sha }}
@@ -121,6 +132,7 @@ jobs:
           file: Dockerfile.pocketbase
           push: true
           platforms: linux/amd64,linux/arm64
+          labels: ${{ steps.oci.outputs.labels }}
           tags: |
             ghcr.io/chalidnl/todoless-pocketbase:${{ steps.meta.outputs.pb_tag }}
             ghcr.io/chalidnl/todoless-pocketbase:${{ github.sha }}
