@@ -213,6 +213,53 @@ test('member sees shared but not private tasks (v1 list + native API)', async ()
   assert.ok(!nativeTitles.includes('Smoke private task'), 'private task must be hidden natively')
 })
 
+// --- 5b. GH#75: single-call boot payload --------------------------------
+// GET /api/bootstrap must return exactly the 9 UI collections in one
+// family-scoped call, apply the same privacy rules as the SDK listRules
+// (tasks privacy + label visibility), and omit the collections the UI never
+// renders at boot (sprints/rewards/goals/projects).
+test('bootstrap loads all UI collections in one family-scoped call', async () => {
+  const noAuth = await api('GET', '/api/bootstrap')
+  assert.equal(noAuth.status, 401, 'unauthenticated bootstrap must be rejected')
+
+  const r = await api('GET', '/api/bootstrap', { token: memberToken })
+  assert.equal(r.status, 200)
+  assert.ok(r.data && typeof r.data === 'object', 'expected a JSON object payload')
+
+  // Exactly the 9 boot collections, raw records (arrays) except settings.
+  const expectedKeys = ['tasks', 'items', 'notes', 'labels', 'shops', 'users', 'invites', 'reminders', 'settings']
+  for (const key of expectedKeys) {
+    assert.ok(Object.prototype.hasOwnProperty.call(r.data, key), `missing boot key: ${key}`)
+  }
+  assert.ok(Array.isArray(r.data.tasks), 'tasks must be an array of raw records')
+  assert.ok(Array.isArray(r.data.items), 'items must be an array of raw records')
+  assert.ok(Array.isArray(r.data.notes), 'notes must be an array of raw records')
+  assert.ok(Array.isArray(r.data.labels), 'labels must be an array of raw records')
+  assert.ok(Array.isArray(r.data.shops), 'shops must be an array of raw records')
+  assert.ok(Array.isArray(r.data.users), 'users must be an array of raw records')
+  assert.ok(Array.isArray(r.data.invites), 'invites must be an array of raw records')
+  assert.ok(Array.isArray(r.data.reminders), 'reminders must be an array of raw records')
+  assert.ok(r.data.settings === null || typeof r.data.settings === 'object', 'settings must be a raw record or null')
+  assert.equal(Object.keys(r.data).length, 9, 'bootstrap must return exactly the 9 UI collections')
+
+  // Collections the UI never renders at boot must be absent.
+  for (const absent of ['sprints', 'rewards', 'goals', 'projects', 'calendar_events', 'briefings', 'entries']) {
+    assert.ok(!Object.prototype.hasOwnProperty.call(r.data, absent), `bootstrap must NOT include ${absent}`)
+  }
+
+  // Privacy is enforced server-side (findRecordsByFilter bypasses listRules):
+  // the member (same family as admin) sees the shared task but not admin's
+  // private task; raw records carry the snake_case fields the normalizers read.
+  const taskTitles = (r.data.tasks || []).map((rec) => rec.title)
+  assert.ok(taskTitles.includes('Smoke shared task'), 'family-visible task must be in bootstrap')
+  assert.ok(!taskTitles.includes('Smoke private task'), 'private task must be filtered out of bootstrap')
+
+  // Auth users must be family-scoped: caller + family members, raw records.
+  const userIds = (r.data.users || []).map((rec) => rec.id)
+  assert.ok(userIds.includes(member.id), 'caller must be in bootstrap users')
+  assert.ok(userIds.includes(admin.id), 'same-family member must be in bootstrap users')
+})
+
 // --- 6. Block/unblock --------------------------------------------------
 test('admin blocks the member', async () => {
   const r = await api('POST', '/api/v1', {
