@@ -33,7 +33,7 @@ const canonicalTaskLabels = (labelId?: string | null, labels?: string[]): string
   return result;
 };
 
-const normalizeUser = (record: any): User => ({
+export const normalizeUser = (record: any): User => ({
   id: record.id,
   email: record.email,
   name: record.name || record.email || [record.first_name, record.last_name].filter(Boolean).join(' ') || record.display_name || record.id || '?',
@@ -49,7 +49,7 @@ const normalizeUser = (record: any): User => ({
   active: record.member_status ? record.member_status === 'active' : (typeof record.active === 'boolean' ? record.active : true),
 });
 
-const normalizeTask = (record: any): Task => ({
+export const normalizeTask = (record: any): Task => ({
   id: record.id,
   title: record.title,
   status: record.status || 'todo',
@@ -81,7 +81,7 @@ const normalizeTask = (record: any): Task => ({
   createdBy: record.user,
 });
 
-const normalizeItem = (record: any): Item => ({
+export const normalizeItem = (record: any): Item => ({
   id: record.id,
   title: record.title,
   completed: !!record.completed,
@@ -119,7 +119,7 @@ const normalizeNote = (record: any): Note => ({
   createdBy: record.user,
 });
 
-const normalizeLabel = (record: any): Label => ({
+export const normalizeLabel = (record: any): Label => ({
   id: record.id,
   name: record.name,
   color: record.color,
@@ -131,7 +131,7 @@ const normalizeLabel = (record: any): Label => ({
   createdBy: record.user,
 });
 
-const normalizeShop = (record: any): Shop => ({
+export const normalizeShop = (record: any): Shop => ({
   id: record.id,
   name: record.name,
   color: record.color,
@@ -173,7 +173,7 @@ const normalizeCalendarEvent = (record: any): CalendarEvent => ({
   createdBy: record.owner || record.user,
 });
 
-const normalizeInvite = (record: any): InviteCode => ({
+export const normalizeInvite = (record: any): InviteCode => ({
   id: record.id,
   code: record.code,
   createdBy: record.user,
@@ -185,7 +185,7 @@ const normalizeInvite = (record: any): InviteCode => ({
   type: record.type || 'human',
 });
 
-const normalizeSettings = (record: any): AppSettings => ({
+export const normalizeSettings = (record: any): AppSettings => ({
   hasCompletedOnboarding: true,
   setupComplete: !!record.setup_complete,
   sprintDuration: record.sprint_duration || '2weeks',

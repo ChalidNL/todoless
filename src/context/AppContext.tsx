@@ -1,10 +1,34 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
-import { api } from '../lib/pocketbase-client';
+import {
+  api,
+  normalizeInvite,
+  normalizeItem,
+  normalizeLabel,
+  normalizeSettings,
+  normalizeShop,
+  normalizeTask,
+  normalizeUser,
+} from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
 import { pb } from '../lib/pocketbase';
+import {
+  itemToEntry,
+  removeById,
+  taskToEntry,
+  upsertById,
+  upsertEntry,
+  type RealtimeEvent,
+} from '../lib/realtime-apply';
 
 const FILTER_PARAM_KEY = 'filters';
+
+// Realtime events are applied straight to local state (GH#77). These
+// constants bound how stale the local state may get before a silent full
+// resync runs as a safety net: after a quiet period following an event burst,
+// on a hard cap interval, and whenever the window regains focus.
+const REALTIME_SAFETY_DEBOUNCE_MS = 45_000;
+const REALTIME_SAFETY_MAX_INTERVAL_MS = 5 * 60_000;
 
 interface ChipFilter { type: string; id: string; label?: string; color?: string; }
 
@@ -276,6 +300,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [dataLoadState, setDataLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // Realtime event safety net (GH#77): local-applied events schedule a silent
+  // full resync; track the pending debounce and any in-flight silent refresh so
+  // bursts can never fan out into duplicate full refetches.
+  const safetyRefreshTimerRef = useRef<number | null>(null);
+  const safetyRefreshInFlightRef = useRef<Promise<void> | null>(null);
+
   // Entry model state
   const [entries, setEntries] = useState<Entry[]>([]);
 
@@ -408,27 +438,153 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await Promise.all([
-        refreshItems(),
-        refreshTasks(),
-        refreshNotes(),
-        refreshLabels(),
-        refreshShops(),
-        refreshSprints(),
-        refreshUsers(),
-        refreshInvites(),
-        refreshRewards(),
-        refreshGoals(),
-        refreshProjects(),
-        refreshReminders(),
-        refreshSettings(),
-        refreshEntries(),
-      ]);
+      await loadAllData();
       setDataLoadState('ready');
     } catch (error) {
       setDataLoadState('error');
       setLoadError(error instanceof Error && error.message ? error.message : t('common.error'));
     }
+  };
+
+  // Core "fetch everything" used both by refreshAll (with loading state) and by
+  // the realtime safety net (silently, so the user never sees a loading flash).
+  const loadAllData = async () => {
+    await Promise.all([
+      refreshItems(),
+      refreshTasks(),
+      refreshNotes(),
+      refreshLabels(),
+      refreshShops(),
+      refreshSprints(),
+      refreshUsers(),
+      refreshInvites(),
+      refreshRewards(),
+      refreshGoals(),
+      refreshProjects(),
+      refreshReminders(),
+      refreshSettings(),
+      refreshEntries(),
+    ]);
+  };
+
+  // Runs a fire-and-forget operation so it can never reject with an unhandled
+  // promise rejection (realtime callbacks and safety-net timers are fire and
+  // forget by design).
+  const runGuarded = async (context: string, run: () => Promise<unknown>): Promise<void> => {
+    try {
+      await run();
+    } catch (error) {
+      console.error(`[AppContext] ${context} failed:`, error);
+    }
+  };
+
+  // Silent full resync used as the realtime safety net (GH#77). Coalesces so a
+  // focus + interval + debounce firing together result in a single refetch.
+  const refreshAllSilent = async (): Promise<void> => {
+    if (safetyRefreshInFlightRef.current) {
+      await safetyRefreshInFlightRef.current;
+      return;
+    }
+    const run = (async () => {
+      if (!pb.authStore.isValid || !pb.authStore.record) return;
+      try {
+        await loadAllData();
+      } catch (error) {
+        console.error('[AppContext] realtime safety refresh failed:', error);
+      }
+    })();
+    safetyRefreshInFlightRef.current = run;
+    try {
+      await run;
+    } finally {
+      if (safetyRefreshInFlightRef.current === run) {
+        safetyRefreshInFlightRef.current = null;
+      }
+    }
+  };
+
+  // Debounced safety net: any realtime event defers a full resync until the
+  // event stream has been quiet for REALTIME_SAFETY_DEBOUNCE_MS. This catches
+  // events that could not be applied locally (e.g. missing record payloads)
+  // without refetching on every event.
+  const scheduleSafetyRefresh = useCallback(() => {
+    if (safetyRefreshTimerRef.current !== null) {
+      window.clearTimeout(safetyRefreshTimerRef.current);
+    }
+    safetyRefreshTimerRef.current = window.setTimeout(() => {
+      safetyRefreshTimerRef.current = null;
+      void runGuarded('realtime safety refresh', refreshAllSilent);
+    }, REALTIME_SAFETY_DEBOUNCE_MS);
+  }, []);
+
+  // Realtime event reducers (GH#77): PocketBase events carry the action and the
+  // full record, so apply them to local state instead of refetching the whole
+  // list on every event. The safety net above reconciles anything we could not
+  // apply locally.
+  const applyTaskEvent = (e: RealtimeEvent): void => {
+    const { action, record } = e;
+    if (!record?.id) {
+      scheduleSafetyRefresh();
+      return;
+    }
+    if (action === 'delete') {
+      setEntries((prev) => removeById(prev, record.id));
+      setTasks((prev) => removeById(prev, record.id));
+    } else {
+      const task = normalizeTask(record);
+      setEntries((prev) => upsertEntry(prev, taskToEntry(task)));
+      setTasks((prev) => upsertById(prev, task));
+    }
+    scheduleSafetyRefresh();
+  };
+
+  const applyItemEvent = (e: RealtimeEvent): void => {
+    const { action, record } = e;
+    if (!record?.id) {
+      scheduleSafetyRefresh();
+      return;
+    }
+    if (action === 'delete') {
+      setEntries((prev) => removeById(prev, record.id));
+      setItems((prev) => removeById(prev, record.id));
+    } else {
+      const item = normalizeItem(record);
+      setEntries((prev) => upsertEntry(prev, itemToEntry(item)));
+      setItems((prev) => upsertById(prev, item));
+    }
+    scheduleSafetyRefresh();
+  };
+
+  const applyCollectionEvent = <T extends { id: string }>(
+    setter: React.Dispatch<React.SetStateAction<T[]>>,
+    normalize: (record: any) => T,
+  ) => (e: RealtimeEvent): void => {
+    const { action, record } = e;
+    if (!record?.id) {
+      scheduleSafetyRefresh();
+      return;
+    }
+    if (action === 'delete') {
+      setter((prev) => removeById(prev, record.id));
+    } else {
+      setter((prev) => upsertById(prev, normalize(record)));
+    }
+    scheduleSafetyRefresh();
+  };
+
+  const applySettingsEvent = (e: RealtimeEvent): void => {
+    const { record } = e;
+    if (!record?.id) {
+      scheduleSafetyRefresh();
+      return;
+    }
+    setAppSettings((prev) => ({
+      ...prev,
+      ...normalizeSettings(record),
+      currentUserId: pb.authStore.record?.id,
+      hasCompletedOnboarding: true,
+    }));
+    scheduleSafetyRefresh();
   };
 
   useEffect(() => {
@@ -454,13 +610,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
     const subscribeAll = async () => {
       await Promise.all([
-        pb.collection('tasks').subscribe('*', () => void refreshEntries()),
-        pb.collection('items').subscribe('*', () => void refreshEntries()),
-        pb.collection('users').subscribe('*', () => void refreshUsers()),
-        pb.collection('labels').subscribe('*', () => void refreshLabels()),
-        pb.collection('shops').subscribe('*', () => void refreshShops()),
-        pb.collection('invite_codes').subscribe('*', () => void refreshInvites()),
-        pb.collection('app_settings').subscribe('*', () => void refreshSettings()),
+        pb.collection('tasks').subscribe('*', applyTaskEvent),
+        pb.collection('items').subscribe('*', applyItemEvent),
+        pb.collection('users').subscribe('*', applyCollectionEvent(setUsers, normalizeUser)),
+        pb.collection('labels').subscribe('*', applyCollectionEvent(setLabels, normalizeLabel)),
+        pb.collection('shops').subscribe('*', applyCollectionEvent(setShops, normalizeShop)),
+        pb.collection('invite_codes').subscribe('*', applyCollectionEvent(setInviteCodes, normalizeInvite)),
+        pb.collection('app_settings').subscribe('*', applySettingsEvent),
       ]);
     };
 
@@ -474,6 +630,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       pb.collection('shops').unsubscribe();
       pb.collection('invite_codes').unsubscribe();
       pb.collection('app_settings').unsubscribe();
+      if (safetyRefreshTimerRef.current !== null) {
+        window.clearTimeout(safetyRefreshTimerRef.current);
+        safetyRefreshTimerRef.current = null;
+      }
+    };
+  }, [pb.authStore.isValid]);
+
+  // Safety-net full resync (GH#77): realtime events are applied locally, so a
+  // periodic silent resync plus one on window focus recovers from missed events
+  // (offline gaps, dropped subscriptions, server restarts) without refetching
+  // on every event.
+  useEffect(() => {
+    if (!pb.authStore.isValid) return;
+
+    const intervalId = window.setInterval(() => {
+      void runGuarded('realtime safety interval', refreshAllSilent);
+    }, REALTIME_SAFETY_MAX_INTERVAL_MS);
+
+    const onFocus = () => {
+      void runGuarded('realtime safety focus', refreshAllSilent);
+    };
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', onFocus);
     };
   }, [pb.authStore.isValid]);
 
