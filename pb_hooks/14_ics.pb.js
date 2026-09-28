@@ -31,26 +31,102 @@ var _icsDt = function(ts) {
   }catch(e){return'';}
 };
 
-// Escape ICS text and fold the full "NAME:value" line at 75 octets per RFC 5545.
-// Folding must count the property name (RFC 5545 s3.1), so long SUMMARY/DESCRIPTION
-// lines stay within the limit; continuation lines carry 74 octets + leading space.
+// UTF-8 octet length of a string (RFC 5545 s3.1 folds by octets, not chars).
+var _octets = function(s) {
+  var n=0;
+  for(var i=0;i<s.length;i++){
+    var c=s.charCodeAt(i);
+    if(c<=0x7F){n+=1;}
+    else if(c<=0x7FF){n+=2;}
+    else if(c>=0xD800&&c<=0xDBFF&&i+1<s.length){
+      var lo=s.charCodeAt(i+1);
+      if(lo>=0xDC00&&lo<=0xDFFF){n+=4;i++;}
+      else{n+=3;}
+    }
+    else{n+=3;}
+  }
+  return n;
+};
+
+// Length of one code point at text[i]: returns [utf8 octets, js chars].
+var _cpLen = function(text,i) {
+  var c=text.charCodeAt(i);
+  if(c<=0x7F)return[1,1];
+  if(c<=0x7FF)return[2,1];
+  if(c>=0xD800&&c<=0xDBFF&&i+1<text.length){
+    var lo=text.charCodeAt(i+1);
+    if(lo>=0xDC00&&lo<=0xDFFF)return[4,2];
+  }
+  return[3,1];
+};
+
+// Escape ICS TEXT, then fold the full "NAME:value" line at 75 octets per
+// RFC 5545 s3.1. Folding counts the property name (so long SUMMARY/DESCRIPTION
+// lines stay within the limit) and the UTF-8 octets of the value (multibyte
+// chars cannot smuggle a physical line over 75 octets). Continuation lines
+// start with a space and carry up to 74 more octets (75 total incl. the fold
+// space); folding never splits a multi-byte UTF-8 sequence. Literal CR is
+// escaped like LF, so Windows newlines in values cannot emit control chars.
 var _icsLine = function(name,value) {
   if(value===undefined||value===null)value='';
-  var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
-  var line=name+':'+text;
-  if(line.length<=75)return line;
-  var out='';
-  var pos=0;
-  var take=75;
-  while(pos<line.length){
-    out+=line.substring(pos,pos+take);
-    pos+=take;
-    if(pos<line.length){
-      out+='\r\n ';
-      take=74;
+  var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'\\r').replace(/\n/g,'\\n');
+  var prefix=name+':';
+  var out=prefix;
+  var cur=_octets(prefix);
+  var p=0;
+  while(p<text.length){
+    var cp=_cpLen(text,p);
+    if(cur+cp[0]<=75){
+      out+=text.substring(p,p+cp[1]);
+      cur+=cp[0];
+    }else{
+      out+='\r\n '+text.substring(p,p+cp[1]);
+      cur=1+cp[0];
     }
+    p+=cp[1];
   }
   return out;
+};
+
+// Normalize a PB date value (string like "2026-09-28 00:00:00.000Z" or Date)
+// to a UTC ms instant. Values without an explicit timezone suffix are treated
+// as UTC so parsing never depends on the server's local TZ.
+var _toUtcMs = function(v) {
+  if(!v)return NaN;
+  try{
+    if(typeof v.getTime==='function'){var gt=v.getTime();return isNaN(gt)?NaN:gt;}
+  }catch(e){}
+  var s=String(v).replace(' ','T').trim();
+  if(!/Z$/i.test(s)&&!/[+-]\d{2}:?\d{2}$/.test(s))s+='Z';
+  var d=new Date(s);
+  return isNaN(d.getTime())?NaN:d.getTime();
+};
+
+// Milliseconds of the last Sunday at <hour>:00 UTC in <month> (0-based).
+var _lastSundayUtc = function(year,month,hour) {
+  var last=new Date(Date.UTC(year,month+1,0)); // day 0 of next month = last day
+  var back=last.getUTCDay();                   // walk back to Sunday
+  return Date.UTC(year,month,last.getUTCDate()-back,hour,0,0,0);
+};
+
+// Calendar date (y/M/d) of a UTC instant in Europe/Amsterdam — the app default
+// timezone and the zone UI-created all-day dates are entered in. Amsterdam is
+// UTC+1 (CET) with UTC+2 (CEST) from the last Sunday of March 01:00 UTC to the
+// last Sunday of October 01:00 UTC. Hardcoding these rules keeps /api/ics-export
+// deterministic on every server regardless of its local TZ; UI all-day tasks are
+// stored as local-midnight→UTC and ICS imports as midnight UTC, both of which
+// resolve to the intended calendar date in Amsterdam.
+var _amsterdamYmd = function(ms) {
+  var d=new Date(ms);
+  var y=d.getUTCFullYear();
+  var dstStart=_lastSundayUtc(y,2,1);
+  var dstEnd=_lastSundayUtc(y,9,1);
+  var off=(ms>=dstStart&&ms<dstEnd)?2:1;
+  var local=new Date(ms+off*3600000);
+  var yy=local.getUTCFullYear();
+  var MM=String(local.getUTCMonth()+1).padStart(2,'0');
+  var dd=String(local.getUTCDate()).padStart(2,'0');
+  return {y:yy,M:MM,d:dd,key:yy+'-'+MM+'-'+dd};
 };
 
 // Generate a stable UID for tasks without one
@@ -212,7 +288,12 @@ routerAdd('POST','/api/ics-import',function(c){
 // ─── GET /api/ics-export — Export tasks as .ics ─────────────────────
 routerAdd('GET','/api/ics-export',function(c){
   function icsDt(ts){if(!ts)return'';try{var d=new Date(ts);if(isNaN(d.getTime()))return'';return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0')+'T'+String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+String(d.getUTCSeconds()).padStart(2,'0')+'Z';}catch(e){return'';}}
-  function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');var line=name+':'+text;if(line.length<=75)return line;var out='';var pos=0;var take=75;while(pos<line.length){out+=line.substring(pos,pos+take);pos+=take;if(pos<line.length){out+='\r\n ';take=74;}}return out;}
+  function octets(s){var n=0;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);if(c<=0x7F){n+=1;}else if(c<=0x7FF){n+=2;}else if(c>=0xD800&&c<=0xDBFF&&i+1<s.length){var lo=s.charCodeAt(i+1);if(lo>=0xDC00&&lo<=0xDFFF){n+=4;i++;}else{n+=3;}}else{n+=3;}}return n;}
+  function cpLen(text,i){var c=text.charCodeAt(i);if(c<=0x7F)return[1,1];if(c<=0x7FF)return[2,1];if(c>=0xD800&&c<=0xDBFF&&i+1<text.length){var lo=text.charCodeAt(i+1);if(lo>=0xDC00&&lo<=0xDFFF)return[4,2];}return[3,1];}
+  function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'\\r').replace(/\n/g,'\\n');var prefix=name+':';var out=prefix;var cur=octets(prefix);var p=0;while(p<text.length){var cp=cpLen(text,p);if(cur+cp[0]<=75){out+=text.substring(p,p+cp[1]);cur+=cp[0];}else{out+='\r\n '+text.substring(p,p+cp[1]);cur=1+cp[0];}p+=cp[1];}return out;}
+  function lastSundayUtc(year,month,hour){var last=new Date(Date.UTC(year,month+1,0));var back=last.getUTCDay();return Date.UTC(year,month,last.getUTCDate()-back,hour,0,0,0);}
+  function amsterdamYmd(ms){var d=new Date(ms);var y=d.getUTCFullYear();var dstStart=lastSundayUtc(y,2,1);var dstEnd=lastSundayUtc(y,9,1);var off=(ms>=dstStart&&ms<dstEnd)?2:1;var local=new Date(ms+off*3600000);var yy=local.getUTCFullYear();var MM=String(local.getUTCMonth()+1).padStart(2,'0');var dd=String(local.getUTCDate()).padStart(2,'0');return{y:yy,M:MM,d:dd,key:yy+'-'+MM+'-'+dd};}
+  function toUtcMs(v){if(!v)return NaN;try{if(typeof v.getTime==='function'){var gt=v.getTime();return isNaN(gt)?NaN:gt;}}catch(e){}var s=String(v).replace(' ','T').trim();if(!/Z$/i.test(s)&&!/[+-]\d{2}:?\d{2}$/.test(s))s+='Z';var d=new Date(s);return isNaN(d.getTime())?NaN:d.getTime();}
   function genUid(taskId,familyId){return'todoless-'+String(taskId)+'@family-'+String(familyId);}
   function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
   try{
@@ -267,60 +348,39 @@ routerAdd('GET','/api/ics-export',function(c){
 
       if(allDay){
         // All-day: DATE format (no time). RFC 5545: DTEND;VALUE=DATE is EXCLUSIVE,
-        // so a single-day event must end on the NEXT day.
+        // so a single-day event must end on the NEXT day. Dates are derived in
+        // Europe/Amsterdam (deterministic, not the server's local TZ).
         var sd=t.get('start_time')||t.get('due_date');
         var ed=t.get('end_time');
-        if(sd){
-          try{
-            var d=new Date(String(sd).replace(' ','T'));
-            if(!isNaN(d.getTime())){
-              var y=d.getFullYear();
-              var M=String(d.getMonth()+1).padStart(2,'0');
-              var day=String(d.getDate()).padStart(2,'0');
-              dtStart=y+M+day;
-              // Use the stored end date only when it is a real LATER day (imports store
-              // the exclusive DTEND, so it is already the day after the last event day).
-              if(ed){
-                try{
-                  var d2=new Date(String(ed).replace(' ','T'));
-                  if(!isNaN(d2.getTime())){
-                    var y2=d2.getFullYear();
-                    var M2=String(d2.getMonth()+1).padStart(2,'0');
-                    var day2=String(d2.getDate()).padStart(2,'0');
-                    var startKey=y+'-'+M+'-'+day;
-                    var endKey=y2+'-'+M2+'-'+day2;
-                    if(endKey>startKey)dtEnd=y2+M2+day2;
-                  }
-                }catch(ex){}
-              }
-              if(!dtEnd){
-                // No explicit end (or end == start day): exclusive DTEND = start + 1 day
-                var dNext=new Date(d);
-                dNext.setDate(dNext.getDate()+1);
-                dtEnd=dNext.getFullYear()+String(dNext.getMonth()+1).padStart(2,'0')+String(dNext.getDate()).padStart(2,'0');
-              }
-            }
-          }catch(ex2){}
+        var sdMs=toUtcMs(sd);
+        if(!isNaN(sdMs)){
+          var sdY=amsterdamYmd(sdMs);
+          dtStart=sdY.y+sdY.M+sdY.d;
+          // Use the stored end date only when it is a real LATER day (imports store
+          // the exclusive DTEND, so it is already the day after the last event day).
+          var edMs=ed?toUtcMs(ed):NaN;
+          if(!isNaN(edMs)){
+            var edY=amsterdamYmd(edMs);
+            if(edY.key>sdY.key)dtEnd=edY.y+edY.M+edY.d;
+          }
+          if(!dtEnd){
+            // No explicit end (or end == start day): exclusive DTEND = start + 1 day
+            var next=new Date(Date.UTC(sdY.y,sdY.M-1,Number(sdY.d)+1));
+            dtEnd=next.getUTCFullYear()+String(next.getUTCMonth()+1).padStart(2,'0')+String(next.getUTCDate()).padStart(2,'0');
+          }
         }
       }else{
-        // Timed event: DATE-TIME in UTC
+        // Timed event: DATE-TIME in UTC (parsed deterministically, Z assumed
+        // when the stored value carries no explicit timezone suffix)
         var st=t.get('start_time');
         var et=t.get('end_time');
-        if(st){
-          try{
-            var stDate=new Date(String(st).replace(' ','T'));
-            if(!isNaN(stDate.getTime())){
-              dtStart=icsDt(stDate.getTime());
-            }
-          }catch(ex3){}
+        var stMs=toUtcMs(st);
+        if(!isNaN(stMs)){
+          dtStart=icsDt(stMs);
         }
-        if(et){
-          try{
-            var etDate=new Date(String(et).replace(' ','T'));
-            if(!isNaN(etDate.getTime())){
-              dtEnd=icsDt(etDate.getTime());
-            }
-          }catch(ex4){}
+        var etMs=toUtcMs(et);
+        if(!isNaN(etMs)){
+          dtEnd=icsDt(etMs);
         }
       }
 
