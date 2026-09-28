@@ -70,7 +70,29 @@ var _cpLen = function(text,i) {
 var _icsLine = function(name,value) {
   if(value===undefined||value===null)value='';
   var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'\\r').replace(/\n/g,'\\n');
-  var prefix=name+':';
+  return _icsFold(name+':',text);
+};
+
+// Fold a NON-TEXT content line (e.g. RRULE, whose RECUR grammar is not a TEXT
+// value) at 75-octet boundaries per RFC 5545 s3.1, reusing the same octet-aware
+// fold machinery as _icsLine. NO TEXT escaping is applied — RRULE separators
+// (';' between rule parts, ',' in lists, '=' in name=value pairs) must stay
+// literal. Control characters are scrubbed first (the RRULE grammar has no
+// newlines; a stored value with raw \n or \r must not leak control chars into
+// the content line). Returns '' when nothing remains after scrubbing, so the
+// caller can skip an empty RRULE line.
+var _icsLineRaw = function(name,value) {
+  if(value===undefined||value===null)value='';
+  var text=String(value).replace(/[\x00-\x1F\x7F]/g,'');
+  if(!text)return'';
+  return _icsFold(name+':',text);
+};
+
+// Shared fold loop: pack the prefix then the value into physical lines of at
+// most 75 UTF-8 octets (RFC 5545 s3.1). Continuation lines start with a space
+// and carry up to 74 octets (75 total incl. the fold space); folding never
+// splits a multi-byte UTF-8 sequence.
+var _icsFold = function(prefix,text) {
   var out=prefix;
   var cur=_octets(prefix);
   var p=0;
@@ -291,7 +313,9 @@ routerAdd('GET','/api/ics-export',function(c){
   function icsDt(ts){if(!ts)return'';try{var d=new Date(ts);if(isNaN(d.getTime()))return'';return d.getUTCFullYear()+String(d.getUTCMonth()+1).padStart(2,'0')+String(d.getUTCDate()).padStart(2,'0')+'T'+String(d.getUTCHours()).padStart(2,'0')+String(d.getUTCMinutes()).padStart(2,'0')+String(d.getUTCSeconds()).padStart(2,'0')+'Z';}catch(e){return'';}}
   function octets(s){var n=0;for(var i=0;i<s.length;i++){var c=s.charCodeAt(i);if(c<=0x7F){n+=1;}else if(c<=0x7FF){n+=2;}else if(c>=0xD800&&c<=0xDBFF&&i+1<s.length){var lo=s.charCodeAt(i+1);if(lo>=0xDC00&&lo<=0xDFFF){n+=4;i++;}else{n+=3;}}else{n+=3;}}return n;}
   function cpLen(text,i){var c=text.charCodeAt(i);if(c<=0x7F)return[1,1];if(c<=0x7FF)return[2,1];if(c>=0xD800&&c<=0xDBFF&&i+1<text.length){var lo=text.charCodeAt(i+1);if(lo>=0xDC00&&lo<=0xDFFF)return[4,2];}return[3,1];}
-  function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'\\r').replace(/\n/g,'\\n');var prefix=name+':';var out=prefix;var cur=octets(prefix);var p=0;while(p<text.length){var cp=cpLen(text,p);if(cur+cp[0]<=75){out+=text.substring(p,p+cp[1]);cur+=cp[0];}else{out+='\r\n '+text.substring(p,p+cp[1]);cur=1+cp[0];}p+=cp[1];}return out;}
+  function icsFold(prefix,text){var out=prefix;var cur=octets(prefix);var p=0;while(p<text.length){var cp=cpLen(text,p);if(cur+cp[0]<=75){out+=text.substring(p,p+cp[1]);cur+=cp[0];}else{out+='\r\n '+text.substring(p,p+cp[1]);cur=1+cp[0];}p+=cp[1];}return out;}
+  function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r/g,'\\r').replace(/\n/g,'\\n');return icsFold(name+':',text);}
+  function icsLineRaw(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/[\x00-\x1F\x7F]/g,'');if(!text)return'';return icsFold(name+':',text);}
   function lastSundayUtc(year,month,hour){var last=new Date(Date.UTC(year,month+1,0));var back=last.getUTCDay();return Date.UTC(year,month,last.getUTCDate()-back,hour,0,0,0);}
   function amsterdamYmd(ms){var d=new Date(ms);var y=d.getUTCFullYear();var dstStart=lastSundayUtc(y,2,1);var dstEnd=lastSundayUtc(y,9,1);var off=(ms>=dstStart&&ms<dstEnd)?2:1;var local=new Date(ms+off*3600000);var yy=local.getUTCFullYear();var MM=String(local.getUTCMonth()+1).padStart(2,'0');var dd=String(local.getUTCDate()).padStart(2,'0');return{y:yy,M:MM,d:dd,key:yy+'-'+MM+'-'+dd};}
   function toUtcMs(v){if(!v)return NaN;try{if(typeof v.getTime==='function'){var gt=v.getTime();return isNaN(gt)?NaN:gt;}}catch(e){}var s=String(v).replace(' ','T').trim();if(!/Z$/i.test(s)&&!/[+-]\d{2}:?\d{2}$/.test(s))s+='Z';var d=new Date(s);return isNaN(d.getTime())?NaN:d.getTime();}
@@ -421,7 +445,8 @@ routerAdd('GET','/api/ics-export',function(c){
       ics+=icsLine('SUMMARY',title)+'\r\n';
       if(desc)ics+=icsLine('DESCRIPTION',desc)+'\r\n';
       if(loc)ics+=icsLine('LOCATION',loc)+'\r\n';
-      if(rrule)ics+='RRULE:'+rrule+'\r\n';
+      var rrLine=rrule?icsLineRaw('RRULE',rrule):'';
+      if(rrLine)ics+=rrLine+'\r\n';
       ics+='END:VEVENT\r\n';
     }
 

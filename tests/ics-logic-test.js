@@ -54,7 +54,7 @@ const exportHandler = handlers.find((h) => h.route === '/api/ics-export');
 if (!exportHandler) { console.error('export handler not found'); process.exit(1); }
 
 // Direct access to the top-level helpers (promoted to the vm global).
-const { _octets, _icsLine, _toUtcMs, _lastSundayUtc, _amsterdamYmd } = sandbox;
+const { _octets, _icsLine, _icsLineRaw, _toUtcMs, _lastSundayUtc, _amsterdamYmd } = sandbox;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -179,6 +179,42 @@ function veventProps(ics) {
 }
 
 // ---------------------------------------------------------------------------
+// 2b. RRULE (non-TEXT) line folding + control-char scrub
+// ---------------------------------------------------------------------------
+{
+  // Long RRULE: value alone exceeds the 75-octet limit once "RRULE:" is added.
+  const longRrule = 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;UNTIL=20261231T235959Z;INTERVAL=2;WKST=SU;BYHOUR=9;BYMINUTE=30;BYSECOND=0';
+  ok(utf8Len('RRULE:' + longRrule) > 75, '2b. long RRULE total line > 75 octets (test has teeth)');
+  const folded = _icsLineRaw('RRULE', longRrule);
+  const lines = folded.split('\r\n');
+  ok(lines.every((l) => utf8Len(l) <= 75), '2b. every RRULE physical line <= 75 octets');
+  ok(lines.length >= 2, '2b. long RRULE folds into >= 2 physical lines');
+  eq(folded.replace(/\r\n /g, ''), 'RRULE:' + longRrule, '2b. RRULE fold preserves the exact value (unfolded)');
+
+  // RRULE is NOT a TEXT value: separators must remain literal.
+  ok(!folded.includes('\\;'), '2b. RRULE semicolons not escaped (non-TEXT)');
+  ok(!folded.includes('\\,'), '2b. RRULE commas not escaped (non-TEXT)');
+  ok(!folded.includes('\\\\'), '2b. RRULE backslashes not escaped (non-TEXT)');
+
+  // Hostile RRULE: raw control chars scrubbed, no CR/LF leak into the line.
+  const hostileOut = _icsLineRaw('RRULE', 'FREQ=DAILY\nCOUNT=5\rINTERVAL=2');
+  ok(!hostileOut.includes('\n'), '2b. hostile RRULE has no raw LF');
+  ok(!hostileOut.includes('\r'), '2b. hostile RRULE has no raw CR');
+  eq(hostileOut, 'RRULE:FREQ=DAILYCOUNT=5INTERVAL=2', '2b. hostile RRULE control chars scrubbed');
+
+  // All-control RRULE collapses to empty -> caller must skip the line.
+  eq(_icsLineRaw('RRULE', '\n\r\x00\x1f'), '', '2b. control-only RRULE returns empty line marker');
+  eq(_icsLineRaw('RRULE', ''), '', '2b. empty RRULE returns empty line marker');
+
+  // Multibyte safety on the raw fold path: never split a UTF-8 sequence.
+  const emojiRrule = 'FREQ=WEEKLY;' + '😀'.repeat(30); // 120 octets of emoji
+  const ef = _icsLineRaw('RRULE', emojiRrule);
+  ok(ef.split('\r\n').every((l) => utf8Len(l) <= 75), '2b. emoji RRULE lines all <= 75 octets');
+  ok(!/[\uD800-\uDFFF]/.test(ef.replace(/[\uD800-\uDFFF][\uDC00-\uDFFF]/g, '')), '2b. no lone surrogates after raw fold');
+  eq(ef.replace(/\r\n /g, ''), 'RRULE:' + emojiRrule, '2b. emoji RRULE content preserved (unfolded)');
+}
+
+// ---------------------------------------------------------------------------
 // 3. TZ-safe all-day dates (server TZ forced to America/Los_Angeles)
 // ---------------------------------------------------------------------------
 {
@@ -235,6 +271,9 @@ function veventProps(ics) {
     // long multibyte description + Windows-newline description
     task({ uid: 'multibyte', all_day: true, start_time: '2026-05-01T00:00:00.000Z', description: 'é'.repeat(40) }),
     task({ uid: 'crdesc', all_day: true, start_time: '2026-05-02T00:00:00.000Z', description: 'first line\r\nsecond line' }),
+    // long RRULE (>75 octets) + hostile RRULE (raw control chars)
+    task({ uid: 'long-rrule', all_day: false, start_time: '2026-09-28T09:30:00.000Z', end_time: '2026-09-28T10:30:00.000Z', rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;UNTIL=20261231T235959Z;INTERVAL=2;WKST=SU;BYHOUR=9;BYMINUTE=30;BYSECOND=0' }),
+    task({ uid: 'hostile-rrule', all_day: false, start_time: '2026-09-28T09:30:00.000Z', end_time: '2026-09-28T10:30:00.000Z', rrule: 'FREQ=DAILY\nCOUNT=5\rINTERVAL=2' }),
   ];
 
   const res = driveExport(tasks);
@@ -290,6 +329,10 @@ function veventProps(ics) {
   eq(props['multibyte']['DESCRIPTION'], 'é'.repeat(40), 'I. multibyte description survives fold+unfold');
   // CR description through the full pipeline
   eq(props['crdesc']['DESCRIPTION'], 'first line\\r\\nsecond line', 'I. CRLF description emitted escaped');
+  // Long RRULE survives fold+unfold exactly (no TEXT escaping).
+  eq(props['long-rrule']['RRULE'], 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;UNTIL=20261231T235959Z;INTERVAL=2;WKST=SU;BYHOUR=9;BYMINUTE=30;BYSECOND=0', 'I. long RRULE preserved verbatim through handler');
+  // Hostile RRULE scrubbed of control chars on the wire.
+  eq(props['hostile-rrule']['RRULE'], 'FREQ=DAILYCOUNT=5INTERVAL=2', 'I. hostile RRULE control chars scrubbed');
 
   // TZ-independence proof: the same export under a second server TZ is identical.
   process.env.TZ = 'Europe/Amsterdam';
@@ -325,11 +368,12 @@ if (ICAL) {
     task({ uid: 'real-all', all_day: true, start_time: '2026-09-28T00:00:00.000Z', description: 'é'.repeat(40), location: 'Amsterdam' }),
     task({ uid: 'real-cr', all_day: true, start_time: '2026-05-02T00:00:00.000Z', description: 'first line\r\nsecond line\rthird' }),
     task({ uid: 'real-timed', all_day: false, start_time: '2026-09-28T09:30:00.000Z', end_time: '2026-09-28T10:30:00.000Z', rrule: 'FREQ=DAILY;COUNT=5' }),
+    task({ uid: 'real-long-rrule', all_day: false, start_time: '2026-09-28T09:30:00.000Z', end_time: '2026-09-28T10:30:00.000Z', rrule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU;UNTIL=20261231T235959Z;INTERVAL=2;WKST=SU;BYHOUR=9;BYMINUTE=30;BYSECOND=0' }),
   ]);
   const jcal = ICAL.parse(realPar.obj.ics);
   const comp = new ICAL.Component(jcal);
   const vevents = comp.getAllSubcomponents('vevent');
-  eq(vevents.length, 3, '4. ical.js parses 3 VEVENTs');
+  eq(vevents.length, 4, '4. ical.js parses 4 VEVENTs');
 
   const byU = {};
   for (const v of vevents) {
@@ -357,6 +401,16 @@ if (ICAL) {
   eq(timed.startDate.toJSDate().toISOString(), '2026-09-28T09:30:00.000Z', '4. timed DTSTART UTC instant');
   eq(timed.endDate.toJSDate().toISOString(), '2026-09-28T10:30:00.000Z', '4. timed DTEND UTC instant');
   eq(String(timed.component.getFirstPropertyValue('rrule')), 'FREQ=DAILY;COUNT=5', '4. RRULE passes through');
+
+  // The >75-octet RRULE arrived folded and must unfold + parse like real clients do.
+  const longRecur = byU['real-long-rrule'] ? byU['real-long-rrule'].component.getFirstPropertyValue('rrule') : null;
+  ok(!!longRecur, '4. long folded RRULE parses with ical.js');
+  if (longRecur) {
+    eq(longRecur.freq, 'WEEKLY', '4. long RRULE freq=WEEKLY');
+    eq(longRecur.interval, 2, '4. long RRULE interval=2');
+    eq(String(longRecur).includes('BYDAY=MO,TU,WE,TH,FR,SA,SU'), true, '4. long RRULE BYDAY list preserved (ical.js order may vary)');
+    eq(longRecur.until && longRecur.until.year, 2026, '4. long RRULE UNTIL year 2026');
+  }
 }
 
 // ---------------------------------------------------------------------------
