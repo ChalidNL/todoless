@@ -113,7 +113,8 @@ function bearerAuthMiddleware(c, options) {
     c.set('authRecord', user);
     return null;
   } catch (e) {
-    return c.json(500, { error: 'Token auth error: ' + String(e) });
+    var errorsLib = require(__hooks + '/lib/errors.js');
+    return errorsLib.respondError(c, e, 500);
   }
 }
 

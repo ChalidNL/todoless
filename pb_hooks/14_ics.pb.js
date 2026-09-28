@@ -205,7 +205,7 @@ routerAdd('POST','/api/ics-import',function(c){
       total:totalProcessed,
     });
   }catch(e){
-    return c.json(500,{error:String(e)});
+    return respondError(c, e, 500);
   }
 });
 
@@ -372,6 +372,6 @@ routerAdd('GET','/api/ics-export',function(c){
       count:tasks.length,
     });
   }catch(e){
-    return c.json(500,{error:String(e)});
+    return respondError(c, e, 500);
   }
 });
