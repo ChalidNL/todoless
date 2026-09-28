@@ -137,8 +137,11 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `POCKETBASE_ADMIN_PASSWORD` | PocketBase superuser password - set together with the email (optional) |
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
+| `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
+| `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
+| `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |
 
-> `VITE_POCKETBASE_URL` and SMTP settings are build-time variables - not needed when using the pre-built GHCR images. `POCKETBASE_ADMIN_*` are **runtime** variables read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)). `docker-compose.yml` passes `MAIL_WEBHOOK_SECRET`, `PAPERLESS_WEBHOOK_SECRET` and the `POCKETBASE_ADMIN_*` pair through to the pocketbase container via `${VAR:-}` — set them in your `.env` (copy `.env.example`).
+> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth. `VITE_*` remain build-time only; `POCKETBASE_ADMIN_*` are read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)) to upsert the dashboard superuser on start (GH#50).
 
 ### Logging & observability
 The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
