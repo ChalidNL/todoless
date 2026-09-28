@@ -11,9 +11,9 @@
 // KNOWN-BROKEN flows are marked `{ todo: '<ticket ref>' }`: the assertion still
 // runs and shows as todo-failure in output, but does not fail the run. Flip them
 // to active tests when the referenced fix tickets land:
-//   - companion register   -> GH#8  (t_gh41a39209)
 //   - ICS VEVENT for tasks -> GH#12 (t_gh246847d0)
-// (block enforcement t_318f2396 was flipped to an active test — see below.)
+// (companion register t_gh41a39209 was flipped to an active test by GH#8;
+//  block enforcement t_318f2396 was flipped to an active test — see below.)
 //
 // GH#65 OpenAPI parity gate (active, not todo):
 //   - every documented path (from /api/openapi.json) must be registered by a
@@ -609,13 +609,28 @@ test('member authenticates with the new password', async () => {
   memberToken = a.token
 })
 
-// --- 10. Companion register --------------------------------------------
-test('companion device registration succeeds', { todo: 'companion 500 ReferenceError — GH#8 (t_gh41a39209)' }, async () => {
+// --- 10. Companion endpoints (GH#8) ------------------------------------
+// Helpers are require()d inside the handlers, so these must no longer 500
+// with `ReferenceError: _companionRequireAuth is not defined`.
+test('companion device registration succeeds (GH#8)', async () => {
   const r = await api('POST', '/api/companion/devices/register', {
     token: memberToken,
     body: { deviceId: 'smoke-device-1', deviceName: 'Smoke Phone', platform: 'ios', osVersion: '18', appVersion: '0.3.0' },
   })
-  assert.ok(r.status === 201 || r.status === 200, `expected 2xx, got ${r.status}`)
+  assert.ok(r.status === 201 || r.status === 200, `expected 2xx, got ${r.status} ${JSON.stringify(r.data)}`)
+  assert.equal(r.data?.ok, true)
+  assert.equal(r.data?.device?.deviceId, 'smoke-device-1')
+})
+
+test('companion test notification succeeds (GH#8)', async () => {
+  const r = await api('POST', '/api/companion/notifications/test', {
+    token: memberToken,
+    body: { deviceId: 'smoke-device-1', title: 'Smoke title', body: 'Smoke body', type: 'task' },
+  })
+  assert.equal(r.status, 201, `expected 201, got ${r.status} ${JSON.stringify(r.data)}`)
+  assert.equal(r.data?.ok, true)
+  assert.equal(r.data?.notification?.title, 'Smoke title')
+  assert.equal(r.data?.notification?.deviceId, 'smoke-device-1')
 })
 
 // --- 11. OpenAPI paths vs registered routes (GH#65 parity gate) --------
