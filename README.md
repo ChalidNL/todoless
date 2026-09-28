@@ -97,11 +97,16 @@ Visit **http://your-server-ip:7070**. On first run, you'll see the onboarding:
 ## Configuration
 
 ### Port
-The app is exposed on port **7070** by default. To change it, edit `docker-compose.yml`:
+The app is exposed on port **7070** by default. To change it, set `TODOLESS_PORT` in `.env` (see `.env.example`):
 ```yaml
+# docker-compose.yml (no edit needed)
 ports:
   - target: 80
-    published: 7070  # change this
+    published: "${TODOLESS_PORT:-7070}"
+```
+```bash
+# .env
+TODOLESS_PORT=8080
 ```
 
 ### Volumes
@@ -119,7 +124,7 @@ The `.env.example` file documents available variables. Not all are used by the p
 | Variable | What it does |
 |---|---|
 | `TZ` | Timezone (default: `Europe/Amsterdam`) |
-| `WEBUI_PORT` | Port for the frontend (default: `7070`, must match compose) |
+| `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
 
 > Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
 
