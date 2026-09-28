@@ -46,13 +46,24 @@ async function auth(identity, password) {
 }
 
 // --- 0. Server sanity ------------------------------------------------
+// PB_VERSION is exported by scripts/pb-smoke.sh (default '0.35.1'); the
+// endpoint reports the real runtime version, so the expectation must come
+// from the launched binary, not a hard-coded literal (GH#33).
+const EXPECTED_PB = process.env.PB_VERSION || '0.35.1'
+
 test('pb is reachable: health, version, hook-health', async () => {
   const health = await api('GET', '/api/health')
   assert.equal(health.status, 200)
 
   const version = await api('GET', '/api/version')
   assert.equal(version.status, 200)
-  assert.equal(version.data?.pb, '0.35.1')
+  assert.equal(version.data?.pb, EXPECTED_PB)
+  // branch/commit are no longer hard-coded (GH#33): they mirror the env the
+  // binary was booted with (build-time baked, or exported by the caller).
+  // CI boots clean, so they fall back to 'unknown' instead of pretending to
+  // be main/a SHA.
+  assert.equal(version.data?.branch, process.env.TODOLESS_BRANCH || 'unknown')
+  assert.equal(version.data?.commit, process.env.COMMIT_SHA || 'unknown')
 
   const hook = await api('GET', '/api/hook-health')
   assert.equal(hook.status, 200)
