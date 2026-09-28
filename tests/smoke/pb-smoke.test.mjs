@@ -205,6 +205,32 @@ test('recurring task can be created and completed (api/v1 complete)', async () =
   // (t_gh3654983b): pb_hooks/cron/recurring-tasks.js is in a subdir, never loaded.
 })
 
+// --- 7b. /api/v1 update action -----------------------------------------
+test('v1 update action updates title/status/due_date on a task', async () => {
+  const created = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke update me', status: 'todo' },
+  })
+  assert.equal(created.status, 201)
+  assert.ok(created.data?.id, 'expected created task id')
+
+  const upd = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: {
+      action: 'update', type: 'task', id: created.data.id,
+      title: 'Smoke updated title', status: 'backlog', due_date: '2026-12-01T09:00:00.000Z',
+    },
+  })
+  assert.equal(upd.status, 200)
+  assert.equal(upd.data?.updated, true)
+  assert.deepEqual((upd.data?.changed || []).slice().sort(), ['due_date', 'status', 'title'])
+
+  const after = await api('GET', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken })
+  assert.equal(after.data?.title, 'Smoke updated title')
+  assert.equal(after.data?.status, 'backlog')
+  assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
+})
+
 // --- 8. ICS export -----------------------------------------------------
 test('ICS export returns a valid VCALENDAR envelope', async () => {
   const r = await api('GET', '/api/ics-export', { token: adminToken })
