@@ -137,6 +137,7 @@ export const scheduleNativeCompanionNotification = async (notification: Partial<
   await plugins.LocalNotifications.schedule({
     notifications: [{
       id,
+      // i18n-ignore: 'Doneday' is a brand/product name fallback, not translatable UI chrome
       title: notification.title || 'Doneday',
       body: notification.body || '',
       extra: {

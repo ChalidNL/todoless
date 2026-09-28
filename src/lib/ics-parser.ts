@@ -4,6 +4,7 @@
  * suitable for sending to the PB import endpoint.
  */
 import ICAL from 'ical.js';
+import { t } from '../i18n/translations';
 
 export interface ParsedEvent {
   uid: string;
@@ -103,7 +104,7 @@ export function parseIcs(icsText: string): ParseResult {
 
         events.push({
           uid: event.uid || `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-          title: event.summary || 'Untitled',
+          title: event.summary || t('common.untitled'),
           description: typeof event.description === 'string' ? event.description : (event.description ? String(event.description) : undefined),
           location: typeof event.location === 'string' ? event.location : (event.location ? String(event.location) : undefined),
           start_time: startISO,

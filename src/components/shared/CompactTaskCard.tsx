@@ -9,7 +9,7 @@ import { getCompactUserName } from '../../lib/member-role-utils';
 import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInputValue, parseLocalDateInputValue } from '../../lib/date-local';
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
 import { entityColor } from '../../lib/entity-colors';
-import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
+import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
 import { PriorityIcon } from '../../lib/PriorityIcon';
 import { TaskMetaRow, type MetaRowData } from './TaskMetaRow';
 import { TaskActionBar } from './TaskActionBar';
@@ -533,7 +533,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               onRepeatClick={() => showMenu ? setActiveEditor('schedule') : task.repeatInterval && toggleChipFilter('repeat', task.repeatInterval, repeatLabel!)}
               onCommentClick={() => openCommentEditor()}
               onSubtaskClick={() => showMenu ? setActiveEditor('subtasks') : {}}
-              onPriorityClick={() => showMenu ? setActiveEditor('priority') : toggleChipFilter('priority', task.priority!, PRIORITY_LABELS[task.priority!] || task.priority!, PRIORITY_COLORS[task.priority!] || '#6b7280')}
+              onPriorityClick={() => showMenu ? setActiveEditor('priority') : toggleChipFilter('priority', task.priority!, t(PRIORITY_LABEL_KEYS[task.priority!]), PRIORITY_COLORS[task.priority!] || '#6b7280')}
               isLabelFiltered={isLabelFiltered}
               isAssigneeFiltered={isAssigneeFiltered(assignedUser?.id)}
               isDateFiltered={isDateFiltered(dateStr!)}
@@ -599,7 +599,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   },
                   focus: {
                     key: 'focus',
-                    label: task.focus ? 'Remove focus' : 'Add focus',
+                    label: task.focus ? t('tasks.removeFocus') : t('tasks.addFocus'),
                     ariaLabel: t('tasks.toggleFocus'),
                     Icon: Target,
                     isSet: !!task.focus,
@@ -897,7 +897,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         className={`flex-1 px-2 py-1.5 rounded text-xs font-medium transition-colors ${task.priority === p ? 'text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}
                         style={task.priority === p ? { backgroundColor: PRIORITY_COLORS[p] } : undefined}
                       >
-                        {PRIORITY_LABELS[p]}
+                        {t(PRIORITY_LABEL_KEYS[p])}
                       </button>
                     ))}
                   </div>

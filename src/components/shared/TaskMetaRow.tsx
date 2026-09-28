@@ -3,7 +3,7 @@ import { CalendarDays, MessageSquare, Tag, RotateCcw } from 'lucide-react';
 import { t } from '../../i18n/translations';
 import { AttributeChip } from './AttributeChip';
 import { PriorityIcon } from '../../lib/PriorityIcon';
-import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../lib/priority';
+import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS } from '../../lib/priority';
 
 // Subtask icon
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -131,8 +131,8 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         <button
           onClick={onPriorityClick}
           className={`${iconBtnClass} h-7 w-7`}
-          title={PRIORITY_LABELS[priority] || priority}
-          aria-label={`${t('tasks.priority')}: ${PRIORITY_LABELS[priority] || priority}`}
+          title={t(PRIORITY_LABEL_KEYS[priority])}
+          aria-label={`${t('tasks.priority')}: ${t(PRIORITY_LABEL_KEYS[priority])}`}
         >
           <PriorityIcon priority={priority as any} size={16} />
         </button>

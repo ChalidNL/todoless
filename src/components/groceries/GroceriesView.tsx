@@ -84,7 +84,7 @@ export const GroceriesView = () => {
       {/* Active items */}
       <div className="max-w-lg mx-auto px-4 pt-4 space-y-4">
         {sortedActiveItems.length === 0 ? (
-          <EmptyState title={t('groceries.empty') || 'No items yet'} icon={<ShoppingCart className="h-7 w-7" />} />
+          <EmptyState title={t('groceries.empty')} icon={<ShoppingCart className="h-7 w-7" />} />
         ) : (
           <div className="space-y-4">
             {focusedActiveItems.length > 0 && (

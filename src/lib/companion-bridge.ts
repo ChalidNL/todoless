@@ -112,6 +112,7 @@ export function useCompanionBridge(user: User | null) {
         const path = normalizePath(record.path, record.task_id);
         await scheduleNativeCompanionNotification({
           id: record.id,
+          // i18n-ignore: 'Doneday' is a brand/product name fallback, not translatable UI chrome
           title: record.title || 'Doneday',
           body: record.body || '',
           type: record.type || 'task',
