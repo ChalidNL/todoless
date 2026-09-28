@@ -47,9 +47,9 @@ export function NotificationsView() {
   const navigate = useNavigate();
   const { appSettings, updateAppSettings, showCompletionMessage } = useApp();
 
-  const update = (settings: Partial<AppSettings>) => {
-    updateAppSettings(settings);
-    showCompletionMessage(t('settings.notificationsSaved'));
+  const update = async (settings: Partial<AppSettings>) => {
+    const ok = await updateAppSettings(settings);
+    showCompletionMessage(ok ? t('settings.notificationsSaved') : t('settings.notificationsSaveFailed'));
   };
 
   return (

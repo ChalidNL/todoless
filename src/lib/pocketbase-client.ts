@@ -933,6 +933,10 @@ class PocketBaseClient {
       auto_cleanup: updates.autoCleanup,
       theme: updates.theme,
       briefing_enabled: updates.briefingEnabled,
+      notification_email: updates.notificationEmail,
+      notification_push: updates.notificationPush,
+      task_reminders: updates.taskReminders,
+      reminder_minutes: updates.reminderMinutes,
     };
     if (updates.setupComplete !== undefined) {
       payload.setup_complete = updates.setupComplete;
