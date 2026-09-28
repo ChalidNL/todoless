@@ -29,13 +29,73 @@ seed_dir() {
 seed_dir /pb_migrations_bundled /pb_migrations migration
 seed_dir /pb_hooks_bundled /pb_hooks hook
 
-# Remove duplicate migration prefixes that collide with newer files.
-for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do
-  if [ -f "/pb_migrations/$old" ]; then
-    echo "[entrypoint] removing duplicate migration: $old"
-    rm -f "/pb_migrations/$old"
-  fi
-done
+# ── Migration rename sync (GH#38) ─────────────────────────────────────────────
+# PocketBase tracks applied migrations by FILE NAME in the `_migrations` table
+# (see GH#34: renamed migration files re-run on existing installations). To
+# normalise migration numbering without re-running anything on installed
+# instances, this block, running before PocketBase starts:
+#   1. removes stale old-named files from the runtime migrations dir, and
+#   2. renames the `_migrations` tracking rows so the new file names are seen
+#      as already applied.
+# Entries are `old_name|current_name` (append-only — never delete a shipped
+# row, an existing install may still carry that old name).
+MIGRATION_RENAMES='019_fix_security_p10.js|018_fix_security_p10.js
+033_add_firstname_lastname.js|032_add_firstname_lastname.js
+032_5_add_firstname_lastname.js|032_add_firstname_lastname.js
+032_agent_audit_log.js|033_agent_audit_log.js
+033_api_tokens.js|034_api_tokens.js
+034_agent_approval.js|035_agent_approval.js
+035_briefings.js|036_briefings.js
+039_repeat_interval_options.js|040_repeat_interval_options.js
+040_identity_model.js|041_identity_model.js
+041_add_priority_values.js|042_add_priority_values.js
+042_set_priority_values.js|043_set_priority_values.js
+049_family_scope_users.js|050_family_scope_users.js
+050_companion_notifications.js|051_companion_notifications.js
+050_enforce_single_family_admin.js|052_enforce_single_family_admin.js
+051_lock_direct_user_registration.js|053_lock_direct_user_registration.js
+052_lock_agent_audit_log_rules.js|054_lock_agent_audit_log_rules.js
+053_lock_direct_user_create_rule.js|055_lock_direct_user_create_rule.js
+054_family_shop_write_rules.js|056_family_shop_write_rules.js
+055_user_language_preference.js|057_user_language_preference.js
+056_calendar_rfc5545_events.js|058_calendar_rfc5545_events.js
+057_add_task_calendar_fields.js|059_add_task_calendar_fields.js
+058_add_task_ics_fields.js|060_add_task_ics_fields.js
+059_allow_de_es_user_languages.js|061_allow_de_es_user_languages.js
+060_backfill_user_token_keys.js|062_backfill_user_token_keys.js
+z061_label_visibility.js|063_label_visibility.js
+z062_enforce_label_privacy.js|064_enforce_label_privacy.js
+z063_fix_shared_label_rules.js|065_fix_shared_label_rules.js
+z064_fix_agent_key_revocation.js|066_fix_agent_key_revocation.js
+z065_fix_empty_task_label_rules.js|067_fix_empty_task_label_rules.js
+z066_family_shared_task_write_rules.js|068_family_shared_task_write_rules.js
+z066_normalize_invite_codes.js|069_normalize_invite_codes.js
+z067_enable_scheduled_backups.js|070_enable_scheduled_backups.js'
+
+migrate_renames() {
+  db="${PB_DATA_FILE:-/pb_data/data.db}"
+  migs_dir="${PB_MIGRATIONS_DIR:-/pb_migrations}"
+
+  # Fresh installs have no _migrations table yet — nothing to map, and PB will
+  # happily apply every bundled migration for the first time.
+  has_table="$(sqlite3 "$db" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='_migrations' LIMIT 1;" 2>/dev/null || true)"
+
+  printf '%s\n' "$MIGRATION_RENAMES" | while IFS='|' read -r old new; do
+    [ -z "$old" ] && continue
+
+    if [ -f "$migs_dir/$old" ]; then
+      echo "[entrypoint] removing stale migration file: $old"
+      rm -f "$migs_dir/$old"
+    fi
+
+    if [ "$has_table" = "1" ]; then
+      # A current-name row may already exist (chained renames); never double-map.
+      sqlite3 "$db" "UPDATE _migrations SET file='$new' WHERE file='$old' AND NOT EXISTS (SELECT 1 FROM _migrations WHERE file='$new');" >/dev/null 2>&1 || true
+    fi
+  done
+}
+
+migrate_renames
 
 # PB 0.35 compat: No sed patches needed — main.pb.js is already 0.35-compatible.
 # The hooks use $app directly, onRecordEnrich, and c.requestInfo() properly.

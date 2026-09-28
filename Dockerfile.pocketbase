@@ -1,7 +1,8 @@
 FROM ghcr.io/muchobien/pocketbase:0.35.1
 
-# Install curl for healthcheck (wget not available in this image)
-RUN apk add --no-cache curl
+# Install curl for healthcheck and sqlite3 for the migration rename sync (GH#38).
+# (wget not available in this image; `sqlite` is the Alpine package for sqlite3)
+RUN apk add --no-cache curl sqlite
 
 # Copy migration and hook files into the image so they are always present,
 # even on a fresh install with empty runtime volumes.

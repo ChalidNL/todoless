@@ -40,6 +40,30 @@ npm test
 npm run build
 ```
 
+PocketBase migration changes additionally run through the integration smoke
+suite (see `scripts/pb-smoke.sh`).
+
+## Database migrations
+
+`pb_migrations/` contains PocketBase migration files. PocketBase applies them
+in **lexical file-name order**, so the file name *is* the execution order.
+
+- Every migration file gets a unique three-digit prefix: `001_initial_schema.js`, `002_cross_relations.js`, … `070_enable_scheduled_backups.js`.
+- Never duplicate a prefix and never reuse a number — two files sharing a prefix
+  make it impossible to tell which runs when.
+- To append a new migration, use the next free number: `071_…`, `072_…`, …
+- To insert a migration between existing numbered files, use PocketBase's own
+  timestamp naming — e.g. `1727000000_description.js` — which sorts lexically
+  after every `NNN_` file while remaining unique.
+- There is no `z`-prefix trick anymore; it was removed when the numbering was
+  normalised (GH#38).
+- **Never rename an applied migration.** PocketBase tracks applied migrations
+  by file name in `_migrations`; renaming a file makes it look brand-new and it
+  re-runs on every existing installation (GH#34). If a rename is unavoidable,
+  add an `old_name|current_name` entry to the `MIGRATION_RENAMES` map in
+  `pocketbase-entrypoint.sh` (the entrypoint then removes the stale file and
+  renames the `_migrations` row before PocketBase starts).
+
 ## Commit messages
 
 Keep them short and descriptive. Dutch or English is fine. Reference issue numbers with `#123`.
