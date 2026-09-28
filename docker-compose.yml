@@ -77,7 +77,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}  # inbound mail webhook shared secret (Bearer token); the mail webhook fails closed with 503 if unset
       PAPERLESS_WEBHOOK_SECRET: ${PAPERLESS_WEBHOOK_SECRET:-}  # Paperless-ngx webhook shared secret; the paperless webhook fails closed with 503 if unset
-      # PocketBase settings bootstrap (GH#51) — read by migration z067 on
+      # PocketBase settings bootstrap (GH#51) — read by migration z069 on
       # first start; empty values are ignored (settings are applied once).
       APP_NAME: ${APP_NAME:-}
       APP_URL: ${APP_URL:-}
