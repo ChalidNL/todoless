@@ -42,8 +42,13 @@ jobs:
         run: node --test tests/*.test.mjs
 
       - name: Check migration immutability (no undeclared renames)
-        if: github.event_name == 'pull_request'
-        run: bash scripts/check-migration-immutability.sh origin/main
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            bash scripts/check-migration-immutability.sh HEAD~1
+          else
+            bash scripts/check-migration-immutability.sh origin/main
+          fi
 
       - name: Audit hardcoded visible strings (i18n gate)
         run: npm run audit:visible-strings

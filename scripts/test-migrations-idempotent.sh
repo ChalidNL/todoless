@@ -25,11 +25,11 @@
 #   PB_PORT=8091 bash scripts/test-migrations-idempotent.sh
 #   PB_MIGRATIONS_DIR=... PB_HOOKS_DIR=...                      # fixtures only
 #
-# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.35.1).
+# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.40.4).
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.35.1}"
+PB_VERSION="${PB_VERSION:-0.40.4}"
 PB_PORT="${PB_PORT:-8091}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS_DIR="${PB_MIGRATIONS_DIR:-$ROOT/pb_migrations}"

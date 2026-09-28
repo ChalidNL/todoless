@@ -112,15 +112,27 @@ migrate_renames() {
     [ -z "$pair" ] && continue
     old="${pair%%|*}"
     new="${pair##*|}"
+    # Guard against malformed entries: without a '|' old==new, and removing
+    # that name would delete a canonical file from the runtime volume.
+    if [ -z "$new" ] || [ "$old" = "$new" ]; then
+      echo "[entrypoint] WARNING: skipping malformed MIGRATION_RENAMES entry '$pair'" >&2
+      continue
+    fi
     if [ -f "$migs_dir/$old" ]; then
       echo "[entrypoint] removing stale migration file: $old"
       rm -f "$migs_dir/$old"
     fi
     if [ "$has_table" = "1" ]; then
       # Rename only if the new name is not already recorded, so chained
-      # renames never double-map; a quirk/read-only DB never aborts startup
-      # (output is ignored via 2>/dev/null and the empty-capture guard).
-      n="$(sqlite3 "$db" "UPDATE _migrations SET file='$new' WHERE file='$old' AND NOT EXISTS (SELECT 1 FROM _migrations WHERE file='$new'); SELECT changes();" 2>/dev/null || true)"
+      # renames never double-map. A sqlite3 failure here is fatal: silently
+      # continuing would let PocketBase start with a stale _migrations row and
+      # re-run the renamed migration — the exact GH#34 crash we prevent.
+      n="$(sqlite3 "$db" "UPDATE _migrations SET file='$new' WHERE file='$old' AND NOT EXISTS (SELECT 1 FROM _migrations WHERE file='$new'); SELECT changes();" 2>&1)"
+      rc=$?
+      if [ "$rc" -ne 0 ]; then
+        echo "[entrypoint] ERROR: sqlite3 failed syncing renamed migration '$old' -> '$new' (rc=$rc): $n" >&2
+        exit 1
+      fi
       case "$n" in
         ''|*[!0-9]*) ;;
         *) applied=$((applied + n)) ;;

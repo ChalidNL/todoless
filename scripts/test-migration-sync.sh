@@ -46,24 +46,19 @@ trap cleanup EXIT
 
 mkdir -p "$TMP/pb_data" "$TMP/migrations_bundled" "$TMP/migrations" "$TMP/hooks" "$TMP/hooks_bundled" "$TMP/bin"
 
-# The 11 old|current rename pairs the entrypoint must handle (GH#34).
-RENAMES='015_linked_entity_references.js|016_linked_entity_references.js
-015_notes_enhancements.js|017_notes_enhancements.js
-015_paperless_sync.js|019_paperless_sync.js
-015_reminders.js|020_reminders.js
-015_sprint_status.js|021_sprint_status.js
-015_tasks_reminders_module.js|022_tasks_reminders_module.js
-016_add_item_private_field.js|023_add_item_private_field.js
-015_ai_settings.js|024_ai_settings.js
-019_fix_security_p10.js|018_fix_security_p10.js
-033_add_firstname_lastname.js|032_5_add_firstname_lastname.js
-061_label_visibility.js|z061_label_visibility.js'
+# The old|current rename pairs the entrypoint must handle are parsed from the
+# REAL MIGRATION_RENAMES map in pocketbase-entrypoint.sh so future appends are
+# automatically exercised by this regression (no second copy to drift).
+# Format: MIGRATION_RENAMES="old_a|new_a
+#                         old_b|new_b"
+# The closing quote sits at the END of the last pair line, so the awk below
+# starts on the MIGRATION_RENAMES=" line (stripping the prefix) and stops on
+# the first line ending with a quote (stripping that trailing quote).
+RENAMES="$(awk '/^MIGRATION_RENAMES="/ { sub(/^MIGRATION_RENAMES="/, ""); inmap=1 } inmap && /"$/ { sub(/"$/, ""); print; exit } inmap { print }' "$ENTRYPOINT")"
 
-# Canonical current-named files seeded from the image (bundled) dir.
-CANONICAL='016_linked_entity_references.js
-018_fix_security_p10.js
-032_5_add_firstname_lastname.js
-z061_label_visibility.js'
+# Canonical current-named files (the `new` side of every pair), served from
+# the image (bundled) dir.
+CANONICAL="$(printf '%s\n' "$RENAMES" | sed 's/^[^|]*|//')"
 
 while IFS= read -r f; do
   [[ -z "$f" ]] && continue
