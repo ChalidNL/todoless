@@ -46,10 +46,10 @@ async function auth(identity, password) {
 }
 
 // --- 0. Server sanity ------------------------------------------------
-// PB_VERSION is exported by scripts/pb-smoke.sh (default '0.35.1'); the
+// PB_VERSION is exported by scripts/pb-smoke.sh (default '0.40.4'); the
 // endpoint reports the real runtime version, so the expectation must come
 // from the launched binary, not a hard-coded literal (GH#33).
-const EXPECTED_PB = process.env.PB_VERSION || '0.35.1'
+const EXPECTED_PB = process.env.PB_VERSION || '0.40.4'
 
 test('pb is reachable: health, version, hook-health', async () => {
   const health = await api('GET', '/api/health')

@@ -7,15 +7,15 @@
 # it (node --test + global fetch). Teardown happens on EXIT.
 #
 # Usage:
-#   bash scripts/pb-smoke.sh                 # download PB 0.35.1 and run
+#   bash scripts/pb-smoke.sh                 # download PB 0.40.4 and run
 #   PB_BIN=/path/to/pocketbase bash scripts/pb-smoke.sh   # reuse local binary
 #   PB_PORT=8091 bash scripts/pb-smoke.sh    # non-default port
 #
-# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.35.1).
+# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.40.4).
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.35.1}"
+PB_VERSION="${PB_VERSION:-0.40.4}"
 # Export so the booted binary (and the test env) inherit it: /api/version
 # reports PB_VERSION via the build-time env (GH#33), and pb-migration-upgrade.sh
 # uses the same field as its port-collision ownership guard.
