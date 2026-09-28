@@ -19,6 +19,8 @@ import type {
 
 const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime() : undefined);
 
+const toISO = (value?: number | string | null): string | null => (value ? new Date(value).toISOString() : null);
+
 const relationIds = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
 
@@ -61,6 +63,9 @@ const normalizeTask = (record: any): Task => ({
   sprintId: record.sprint_id || undefined,
   projectId: record.project_id || undefined,
   dueDate: toTimestamp(record.due_date),
+  startTime: toTimestamp(record.start_time),
+  endTime: toTimestamp(record.end_time),
+  allDay: !!record.all_day,
   showInCalendar: typeof record.show_in_calendar === 'boolean' ? record.show_in_calendar : true,
   repeatInterval: record.repeat_interval || undefined,
   completedAt: toTimestamp(record.completed_at),
@@ -410,7 +415,10 @@ class PocketBaseClient {
         assigned_to: task.assignedTo,
         sprint_id: task.sprintId,
         project_id: task.projectId,
-        due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+        due_date: toISO(task.dueDate),
+        start_time: toISO(task.startTime),
+        end_time: toISO(task.endTime),
+        all_day: task.allDay ?? false,
         show_in_calendar: task.showInCalendar !== false,
         repeat_interval: task.repeatInterval,
         labels: canonicalLabels,
@@ -482,7 +490,10 @@ class PocketBaseClient {
       if (has('sprintId')) payload.sprint_id = updates.sprintId;
       if (has('projectId')) payload.project_id = updates.projectId;
       if (has('assignedTo')) payload.assigned_to = updates.assignedTo;
-      if (has('dueDate')) payload.due_date = updates.dueDate != null ? new Date(updates.dueDate).toISOString() : null;
+      if (has('dueDate')) payload.due_date = toISO(updates.dueDate);
+      if (has('startTime')) payload.start_time = toISO(updates.startTime);
+      if (has('endTime')) payload.end_time = toISO(updates.endTime);
+      if (has('allDay')) payload.all_day = updates.allDay;
       if (has('showInCalendar')) payload.show_in_calendar = updates.showInCalendar;
       if (has('repeatInterval')) payload.repeat_interval = updates.repeatInterval;
       if (has('isPrivate')) payload.is_private = updates.isPrivate;

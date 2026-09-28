@@ -13,13 +13,17 @@
 
     onRecordCreate('tasks', (e) => {
   var rec = e.record;
+  var dateSync = require(__hooks + '/lib/task-date-sync.js');
   // Canonical defaults - ALWAYS set, no outer try/catch
   if (!rec.get('status')) rec.set('status', 'todo');
   if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
   if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
   if (rec.get('all_day') === undefined || rec.get('all_day') === null) rec.set('all_day', false);
-  if (!rec.get('start_time') && rec.get('due_date')) { rec.set('start_time', rec.get('due_date')); }
+  // GH#79: start_time := due_date canonical default. Must use hasDate() —
+  // empty PB date fields are truthy DateTime zero objects, so the old
+  // `!rec.get('start_time')` truthiness check was dead code (GH#11).
+  dateSync.ensureStartOnCreate(rec);
   var createLabels = rec.get('label') || rec.get('labels') || [];
   if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
   rec.set('labels', createLabels);
@@ -99,6 +103,19 @@ onRecordUpdate('tasks', (e) => {
         if (!Array.isArray(updateLabels)) updateLabels = updateLabels ? [String(updateLabels)] : [];
         e.record.set('labels', updateLabels);
         e.record.set('label', updateLabels);
+      }
+      // GH#79: keep start_time/end_time in agreement with due_date changes
+      // from the task list (which only ever sends due_date) or API clients.
+      if (data && Object.prototype.hasOwnProperty.call(data, 'due_date')) {
+        var syncOriginal = null;
+        try {
+          if (typeof e.record.original === 'function') syncOriginal = e.record.original();
+          else if (typeof e.record.originalCopy === 'function') syncOriginal = e.record.originalCopy();
+        } catch(_e) { syncOriginal = null; }
+        if (!syncOriginal) {
+          try { syncOriginal = $app.findRecordById('tasks', e.record.id); } catch(_e) { syncOriginal = null; }
+        }
+        require(__hooks + '/lib/task-date-sync.js').syncOnDueDateChange(e.record, data, syncOriginal);
       }
     } catch(err) { /* ignore */ }
   }
