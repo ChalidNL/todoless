@@ -93,14 +93,28 @@ try {
     if (!auth) return c.json(401, { error: 'Unauthorized' });
     if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
 
-    var keys = $app.findRecordsByFilter(
-      'agent_keys',
-      'user = {:userId}',
-      '',
-      10000,
-      0,
-      { userId: auth.id }
-    );
+    // Family-scoped, not creator-scoped (GH#22): after a single-admin demotion
+    // the new admin must still see/manage keys minted by the former admin, as
+    // long as both accounts share the same family. Falls back to self-only
+    // when the admin has no family_id (matches /api/agent/dispatch's pattern).
+    var familyId = String(auth.get('family_id') || '');
+    var keys = familyId
+      ? $app.findRecordsByFilter(
+          'agent_keys',
+          'user.family_id = {:familyId}',
+          '',
+          10000,
+          0,
+          { familyId: familyId }
+        )
+      : $app.findRecordsByFilter(
+          'agent_keys',
+          'user = {:userId}',
+          '',
+          10000,
+          0,
+          { userId: auth.id }
+        );
 
     var result = [];
     for (var i = 0; i < keys.length; i++) {
@@ -149,8 +163,20 @@ try {
     var rec = $app.findRecordById('agent_keys', id);
     if (!rec) return c.json(404, { error: 'Key not found' });
 
-    // Must own the key
-    if (String(rec.get('user') || '') !== auth.id) return c.json(403, { error: 'Not your key' });
+    // Family-scoped ownership check (GH#22): a key stays revocable by any
+    // current family admin, not just the specific account that minted it —
+    // otherwise a demoted admin's keys become permanently un-revocable.
+    var keyOwnerId = String(rec.get('user') || '');
+    var authFamilyId = String(auth.get('family_id') || '');
+    var sameOwner = keyOwnerId === auth.id;
+    var sameFamily = false;
+    if (!sameOwner && authFamilyId && keyOwnerId) {
+      try {
+        var keyOwnerUser = $app.findRecordById('users', keyOwnerId);
+        sameFamily = keyOwnerUser && String(keyOwnerUser.get('family_id') || '') === authFamilyId;
+      } catch (_eo) { sameFamily = false; }
+    }
+    if (!sameOwner && !sameFamily) return c.json(403, { error: 'Not your key' });
 
     rec.set('active', false);
     $app.save(rec);

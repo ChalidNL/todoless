@@ -655,3 +655,55 @@ test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', 
   const t3 = await listLastUsed()
   assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
 })
+
+// --- 13. GH#22: agent keys survive a single-admin demotion ---------------
+// A family has exactly one admin. That admin mints an agent key, then the
+// family's admin role is transferred to a second member (set_role promotes
+// the new admin and demotes the old one, per main.pb.js's single-admin
+// invariant). The NEW admin must still be able to list and revoke the key
+// the FORMER admin created — before the GH#22 fix both routes filtered
+// strictly on `user = auth.id`, so the key became permanently invisible and
+// un-revocable to every admin the family ever has afterwards.
+test('new admin can list and revoke agent keys created by a demoted former admin (GH#22)', async () => {
+  const successor = await registerDisposableMember('gh22-successor@smoke.test', 'GH22 Successor')
+  const successorToken = successor.token
+
+  // Former admin (top-level `admin`/`adminToken`) mints a key while still admin.
+  const created = await api('POST', '/api/agent/keys', {
+    token: adminToken,
+    body: { name: 'gh22-legacy-key', scopes: ['entries:read'] },
+  })
+  assert.equal(created.status, 201, 'former admin should be able to create the key')
+  const legacyKeyId = created.data?.id
+  assert.ok(legacyKeyId, 'expected created key id')
+
+  // Transfer admin: promoting the successor demotes the current admin
+  // (single-admin-per-family invariant enforced by /api/v1 set_role).
+  const promote = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'set_role', user_id: successor.user.id, role: 'admin' },
+  })
+  assert.equal(promote.status, 200, 'admin transfer should succeed')
+  assert.equal(promote.data?.role, 'admin')
+
+  // Former admin lost the admin role and can no longer call admin-only routes.
+  const formerAdminList = await api('GET', '/api/agent/keys', { token: adminToken })
+  assert.equal(formerAdminList.status, 403, 'demoted former admin must lose admin-only access')
+
+  // New admin must see the legacy key in the family-scoped list.
+  const successorList = await api('GET', '/api/agent/keys', { token: successorToken })
+  assert.equal(successorList.status, 200)
+  const found = (successorList.data || []).find((k) => k.id === legacyKeyId)
+  assert.ok(found, 'new admin must see the former admin\'s agent key in the list')
+
+  // New admin must be able to revoke the legacy key.
+  const revoke = await api('POST', `/api/agent/keys/${legacyKeyId}/revoke`, { token: successorToken })
+  assert.equal(revoke.status, 200, 'new admin must be able to revoke the former admin\'s key')
+  assert.equal(revoke.data?.active, false)
+
+  const afterRevoke = await api('GET', '/api/agent/keys', { token: successorToken })
+  assert.equal(afterRevoke.status, 200)
+  const revoked = (afterRevoke.data || []).find((k) => k.id === legacyKeyId)
+  assert.ok(revoked, 'revoked key should still be listed')
+  assert.equal(revoked.active, false)
+})
