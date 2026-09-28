@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CompactTaskCard } from '../components/shared/CompactTaskCard';
 import type { Task } from '../types';
 
@@ -82,9 +82,10 @@ describe('CompactTaskCard attributes', () => {
     expect(screen.getByText('0/1')).toBeInTheDocument();
   });
 
-  it('provides a visible save action when creating a label from a task', () => {
-    const addLabel = vi.fn();
-    useAppMock.mockReturnValue({ ...baseAppValue, addLabel });
+  it('provides a visible save action when creating a label from a task', async () => {
+    const updateTask = vi.fn();
+    const addLabel = vi.fn().mockResolvedValue({ id: 'label-new', name: 'School', color: '#3b82f6', visibility: 'family' });
+    useAppMock.mockReturnValue({ ...baseAppValue, updateTask, addLabel });
     render(<CompactTaskCard task={{ ...parentTask, labels: [] }} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Editor' }));
@@ -93,5 +94,21 @@ describe('CompactTaskCard attributes', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save label' }));
 
     expect(addLabel).toHaveBeenCalledWith(expect.objectContaining({ name: 'School', visibility: 'family' }));
+    await waitFor(() => {
+      expect(updateTask).toHaveBeenCalledWith('task-1', { labels: ['label-new'] });
+    });
+  });
+
+  it('attaches an existing label to the task when saved from the task card', () => {
+    const updateTask = vi.fn();
+    useAppMock.mockReturnValue({ ...baseAppValue, updateTask });
+    render(<CompactTaskCard task={{ ...parentTask, labels: [] }} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Editor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit labels' }));
+    fireEvent.change(screen.getByRole('textbox', { name: /label/i }), { target: { value: 'Teat' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save label' }));
+
+    expect(updateTask).toHaveBeenCalledWith('task-1', { labels: ['label-1'] });
   });
 });

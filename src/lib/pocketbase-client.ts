@@ -151,7 +151,7 @@ const normalizeNote = (record: any): Note => ({
   createdBy: record.user,
 });
 
-const normalizeLabel = (record: any): Label => ({
+export const normalizeLabel = (record: any): Label => ({
   id: record.id,
   name: record.name,
   color: record.color,

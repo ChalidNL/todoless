@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
-import { api, isInvalidOldPasswordError } from '../lib/pocketbase-client';
+import { api, isInvalidOldPasswordError, normalizeLabel } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
 import { pb } from '../lib/pocketbase';
 
@@ -155,8 +155,8 @@ interface AppContextType {
   addItem: (item: Omit<Item, 'id' | 'createdAt'>) => void;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completedAt'>) => void;
   addNote: (note: Omit<Note, 'id' | 'createdAt'>) => void;
-  addLabel: (label: Omit<Label, 'id'>) => void;
-  createLabel: (label: Omit<Label, 'id'>) => void;
+  addLabel: (label: Omit<Label, 'id'>) => Promise<Label | undefined>;
+  createLabel: (label: Omit<Label, 'id'>) => Promise<Label | undefined>;
   addShop: (shop: Omit<Shop, 'id'>) => void;
   createShop: (shop: Omit<Shop, 'id'>) => void;
   addSprint: (sprint: Omit<Sprint, 'id'>) => void;
@@ -564,11 +564,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
-  const addLabel = (label: Omit<Label, 'id'>) => {
-    void (async () => {
-      await api.createLabel(label);
+  const addLabel = async (label: Omit<Label, 'id'>): Promise<Label | undefined> => {
+    try {
+      const created = await api.createLabel(label);
       await refreshLabels();
-    })();
+      return normalizeLabel(created);
+    } catch (error: any) {
+      const detail = error?.response?.data || error?.data || error?.message || error;
+      console.error('addLabel failed — full error:', JSON.stringify(detail, null, 2));
+      console.error('addLabel payload:', JSON.stringify(label));
+      return undefined;
+    }
   };
 
   const createLabel = addLabel;
