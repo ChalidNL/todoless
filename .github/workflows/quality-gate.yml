@@ -72,3 +72,21 @@ jobs:
 
       - name: Boot PocketBase with the repo's hooks/migrations and run the integration smoke suite (GH#98)
         run: bash scripts/pb-smoke.sh
+
+  migration-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Boot previous-release snapshot, upgrade with current migrations, assert parity (GH#39)
+        run: bash scripts/pb-migration-upgrade.sh
