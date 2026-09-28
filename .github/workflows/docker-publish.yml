@@ -74,7 +74,7 @@ jobs:
         run: bash scripts/test-migration-sync.sh
 
   build-and-push:
-    needs: quality-gate
+    needs: [quality-gate, migrations-gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
