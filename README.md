@@ -138,6 +138,8 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
 | `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
 | `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |
+| `TRUSTED_PROXY_CIDRS` | **Optional** (GH#41): CIDR list of your reverse proxy, e.g. `172.18.0.0/16`. Enables real client IP for rate limiting. **Leave empty** when todoless is reached directly — see *Reverse proxy + HTTPS* below |
+| `REAL_IP_HEADER` | **Optional** (GH#41): forwarded client-IP header set by your proxy — `X-Forwarded-For` (Caddy/Traefik/nginx) or `CF-Connecting-IP` (Cloudflare) |
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
 
@@ -230,6 +232,37 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 | **nginx + Let's Encrypt** | Standard reverse proxy with certbot |
 
 > ⚠️ **Important:** If you use a reverse proxy, configure it to terminate TLS. The todoless container only serves HTTP — do not expose port 7070 directly to the internet without HTTPS in front of it.
+
+#### Real client IPs behind a reverse proxy (GH#41)
+
+todoless rate-limits auth endpoints per client IP so a family logging in from several devices never locks each other out. Behind a reverse proxy every request's TCP peer is the *proxy's* address, so without extra configuration all users would share **one** rate-limit bucket. The container therefore never trusts a forwarded client-IP header unless you explicitly tell it which proxies to trust:
+
+```bash
+# .env
+TRUSTED_PROXY_CIDRS=172.18.0.0/16   # network your proxy connects from
+REAL_IP_HEADER=X-Forwarded-For      # header your proxy sets
+```
+
+- `TRUSTED_PROXY_CIDRS` — space- or comma-separated list of the proxy network(s). Find it with `docker network inspect <compose-network> | grep Subnet` or `ip addr` on the proxy host. Only connections that actually come from these addresses get their client IP rewritten; everyone else is still keyed on the real socket peer, so a direct caller can never forge a header to dodge the limit.
+- `REAL_IP_HEADER` — the header carrying the original client IP:
+  - **Caddy / Traefik / nginx** → `X-Forwarded-For`
+  - **Cloudflare (proxy or tunnel)** → `CF-Connecting-IP`
+- Both default to **disabled**: no forwarded header is ever trusted, and the auth rate limit keys on the real socket peer address.
+
+**Caddy example** (Caddy in Docker on the same network):
+```bash
+TRUSTED_PROXY_CIDRS=172.18.0.0/16
+REAL_IP_HEADER=X-Forwarded-For
+```
+
+**Cloudflare example** (site proxied by Cloudflare, or served through a Cloudflare Tunnel):
+```bash
+TRUSTED_PROXY_CIDRS=173.245.48.0/20, 103.21.244.0/22   # Cloudflare's published edge ranges
+REAL_IP_HEADER=CF-Connecting-IP
+```
+> For a Cloudflare **tunnel**, the connecting peer is your own tunnel container — use that container's network instead of Cloudflare's edge ranges (e.g. `TRUSTED_PROXY_CIDRS=172.17.0.0/16`, `REAL_IP_HEADER=CF-Connecting-IP`).
+
+> ⚠️ Only set `TRUSTED_PROXY_CIDRS` to addresses you control. If a client can reach the published port directly (e.g. port 7070 is open on your LAN **and** you proxy it), do **not** include your whole LAN CIDR — trust only the proxy network, or rate-limit spoofing becomes possible from inside the LAN.
 
 ### Security hardening
 - The PocketBase backend is not published to the host - only accessible internally via the nginx proxy. The admin dashboard at `/_/` is allow-listed to private networks only (see below).
