@@ -310,7 +310,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     if (existing) {
       if (!task.labels.includes(existing.id)) updateTask(task.id, { labels: [...task.labels, existing.id] });
     } else {
-      addLabel({ name, color: '#3b82f6', visibility: 'family' });
+      void addLabel({ name, color: '#3b82f6', visibility: 'family' }).then((created) => {
+        if (created && !task.labels.includes(created.id)) {
+          updateTask(task.id, { labels: [...task.labels, created.id] });
+        }
+      });
     }
     setLabelInput('');
   };
