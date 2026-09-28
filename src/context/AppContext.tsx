@@ -809,7 +809,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const showCompletionMessage = (message: string) => setCompletionMessage(message);
 
   const moveTaskToStatus = (taskId: string, status: 'backlog' | 'todo' | 'done') => {
-    updateTask(taskId, { status });
+    // Moving OUT of 'done' must clear completion metadata or PocketBase keeps
+    // the old completed_at (GH#80) — the done-today counter would keep counting.
+    updateTask(taskId, status === 'done' ? { status, completedAt: Date.now() } : { status, completedAt: undefined, completedBy: undefined });
   };
 
   const createNewSprint = () => {
@@ -916,7 +918,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const uncheckAllDoneTasks = () => {
     effectiveTasks.filter((task) => task.status === 'done').forEach((task) => {
-      updateTask(task.id, { status: 'todo', completedAt: undefined });
+      updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
     });
   };
 

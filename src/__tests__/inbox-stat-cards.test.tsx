@@ -5,6 +5,7 @@ import type { Task } from '../types';
 
 const toggleChipFilter = vi.fn();
 const clearChipFilters = vi.fn();
+const updateTaskMock = vi.fn();
 
 vi.mock('../context/AppContext', () => ({
   useApp: () => ({
@@ -13,8 +14,9 @@ vi.mock('../context/AppContext', () => ({
       task({ id: 'todo-1', title: 'Todo task', status: 'todo' }),
       task({ id: 'blocked-1', title: 'Blocked task', status: 'todo', blocked: true }),
       task({ id: 'done-1', title: 'Done task', status: 'done', completedAt: Date.now() }),
+      task({ id: 'stale-1', title: 'Reopened task', status: 'todo', completedAt: Date.now() }),
     ],
-    updateTask: vi.fn(),
+    updateTask: updateTaskMock,
     addTask: vi.fn(),
     activeChipFilters: [],
     toggleChipFilter,
@@ -52,7 +54,7 @@ describe('Inbox stat cards', () => {
     expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('data-status', 'todo');
     expect(screen.getByTestId('inbox-stat-card-blocked')).toHaveAttribute('data-status', 'blocked');
     expect(screen.getByTestId('inbox-stat-card-done-today')).toHaveAttribute('data-status', 'done-today');
-    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('aria-label', 'Todo Sprint: 2');
+    expect(screen.getByTestId('inbox-stat-card-todo')).toHaveAttribute('aria-label', 'Todo Sprint: 3');
   });
 
   it('keeps the existing tap behavior for status filters', () => {
@@ -62,6 +64,27 @@ describe('Inbox stat cards', () => {
 
     expect(clearChipFilters).toHaveBeenCalledTimes(1);
     expect(toggleChipFilter).toHaveBeenCalledWith('status', 'todo', 'Todo Sprint');
+  });
+
+  it('does not count a reopened task in done-today even if a stale completedAt survives (GH#80)', () => {
+    render(<InboxBacklog />);
+
+    // done-1 is done-today (1); stale-1 has completedAt today but status todo
+    expect(screen.getByTestId('inbox-stat-card-done-today')).toHaveTextContent('1');
+  });
+
+  it('batch-push sends clear-completion payload so PocketBase nulls completed_at (GH#80)', () => {
+    render(<InboxBacklog />);
+
+    fireEvent.click(screen.getByText('Select All'));
+    fireEvent.click(screen.getByText('Select All'));
+    fireEvent.click(screen.getByText(/Push Selected/));
+
+    for (const call of updateTaskMock.mock.calls) {
+      expect(call[0]).toMatch(/^backlog-1|^todo-1|^blocked-1|^done-1|^stale-1$/);
+      expect(call[1]).toMatchObject({ status: 'todo', completedAt: undefined, completedBy: undefined });
+    }
+    expect(updateTaskMock.mock.calls.length).toBeGreaterThan(0);
   });
 });
 

@@ -797,7 +797,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       <div key={subtask.id} className={`flex items-center gap-2 pl-2 pr-1.5 py-1.5 rounded border ${subtaskCount > 0 ? 'bg-purple-50/50 border-purple-100' : 'bg-neutral-50 border-neutral-100'}`}>
                         <button
                           type="button"
-                          onClick={() => { if (subtask.status === 'done') { updateTask(subtask.id, { status: 'todo', completedAt: undefined }); } else { updateTask(subtask.id, { status: 'done', completedAt: Date.now() }); } }}
+                          onClick={() => { if (subtask.status === 'done') { updateTask(subtask.id, { status: 'todo', completedAt: undefined, completedBy: undefined }); } else { updateTask(subtask.id, { status: 'done', completedAt: Date.now() }); } }}
                           className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${subtask.status === 'done' ? 'bg-gradient-to-br from-emerald-500 to-cyan-500 border-transparent text-white' : 'border-neutral-300 hover:border-neutral-500'}`}
                           aria-label={subtask.status === 'done' ? t('tasks.markSubtaskAsNotDone') : t('tasks.markSubtaskAsDone')}
                         >

@@ -95,7 +95,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
   const handleToggle = () => {
     if (isTask) {
-      updateTask(entity.id, task!.status === 'done' ? { status: 'todo', completedAt: undefined } : { status: 'done', completedAt: Date.now() });
+      updateTask(entity.id, task!.status === 'done' ? { status: 'todo', completedAt: undefined, completedBy: undefined } : { status: 'done', completedAt: Date.now() });
     } else {
       updateItem(entity.id, { completed: !item!.completed });
     }
@@ -343,7 +343,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                 <button
                   onClick={() => {
                     if (subtask.status === 'done') {
-                      updateTask(subtask.id, { status: 'todo', completedAt: undefined });
+                      updateTask(subtask.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
                     } else {
                       updateTask(subtask.id, { status: 'done', completedAt: Date.now() });
                     }

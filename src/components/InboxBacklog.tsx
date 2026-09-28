@@ -32,7 +32,9 @@ export const InboxBacklog = () => {
   const todoCount = tasks.filter((t) => t.status === 'todo' && !t.archived && isNotSubtask(t)).length;
   const blockedCount = blockedTasks.length;
   const doneToday = tasks.filter((t) => {
-    if (!t.completedAt) return false;
+    // Only tasks still in 'done' count — a reopened/backlog task must not keep
+    // counting even if a stale completed_at survived (GH#80).
+    if (t.status !== 'done' || !t.completedAt) return false;
     const today = new Date();
     const completed = new Date(t.completedAt);
     return completed.toDateString() === today.toDateString() && isNotSubtask(t);
@@ -142,7 +144,7 @@ export const InboxBacklog = () => {
   };
 
   const pushSelected = () => {
-    selectedIds.forEach((id) => updateTask(id, { status: 'todo' }));
+    selectedIds.forEach((id) => updateTask(id, { status: 'todo', completedAt: undefined, completedBy: undefined }));
     exitSelectMode();
   };
 
