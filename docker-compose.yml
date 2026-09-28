@@ -63,6 +63,10 @@ services:
       # -e COMMIT_SHA/TODOLESS_BRANCH override (as in todoless-deploy-prod.sh)
       # wins when explicitly provided.
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
+      # The entrypoint runs `pocketbase superuser upsert` when both are set.
+      POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-}
+      POCKETBASE_ADMIN_PASSWORD: ${POCKETBASE_ADMIN_PASSWORD:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data
@@ -87,6 +91,13 @@ services:
         - container: /pb_hooks
           description:
             en_US: PocketBase server-side hooks
+      envs:
+        - container: POCKETBASE_ADMIN_EMAIL
+          description:
+            en_US: PocketBase admin (superuser) email - creates the dashboard login (/_/) on start (optional)
+        - container: POCKETBASE_ADMIN_PASSWORD
+          description:
+            en_US: PocketBase admin (superuser) password - set together with POCKETBASE_ADMIN_EMAIL (optional)
 
 networks:
   todoless-net:

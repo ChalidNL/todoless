@@ -131,8 +131,10 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `TZ` | Timezone (default: `Europe/Amsterdam`) |
 | `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
 | `LOG_LEVEL` | Backend logging verbosity on stdout/stderr (default: `info`) — see below |
+| `POCKETBASE_ADMIN_EMAIL` | PocketBase superuser email - set together with the password to auto-create the dashboard login on start (optional) |
+| `POCKETBASE_ADMIN_PASSWORD` | PocketBase superuser password - set together with the email (optional) |
 
-> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
+> `VITE_POCKETBASE_URL` and SMTP settings are build-time variables - not needed when using the pre-built GHCR images. `POCKETBASE_ADMIN_*` are **runtime** variables read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)).
 
 ### Logging & observability
 The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
@@ -221,7 +223,7 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 > ⚠️ **Important:** If you use a reverse proxy, configure it to terminate TLS. The todoless container only serves HTTP — do not expose port 7070 directly to the internet without HTTPS in front of it.
 
 ### Security hardening
-- The PocketBase backend is not published to the host — only accessible internally via the nginx proxy.
+- The PocketBase backend is not published to the host - only accessible internally via the nginx proxy. The admin dashboard at `/_/` is allow-listed to private networks only (see below).
 - Frontend container runs as an unprivileged Nginx user (uid 101) in a **read-only** filesystem with all capabilities dropped (`cap_drop: ALL`).
 - PocketBase container runs as a fixed non-root user (uid 1000) with all capabilities dropped (`cap_drop: ALL`, no `cap_add`).
 - Use `:latest` or `:dev` tags for convenience; pin to specific digests in production.
@@ -229,19 +231,21 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 
 ### Accessing the PocketBase dashboard (admin)
 
-PocketBase ships its own admin dashboard at `/_/` (collections, settings, backups, `_logs`, user recovery). By default todoless **does not expose it**: nginx answers `404` for `/_/` and PocketBase's port `8090` is never published — the backend is only reachable inside the Docker network. That is the right default for a family appliance; use one of the options below when you genuinely need to get in.
+PocketBase ships its own admin dashboard at `/_/` (collections, settings, backups, `_logs`, user recovery). It is reachable at **http://your-server-ip:7070/_/**, but only from private networks: the shipped nginx allow-lists RFC1918 LAN ranges, loopback and the Tailscale CGNAT range (`100.64.0.0/10`), and answers `403` for everyone else. Never expose the app port to the public internet.
 
-**1. Create a superuser (one-time)**
+**1. Superuser (usually automatic)**
 
-todoless does not create a PocketBase superuser automatically; the web onboarding only creates an app admin. If you need the dashboard, create a superuser first. On the server, with the stack running:
+The web onboarding only creates an app admin. The PocketBase superuser is bootstrapped automatically if you set both `POCKETBASE_ADMIN_EMAIL` and `POCKETBASE_ADMIN_PASSWORD` in `.env` before `docker compose up -d` - the container entrypoint runs `pocketbase superuser upsert` on every start (idempotent, so updating the password later is just editing `.env` and recreating the container).
+
+**Manual alternative** (no `.env`): on the server, with the stack running:
 
 ```bash
 docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-very-strong-password'
 ```
 
-> Automatic bootstrap from `POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_PASSWORD` is tracked in [issue #50](https://github.com/ChalidNL/todoless/issues/50); until then the one-liner above is the supported path. The command writes to the same `pb_data` database the server uses (`--dir=/pb_data`).
+> The command writes to the same `pb_data` database the server uses. If you created a superuser manually, keep the same email/password in `.env` so the entrypoint keeps it in sync.
 
-**2. Reach the dashboard safely — Option A: temporary SSH tunnel (recommended)**
+**2. If you prefer zero LAN exposure (SSH tunnel only)**
 
 1. Temporarily publish PocketBase to the host's loopback interface only. In `docker-compose.yml`, under the `pocketbase` service add:
    ```yaml
@@ -250,30 +254,10 @@ docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-
    ```
 2. Recreate the container: `docker compose up -d pocketbase`
 3. From your workstation, tunnel into it: `ssh -L 8090:127.0.0.1:8090 user@your-server`
-4. Open **http://127.0.0.1:8090/_/** on your workstation and sign in with the superuser you created.
-5. When finished, remove the two lines you added and `docker compose up -d pocketbase` — the dashboard is unreachable again.
+4. Open **http://127.0.0.1:8090/_/** on your workstation and sign in with the superuser.
+5. When finished, remove the two lines you added and `docker compose up -d pocketbase` - the dashboard is unreachable again.
 
 Binding to `127.0.0.1` (not `0.0.0.0`) keeps the port off your LAN; only the SSH tunnel can reach it.
-
-**3. Reach the dashboard safely — Option B: LAN-only nginx allow-list**
-
-If you prefer direct LAN access (no SSH) and are comfortable building your own frontend image, replace the `location /_/ { return 404; }` block in `nginx.conf` (it is baked into the image, so you must rebuild) with an allow-listed proxy:
-
-```nginx
-location /_/ {
-    allow 10.0.0.0/8;
-    allow 192.168.0.0/16;
-    allow 100.64.0.0/10;   # Tailscale CGNAT range
-    deny all;
-    proxy_pass http://pocketbase:8090;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-```
-
-Only clients from those private ranges can reach the dashboard; everyone else is denied. Never publish port `8090` to the internet — the dashboard has no built-in brute-force protection beyond PocketBase's own auth.
 
 ---
 
