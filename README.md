@@ -123,6 +123,8 @@ All persistent data lives in `/DATA/AppData/todoless/`:
 | `pb_migrations/` | Schema migration scripts |
 | `pb_hooks/` | Server-side API hooks |
 
+On every start the entrypoint seeds the bundled hooks/migrations into these volumes and prunes app-managed files that were renamed or removed upstream (and files from newer images when downgrading), so stale hooks stop running and removed migrations never re-apply (GH#35). Pruned files are preserved as `<name>.gh35-removed-<timestamp>` instead of deleted, so a locally customized copy is never destroyed; the suffix is ignored by PocketBase, and directories are never touched. User-added files are never touched at all; the append-only manifests `app-managed-migrations.txt` / `app-managed-hooks.txt` list every file the app has ever seeded and are enforced by CI. Once you have confirmed you no longer need a preserved copy, you can delete any `*.gh35-removed-*` file from `pb_migrations/` or `pb_hooks/`.
+
 ### Environment (.env.example)
 The `.env.example` file documents available variables. Not all are used by the production compose — the key ones for self-hosters:
 

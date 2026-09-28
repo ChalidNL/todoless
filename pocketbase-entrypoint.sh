@@ -9,6 +9,17 @@ PB_HOOKS_DIR="${PB_HOOKS_DIR:-/pb_hooks}"
 PB_MIGRATIONS_BUNDLED_DIR="${PB_MIGRATIONS_BUNDLED_DIR:-/pb_migrations_bundled}"
 PB_HOOKS_BUNDLED_DIR="${PB_HOOKS_BUNDLED_DIR:-/pb_hooks_bundled}"
 
+# GH#35: append-only manifests of every file the app has EVER seeded into the
+# pb_migrations/pb_hooks runtime volumes (repo: app-managed-migrations.txt /
+# app-managed-hooks.txt; CI lint scripts/check-app-manifest.sh keeps them
+# current and append-only). The entrypoint prunes listed files that are no
+# longer bundled in this image (renamed/removed upstream, or a downgrade), so
+# removed hooks stop running and removed migrations never re-apply. Files NOT
+# in the manifests are user-added and are NEVER touched. Pruned files are
+# preserved as '<name>.gh35-removed-<timestamp>' (see remove_stale below).
+PB_MIGRATIONS_MANIFEST="${PB_MIGRATIONS_MANIFEST:-/app-managed-migrations.txt}"
+PB_HOOKS_MANIFEST="${PB_HOOKS_MANIFEST:-/app-managed-hooks.txt}"
+
 # GH#45: this image runs as a fixed non-root UID (1000), and the compose service
 # drops ALL capabilities (no cap_add). The runtime volumes must therefore be
 # writable by uid 1000. Installations that predate the non-root images have
@@ -58,8 +69,73 @@ seed_dir() {
   done || return 1
 }
 
+# GH#35: prune stale bundled files from a runtime volume. The manifests list
+# every file the app has EVER seeded; any listed file that is no longer
+# bundled in this image (renamed/removed upstream, or absent on downgrade) is
+# taken OUT of the active set so stale hooks stop running and removed
+# migrations never re-apply. The stale file is preserved (renamed to
+# '<name>.gh35-removed-<timestamp>') instead of hard-deleted: a self-hoster
+# may have customized an app-seeded file in place, and the preserved copy
+# keeps that data while the suffix guarantees hook/migration loaders ignore
+# it. Files NOT listed in the manifest are user-added and are NEVER touched.
+# Missing manifest/bundled/runtime dir means dev/test overrides without
+# manifests: log a warning and continue gracefully. Directories in the volume
+# are never touched (the preserved copy stays in its original subdir).
+remove_stale() {
+  manifest="$1"
+  src_dir="$2"
+  dst_dir="$3"
+  label="$4"
+
+  if [ ! -f "$manifest" ] || [ ! -d "$src_dir" ] || [ ! -d "$dst_dir" ]; then
+    echo "[entrypoint] WARNING: skipping stale-file pruning ($label: manifest or bundled/runtime dir missing)" >&2
+    return 0
+  fi
+
+  count=0
+  while IFS= read -r rel; do
+    # Skip blank lines and comments.
+    case "$rel" in
+      ''|'#'*) continue ;;
+    esac
+    # Defensive guard: refuse absolute paths and path traversal.
+    case "$rel" in
+      /*|*..*)
+        echo "[entrypoint] WARNING: skipping unsafe manifest entry '$rel'" >&2
+        continue
+        ;;
+    esac
+    if [ -e "$src_dir/$rel" ]; then
+      continue  # still bundled; seed_dir handles it
+    fi
+    if [ -f "$dst_dir/$rel" ] || [ -L "$dst_dir/$rel" ]; then
+      # Preserve instead of hard-delete (GH#35): the '.gh35-removed-<ts>'
+      # suffix is not .js, so PocketBase hook/migration loaders ignore it.
+      preserved="${rel}.gh35-removed-$(date +%s)"
+      echo "[entrypoint] removing stale $label: $rel (preserved as $preserved)"
+      mv -- "$dst_dir/$rel" "$dst_dir/$preserved" || {
+        echo "[entrypoint] ERROR: failed to preserve stale $label: $rel" >&2
+        return 1
+      }
+      count=$((count + 1))
+    elif [ -e "$dst_dir/$rel" ]; then
+      # A manifest entry should always be a file we seeded; a directory with a
+      # colliding name is user data - never recurse into it. Skip + warn.
+      echo "[entrypoint] WARNING: skipping '$rel': not a regular file (user directory?)" >&2
+    fi
+  done < "$manifest"
+
+  if [ "$count" -gt 0 ]; then
+    echo "[entrypoint] stale $label prune: $count file(s) pruned (preserved as .gh35-removed-*)"
+  fi
+}
+
 seed_dir "$PB_MIGRATIONS_BUNDLED_DIR" "$PB_MIGRATIONS_DIR" migration || exit 1
 seed_dir "$PB_HOOKS_BUNDLED_DIR" "$PB_HOOKS_DIR" hook || exit 1
+
+# GH#35: prune stale bundled files AFTER seeding, BEFORE the GH#34 rename sync.
+remove_stale "$PB_MIGRATIONS_MANIFEST" "$PB_MIGRATIONS_BUNDLED_DIR" "$PB_MIGRATIONS_DIR" "migration" || exit 1
+remove_stale "$PB_HOOKS_MANIFEST" "$PB_HOOKS_BUNDLED_DIR" "$PB_HOOKS_DIR" "hook" || exit 1
 
 # ── Migration-rename sync (GH#34) ──────────────────────────────────────────
 # PocketBase records applied migrations by FILE NAME in its SQLite _migrations
@@ -189,4 +265,11 @@ elif [ -n "${POCKETBASE_ADMIN_EMAIL:-}" ] || [ -n "${POCKETBASE_ADMIN_PASSWORD:-
   echo "[entrypoint] WARNING: set BOTH POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD to bootstrap the superuser (only one is set)" >&2
 fi
 
+# Hand off to PocketBase. The image always ships the binary at the absolute
+# path; when it is absent (dev/test runs with PB_* overrides and a stub
+# pocketbase on PATH) fall back to a PATH lookup so the entrypoint stays
+# fully testable without write access to /usr/local/bin.
+if [ ! -x /usr/local/bin/pocketbase ]; then
+  exec pocketbase "$@"
+fi
 exec /usr/local/bin/pocketbase "$@"
