@@ -311,6 +311,11 @@ routerAdd('GET', '/api/openapi.json', (c) => {
             shop_id: st(),
             quantity: si(),
             complete: sb(),
+            // list action: incremental sync + pagination (GH#102) — accepted both in the body and as query params
+            updated_since: { type: "string", format: "date-time", description: "Only return entries whose updated_at is at or after this ISO-8601 timestamp." },
+            page: { type: "integer", minimum: 1, default: 1 },
+            perPage: { type: "integer", minimum: 1, maximum: 500, default: 100 },
+            include_deleted: { type: "boolean", default: false, description: "Include deleted tombstones in the envelope when action=list." },
           },
         } } },
       },
@@ -327,11 +332,44 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     return {
       tags: ["Entries"],
       summary: "List unified entries",
-      description: "Returns all tasks and groceries for the authenticated user's family, with optional filters.",
+      description: "Returns all tasks and groceries visible to the authenticated user's family, with optional filters. When `page`/`perPage`, `updated_since`, or `include_deleted` is present, returns a paginated envelope `{items, page, perPage, totalItems, totalPages, hasMore, deleted}` instead of a plain array. Enabled API tokens only see their token permissions (entries:read / tasks:read / groceries:read).",
       operationId: "listEntries",
-      parameters: filterParams(),
+      parameters: filterParams().concat([
+        { name: "updated_since", in: "query", schema: { type: "string", format: "date-time" }, description: "Only return entries whose `updated_at` is at or after this ISO-8601 timestamp (incremental sync)." },
+        { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 }, description: "Page number when requesting a paginated envelope." },
+        { name: "perPage", in: "query", schema: { type: "integer", minimum: 1, maximum: 500, default: 100 }, description: "Page size when requesting a paginated envelope." },
+        { name: "include_deleted", in: "query", schema: { type: "boolean", default: false }, description: "Include `deleted` tombstones (ids of tasks/groceries removed from the family) in the envelope. Combine with `updated_since` for full incremental sync." },
+      ]),
       security: authRequired(),
-      responses: { "200": { description: "List of entries", content: { "application/json": { schema: { type: "array", items: { "$ref": "#/components/schemas/Entry" } } } } } },
+      responses: {
+        "200": {
+          description: "List of entries (plain array) OR paginated envelope",
+          content: {
+            "application/json": {
+              schema: {
+                oneOf: [
+                  { type: "array", items: { "$ref": "#/components/schemas/Entry" } },
+                  {
+                    type: "object",
+                    properties: {
+                      items: { type: "array", items: { "$ref": "#/components/schemas/Entry" } },
+                      page: { type: "integer" },
+                      perPage: { type: "integer" },
+                      totalItems: { type: "integer" },
+                      totalPages: { type: "integer" },
+                      hasMore: { type: "boolean" },
+                      deleted: { type: "array", items: { "$ref": "#/components/schemas/DeletedEntry" } },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+        "400": { description: "Bad request (e.g. invalid updated_since)" },
+        "401": { description: "Unauthorized" },
+        "403": { description: "Missing read permission" },
+      },
     };
   }
   
@@ -1104,6 +1142,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       schemas: {
         Error: { type: "object", required: ["error"], properties: { error: { type: "string", example: "Unauthorized" } } },
         Entry: { type: "object", properties: entryProps() },
+        DeletedEntry: { type: "object", properties: { id: { type: "string" }, type: { type: "string", enum: ["task", "grocery"] }, deleted_at: { type: "string", format: "date-time" } } },
         Task: { type: "object", properties: taskProps() },
         Item: { type: "object", properties: itemProps() },
         CalendarEvent: { type: "object", properties: calendarProps() },

@@ -104,6 +104,68 @@ onRecordUpdate('tasks', (e) => {
   }
 });
 
+// ── Deleted-entries tombstones (GH#102): record every hard delete of a task
+// or grocery so integration clients can remove items during incremental sync.
+// PB 0.35 model hooks bind as onRecordDelete(handler, ...collectionTags) —
+// handler FIRST. (Collection-first binding is silently ignored in PB 0.35.1;
+// verified empirically 2026-09-28.)
+// NOTE: PB does not hoist top-level function declarations into hook callbacks,
+// so the tombstone body is inlined per handler (repo convention, main.pb.js header).
+
+onRecordDelete((e) => {
+  try {
+    var rec = e.record;
+    if (rec && rec.id) {
+      var familyId = String(rec.get('family_id') || '');
+      var userId = String(rec.get('user') || rec.get('created_by') || '');
+      if (!familyId && userId) {
+        try {
+          var owner = $app.findRecordById('users', userId);
+          familyId = String(owner.get('family_id') || '');
+        } catch(_e) { /* user gone — store bare id */ }
+      }
+      var coll = $app.findCollectionByNameOrId('deleted_entries');
+      var tomb = new Record(coll);
+      tomb.set('ref_id', rec.id);
+      tomb.set('kind', 'task');
+      tomb.set('family_id', familyId);
+      tomb.set('user_id', userId);
+      $app.save(tomb);
+    }
+  } catch(e) {
+    // Tombstone collection may be missing on old deploys — deletion must not fail.
+    try { $app.logger().error('tombstone write failed: ' + String(e)); } catch(_e) {}
+  }
+  return e.next();
+}, 'tasks');
+
+onRecordDelete((e) => {
+  try {
+    var rec = e.record;
+    if (rec && rec.id) {
+      var familyId = String(rec.get('family_id') || '');
+      var userId = String(rec.get('user') || rec.get('created_by') || '');
+      if (!familyId && userId) {
+        try {
+          var owner = $app.findRecordById('users', userId);
+          familyId = String(owner.get('family_id') || '');
+        } catch(_e) { /* user gone — store bare id */ }
+      }
+      var coll = $app.findCollectionByNameOrId('deleted_entries');
+      var tomb = new Record(coll);
+      tomb.set('ref_id', rec.id);
+      tomb.set('kind', 'grocery');
+      tomb.set('family_id', familyId);
+      tomb.set('user_id', userId);
+      $app.save(tomb);
+    }
+  } catch(e) {
+    // Tombstone collection may be missing on old deploys — deletion must not fail.
+    try { $app.logger().error('tombstone write failed: ' + String(e)); } catch(_e) {}
+  }
+  return e.next();
+}, 'items');
+
 // ─── Public API endpoints ────────────────────────────────────────────────
 
 routerAdd('GET', '/api/hook-health', (c) => c.json(200, { ok: true }));
@@ -450,35 +512,70 @@ routerAdd('GET', '/api/entries', (c) => {
     var tokInfo = c.get('apiTokenInfo');
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
     if (!_hasPerm('entries:read') && !_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
-    function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
-    function _canAccessTask(r){
-      if(!r)return false;
-      var taskOwner=String(r.get('user')||'');
-      if(taskOwner===auth.id)return true;
-      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
-      var af=String(auth.get('family_id')||'');
-      if(!af||!_canRead(r))return false;
-      var ids=r.get('label')||r.get('labels')||[];
-      if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
-      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
-      for(var li=0;li<ids.length;li++){
-        var labelId=String(ids[li]||''); if(!labelId)continue;
-        var label=null; try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}
-        var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
-        var owner=String(label.get('owner')||label.get('user')||'');
-        var lf=String(label.get('family')||'');
-        if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
-        if(vis==='private'){if(owner!==auth.id)return false;}
-        else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}
-        else if(lf!==af)return false;
+    var q = info.query || {};
+    var uid = String(auth.id || '');
+    var fid = String(auth.get('family_id') || '');
+
+    // Parse pagination / incremental-sync params (GH#102).
+    var hasPage = q.page !== undefined && q.page !== null && String(q.page).trim() !== '';
+    var hasPerPage = q.perPage !== undefined && q.perPage !== null && String(q.perPage).trim() !== '';
+    var hasSince = q.updated_since !== undefined && q.updated_since !== null && String(q.updated_since).trim() !== '';
+    var includeDeleted = String(q.include_deleted || '') === '1' || String(q.include_deleted || '') === 'true';
+    var page = 1, perPage = 100;
+    if (hasPage) page = Math.max(1, parseInt(q.page, 10) || 1);
+    if (hasPerPage) perPage = Math.min(500, Math.max(1, parseInt(q.perPage, 10) || 100));
+    var sinceMs = 0;
+    if (hasSince) { sinceMs = new Date(String(q.updated_since).trim()).getTime(); if (isNaN(sinceMs)) return c.json(400, { error: 'updated_since must be an ISO-8601 timestamp' }); }
+    var envelope = hasPage || hasPerPage || hasSince || includeDeleted;
+
+    // Batch-load labels once per request (kills the per-label N+1).
+    var labelMap = {};
+    try {
+      var labelRows = $app.findRecordsByFilter('labels', '', 'name', 10000, 0);
+      for (var li0 = 0; li0 < labelRows.length; li0++) labelMap[labelRows[li0].id] = labelRows[li0];
+    } catch(e) { /* labels collection issue — visibility pass will hide labeled tasks */ }
+    // Batch-load family user map once (kills per-task findRecordById('users') N+1).
+    var userFamilyMap = {};
+    try {
+      var uf = fid ? 'family_id = {:fid}' : 'id = {:uid}';
+      var up = fid ? { fid: fid } : { uid: uid };
+      var userRows = $app.findRecordsByFilter('users', uf, '', 10000, 0, up);
+      for (var ui0 = 0; ui0 < userRows.length; ui0++) userFamilyMap[userRows[ui0].id] = String(userRows[ui0].get('family_id') || '');
+    } catch(e) {}
+
+    // Family-scoped DB filter: O(family) instead of O(all records).
+    var scopeFilter = fid ? '(user.family_id = {:fid} || user = {:uid})' : 'user = {:uid}';
+    var scopeParams = fid ? { fid: fid, uid: uid } : { uid: uid };
+
+    function _visible(r, isTask){
+      if (!r) return false;
+      var owner = String(r.get('user') || '');
+      if (owner === uid) return true;
+      if (!fid) return false;
+      if (owner && userFamilyMap[owner] && userFamilyMap[owner] !== fid) return false;
+      if (r.get('is_private') === true || r.get('is_private') === 1 || r.get('is_private') === 'true') return false;
+      if (!isTask) return true;
+      var ids = r.get('label') || r.get('labels') || [];
+      if (!Array.isArray(ids)) ids = ids ? [String(ids)] : [];
+      if (ids.length > 1) { for (var mi = 0; mi < ids.length; mi++) { var mv = labelMap[String(ids[mi] || '')]; if (!mv) return false; var mvis = String(mv.get('visibility') || (mv.get('is_private') ? 'private' : 'family')); if (mvis !== 'family') return false; } }
+      for (var li = 0; li < ids.length; li++) {
+        var labelId = String(ids[li] || ''); if (!labelId) continue;
+        var label = labelMap[labelId]; if (!label) return false;
+        var vis = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+        var owner2 = String(label.get('owner') || label.get('user') || '');
+        var lf = String(label.get('family') || '');
+        if (!lf && owner2) lf = userFamilyMap[owner2] || '';
+        if (vis === 'private') { if (owner2 !== uid) return false; }
+        else if (vis === 'shared') { var sw = label.get('shared_with') || []; if (!Array.isArray(sw)) sw = sw ? [String(sw)] : []; if (owner2 !== uid && sw.indexOf(uid) === -1) return false; }
+        else if (lf !== fid) return false;
       }
       return true;
     }
-    var q = info.query || {};
-    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+
+    var tasks = $app.findRecordsByFilter('tasks', scopeFilter, '-created', 10000, 0, scopeParams).filter(function(r){ return _visible(r, true); }).map(function(r) {
       return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
-    var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
+    var items = $app.findRecordsByFilter('items', scopeFilter, '-created', 10000, 0, scopeParams).filter(function(r){ return _visible(r, false); }).map(function(r) {
       return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
     var all = tasks.concat(items);
@@ -487,9 +584,42 @@ routerAdd('GET', '/api/entries', (c) => {
     for (var i=0;i<all.length;i++) { var e=all[i];
       if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a && e.assignee_id!==a) continue;
       if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
+      if (sinceMs && new Date(String(e.updated_at).replace(' ', 'T')).getTime() < sinceMs) continue;
       res.push(e);
     }
-    return c.json(200, res);
+    if (!envelope) return c.json(200, res);
+
+    // Deleted tombstone list (GH#102): only ids that left the family since the anchor.
+    var deleted = [];
+    if (includeDeleted) {
+      try {
+        var dFilter = fid ? 'family_id = {:fid}' : 'user_id = {:uid}';
+        var dParams = fid ? { fid: fid } : { uid: uid };
+        var tombs = $app.findRecordsByFilter('deleted_entries', dFilter, '-deleted_at', 10000, 0, dParams);
+        for (var di = 0; di < tombs.length; di++) {
+          var td = String(tombs[di].get('deleted_at') || '').replace(' ', 'T');
+          var tdMs = new Date(td).getTime();
+          if (isNaN(tdMs)) continue;
+          if (sinceMs && tdMs < sinceMs) continue;
+          deleted.push({ id: String(tombs[di].get('ref_id') || ''), type: String(tombs[di].get('kind') || ''), deleted_at: td });
+        }
+      } catch(e) { /* tombstones collection may not exist yet on older deploys */ }
+    }
+
+    var totalItems = res.length;
+    var totalPages = perPage > 0 ? Math.ceil(totalItems / perPage) : 0;
+    if (page > totalPages && totalPages > 0) page = totalPages;
+    var start = (page - 1) * perPage;
+    var items = res.slice(start, start + perPage);
+    return c.json(200, {
+      items: items,
+      page: page,
+      perPage: perPage,
+      totalItems: totalItems,
+      totalPages: totalPages,
+      hasMore: start + items.length < totalItems,
+      deleted: deleted,
+    });
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
 
@@ -581,23 +711,114 @@ routerAdd('POST', '/api/v1', (c) => {
     function _isFamilyAdmin(user){ var r=String(user&&user.get('role')||''); return r==='admin'||r==='owner'; }
 
     if (action === 'list') {
-    var q = info.query || {};
-      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
-        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
-      });
-      var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
-        return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
-      });
-      var all = tasks.concat(items);
-      var t = (q.type||'').trim(), s = (q.status||'').trim(), a2 = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
-      var res = [];
-      for (var i=0;i<all.length;i++) { var e=all[i];
-        if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a2 && e.assignee_id!==a2) continue;
-        if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
-        res.push(e);
-      }
-      return c.json(200, res);
-    }
+        var q = info.query || {};
+        var uid2 = String(auth.id || '');
+        var fid2 = String(auth.get('family_id') || '');
+
+        // Pagination / incremental-sync params (GH#102). Accept from query params and/or body.
+        var qq = function(k){ if (q[k] !== undefined && q[k] !== null && String(q[k]).trim() !== '') return q[k]; if (d[k] !== undefined && d[k] !== null && String(d[k]).trim() !== '') return d[k]; return ''; };
+        var hasPage2 = qq('page') !== '';
+        var hasPerPage2 = qq('perPage') !== '';
+        var hasSince2 = qq('updated_since') !== '';
+        var includeDeleted2 = String(qq('include_deleted') || '') === '1' || String(qq('include_deleted') || '') === 'true';
+        var page2 = 1, perPage2 = 100;
+        if (hasPage2) page2 = Math.max(1, parseInt(qq('page'), 10) || 1);
+        if (hasPerPage2) perPage2 = Math.min(500, Math.max(1, parseInt(qq('perPage'), 10) || 100));
+        var sinceMs2 = 0;
+        if (hasSince2) { sinceMs2 = new Date(String(qq('updated_since')).trim()).getTime(); if (isNaN(sinceMs2)) return c.json(400, { error: 'updated_since must be an ISO-8601 timestamp' }); }
+        var envelope2 = hasPage2 || hasPerPage2 || hasSince2 || includeDeleted2;
+
+        // Batch-load labels + family user map once per request (kills N+1 lookups).
+        var labelMap2 = {};
+        try {
+          var labelRows2 = $app.findRecordsByFilter('labels', '', 'name', 10000, 0);
+          for (var li1 = 0; li1 < labelRows2.length; li1++) labelMap2[labelRows2[li1].id] = labelRows2[li1];
+        } catch(e) {}
+        var userFamilyMap2 = {};
+        try {
+          var uf2 = fid2 ? 'family_id = {:fid}' : 'id = {:uid}';
+          var up2 = fid2 ? { fid: fid2 } : { uid: uid2 };
+          var userRows2 = $app.findRecordsByFilter('users', uf2, '', 10000, 0, up2);
+          for (var ui1 = 0; ui1 < userRows2.length; ui1++) userFamilyMap2[userRows2[ui1].id] = String(userRows2[ui1].get('family_id') || '');
+        } catch(e) {}
+
+        var scopeFilter2 = fid2 ? '(user.family_id = {:fid} || user = {:uid})' : 'user = {:uid}';
+        var scopeParams2 = fid2 ? { fid: fid2, uid: uid2 } : { uid: uid2 };
+
+        function _visible2(r, isTask){
+          if (!r) return false;
+          var owner = String(r.get('user') || '');
+          if (owner === uid2) return true;
+          if (!fid2) return false;
+          if (owner && userFamilyMap2[owner] && userFamilyMap2[owner] !== fid2) return false;
+          if (r.get('is_private') === true || r.get('is_private') === 1 || r.get('is_private') === 'true') return false;
+          if (!isTask) return true;
+          var ids = r.get('label') || r.get('labels') || [];
+          if (!Array.isArray(ids)) ids = ids ? [String(ids)] : [];
+          if (ids.length > 1) { for (var mi2 = 0; mi2 < ids.length; mi2++) { var mv2 = labelMap2[String(ids[mi2] || '')]; if (!mv2) return false; var mvis2 = String(mv2.get('visibility') || (mv2.get('is_private') ? 'private' : 'family')); if (mvis2 !== 'family') return false; } }
+          for (var li2 = 0; li2 < ids.length; li2++) {
+            var labelId2 = String(ids[li2] || ''); if (!labelId2) continue;
+            var label2 = labelMap2[labelId2]; if (!label2) return false;
+            var vis2 = String(label2.get('visibility') || (label2.get('is_private') ? 'private' : 'family'));
+            var owner3 = String(label2.get('owner') || label2.get('user') || '');
+            var lf2 = String(label2.get('family') || '');
+            if (!lf2 && owner3) lf2 = userFamilyMap2[owner3] || '';
+            if (vis2 === 'private') { if (owner3 !== uid2) return false; }
+            else if (vis2 === 'shared') { var sw2 = label2.get('shared_with') || []; if (!Array.isArray(sw2)) sw2 = sw2 ? [String(sw2)] : []; if (owner3 !== uid2 && sw2.indexOf(uid2) === -1) return false; }
+            else if (lf2 !== fid2) return false;
+          }
+          return true;
+        }
+
+        var tasks = $app.findRecordsByFilter('tasks', scopeFilter2, '-created', 10000, 0, scopeParams2).filter(function(r){ return _visible2(r, true); }).map(function(r) {
+          return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), priority:(r.get('priority')||'medium'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+        });
+        var items = $app.findRecordsByFilter('items', scopeFilter2, '-created', 10000, 0, scopeParams2).filter(function(r){ return _visible2(r, false); }).map(function(r) {
+          return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', priority:(r.get('priority')||'medium'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+        });
+        var all = tasks.concat(items);
+        var t = (q.type||'').trim(), s = (q.status||'').trim(), a2 = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
+        var res = [];
+        for (var i=0;i<all.length;i++) { var e=all[i];
+          if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a2 && e.assignee_id!==a2) continue;
+          if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
+          if (sinceMs2 && new Date(String(e.updated_at).replace(' ', 'T')).getTime() < sinceMs2) continue;
+          res.push(e);
+        }
+        if (!envelope2) return c.json(200, res);
+
+        // Deleted tombstone list (GH#102): ids that left the family since the anchor.
+        var deleted = [];
+        if (includeDeleted2) {
+          try {
+            var dFilter2 = fid2 ? 'family_id = {:fid}' : 'user_id = {:uid}';
+            var dParams2 = fid2 ? { fid: fid2 } : { uid: uid2 };
+            var tombs = $app.findRecordsByFilter('deleted_entries', dFilter2, '-deleted_at', 10000, 0, dParams2);
+            for (var di2 = 0; di2 < tombs.length; di2++) {
+              var td2 = String(tombs[di2].get('deleted_at') || '').replace(' ', 'T');
+              var tdMs2 = new Date(td2).getTime();
+              if (isNaN(tdMs2)) continue;
+              if (sinceMs2 && tdMs2 < sinceMs2) continue;
+              deleted.push({ id: String(tombs[di2].get('ref_id') || ''), type: String(tombs[di2].get('kind') || ''), deleted_at: td2 });
+            }
+          } catch(e) { /* tombstones collection may not exist yet on older deploys */ }
+        }
+
+        var totalItems = res.length;
+        var totalPages = perPage2 > 0 ? Math.ceil(totalItems / perPage2) : 0;
+        if (page2 > totalPages && totalPages > 0) page2 = totalPages;
+        var start = (page2 - 1) * perPage2;
+        var itemsOut = res.slice(start, start + perPage2);
+        return c.json(200, {
+          items: itemsOut,
+          page: page2,
+          perPage: perPage2,
+          totalItems: totalItems,
+          totalPages: totalPages,
+          hasMore: start + itemsOut.length < totalItems,
+          deleted: deleted,
+        });
+        }
 
     if (action === 'create') {
       var title = String(gv(d,'title','')).trim();
