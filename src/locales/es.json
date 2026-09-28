@@ -530,7 +530,7 @@
     "noAccountInviteHint": "¿No tienes cuenta? Contacta con tu administrador para una invitación.",
     "iHaveInviteCode": "Tengo un código de invitación",
     "joinTitle": "Únete a todoless",
-    "invitePrompt": "Introduce tu código de invitación de 6 dígitos para empezar",
+    "invitePrompt": "Introduce tu código de invitación de 12 caracteres para empezar",
     "inviteCode": "Código de invitación",
     "validateCode": "Validar código",
     "alreadyHaveAccount": "¿Ya tienes cuenta?",

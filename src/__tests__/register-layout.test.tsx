@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Register } from '../components/Register';
+import { api } from '../lib/pocketbase-client';
 
 const signUp = vi.fn();
 
@@ -59,5 +60,37 @@ describe('invite registration layout', () => {
     const visibilityButtons = screen.getAllByRole('button', { name: /password/i });
     expect(visibilityButtons).toHaveLength(2);
     visibilityButtons.forEach((button) => expect(button).toHaveClass('auth-visibility-button'));
+  });
+
+  it('requires the 12-character invite code format and shows a matching placeholder', async () => {
+    window.history.replaceState({}, '', '/register');
+    render(<Register onRegister={vi.fn()} />);
+
+    const input = await screen.findByLabelText('Invite Code');
+    expect(input).toHaveAttribute('placeholder', 'ABC123XYZ789');
+    expect(input).toHaveAttribute('maxlength', '12');
+  });
+
+  it('rejects invite codes shorter than 12 characters without calling the API', async () => {
+    window.history.replaceState({}, '', '/register');
+    render(<Register onRegister={vi.fn()} />);
+
+    fireEvent.change(await screen.findByLabelText('Invite Code'), { target: { value: 'ABC123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Validate Code' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Please enter a valid invite code');
+    expect(api.validateInviteCode).not.toHaveBeenCalled();
+  });
+
+  it('accepts a 12-character invite code and advances to account creation', async () => {
+    window.history.replaceState({}, '', '/register');
+    vi.mocked(api.validateInviteCode).mockResolvedValue({ valid: true } as never);
+    render(<Register onRegister={vi.fn()} />);
+
+    fireEvent.change(await screen.findByLabelText('Invite Code'), { target: { value: 'ABC123XYZ789' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Validate Code' }));
+
+    expect(await screen.findByRole('heading', { name: 'Create Your Account' })).toBeInTheDocument();
+    expect(api.validateInviteCode).toHaveBeenCalledWith('ABC123XYZ789');
   });
 });

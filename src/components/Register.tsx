@@ -9,6 +9,11 @@ interface RegisterProps {
   onRegister: () => void;
 }
 
+// Invite codes are generated server-side as exactly 12 uppercase alphanumeric
+// characters (pb_hooks/main.pb.js, POST /api/invites/create, randomString(12)).
+const INVITE_CODE_LENGTH = 12;
+const INVITE_CODE_PLACEHOLDER = 'ABC123XYZ789';
+
 export const Register = ({ onRegister }: RegisterProps) => {
   const { signUp } = useAuth();
   const [step, setStep] = useState<'validate' | 'create'>('validate');
@@ -35,7 +40,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
   }, []);
 
   const handleValidateInvite = async () => {
-    if (!inviteCode || inviteCode.length < 6) {
+    if (!inviteCode || inviteCode.length < INVITE_CODE_LENGTH) {
       setError(t('auth.invalidInviteCode'));
       return;
     }
@@ -123,9 +128,9 @@ export const Register = ({ onRegister }: RegisterProps) => {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === 'Enter' && handleValidateInvite()}
-                maxLength={12}
+                maxLength={INVITE_CODE_LENGTH}
                 className="auth-input auth-invite-input"
-                placeholder="ABC123"
+                placeholder={INVITE_CODE_PLACEHOLDER}
               />
             </div>
 

@@ -530,7 +530,7 @@
     "noAccountInviteHint": "Noch kein Konto? Bitte deinen Administrator um eine Einladung.",
     "iHaveInviteCode": "Ich habe einen Einladungscode",
     "joinTitle": "todoless beitreten",
-    "invitePrompt": "Gib deinen 6-stelligen Einladungscode ein, um zu beginnen",
+    "invitePrompt": "Gib deinen 12-stelligen Einladungscode ein, um zu beginnen",
     "inviteCode": "Einladungscode",
     "validateCode": "Code validieren",
     "alreadyHaveAccount": "Hast du bereits ein Konto?",

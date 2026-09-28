@@ -530,7 +530,7 @@
     "noAccountInviteHint": "Pas encore de compte ? Demandez une invitation à votre administrateur.",
     "iHaveInviteCode": "J’ai un code d’invitation",
     "joinTitle": "Rejoindre todoless",
-    "invitePrompt": "Saisissez votre code d’invitation à 6 caractères pour commencer",
+    "invitePrompt": "Saisissez votre code d’invitation à 12 caractères pour commencer",
     "inviteCode": "Code d’invitation",
     "validateCode": "Valider le code",
     "alreadyHaveAccount": "Vous avez déjà un compte ?",

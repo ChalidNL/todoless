@@ -531,7 +531,7 @@
     "noAccountInviteHint": "Nog geen account? Vraag je beheerder om een uitnodiging.",
     "iHaveInviteCode": "Ik heb een invite-code",
     "joinTitle": "Word lid van todoless",
-    "invitePrompt": "Voer je 6-cijferige invite-code in om te starten",
+    "invitePrompt": "Voer je invite-code van 12 tekens in om te starten",
     "inviteCode": "Invite-code",
     "validateCode": "Code valideren",
     "alreadyHaveAccount": "Heb je al een account?",
