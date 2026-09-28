@@ -7,8 +7,8 @@ migrate(
     app.save(users);
   },
   function(app) {
-    var users = app.findCollectionByNameOrId('users');
-    users.createRule = '';
-    app.save(users);
+    // Intentionally a no-op (GH#36): rolling back this lock must NOT reopen
+    // public registration. Direct user creation stays closed (null); signup is
+    // only possible via /api/register, where bootstrap/invite rules are enforced.
   }
 );
