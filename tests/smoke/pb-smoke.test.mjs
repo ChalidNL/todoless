@@ -78,9 +78,11 @@ test('request logger records 4xx statuses (unauthenticated + bad input)', async 
   assert.equal(noAuth.status, 401)
 
   // Custom-route 400 — also a warn line, and the response body must be intact.
-  const badInput = await api('POST', '/api/validate-create', { body: {} })
+  // (GH#26 removed the debug record-creating endpoint; validate-invite
+  // without a code is the auth-free custom-route 400 used instead.)
+  const badInput = await api('GET', '/api/validate-invite')
   assert.equal(badInput.status, 400)
-  assert.equal(badInput.data?.error, 'title required')
+  assert.equal(badInput.data?.message, 'code required')
 })
 
 // --- 1. setup-status (fresh boot has no users) -----------------------
@@ -494,4 +496,51 @@ test('vendored swagger-ui-init.js is self-contained and external-call-free (GH#6
   assert.ok(init.includes('validatorUrl: null'), 'expected validatorUrl: null to disable external validation')
   const externalUrls = init.match(/https?:\/\//g) || []
   assert.equal(externalUrls.length, 0, `init must contain no external URLs (found ${externalUrls.length})`)
+})
+
+// --- 12. Agent API key last_used_at is throttled (GH#29) ----------------
+// authFromApiKey() must NOT write the agent_keys record on every request:
+// a polling integration would otherwise cause one SQLite write per poll.
+// Rapid successive authenticated requests must not advance last_used_at.
+// (The >60s elapse path is covered by scripts/verify-gh29-throttle.py, which
+// backdates the DB row and asserts the next request advances it.)
+test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', async () => {
+  assert.ok(adminToken, 'expected admin session from earlier bootstrap')
+
+  const created = await api('POST', '/api/agent/keys', {
+    token: adminToken,
+    body: { name: 'smoke-throttle', scopes: ['entries:read'] },
+  })
+  assert.equal(created.status, 201, 'agent key create should succeed')
+  const rawKey = created.data?.key
+  const keyId = created.data?.id
+  assert.ok(rawKey, 'expected raw key on creation')
+
+  async function listLastUsed() {
+    const r = await api('GET', '/api/agent/keys', { token: adminToken })
+    assert.equal(r.status, 200)
+    const found = (r.data || []).find((k) => k.id === keyId)
+    assert.ok(found, 'created key should appear in key list')
+    return found.last_used_at
+  }
+
+  // First authenticated request writes the initial timestamp.
+  const first = await api('GET', '/api/agent/auth-test', { token: rawKey })
+  assert.equal(first.status, 200)
+  assert.equal(first.data?.authenticated, true)
+
+  // DB commit is synchronous in PB hooks; read it back.
+  const t1 = await listLastUsed()
+  assert.ok(t1, 'expected last_used_at after first authenticated request')
+
+  // Rapid follow-up requests must NOT advance the timestamp (throttle).
+  const second = await api('GET', '/api/agent/auth-test', { token: rawKey })
+  assert.equal(second.status, 200)
+  const t2 = await listLastUsed()
+  assert.equal(t2, t1, 'last_used_at must not advance on a request within the 60s throttle window')
+
+  const third = await api('GET', '/api/agent/auth-test', { token: rawKey })
+  assert.equal(third.status, 200)
+  const t3 = await listLastUsed()
+  assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
 })

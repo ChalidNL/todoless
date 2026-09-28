@@ -893,17 +893,6 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       "/validate-invite": {
         get: validateInviteSchema(),
       },
-      "/validate-create": {
-        post: {
-          tags: ["Auth"],
-          summary: "Validate create (canonical path smoke test)",
-          description: "Creates a task/grocery and immediately re-queries it to verify the canonical save+read path works for the caller's family.",
-          operationId: "validateCreate",
-          requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { type: { type: "string", enum: ["task", "grocery"] }, title: st(), quantity: si(), shop_id: sn(), labels: sa({ type: "string" }), assigned_to: sn(), due_date: sn(), priority: sn(), status: sn() }, required: ["title"] } } } },
-          security: authRequired(),
-          responses: { "201": { description: "Created and validated" }, "400": { description: "title required" }, "401": { description: "Unauthorized" } },
-        },
-      },
       "/invites/create": {
         post: {
           tags: ["Invites"],
