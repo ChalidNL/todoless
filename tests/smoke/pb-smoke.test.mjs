@@ -466,6 +466,56 @@ test('v1 update action updates title/status/due_date on a task', async () => {
   assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
 })
 
+// --- 7c. GH#14: PATCH /api/tasks/{taskId} stamps completed_at --------------
+// The fast-path update used to apply status BEFORE comparing the old status,
+// so a todo→done transition never detected the change and completed_at stayed
+// empty — completed tasks then dropped out of the Inbox "done today" counter.
+test('PATCH /api/tasks sets completed_at on done and clears it on reopen (GH#14)', async () => {
+  const created = await api('POST', '/api/tasks', {
+    token: adminToken,
+    body: { title: 'Smoke GH14 completed_at' },
+  })
+  assert.equal(created.status, 201)
+  const taskId = created.data?.id
+  assert.ok(taskId, 'expected created task id')
+  assert.equal(created.data?.completed_at, null)
+
+  // 1) todo → done must stamp completed_at and return it in the response.
+  const done = await api('PATCH', `/api/tasks/${taskId}`, {
+    token: adminToken,
+    body: { status: 'done' },
+  })
+  assert.equal(done.status, 200)
+  assert.equal(done.data?.status, 'done')
+  assert.ok(done.data?.completed_at, `expected completed_at in PATCH response, got ${JSON.stringify(done.data)}`)
+
+  const persisted = await api('GET', `/api/collections/tasks/records/${taskId}`, { token: adminToken })
+  assert.equal(persisted.status, 200)
+  assert.ok(persisted.data?.completed_at, 'expected completed_at persisted on the record')
+  assert.equal(new Date(persisted.data.completed_at).toDateString(), new Date().toDateString())
+
+  // 2) Re-open (done → todo) must clear completed_at so the task leaves the
+  //    "done today" counter until it is completed again.
+  const reopened = await api('PATCH', `/api/tasks/${taskId}`, {
+    token: adminToken,
+    body: { status: 'todo' },
+  })
+  assert.equal(reopened.status, 200)
+  assert.equal(reopened.data?.completed_at, null)
+  const afterReopen = await api('GET', `/api/collections/tasks/records/${taskId}`, { token: adminToken })
+  // PB's native API serializes an unset date as '' (not null) — both must read
+  // as "not completed", and the custom /api/tasks route returns null (GH#11).
+  assert.ok(!afterReopen.data?.completed_at, `expected cleared, got ${JSON.stringify(afterReopen.data?.completed_at)}`)
+
+  // 3) Re-completing the reopened task stamps completed_at again.
+  const redone = await api('PATCH', `/api/tasks/${taskId}`, {
+    token: adminToken,
+    body: { status: 'done' },
+  })
+  assert.equal(redone.status, 200)
+  assert.ok(redone.data?.completed_at, 'expected completed_at stamped again on re-completion')
+})
+
 // --- 8. ICS export -----------------------------------------------------
 test('ICS export returns a valid VCALENDAR envelope', async () => {
   const r = await api('GET', '/api/ics-export', { token: adminToken })
