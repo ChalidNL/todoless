@@ -42,6 +42,7 @@ cron/recurring-tasks.js
 cron/recurring-tasks.test.mjs
 fix_schema.pb.js
 lib/auth.js
+lib/dates.js
 lib/errors.js
 lib/task-date-sync.js
 main.pb.js
