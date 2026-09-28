@@ -2631,7 +2631,23 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "passwordsDoNotMatch": "Passwords do not match",
       "confirmPassword": "Confirm Password",
       "registrationFailed": "Registration failed",
-      "createAccount": "Create Account"
+      "createAccount": "Create Account",
+      "forgotPassword": "Forgot password?",
+      "forgotPasswordTitle": "Reset your password",
+      "forgotPasswordSubtitle": "Enter the email address for your account and we'll send you a reset link.",
+      "sendResetLink": "Send Reset Link",
+      "resetEmailSent": "If an account exists for this email, you'll receive a password reset link.",
+      "resetEmailSentTitle": "Check your email",
+      "resetEmailSentHint": "Follow the link in the email to choose a new password.",
+      "backToLogin": "Back to login",
+      "resetPasswordTitle": "Set a new password",
+      "resetPasswordSubtitle": "Choose a new password for your account.",
+      "resetPasswordSubmit": "Reset Password",
+      "resetPasswordSuccess": "Your password has been updated.",
+      "resetPasswordSuccessTitle": "Password updated",
+      "resetPasswordSuccessHint": "You can now log in with your new password.",
+      "resetTokenInvalid": "This password reset link is invalid or has expired.",
+      "resetErrorGeneric": "Something went wrong. Please try again."
     },
     "onboarding": {
       "exampleFamilyName": "Smith Family"
@@ -2749,7 +2765,23 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "passwordsDoNotMatch": "Wachtwoorden komen niet overeen",
       "confirmPassword": "Bevestig wachtwoord",
       "registrationFailed": "Registratie mislukt",
-      "createAccount": "Account aanmaken"
+      "createAccount": "Account aanmaken",
+      "forgotPassword": "Wachtwoord vergeten?",
+      "forgotPasswordTitle": "Wachtwoord resetten",
+      "forgotPasswordSubtitle": "Voer het e-mailadres van je account in en we sturen je een resetlink.",
+      "sendResetLink": "Resetlink versturen",
+      "resetEmailSent": "Als er een account met dit e-mailadres bestaat, ontvang je een link om je wachtwoord te resetten.",
+      "resetEmailSentTitle": "Check je e-mail",
+      "resetEmailSentHint": "Volg de link in de e-mail om een nieuw wachtwoord te kiezen.",
+      "backToLogin": "Terug naar inloggen",
+      "resetPasswordTitle": "Nieuw wachtwoord instellen",
+      "resetPasswordSubtitle": "Kies een nieuw wachtwoord voor je account.",
+      "resetPasswordSubmit": "Wachtwoord resetten",
+      "resetPasswordSuccess": "Je wachtwoord is bijgewerkt.",
+      "resetPasswordSuccessTitle": "Wachtwoord bijgewerkt",
+      "resetPasswordSuccessHint": "Je kunt nu inloggen met je nieuwe wachtwoord.",
+      "resetTokenInvalid": "Deze resetlink is ongeldig of verlopen.",
+      "resetErrorGeneric": "Er is iets misgegaan. Probeer het opnieuw."
     },
     "onboarding": {
       "exampleFamilyName": "Familie Jansen"
@@ -2867,7 +2899,23 @@ const extraTranslations: Record<SupportedUiLanguage, Record<string, unknown>> = 
       "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
       "confirmPassword": "Confirmer le mot de passe",
       "registrationFailed": "Inscription échouée",
-      "createAccount": "Créer le compte"
+      "createAccount": "Créer le compte",
+      "forgotPassword": "Mot de passe oublié ?",
+      "forgotPasswordTitle": "Réinitialiser votre mot de passe",
+      "forgotPasswordSubtitle": "Saisissez l'adresse e-mail de votre compte et nous vous enverrons un lien de réinitialisation.",
+      "sendResetLink": "Envoyer le lien",
+      "resetEmailSent": "Si un compte existe avec cette adresse e-mail, vous recevrez un lien de réinitialisation.",
+      "resetEmailSentTitle": "Vérifiez vos e-mails",
+      "resetEmailSentHint": "Suivez le lien dans l'e-mail pour choisir un nouveau mot de passe.",
+      "backToLogin": "Retour à la connexion",
+      "resetPasswordTitle": "Définir un nouveau mot de passe",
+      "resetPasswordSubtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "resetPasswordSubmit": "Réinitialiser le mot de passe",
+      "resetPasswordSuccess": "Votre mot de passe a été mis à jour.",
+      "resetPasswordSuccessTitle": "Mot de passe mis à jour",
+      "resetPasswordSuccessHint": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+      "resetTokenInvalid": "Ce lien de réinitialisation est invalide ou a expiré.",
+      "resetErrorGeneric": "Une erreur est survenue. Veuillez réessayer."
     },
     "onboarding": {
       "exampleFamilyName": "Famille Dupont"

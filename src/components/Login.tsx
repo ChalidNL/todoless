@@ -7,9 +7,10 @@ import { t, translatePbError } from '../i18n/translations';
 interface LoginProps {
   onLogin: () => void;
   onSwitchToRegister?: () => void;
+  onSwitchToForgotPassword?: () => void;
 }
 
-export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
+export const Login = ({ onLogin, onSwitchToRegister, onSwitchToForgotPassword }: LoginProps) => {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -98,6 +99,15 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : t('auth.logIn')}
           </button>
+
+          {onSwitchToForgotPassword && (
+            <button
+              onClick={onSwitchToForgotPassword}
+              className="mx-auto block text-sm text-neutral-500 hover:text-blue-600 hover:underline"
+            >
+              {t('auth.forgotPassword')}
+            </button>
+          )}
 
           <div className="text-center pt-4 border-t border-neutral-100 space-y-2">
             <p className="text-xs text-neutral-500">

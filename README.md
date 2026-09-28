@@ -171,6 +171,7 @@ If you want a public domain, put todoless behind a reverse proxy with HTTPS:
 - PocketBase container drops all capabilities except what it needs (`CHOWN`, `DAC_OVERRIDE`).
 - Use `:latest` or `:dev` tags for convenience; pin to specific digests in production.
 - Validate SMTP before going live (invite/password-reset emails).
+- **Password reset:** the login screen offers "Forgot password?"; the emailed link lands on `/reset-password` inside the app. Sending the email requires SMTP settings (separate bootstrap, #51) — until SMTP is configured the request reports success but no mail is delivered, so admins should reset passwords manually from the PocketBase admin UI (`/_/`). The public nginx blocks `/_/`, so reach it from the backend network only.
 
 ---
 

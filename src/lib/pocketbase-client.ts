@@ -366,6 +366,16 @@ class PocketBaseClient {
     pb.authStore.clear();
   }
 
+  /** Send a password-reset email (PB built-in request-password-reset). */
+  async requestPasswordReset(email: string) {
+    await pb.collection('users').requestPasswordReset(email);
+  }
+
+  /** Consume a password-reset token and set a new password. */
+  async confirmPasswordReset(token: string, password: string, passwordConfirm: string) {
+    await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm);
+  }
+
   async getCurrentUser() {
     if (!pb.authStore.isValid || !pb.authStore.record) {
       throw new Error('Not authenticated');

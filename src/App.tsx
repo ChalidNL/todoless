@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from './components/AuthProvider';
 import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ForgotPassword } from './components/ForgotPassword';
+import { ResetPassword, extractResetToken } from './components/ResetPassword';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 import { CalendarView } from './components/calendar/CalendarView';
@@ -76,7 +78,7 @@ class ErrorBoundary extends React.Component<
 }
 
 function AppContent() {
-  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
+  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'forgot-password' | 'reset-password' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
   const { completionMessage, tasks, items, dataLoadState, loadError, retryLoad } = useApp();
@@ -87,6 +89,18 @@ function AppContent() {
   useEffect(() => {
     const checkFirstRun = async () => {
       if (loading) return;
+
+      // PASSWORD RESET FLOW: public pre-auth screens for forgot-password and
+      // reset-password (token links arrive at /reset-password?token=...).
+      const bootPath = window.location.pathname.toLowerCase();
+      if (bootPath === '/forgot-password') {
+        setAppScreen('forgot-password');
+        return;
+      }
+      if (bootPath === '/reset-password') {
+        setAppScreen('reset-password');
+        return;
+      }
 
       // INVITE FLOW: if URL has invite code, go directly to register
       const urlParams = new URLSearchParams(window.location.search);
@@ -207,12 +221,30 @@ function AppContent() {
     return <Register onRegister={() => { setAppScreen('app'); }} />;
   }
 
+  if (appScreen === 'forgot-password') {
+    return <ForgotPassword onBackToLogin={() => { setAppScreen('login'); }} />;
+  }
+
+  if (appScreen === 'reset-password') {
+    return (
+      <ResetPassword
+        token={extractResetToken()}
+        onResetComplete={() => {
+          // Clear the URL params before showing login so the token isn't
+          // reused accidentally via a page reload.
+          window.history.replaceState({}, '', '/');
+          setAppScreen('login');
+        }}
+      />
+    );
+  }
+
   if (appScreen === 'login') {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} onSwitchToForgotPassword={() => setAppScreen('forgot-password')} />;
   }
 
   if (!pb.authStore.isValid) {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} onSwitchToForgotPassword={() => setAppScreen('forgot-password')} />;
   }
 
   if (dataLoadState === 'loading') {
