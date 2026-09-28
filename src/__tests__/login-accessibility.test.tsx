@@ -40,4 +40,19 @@ describe('redesign login accessibility', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Please enter email and password');
   });
+
+  it('shows a friendly rate-limit message when signIn reports HTTP 429 (GH#42)', async () => {
+    const rateLimitedError = Object.assign(new Error('rate limited'), { status: 429 });
+    signIn.mockResolvedValue({ error: rateLimitedError });
+
+    render(<Login onLogin={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'user@example.com' } });
+    fireEvent.change(screen.getByLabelText('Password', { selector: 'input' }), { target: { value: 'secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Log In' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Too many attempts. Please try again in a moment.');
+    expect(signIn).toHaveBeenCalledWith('user@example.com', 'secret');
+  });
 });

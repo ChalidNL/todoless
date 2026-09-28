@@ -31,6 +31,14 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
     setIsLoading(false);
 
     if (signInError) {
+      // GH#42: the nginx rate limiter answers HTTP 429 with a JSON body when
+      // too many login attempts are made. Show a friendly "try again in a
+      // moment" message instead of a generic invalid-credentials error.
+      const status = (signInError as Error & { status?: number }).status;
+      if (status === 429) {
+        setError(t('auth.rateLimited'));
+        return;
+      }
       setError(translatePbError(signInError.message, 'auth.invalidCredentials'));
       return;
     }
