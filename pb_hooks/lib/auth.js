@@ -45,11 +45,14 @@ function isEnabled(record) {
 }
 
 function expiryMs(record) {
+  // GH#11: empty PB date fields are truthy DateTime objects, so `if (!rawExp)`
+  // never fired and an empty expiry was only left unexpired by accident. Use
+  // hasDateValue() so "no real expiry" is explicit (returns 0 -> never expires).
+  var dates = require(__hooks + '/lib/dates.js');
   var rawExp = record.get('expires_at');
-  if (!rawExp) return 0;
-  if (typeof rawExp === 'string') return new Date(String(rawExp).replace(' ', 'T')).getTime();
-  if (rawExp && typeof rawExp.getTime === 'function') return rawExp.getTime();
-  return new Date(String(rawExp).replace(' ', 'T')).getTime();
+  if (!dates.hasDateValue(rawExp)) return 0;
+  var ms = dates.toMs(rawExp);
+  return isNaN(ms) ? 0 : ms;
 }
 
 function getBearerToken(c) {

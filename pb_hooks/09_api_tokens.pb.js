@@ -6,6 +6,7 @@
 // ─── LIST tokens (GET) ─────────────────────────────────────────────────────
 routerAdd('GET', '/api/api-tokens', (c) => {
   var authLib = require(__hooks + '/lib/auth.js');
+  var dates = require(__hooks + '/lib/dates.js');
   var _bam = authLib.bearerAuthMiddleware;
 
 try {
@@ -34,7 +35,7 @@ try {
         token_hash: String(r.get('token_hash') || '').substring(0, 12) + '...',
         permissions: r.get('permissions') || r.get('scopes') || [],
         enabled: r.get('enabled') !== false && r.get('enabled') !== 0 && r.get('enabled') !== 'false',
-        expires_at: String(r.get('expires_at') || ''),
+        expires_at: dates.dateToString(r.get('expires_at')),
         user: String(r.get('user') || ''),
         created: r.get('created'),
       });

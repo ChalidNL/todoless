@@ -477,6 +477,7 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authLib = require(__hooks + '/lib/auth.js');
+    var dates = require(__hooks + '/lib/dates.js');
     var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
     if (tokenAuth) return tokenAuth;
 
@@ -531,7 +532,7 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
       tokenName: String(t.get('name') || ''),
       enabled: isEnabled,
       createdAt: t.get('created') || '',
-      expiresAt: t.get('expires_at') || null
+      expiresAt: dates.dateOrNull(t.get('expires_at'))
     });
   } catch(e) {
     try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}

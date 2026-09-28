@@ -76,6 +76,7 @@ try {
 // List API keys: GET /api/agent/keys
 routerAdd('GET', '/api/agent/keys', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
   var getKeyPrefix = authLib.getKeyPrefix;
@@ -112,7 +113,7 @@ try {
         scopes: r.get('permissions') || r.get('scopes') || [],
         active: !!r.get('active'),
         last_used_at: r.get('last_used_at') || null,
-        expires_at: r.get('expires_at') || null,
+        expires_at: dates.dateOrNull(r.get('expires_at')),
         created: r.created,
       });
     }
@@ -170,6 +171,7 @@ try {
 
 routerAdd('POST', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
   var getKeyPrefix = authLib.getKeyPrefix;
@@ -186,10 +188,11 @@ try {
     if (!agentKey) return c.json(401, { error: 'Invalid or missing API key' });
     if (!agentKey.get('active')) return c.json(403, { error: 'API key is revoked' });
 
-    // Check expiry
+    // Check expiry (GH#11: empty PB date fields are truthy DateTime objects,
+    // so guard on hasDateValue, not bare truthiness).
     var rawExpires = agentKey.get('expires_at');
-    if (rawExpires) {
-      var expMs = new Date(String(rawExpires).replace(' ', 'T')).getTime();
+    if (dates.hasDateValue(rawExpires)) {
+      var expMs = dates.toMs(rawExpires);
       if (expMs > 0 && expMs < Date.now()) {
         return c.json(403, { error: 'API key has expired' });
       }
@@ -301,7 +304,7 @@ try {
             assignee_id: String(tr.get('assigned_to') || ''),
             labels: tr.get('label') || tr.get('labels') || [],
             shop_id: '', quantity: null,
-            due_date: tr.get('due_date') || '',
+            due_date: dates.dateToString(tr.get('due_date')),
             created_by: String(tr.get('user') || ''),
             created_at: tr.created,
             updated_at: tr.updated,
@@ -376,7 +379,7 @@ try {
           description: rec.get('blocked_comment') || '',
           assignee_id: rec.get('assigned_to') || '',
           labels: rec.get('labels') || [],
-          due_date: rec.get('due_date') || '',
+          due_date: dates.dateToString(rec.get('due_date')),
           created_at: rec.created,
         });
       }
@@ -548,7 +551,7 @@ try {
       rec.set('due_date', String(gv(d, 'due_date', '') || ''));
       $app.save(rec);
       auditLog(agentKey, 'set_due_date', 'task', rec.id, { due_date: rec.get('due_date') }, c);
-      return c.json(200, { due_date: rec.get('due_date') || '' });
+      return c.json(200, { due_date: dates.dateToString(rec.get('due_date')) });
     }
 
     return c.json(400, { error: 'Unknown action: ' + action + '. Valid actions: create, read, update, delete, complete, assign, set_labels, set_due_date' });
@@ -560,6 +563,7 @@ try {
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
 routerAdd('GET', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
   var getKeyPrefix = authLib.getKeyPrefix;
@@ -613,7 +617,7 @@ try {
           status: String(tr.get('status') || 'todo'),
           assignee_id: String(tr.get('assigned_to') || ''),
           labels: tr.get('label') || tr.get('labels') || [],
-          due_date: tr.get('due_date') || '',
+          due_date: dates.dateToString(tr.get('due_date')),
           created_by: String(tr.get('user') || ''),
           created_at: tr.created,
         });
