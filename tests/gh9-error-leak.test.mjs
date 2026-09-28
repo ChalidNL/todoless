@@ -131,7 +131,9 @@ function hookFiles() {
 
 test('no pb_hooks file embeds raw exception text in a client response', () => {
   const files = hookFiles()
-  assert.ok(files.length > 20, `expected many hook files, got ${files.length}`)
+  // After GH#31 removed legacy routes/ + cron/, 18 .js files remain in
+  // pb_hooks (15 root .pb.js hooks + main + 3 lib modules).
+  assert.ok(files.length > 15, `expected many hook files, got ${files.length}`)
   for (const file of files) {
     const rel = path.relative(path.dirname(HOOK_ROOT), file)
     const source = fs.readFileSync(file, 'utf8')
@@ -152,11 +154,6 @@ test('every previously-leaky hook file calls respondError in its error path', ()
     'pb_hooks/13_companion.pb.js': 2,
     'pb_hooks/14_ics.pb.js': 2,
     'pb_hooks/lib/auth.js': 1,
-    'pb_hooks/routes/api-tokens.js': 8,
-    'pb_hooks/routes/agents.js': 7,
-    'pb_hooks/routes/briefing.js': 3,
-    'pb_hooks/routes/agent-tasks.js': 4,
-    'pb_hooks/routes/paperless.js': 1,
   }
   for (const [file, min] of Object.entries(expectations)) {
     const source = read(file)

@@ -44,6 +44,9 @@ jobs:
       - name: Run PocketBase contract tests
         run: node --test tests/*.test.mjs
 
+      - name: Check pb_hooks files are loadable (GH#31)
+        run: bash scripts/check-pb-hooks-loadable.sh
+
       - name: Check migration immutability (no undeclared renames)
         if: github.event_name == 'pull_request' || github.event_name == 'push'
         run: |

@@ -680,3 +680,90 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
     return c.json(500, { error: 'Internal server error' });
   }
 });
+
+// ─── POST /api/v1/tasks/batch-delete — Batch delete tasks ──────
+// Ported from legacy pb_hooks/routes/tasks.js (removed in GH#31) into this
+// loaded hook. Fixes 'Delete completed' (GH#87): the route previously existed
+// only in dead code, so the frontend's /api/v1/tasks/batch-delete call 404'd
+// in production.
+routerAdd('POST', '/api/v1/tasks/batch-delete', function(c) {
+  try {
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
+
+    var tokInfo = c.get('apiTokenInfo');
+    var info = c.requestInfo();
+    var userId = null;
+
+    if (tokInfo) {
+      userId = tokInfo.user_id;
+    } else {
+      var auth = info && info.auth ? info.auth : null;
+      if (!auth) return c.json(401, { error: 'Unauthorized' });
+      userId = auth.id;
+    }
+
+    if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='tasks:write'||pp==='tasks:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: tasks:write' }); }
+
+    // Parse and validate ids up front.
+    var body = info.body || {};
+    var rawIds = body.ids || [];
+    var ids = Array.isArray(rawIds) ? rawIds.map(String).filter(Boolean) : [];
+    if (ids.length === 0) {
+      return c.json(400, { error: 'Bad Request: ids must be a non-empty array' });
+    }
+    if (ids.length > 500) {
+      return c.json(413, { error: 'Payload too large: max 500 tasks per batch' });
+    }
+
+    // Phase 1 — verify every task exists and is owned by the caller before
+    // mutating anything (mirrors the single DELETE /api/v1/tasks/:id rule).
+    var records = [];
+    for (var i = 0; i < ids.length; i++) {
+      var record = null;
+      try { record = $app.findRecordById('tasks', ids[i]); } catch(_e) {}
+      if (!record) {
+        return c.json(404, { 'error': 'Task not found', 'id': ids[i] });
+      }
+      if (record.get('user') !== userId) {
+        return c.json(403, { 'error': 'Forbidden', 'id': ids[i] });
+      }
+      records.push(record);
+    }
+
+    // Phase 2 — detach deleted subtasks from parents, then delete records.
+    var deletedSet = {};
+    for (var di = 0; di < ids.length; di++) deletedSet[ids[di]] = true;
+
+    for (var ri = 0; ri < records.length; ri++) {
+      var rec = records[ri];
+      var linkedTo = rec.get('linked_to');
+      var linkedType = rec.get('linked_type');
+      // Only clean up the parent when the parent itself is not part of this
+      // batch — a parent deleted in the same call takes its subtask_ids with it.
+      if (linkedTo && linkedType === 'task' && !deletedSet[linkedTo]) {
+        try {
+          var parent = $app.findRecordById('tasks', linkedTo);
+          var subIds = parent.get('subtask_ids') || [];
+          if (!Array.isArray(subIds)) subIds = [];
+          var filtered = subIds.filter(function(sid) { return sid !== rec.id; });
+          if (filtered.length !== subIds.length) {
+            parent.set('subtask_ids', filtered);
+            $app.save(parent);
+          }
+        } catch(_e) {
+          // Parent may already be gone — continue with the delete.
+        }
+      }
+    }
+    for (var deli = 0; deli < records.length; deli++) {
+      $app.delete(records[deli]);
+    }
+
+    return c.json(200, { 'deleted': records.length, 'ids': ids });
+  } catch(e) {
+    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
+    return c.json(500, { error: 'Internal server error' });
+  }
+});
