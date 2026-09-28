@@ -24,7 +24,7 @@ try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (!authLib.isAdminLike(auth)) return c.json(403, { error: 'Admin only' });
 
     var d = info.data || info.body || {};
     var name = String(gv(d, 'name', '')).trim();
@@ -91,7 +91,7 @@ try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (!authLib.isAdminLike(auth)) return c.json(403, { error: 'Admin only' });
 
     var keys = $app.findRecordsByFilter(
       'agent_keys',
@@ -141,7 +141,7 @@ try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (!authLib.isAdminLike(auth)) return c.json(403, { error: 'Admin only' });
 
     var id = c.request.pathValue('id');
     if (!id) return c.json(400, { error: 'id required' });
@@ -692,7 +692,7 @@ try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
-    if (String(auth.get('role') || '') !== 'admin') return c.json(403, { error: 'Admin only' });
+    if (!authLib.isAdminLike(auth)) return c.json(403, { error: 'Admin only' });
 
     var q = info.query || {};
     var limit = parseInt(gv(q, 'limit', '100'), 10);

@@ -195,6 +195,17 @@ function authFromAgentKey(c) {
   return null;
 }
 
+function isAdminLike(user) {
+  if (!user) return false;
+  var role = '';
+  if (typeof user.get === 'function') {
+    role = String(user.get('role') || '');
+  } else {
+    role = String(user.role || '');
+  }
+  return role === 'admin' || role === 'owner';
+}
+
 function throttleLastUsedAt(record) {
   try {
     var lastUsedRaw = record.get('last_used_at');
@@ -297,6 +308,7 @@ module.exports = {
   hasScope: hasScope,
   hasAgentScope: hasAgentScope,
   hasScopeList: hasScopeList,
+  isAdminLike: isAdminLike,
   gv: gv,
   getAgentUserFamily: getAgentUserFamily,
   auditLog: auditLog,
