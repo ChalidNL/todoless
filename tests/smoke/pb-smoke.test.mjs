@@ -444,6 +444,13 @@ test('member can change their password (PATCH with oldPassword)', async () => {
   assert.equal(r.status, 200)
 })
 
+test('old token is rejected after the password change (authTokenKey rotation, GH#66)', async () => {
+  // The client re-authenticates after a self password change because PB rotates
+  // the authTokenKey and the pre-change token stops working immediately.
+  const r = await api('GET', `/api/collections/users/records/${member.id}`, { token: memberToken })
+  assert.ok(r.status === 401 || r.status === 404, `expected old token to be rejected, got ${r.status}`)
+})
+
 test('member authenticates with the new password', async () => {
   const a = await auth('member@smoke.test', 'newpassword123')
   assert.ok(a.token, 'expected token with new password')

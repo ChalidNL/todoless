@@ -8,7 +8,6 @@ import { PASSWORD_MIN_LENGTH } from '../lib/password';
 import { userDisplayName } from '../types';
 import { Button } from './ui/AppButton';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
-import { api } from '../lib/pocketbase-client';
 
 const languageLabel = (language: SupportedUiLanguage) => {
   const labels: Record<SupportedUiLanguage, string> = { en: 'English', nl: 'Nederlands', fr: 'Français', de: 'Deutsch', es: 'Español' };
@@ -72,13 +71,9 @@ export function ProfileView() {
       showCompletionMessage(t('settings.passwordSame'));
       return;
     }
-    try {
-      await api.login(currentUser.email, currentPassword);
-    } catch {
-      showCompletionMessage(t('settings.currentPasswordIncorrect'));
-      return;
-    }
-    const ok = await updateUser(currentUser.id, { password, passwordConfirm } as any);
+    // PocketBase validates `oldPassword` server-side (GH#66); a wrong current
+    // password surfaces as a 400 validation error mapped in AppContext.
+    const ok = await updateUser(currentUser.id, { password, passwordConfirm, oldPassword: currentPassword } as any);
     if (ok) {
       setCurrentPassword('');
       setPassword('');
