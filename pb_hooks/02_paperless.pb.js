@@ -174,7 +174,7 @@ function paperlessHandler(c) {
     var docId = body.document_id || body.id;
     if (!docId) return c.json(400, { error: 'Missing document_id' });
     var secret = $os.getenv('PAPERLESS_WEBHOOK_SECRET');
-    if (!secret) return c.json(503, { error: 'Webhook secret not configured' });
+    if (!secret) return c.json(503, { error: 'PAPERLESS_WEBHOOK_SECRET not configured' });
     var headers = info.headers || {};
     var provided = String(headers['x_paperless_webhook_secret'] || headers['x_webhook_secret'] || headers['authorization'] || '').replace(/^Bearer\s+/i, '').trim();
     if (!$security.equal(provided, String(secret).trim())) return c.json(401, { error: 'Invalid webhook secret' });

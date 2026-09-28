@@ -29,7 +29,7 @@ routerAdd('POST', '/api/integrations/mail/webhook', function(c) {
   }
   try {
     var authErr = checkAuth();
-    if (authErr === 'secret-not-configured') return c.json(503, {error: 'Mail webhook secret not configured'});
+    if (authErr === 'secret-not-configured') return c.json(503, {error: 'MAIL_WEBHOOK_SECRET not configured'});
     if (authErr) return c.json(401, {error: 'Unauthorized'});
     var info = c.requestInfo();
     var b = info && info.body ? info.body : {};
