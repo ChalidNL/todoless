@@ -21,13 +21,15 @@ done
 
 # Seed bundled PocketBase migrations/hooks into runtime volumes.
 # Bundled files in the image are the source of truth for app-managed scripts.
+# A failed copy aborts startup (returns 1) so the container never runs with a
+# partially seeded hooks/migrations volume.
 
 seed_dir() {
   src_dir="$1"
   dst_dir="$2"
   label="$3"
 
-  mkdir -p "$dst_dir"
+  mkdir -p "$dst_dir" || return 1
   if [ ! -d "$src_dir" ]; then
     return 0
   fi
@@ -38,16 +40,16 @@ seed_dir() {
     mkdir -p "$(dirname "$dst")"
     if [ ! -f "$dst" ]; then
       echo "[entrypoint] seeding $label: $rel"
-      cp "$f" "$dst"
+      cp "$f" "$dst" || { echo "[entrypoint] ERROR: failed to seed $label: $rel" >&2; return 1; }
     elif ! cmp -s "$f" "$dst"; then
       echo "[entrypoint] updating $label: $rel"
-      cp "$f" "$dst"
+      cp "$f" "$dst" || { echo "[entrypoint] ERROR: failed to update $label: $rel" >&2; return 1; }
     fi
-  done
+  done || return 1
 }
 
-seed_dir /pb_migrations_bundled /pb_migrations migration
-seed_dir /pb_hooks_bundled /pb_hooks hook
+seed_dir /pb_migrations_bundled /pb_migrations migration || exit 1
+seed_dir /pb_hooks_bundled /pb_hooks hook || exit 1
 
 # Remove duplicate migration prefixes that collide with newer files.
 for old in 019_fix_security_p10.js 033_add_firstname_lastname.js; do

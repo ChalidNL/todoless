@@ -182,6 +182,11 @@ docker compose up -d
 Fresh installs (see [Quick Start](#-quick-start)) already chown the directories
 during setup, so no extra step is needed there. The command is safe to rerun.
 
+> If after `docker compose up -d` the `pocketbase` container is **restarting**
+> (crash loop) with `[entrypoint] ERROR: /pb_data is not writable` in
+> `docker compose logs pocketbase`, the volumes are still root-owned — run the
+> `chown` block above once and `docker compose up -d` again.
+
 ### Backups
 
 PocketBase's built-in backup is enabled by default: it creates a **consistent zip snapshot every day at 02:00** (server time) and **keeps the last 7 backups**. Backups live in `pb_data/backups` (on the host: `/DATA/AppData/todoless/pb_data/backups`) and include the database plus all uploaded files. Download or restore them under **Settings → Backups** in the admin dashboard — you can also change the schedule/retention or mirror backups to S3-compatible storage there.
