@@ -301,6 +301,21 @@ test('agent audit logs persist the request client IP', () => {
   assert.match(authLib, /set\('ip_address', getClientIP\(c\)\)/)
 })
 
+test('trusted proxy settings bootstrap is wired and validates header names', () => {
+  const compose = read('docker-compose.yml')
+  const migration = read('pb_migrations/z069_settings_bootstrap_env.js')
+  const readme = read('README.md')
+
+  assert.match(compose, /SMTP_AUTH_METHOD: \$\{SMTP_AUTH_METHOD:-\}/)
+  assert.match(compose, /TRUSTED_PROXY_HEADERS: \$\{TRUSTED_PROXY_HEADERS:-\}/)
+  assert.match(compose, /TRUSTED_PROXY_USE_LEFTMOST_IP: \$\{TRUSTED_PROXY_USE_LEFTMOST_IP:-\}/)
+  assert.match(migration, /function isHeaderName\(v\)/)
+  assert.match(migration, /\^\[A-Za-z0-9_-\]\+\$/)
+  assert.match(migration, /validTrustedHeaders\.length > 0/)
+  assert.match(readme, /TRUSTED_PROXY_HEADERS=X-Forwarded-For/)
+  assert.match(readme, /TRUSTED_PROXY_USE_LEFTMOST_IP=false/)
+})
+
 test('existing agent key schemas allow a persisted false revoked state', () => {
   const migration = read('pb_migrations/z064_fix_agent_key_revocation.js')
 

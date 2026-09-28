@@ -143,7 +143,7 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
 
-> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth.
+> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z069` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth.
 
 > `POCKETBASE_ADMIN_*` are **runtime** variables read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)). `VITE_*` (e.g. `VITE_POCKETBASE_URL`) remain build-time only — not needed when using the pre-built GHCR images. `docker-compose.yml` passes `MAIL_WEBHOOK_SECRET`, `PAPERLESS_WEBHOOK_SECRET`, the `POCKETBASE_ADMIN_*` pair and the GH#51 bootstrap vars through to the pocketbase container via `${VAR:-}` — set them in your `.env` (copy `.env.example`).
 
@@ -239,8 +239,10 @@ todoless rate-limits auth endpoints per client IP so a family logging in from se
 
 ```bash
 # .env
-TRUSTED_PROXY_CIDRS=172.18.0.0/16   # network your proxy connects from
-REAL_IP_HEADER=X-Forwarded-For      # header your proxy sets
+TRUSTED_PROXY_CIDRS=172.18.0.0/16          # network your proxy connects from
+REAL_IP_HEADER=X-Forwarded-For             # header your proxy sets for nginx realip
+TRUSTED_PROXY_HEADERS=X-Forwarded-For      # header PocketBase reads from nginx
+TRUSTED_PROXY_USE_LEFTMOST_IP=false        # use nginx's appended rightmost value
 ```
 
 - `TRUSTED_PROXY_CIDRS` — space- or comma-separated list of the proxy network(s). Find it with `docker network inspect <compose-network> | grep Subnet` or `ip addr` on the proxy host. Only connections that actually come from these addresses get their client IP rewritten; everyone else is still keyed on the real socket peer, so a direct caller can never forge a header to dodge the limit.
@@ -253,12 +255,16 @@ REAL_IP_HEADER=X-Forwarded-For      # header your proxy sets
 ```bash
 TRUSTED_PROXY_CIDRS=172.18.0.0/16
 REAL_IP_HEADER=X-Forwarded-For
+TRUSTED_PROXY_HEADERS=X-Forwarded-For
+TRUSTED_PROXY_USE_LEFTMOST_IP=false
 ```
 
 **Cloudflare example** (site proxied by Cloudflare, or served through a Cloudflare Tunnel):
 ```bash
 TRUSTED_PROXY_CIDRS=173.245.48.0/20, 103.21.244.0/22   # Cloudflare's published edge ranges
 REAL_IP_HEADER=CF-Connecting-IP
+TRUSTED_PROXY_HEADERS=X-Forwarded-For
+TRUSTED_PROXY_USE_LEFTMOST_IP=false
 ```
 > For a Cloudflare **tunnel**, the connecting peer is your own tunnel container — use that container's network instead of Cloudflare's edge ranges (e.g. `TRUSTED_PROXY_CIDRS=172.17.0.0/16`, `REAL_IP_HEADER=CF-Connecting-IP`).
 

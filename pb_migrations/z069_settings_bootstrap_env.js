@@ -125,13 +125,30 @@ migrate(
       }
     }
 
+    function isHeaderName(v) {
+      return /^[A-Za-z0-9_-]+$/.test(v);
+    }
+
     if (isSet(env.TRUSTED_PROXY_HEADERS)) {
-      settings.trustedProxy.headers = env.TRUSTED_PROXY_HEADERS
+      var trustedHeaders = env.TRUSTED_PROXY_HEADERS
         .split(',')
         .map(function (h) { return h.trim(); })
         .filter(function (h) { return h !== ''; });
-      changed = true;
-      applied.push('TRUSTED_PROXY_HEADERS');
+      var validTrustedHeaders = [];
+      trustedHeaders.forEach(function (h) {
+        if (isHeaderName(h)) {
+          validTrustedHeaders.push(h);
+        } else {
+          console.log('[settings-bootstrap] WARNING: TRUSTED_PROXY_HEADERS entry "' + h + '" is not a valid HTTP header name — skipped');
+        }
+      });
+      if (validTrustedHeaders.length > 0) {
+        settings.trustedProxy.headers = validTrustedHeaders;
+        changed = true;
+        applied.push('TRUSTED_PROXY_HEADERS');
+      } else {
+        console.log('[settings-bootstrap] WARNING: TRUSTED_PROXY_HEADERS had no valid header names — skipped');
+      }
     }
 
     if (isSet(env.TRUSTED_PROXY_USE_LEFTMOST_IP)) {
