@@ -2,259 +2,25 @@
 // Agent API Access: API key management, agent-authenticated CRUD, audit logging
 // API-002
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function generateApiKey() {
-  return 'tlsk_' + $security.randomString(40);
-}
-
-function getKeyPrefix(key) {
-  return key.substring(0, 12); // "tlsk_XXXXXXXX"
-}
-
-
-
-function hasScope(agentKey, requiredScope) {
-  var scopeText = '';
-  try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-  if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-  var scopes = [];
-  try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-  if (!Array.isArray(scopes)) return false;
-  if (scopes.indexOf('*') !== -1) return true;
-  if (scopes.indexOf(requiredScope) !== -1) return true;
-  // entries:write implies entries:read
-  if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-  // users:admin implies users:read
-  if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-  return false;
-}
-
-function auditLog(agentKey, action, entityType, entityId, details, c) {
-  try {
-    var rec = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-    rec.set('agent_key_id', agentKey.id);
-    rec.set('agent_name', agentKey.get('name') || '');
-    rec.set('action', action);
-    rec.set('entity_type', entityType || '');
-    rec.set('entity_id', entityId || '');
-    rec.set('details', details || {});
-    rec.set('ip_address', String('' || ''));
-    rec.set('user', agentKey.get('user'));
-    $app.save(rec);
-  } catch (_e) {
-    // Silently fail — audit logging should never block the main action
-  }
-}
-
-// Get safe field value (empty string default)
-function gv(o, k, f) {
-  if (f === undefined) f = '';
-  if (!o) return f;
-  if (Object.prototype.hasOwnProperty.call(o, k)) {
-    var v = o[k];
-    return (v === undefined || v === null) ? f : v;
-  }
-  return f;
-}
-
-// Check agent owns/relates to the agent's user scope
-function getAgentUserFamily(agentKey) {
-  var userId = String(agentKey.get('user') || '');
-  if (!userId) return null;
-  try {
-    return $app.findRecordById('users', userId);
-  } catch (_e) {
-    return null;
-  }
-}
-
-function normalizeLabelIds(value) {
-  if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-  return value ? [String(value)] : [];
-}
-
-function setCanonicalTaskLabels(record, value) {
-  var ids = normalizeLabelIds(value);
-  record.set('labels', ids);
-  record.set('label', ids);
-}
-
-function canAccessTaskForUser(record, user) {
-  if (!record || !user) return false;
-  var userId = user.id;
-  var ownerId = String(record.get('user') || '');
-  if (ownerId === userId) return true;
-  if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-
-  var familyId = String(user.get('family_id') || '');
-  if (!familyId || !ownerId) return false;
-  try {
-    var ownerUser = $app.findRecordById('users', ownerId);
-    if (String(ownerUser.get('family_id') || '') !== familyId) return false;
-  } catch (_e) { return false; }
-
-  var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-  if (labelIds.length > 1) {
-    for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-      var mixedLabel = null;
-      try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-      var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-      if (visibility !== 'family') return false;
-    }
-  }
-  for (var i = 0; i < labelIds.length; i++) {
-    var label = null;
-    try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-    var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-    var labelOwner = String(label.get('owner') || label.get('user') || '');
-    var labelFamily = String(label.get('family') || '');
-    if (!labelFamily && labelOwner) {
-      try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; }
-    }
-    if (visibility === 'private' && labelOwner !== userId) return false;
-    if (visibility === 'shared') {
-      var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-      if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-    }
-    if (visibility === 'family' && labelFamily !== familyId) return false;
-  }
-  return true;
-}
+// Shared agent/token helpers live in pb_hooks/lib/auth.js and are loaded inside route callbacks.
 
 // ─── API Key Management (admin-only routes) ────────────────────────────────
 
 // Create a new API key: POST /api/agent/keys
 routerAdd('POST', '/api/agent/keys', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -309,135 +75,19 @@ routerAdd('POST', '/api/agent/keys', function(c) {
 
 // List API keys: GET /api/agent/keys
 routerAdd('GET', '/api/agent/keys', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -475,135 +125,19 @@ routerAdd('GET', '/api/agent/keys', function(c) {
 
 // Revoke an API key: POST /api/agent/keys/{id}/revoke
 routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -635,135 +169,19 @@ routerAdd('POST', '/api/agent/keys/{id}/revoke', function(c) {
 // Actions: create, update, delete, complete, assign, set_labels, set_due_date, read
 
 routerAdd('POST', '/api/agent/dispatch', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var agentKey = authFromApiKey(c);
     if (!agentKey) return c.json(401, { error: 'Invalid or missing API key' });
     if (!agentKey.get('active')) return c.json(403, { error: 'API key is revoked' });
@@ -1141,135 +559,19 @@ routerAdd('POST', '/api/agent/dispatch', function(c) {
 
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
 routerAdd('GET', '/api/agent/dispatch', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var agentKey = authFromApiKey(c);
     if (!agentKey) return c.json(401, { error: 'Invalid or missing API key' });
     if (!hasScope(agentKey, 'entries:read')) {
@@ -1344,135 +646,19 @@ routerAdd('GET', '/api/agent/dispatch', function(c) {
 
 // ─── Auth test endpoint: GET /api/agent/auth-test ──────────────────
 routerAdd('GET', '/api/agent/auth-test', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var agentKey = authFromApiKey(c);
     if (!agentKey) return c.json(401, { error: 'Invalid or missing API key' });
 
@@ -1490,135 +676,19 @@ routerAdd('GET', '/api/agent/auth-test', function(c) {
 
 // ─── Agent audit log: GET /api/agent/audit-log ────────────────────
 routerAdd('GET', '/api/agent/audit-log', function(c) {
-  function authFromApiKey(c) {
-    var headers = c.requestInfo().headers || {};
-    var authHeader = headers.authorization || headers.Authorization || '';
-    var parts = authHeader.split(' ');
-    var token = '';
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1].trim();
-    }
-    if (!token) return null;
-  
-    var prefix = token.substring(0, 12); // "tlsk_" + first 8 hex chars
-    var candidates = $app.findRecordsByFilter(
-      'agent_keys',
-      'key_prefix = {:prefix} && active = true',
-      '',
-      10,
-      0,
-      { prefix: prefix }
-    );
-  
-    for (var i = 0; i < candidates.length; i++) {
-      var storedHash = candidates[i].get('key_hash');
-      if ($security.equal(storedHash, $security.sha256(token))) {
-        // Update last_used_at — throttled to at most one write per 60s (GH#29).
-        // Polling integrations (Home Assistant, dashboards) no longer cause a
-        // SQLite write on every request; the first request after the interval
-        // still records the timestamp.
-        try {
-          var lastUsedRaw = candidates[i].get('last_used_at');
-          var lastUsedMs = 0;
-          if (lastUsedRaw) {
-            var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-            if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-          }
-          if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
-            candidates[i].set('last_used_at', new Date().toISOString());
-            $app.save(candidates[i]);
-          }
-        } catch (_eu) {}
-        return candidates[i];
-      }
-    }
-    return null;
-  }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var authFromApiKey = authLib.authFromAgentKey;
+  var generateApiKey = authLib.generateAgentKey;
+  var getKeyPrefix = authLib.getKeyPrefix;
+  var hasScope = authLib.hasAgentScope;
+  var gv = authLib.gv;
+  var getAgentUserFamily = authLib.getAgentUserFamily;
+  var auditLog = authLib.auditLog;
+  var normalizeLabelIds = authLib.normalizeLabelIds;
+  var setCanonicalTaskLabels = authLib.setCanonicalTaskLabels;
+  var canAccessTaskForUser = authLib.canAccessTaskForUser;
 
-  function generateApiKey() { return 'tlsk_' + $security.randomString(40); }
-  function getKeyPrefix(key) { return key.substring(0, 12); }
-  function hasScope(agentKey, requiredScope) {
-    var scopeText = '';
-    try { scopeText = String(agentKey.getString('permissions') || ''); } catch (_e) {}
-    if (!scopeText) { try { scopeText = String(agentKey.getString('scopes') || ''); } catch (_e) {} }
-    var scopes = [];
-    try { scopes = JSON.parse(scopeText || '[]'); } catch (_e) { scopes = []; }
-    if (!Array.isArray(scopes)) return false;
-    if (scopes.indexOf('*') !== -1 || scopes.indexOf(requiredScope) !== -1) return true;
-    if (requiredScope === 'entries:read' && scopes.indexOf('entries:write') !== -1) return true;
-    if (requiredScope === 'users:read' && scopes.indexOf('users:admin') !== -1) return true;
-    return false;
-  }
-  function gv(o, k, f) {
-    if (f === undefined) f = '';
-    if (!o || !Object.prototype.hasOwnProperty.call(o, k)) return f;
-    var value = o[k];
-    return value === undefined || value === null ? f : value;
-  }
-  function getAgentUserFamily(agentKey) {
-    var userId = String(agentKey.get('user') || '');
-    if (!userId) return null;
-    try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
-  }
-  function auditLog(agentKey, action, entityType, entityId, details) {
-    try {
-      var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
-      audit.set('agent_key_id', agentKey.id);
-      audit.set('agent_name', agentKey.get('name') || '');
-      audit.set('action', action);
-      audit.set('entity_type', entityType || '');
-      audit.set('entity_id', entityId || '');
-      audit.set('details', details || {});
-      audit.set('ip_address', '');
-      audit.set('user', agentKey.get('user'));
-      $app.save(audit);
-    } catch (_e) {}
-  }
-  function normalizeLabelIds(value) {
-    if (Array.isArray(value)) return value.map(function(id) { return String(id || ''); }).filter(Boolean);
-    return value ? [String(value)] : [];
-  }
-  function setCanonicalTaskLabels(record, value) {
-    var ids = normalizeLabelIds(value);
-    record.set('labels', ids);
-    record.set('label', ids);
-  }
-  function canAccessTaskForUser(record, user) {
-    if (!record || !user) return false;
-    var userId = user.id;
-    var ownerId = String(record.get('user') || '');
-    if (ownerId === userId) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    var familyId = String(user.get('family_id') || '');
-    if (!familyId || !ownerId) return false;
-    try { if (String($app.findRecordById('users', ownerId).get('family_id') || '') !== familyId) return false; } catch (_e) { return false; }
-    var labelIds = normalizeLabelIds(record.get('label') || record.get('labels') || []);
-    if (labelIds.length > 1) {
-      for (var mixedIndex = 0; mixedIndex < labelIds.length; mixedIndex++) {
-        var mixedLabel = null;
-        try { mixedLabel = $app.findRecordById('labels', labelIds[mixedIndex]); } catch (_e) { return false; }
-        var visibility = String(mixedLabel.get('visibility') || (mixedLabel.get('is_private') ? 'private' : 'family'));
-        if (visibility !== 'family') return false;
-      }
-    }
-    for (var i = 0; i < labelIds.length; i++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[i]); } catch (_e) { return false; }
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var labelOwner = String(label.get('owner') || label.get('user') || '');
-      var labelFamily = String(label.get('family') || '');
-      if (!labelFamily && labelOwner) { try { labelFamily = String($app.findRecordById('users', labelOwner).get('family_id') || ''); } catch (_e) { return false; } }
-      if (visibility === 'private' && labelOwner !== userId) return false;
-      if (visibility === 'shared') {
-        var sharedWith = normalizeLabelIds(label.get('shared_with') || []);
-        if (labelOwner !== userId && sharedWith.indexOf(userId) === -1) return false;
-      }
-      if (visibility === 'family' && labelFamily !== familyId) return false;
-    }
-    return true;
-  }
-
-  try {
+try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord') || null;
     if (!auth) return c.json(401, { error: 'Unauthorized' });

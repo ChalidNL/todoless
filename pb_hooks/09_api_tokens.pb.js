@@ -1,42 +1,14 @@
 // pb_hooks/09_api_tokens.pb.js
 // CRUD API for API tokens management (create, list, revoke, toggle).
 // Auto-loaded by PB — no require() needed.
-// NOTE: PB 0.35.1 Goja runtime means ALL helper functions must be
-// defined INSIDE each route callback.
+// Shared helpers are loaded inside callbacks via require(__hooks + '/lib/auth.js').
 
 // ─── LIST tokens (GET) ─────────────────────────────────────────────────────
 routerAdd('GET', '/api/api-tokens', (c) => {
-  function _bam(c) {
-    try {
-      var authHeader = c.requestInfo().headers['authorization'];
-      if (!authHeader) return null;
-      var parts = String(authHeader).split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
-      var token = parts[1].trim();
-      if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = $security.sha256(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
-      if (tokens.length === 0) return null;
-      var tokRec = tokens[0];
-      if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
-      var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
-      var userId = String(tokRec.get('user')||'');
-      var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
-      if (!user) return c.json(401,{'error':'Token owner not found'});
-      if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
-      var rawMemberStatus = user.get('member_status');
-      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
-      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
-      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
-      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
-      c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
-      c.set('authRecord',user);
-      return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
-  }
-  try {
+  var authLib = require(__hooks + '/lib/auth.js');
+  var _bam = authLib.bearerAuthMiddleware;
+
+try {
     var ba = _bam(c);
     if (ba) return ba;
 
@@ -73,37 +45,10 @@ routerAdd('GET', '/api/api-tokens', (c) => {
 
 // ─── CREATE token (POST) ───────────────────────────────────────────────────
 routerAdd('POST', '/api/api-tokens', (c) => {
-  function _bam(c) {
-    try {
-      var authHeader = c.requestInfo().headers['authorization'];
-      if (!authHeader) return null;
-      var parts = String(authHeader).split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
-      var token = parts[1].trim();
-      if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = $security.sha256(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
-      if (tokens.length === 0) return null;
-      var tokRec = tokens[0];
-      if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
-      var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
-      var userId = String(tokRec.get('user')||'');
-      var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
-      if (!user) return c.json(401,{'error':'Token owner not found'});
-      if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
-      var rawMemberStatus = user.get('member_status');
-      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
-      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
-      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
-      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
-      c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
-      c.set('authRecord',user);
-      return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
-  }
-  function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.randomString(len); }
+  var authLib = require(__hooks + '/lib/auth.js');
+  var _bam = authLib.bearerAuthMiddleware;
+
+function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.randomString(len); }
   function _ht(tok) { return $security.sha256(tok); }
   try {
     var ba = _bam(c);
@@ -168,37 +113,10 @@ routerAdd('POST', '/api/api-tokens', (c) => {
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
 routerAdd('DELETE', '/api/api-tokens/{id}', (c) => {
-  function _bam(c) {
-    try {
-      var authHeader = c.requestInfo().headers['authorization'];
-      if (!authHeader) return null;
-      var parts = String(authHeader).split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
-      var token = parts[1].trim();
-      if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = $security.sha256(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
-      if (tokens.length === 0) return null;
-      var tokRec = tokens[0];
-      if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
-      var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
-      var userId = String(tokRec.get('user')||'');
-      var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
-      if (!user) return c.json(401,{'error':'Token owner not found'});
-      if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
-      var rawMemberStatus = user.get('member_status');
-      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
-      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
-      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
-      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
-      c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
-      c.set('authRecord',user);
-      return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
-  }
-  try {
+  var authLib = require(__hooks + '/lib/auth.js');
+  var _bam = authLib.bearerAuthMiddleware;
+
+try {
     var ba = _bam(c);
     if (ba) return ba;
 
@@ -228,37 +146,10 @@ routerAdd('DELETE', '/api/api-tokens/{id}', (c) => {
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
 routerAdd('PATCH', '/api/api-tokens/{id}/toggle', (c) => {
-  function _bam(c) {
-    try {
-      var authHeader = c.requestInfo().headers['authorization'];
-      if (!authHeader) return null;
-      var parts = String(authHeader).split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer' || !parts[1]) return c.json(401,{'error':'Invalid Authorization header'});
-      var token = parts[1].trim();
-      if (!token) return c.json(401,{'error':'Empty token'});
-      var hashed = $security.sha256(token);
-      var tokens = $app.findRecordsByFilter('api_tokens','token_hash = {:hash}','',1,0,{ hash: hashed });
-      if (tokens.length === 0) return null;
-      var tokRec = tokens[0];
-      if (tokRec.get('enabled') === false || tokRec.get('enabled') === 0 || tokRec.get('enabled') === 'false') return c.json(401,{'error':'API token is disabled'});
-      var rawExp = tokRec.get('expires_at');
-      if (rawExp) { var expMs=0;if(typeof rawExp==='string')expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();else if(rawExp&&typeof rawExp.getTime==='function')expMs=rawExp.getTime();else if(rawExp)expMs=new Date(String(rawExp).replace(' ', 'T')).getTime();if(expMs>0&&expMs<new Date().getTime())return c.json(401,{'error':'API token has expired'});}
-      var userId = String(tokRec.get('user')||'');
-      var user = null; try { user = $app.findRecordById('users',userId); } catch(e) { return c.json(401,{'error':'Token owner not found'}); }
-      if (!user) return c.json(401,{'error':'Token owner not found'});
-      if (user.get('active') === false || user.get('active') === 0 || user.get('active') === 'false') return c.json(403,{'error':'Token owner account is blocked'});
-      var rawMemberStatus = user.get('member_status');
-      if (rawMemberStatus === 'blocked') return c.json(403,{'error':'Token owner account is blocked'});
-      if (rawMemberStatus === 'pending_approval') return c.json(403,{'error':'Token owner is pending approval'});
-      var rawPerms = ''; try { rawPerms = String(tokRec.getString('permissions') || ''); } catch(e) {}
-      if (!rawPerms || rawPerms === '[]') { try { rawPerms = String(tokRec.getString('scopes') || ''); } catch(e) {} }
-      var perms = []; if (rawPerms) try { perms=JSON.parse(rawPerms); } catch(e){}
-      c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
-      c.set('authRecord',user);
-      return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
-  }
-  try {
+  var authLib = require(__hooks + '/lib/auth.js');
+  var _bam = authLib.bearerAuthMiddleware;
+
+try {
     var ba = _bam(c);
     if (ba) return ba;
 

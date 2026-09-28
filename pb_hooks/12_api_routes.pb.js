@@ -3,54 +3,16 @@
 // Uses Bearer token auth OR PB session auth.
 // All created items link to the token owner's user record and family.
 
-// PB 0.35 routes are self-contained; crypto helpers are called inline.
+// Shared auth helpers are loaded inside callbacks via require(__hooks + '/lib/auth.js').
 
 // ─── POST /api/tasks — Create task (optional subtasks) ──────────
 routerAdd('POST', '/api/tasks', function(c) {
   try {
     // Step 1: Try Bearer token auth
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') {
-            return c.json(401, { error: 'API token is disabled' });
-          }
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) {
-              return c.json(401, { error: 'API token has expired' });
-            }
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', {
-            token_id: tokRec.id,
-            token_name: String(tokRec.get('name') || ''),
-            user_id: user.id,
-            user_role: String(user.get('role') || 'user'),
-            user_name: String(user.get('name') || user.get('email') || ''),
-            family_id: String(user.get('family_id') || ''),
-            permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})()
-          });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
-    // Step 2: Resolve user from either token or session
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
     var userId = null;
@@ -177,34 +139,9 @@ routerAdd('POST', '/api/tasks', function(c) {
 routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
   try {
     // Bearer token auth
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -274,34 +211,9 @@ routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
 // ─── PATCH /api/tasks/{taskId} — Update task ────────────────────
 routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
   try {
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -388,34 +300,9 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
 // ─── PATCH /api/subtasks/{subtaskId} — Update subtask ───────────
 routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
   try {
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -467,34 +354,9 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
 // ─── POST /api/groceries — Create grocery item ─────────────────
 routerAdd('POST', '/api/groceries', function(c) {
   try {
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -552,34 +414,9 @@ routerAdd('POST', '/api/groceries', function(c) {
 // ─── PATCH /api/groceries/{itemId} — Update grocery item ─────────
 routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
   try {
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var rawExp = tokRec.get('expires_at');
-          if (rawExp) {
-            var expMs = 0;
-            if (typeof rawExp === 'string') expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            else if (rawExp && typeof rawExp.getTime === 'function') expMs = rawExp.getTime();
-            else if (rawExp) expMs = new Date(String(rawExp).replace(' ', 'T')).getTime();
-            if (expMs > 0 && expMs < new Date().getTime()) return c.json(401, { error: 'API token has expired' });
-          }
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -639,26 +476,9 @@ routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
 routerAdd('GET', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var userId = null;
@@ -723,26 +543,9 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
 routerAdd('POST', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var actingUserId = null;
@@ -818,26 +621,9 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
 routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
-    var authHeader = c.requestInfo().headers['authorization'];
-    if (authHeader) {
-      var parts = String(authHeader).split(' ');
-      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
-        var token = parts[1].trim();
-        var hashed = $security.sha256(token);
-        var tokens = $app.findRecordsByFilter('api_tokens', 'token_hash = {:hash}', '', 1, 0, { hash: hashed });
-        if (tokens.length > 0) {
-          var tokRec = tokens[0];
-          var rawEnabled = tokRec.get('enabled');
-          if (rawEnabled === false || rawEnabled === 0 || rawEnabled === 'false') return c.json(401, { error: 'API token is disabled' });
-          var tokUserId = String(tokRec.get('user') || '');
-          var user = null;
-          try { user = $app.findRecordById('users', tokUserId); } catch(e) {}
-          if (!user) return c.json(401, { error: 'Token owner not found' });
-          c.set('authRecord', user);
-          c.set('apiTokenInfo', { token_id: tokRec.id, user_id: user.id, user_role: String(user.get('role') || 'user'), family_id: String(user.get('family_id') || ''), permissions: (function(){var rp='';try{rp=String(tokRec.getString('permissions')||'')}catch(e){}if(!rp||rp==='[]')try{rp=String(tokRec.getString('scopes')||'')}catch(e){}var ps=[];if(rp)try{ps=JSON.parse(rp)}catch(e){}return ps;})() });
-        }
-      }
-    }
+    var authLib = require(__hooks + '/lib/auth.js');
+    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
+    if (tokenAuth) return tokenAuth;
 
     var tokInfo = c.get('apiTokenInfo');
     var actingUserId = null;
