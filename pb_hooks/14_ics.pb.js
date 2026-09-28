@@ -190,7 +190,8 @@ routerAdd('POST','/api/ics-import',function(c){
           results.items.push({uid:uid,title:title,action:'created',id:rec.id});
         }
       }catch(e2){
-        results.errors.push({uid:uid,title:title,error:String(e2)});
+        try { console.error('[ics-import] per-item error uid=' + uid + ': ' + String(e2)); } catch(_c) {}
+        results.errors.push({uid:uid,title:title,error:'Import failed for this event'});
       }
 
       totalProcessed++;

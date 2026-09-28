@@ -107,8 +107,10 @@ test('04_request_logger.pb.js binds respondError as a global (PB auto-loaded shi
 const LEAK_PATTERNS = [
   /c\.json\(\s*\d{3}\s*,[^)]*String\(\s*(?:e|err|error|ex)\s*\)/, // raw String(e/err/...)
   /c\.json\(\s*\d{3}\s*,[^)]*\.stack/, // stack traces
+  /c\.json\(\s*\d{3}\s*,[^)]*(?:e|err|error|ex)\.message/, // e.message/err.message in responses
   /c\.json\(\s*\d{3}\s*,[^)]*JSON\.stringify\(\s*(?:e|err|error|ex)/, // serialized error objects
   /c\.json\(\s*\d{3}\s*,[^)]*String\(\(?err/, // err.message coercion
+  /(?:error|errors)\s*[:=]\s*String\(\s*e\d*\s*\)/, // raw String(e/e2/...) assigned to error key / pushed into error arrays (object-key position only — NOT .error(...) logger calls)
 ]
 
 const HOOK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'pb_hooks')
@@ -154,6 +156,7 @@ test('every previously-leaky hook file calls respondError in its error path', ()
     'pb_hooks/routes/agents.js': 7,
     'pb_hooks/routes/briefing.js': 3,
     'pb_hooks/routes/agent-tasks.js': 4,
+    'pb_hooks/routes/paperless.js': 1,
   }
   for (const [file, min] of Object.entries(expectations)) {
     const source = read(file)
