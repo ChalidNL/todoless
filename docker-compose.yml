@@ -8,6 +8,8 @@ services:
     security_opt:
       - no-new-privileges:true
     read_only: true
+    cap_drop:
+      - ALL
     tmpfs:
       - /var/cache/nginx
       - /var/run
@@ -16,14 +18,14 @@ services:
       TZ: Europe/Amsterdam
       DEPLOY_ENV: production
     ports:
-      - target: 80
+      - target: 8080
         published: "${TODOLESS_PORT:-7070}"
         protocol: tcp
     depends_on:
       pocketbase:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -36,7 +38,7 @@ services:
           description:
             en_US: Timezone
       ports:
-        - container: "80"
+        - container: "8080"
           description:
             en_US: Web UI
 
@@ -46,11 +48,12 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    # GH#45: fixed non-root UID — the image also sets USER 1000. No capabilities
+    # are required: cap_drop ALL, no cap_add (the old CHOWN/DAC_OVERRIDE pair was
+    # only needed because the container ran as root and chowned the volumes).
+    user: "1000:1000"
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
     entrypoint: ["/entrypoint.sh"]
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:

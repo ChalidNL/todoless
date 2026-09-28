@@ -13,9 +13,12 @@ ENV VITE_APP_VERSION=$VITE_APP_VERSION
 ENV TODOLESS_TAG=$TODOLESS_TAG
 RUN npm run build
 
-FROM nginx:1.27-alpine
+# Non-root nginx (uid 101) — GH#45: the runtime container must NOT run as root.
+# nginx-unprivileged can only bind ports >= 1024, so the app listens on 8080
+# inside the container; compose maps host ${TODOLESS_PORT:-7070} -> 8080.
+FROM nginxinc/nginx-unprivileged:1.30-alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/build /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]
