@@ -57,6 +57,7 @@ services:
       TZ: Europe/Amsterdam
       DEPLOY_ENV: production
       COMMIT_SHA: ${COMMIT_SHA:-unknown}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data

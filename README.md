@@ -125,8 +125,23 @@ The `.env.example` file documents available variables. Not all are used by the p
 |---|---|
 | `TZ` | Timezone (default: `Europe/Amsterdam`) |
 | `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
+| `LOG_LEVEL` | Backend logging verbosity on stdout/stderr (default: `info`) — see below |
 
 > Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
+
+### Logging & observability
+The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
+
+```
+[pb-request] ts=2026-09-28T10:45:19Z level=info method=GET path=/api/entries status=200 duration_ms=3 ip=192.168.2.10 auth=abc123
+[pb-request] ts=2026-09-28T10:45:19Z level=warn method=POST path=/api/invites/create status=401 duration_ms=1 ip=192.168.2.10 auth=-
+```
+
+- `level=info` → stdout · `level=warn`/`level=error` → stderr · `path` is the route only (query string, headers and bodies are **never** logged).
+- 4xx/5xx lines are also mirrored into PocketBase's own log store (`auxiliary.db` → `_logs`) via `$app.logger()`, so they show up in the admin dashboard (and can be shipped via the superuser API `GET /api/logs/request`).
+- Unhandled errors thrown by custom routes are logged (`level=error ... error="..."`) instead of being silently swallowed.
+- `LOG_LEVEL` controls verbosity: `info` (default) logs everything · `warn`/`error` only logs warnings/errors · `debug`/`trace` adds PocketBase's own `--dev` output (console logs + SQL) to the same streams.
+- Log retention in `_logs` defaults to 5 days — adjust under **Settings → Logs** in the admin dashboard if you need longer history.
 
 ---
 

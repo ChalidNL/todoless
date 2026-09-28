@@ -52,6 +52,19 @@ test('pb is reachable: health, version, hook-health', async () => {
   assert.equal(hook.data?.ok, true)
 })
 
+// --- 0b. GH#56: request-logger must see real status codes -------------
+test('request logger records 4xx statuses (unauthenticated + bad input)', async () => {
+  // Custom-route 401 — the request-logger middleware must emit a warn line
+  // (verified by scripts/pb-smoke.sh against serve.log afterwards).
+  const noAuth = await api('POST', '/api/invites/create', { body: { type: 'human' } })
+  assert.equal(noAuth.status, 401)
+
+  // Custom-route 400 — also a warn line, and the response body must be intact.
+  const badInput = await api('POST', '/api/validate-create', { body: {} })
+  assert.equal(badInput.status, 400)
+  assert.equal(badInput.data?.error, 'title required')
+})
+
 // --- 1. setup-status (fresh boot has no users) -----------------------
 test('setup-status reports a fresh instance', async () => {
   const r = await api('GET', '/api/setup-status')
