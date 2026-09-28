@@ -527,6 +527,29 @@ class PocketBaseClient {
     await pb.collection('tasks').delete(id);
   }
 
+  // Batch delete: single POST instead of N parallel DELETE requests.
+  // Keeps "Delete completed" under nginx api_general rate-limit burst (GH#87)
+  // and emits one server-side change instead of one per task.
+  async deleteTasks(ids: string[]) {
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+    if (uniqueIds.length === 0) {
+      return { deleted: 0, ids: [] as string[] };
+    }
+    const response = await fetch('/api/v1/tasks/batch-delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+      },
+      body: JSON.stringify({ ids: uniqueIds }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Failed to delete tasks' }));
+      throw new Error(err.error || 'Failed to delete tasks');
+    }
+    return response.json();
+  }
+
   async getItems(): Promise<Item[]> {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;

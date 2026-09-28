@@ -226,3 +226,83 @@ routerAdd(
   },
   $apis.requireRecordAuth()
 )
+
+routerAdd(
+  'POST',
+  '/api/v1/tasks/batch-delete',
+  (c) => {
+    const authRecord = c.get('authRecord')
+    if (!authRecord) {
+      return c.json(401, { 'error': 'Unauthorized' })
+    }
+
+    // Parse and validate ids up front.
+    let body
+    try {
+      body = $request.body()
+    } catch (_) {
+      return c.json(400, { 'error': 'Bad Request: expected JSON body' })
+    }
+    let rawIds = []
+    try {
+      rawIds = body.get('ids') || []
+    } catch (_) {
+      return c.json(400, { 'error': 'Bad Request: missing ids' })
+    }
+    const ids = Array.isArray(rawIds) ? rawIds.map(String).filter(Boolean) : []
+    if (ids.length === 0) {
+      return c.json(400, { 'error': 'Bad Request: ids must be a non-empty array' })
+    }
+    if (ids.length > 500) {
+      return c.json(413, { 'error': 'Payload too large: max 500 tasks per batch' })
+    }
+
+    // Phase 1 — verify every task exists and is owned by the caller before
+    // mutating anything (mirrors the single DELETE /api/v1/tasks/:id rule).
+    const records = []
+    for (let i = 0; i < ids.length; i++) {
+      let record
+      try {
+        record = $app.dao().findRecordById('tasks', ids[i])
+      } catch (_) {
+        return c.json(404, { 'error': 'Task not found', 'id': ids[i] })
+      }
+      if (record.get('user') !== authRecord.id) {
+        return c.json(403, { 'error': 'Forbidden', 'id': ids[i] })
+      }
+      records.push(record)
+    }
+
+    // Phase 2 — detach deleted subtasks from parents, then delete records.
+    const deletedSet = {}
+    for (let i = 0; i < ids.length; i++) deletedSet[ids[i]] = true
+
+    const dao = $app.dao()
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i]
+      const linkedTo = record.get('linked_to')
+      const linkedType = record.get('linked_type')
+      // Only clean up the parent when the parent itself is not part of this
+      // batch — a parent deleted in the same call takes its subtask_ids with it.
+      if (linkedTo && linkedType === 'task' && !deletedSet[linkedTo]) {
+        try {
+          const parent = dao.findRecordById('tasks', linkedTo)
+          const subIds = parent.get('subtask_ids') || []
+          const filtered = subIds.filter((sid) => sid !== record.id)
+          if (filtered.length !== subIds.length) {
+            parent.set('subtask_ids', filtered)
+            dao.saveRecord(parent)
+          }
+        } catch (_) {
+          // Parent may already be gone — continue with the delete.
+        }
+      }
+    }
+    for (let i = 0; i < records.length; i++) {
+      dao.deleteRecord(records[i])
+    }
+
+    return c.json(200, { 'deleted': records.length, 'ids': ids })
+  },
+  $apis.requireRecordAuth()
+)

@@ -171,6 +171,7 @@ interface AppContextType {
   deleteUser: (id: string) => Promise<boolean>;
   deleteItem: (id: string) => void;
   deleteTask: (id: string) => void;
+  deleteTasks: (ids: string[]) => void;
   deleteNote: (id: string) => void;
   deleteLabel: (id: string) => void;
   deleteShop: (id: string) => void;
@@ -645,6 +646,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  const deleteTasks = (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+    if (uniqueIds.length === 0) return;
+    void (async () => {
+      await api.deleteTasks(uniqueIds);
+      await refreshEntries();
+      await refreshNotes();
+    })();
+  };
+
   const deleteNote = (id: string) => {
     void (async () => {
       await api.deleteNote(id);
@@ -719,12 +730,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteArchivedTasks = () => {
-    effectiveTasks.filter((task) => task.archived).forEach((task) => deleteTask(task.id));
+    const ids = effectiveTasks.filter((task) => task.archived).map((task) => task.id);
+    deleteTasks(ids);
   };
 
   const cleanupExpiredArchives = () => {
     const now = Date.now();
-    effectiveTasks.filter((task) => task.archived && task.deleteAfter && task.deleteAfter < now).forEach((task) => deleteTask(task.id));
+    const ids = effectiveTasks
+      .filter((task) => task.archived && task.deleteAfter && task.deleteAfter < now)
+      .map((task) => task.id);
+    deleteTasks(ids);
   };
 
   const toggleChipFilter = (type: string, id: string, label?: string, color?: string) => {
@@ -1015,6 +1030,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteUser,
       deleteItem,
       deleteTask,
+      deleteTasks,
       deleteNote,
       deleteLabel,
       deleteShop,
