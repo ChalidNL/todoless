@@ -26,7 +26,7 @@ const isOverdue = (dueDate?: number): boolean => {
 };
 
 export const TasksView = () => {
-  const { tasks, activeChipFilters, addTask, uncheckAllDoneTasks, deleteTask, showCompletionMessage } = useApp();
+  const { tasks, activeChipFilters, addTask, uncheckAllDoneTasks, deleteTasks, showCompletionMessage } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
@@ -276,7 +276,7 @@ export const TasksView = () => {
                     onClick={() => {
                       if (!window.confirm(t('tasks.confirmDeleteCompleted'))) return;
                       const doneIds = sortedCompletedTasks.map(t => t.id);
-                      doneIds.forEach(id => deleteTask(id));
+                      deleteTasks(doneIds);
                       showCompletionMessage(`${doneIds.length} deleted`);
                     }}
                     className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
