@@ -58,6 +58,17 @@ services:
       DEPLOY_ENV: production
       COMMIT_SHA: ${COMMIT_SHA:-unknown}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # PocketBase settings bootstrap (GH#51) — read by migration z067 on
+      # first start; empty values are ignored (settings are applied once).
+      APP_NAME: ${APP_NAME:-}
+      APP_URL: ${APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TRUSTED_PROXY_HEADERS: ${TRUSTED_PROXY_HEADERS:-}
+      TRUSTED_PROXY_USE_LEFTMOST_IP: ${TRUSTED_PROXY_USE_LEFTMOST_IP:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data

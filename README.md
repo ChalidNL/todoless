@@ -126,8 +126,11 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `TZ` | Timezone (default: `Europe/Amsterdam`) |
 | `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
 | `LOG_LEVEL` | Backend logging verbosity on stdout/stderr (default: `info`) — see below |
+| `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
+| `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
+| `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |
 
-> Build-time variables (`VITE_POCKETBASE_URL`, `POCKETBASE_ADMIN_*`, SMTP settings) are used when building your own images — not needed when using the pre-built GHCR images.
+> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth. `VITE_*` remain build-time only; `POCKETBASE_ADMIN_*` are not read by the shipped compose.
 
 ### Logging & observability
 The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
