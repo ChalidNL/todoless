@@ -115,7 +115,7 @@ jobs:
           context: .
           file: Dockerfile.frontend
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           labels: ${{ steps.oci.outputs.labels }}
           tags: |
             ghcr.io/chalidnl/todoless-frontend:${{ steps.meta.outputs.fe_tag }}
@@ -124,6 +124,8 @@ jobs:
             VITE_GIT_COMMIT=${{ github.sha }}
             VITE_APP_VERSION=${{ steps.meta.outputs.branch }}
             TODOLESS_TAG=${{ steps.meta.outputs.branch }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build & push pocketbase
         uses: docker/build-push-action@v5
