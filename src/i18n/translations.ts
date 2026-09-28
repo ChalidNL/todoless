@@ -2464,10 +2464,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "nav": {
       "inbox": "Inbox",
-      "tasks": "Taken",
-      "calendar": "Agenda",
-      "groceries": "Shop",
-      "settings": "Instellingen"
+      "tasks": "Tasks",
+      "calendar": "Calendar",
+      "groceries": "Groceries",
+      "settings": "Settings"
     },
     "members": {
       "inviteSectionTitle": "Invite"

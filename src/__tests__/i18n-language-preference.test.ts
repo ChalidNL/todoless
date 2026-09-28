@@ -69,6 +69,28 @@ describe('per-user UI language preferences', () => {
     expect(t('invite.generateMember', 'fr')).toBe('Générer une invitation membre');
   });
 
+  it('never leaks Dutch overlay strings into the English nav/dashboard translations', () => {
+    // Regression for GH#70: the English entry of `overlayTranslations` in
+    // translations.ts had been hand-edited with literal Dutch strings
+    // ("Taken", "Agenda", "Shop", "Instellingen", "Geblokkeerd") — a static
+    // data bug, not a runtime state-sync bug. Since `t(key, 'en')` always
+    // resolves through this overlay first (see lookupTranslation), no amount
+    // of re-triggering changeAppLanguage/LanguageContext could ever fix it
+    // for English. Uses the overlay lookup path directly so a full render is
+    // not needed to catch the regression.
+    expect(t('nav.inbox', 'en')).toBe('Inbox');
+    expect(t('nav.tasks', 'en')).toBe('Tasks');
+    expect(t('nav.calendar', 'en')).toBe('Calendar');
+    expect(t('nav.groceries', 'en')).toBe('Groceries');
+    expect(t('nav.settings', 'en')).toBe('Settings');
+    expect(t('dashboard.blocked', 'en')).toBe('Blocked');
+
+    // Guard against the same class of bug recurring in nl (verifies the
+    // structure is real per-language data, not just a fallback masking it).
+    expect(t('nav.tasks', 'nl')).toBe('Taken');
+    expect(t('nav.calendar', 'nl')).toBe('Agenda');
+  });
+
   it('formats dates and numbers with the active locale', () => {
     const value = new Date('2026-06-15T12:00:00Z');
     expect(formatDate(value, { month: 'long' }, 'fr')).toBe('juin');
