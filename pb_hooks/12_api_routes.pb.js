@@ -10,6 +10,7 @@ routerAdd('POST', '/api/tasks', function(c) {
   try {
     // Step 1: Try Bearer token auth
     var authLib = require(__hooks + '/lib/auth.js');
+    var dates = require(__hooks + '/lib/dates.js');
     var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
     if (tokenAuth) return tokenAuth;
 
@@ -105,6 +106,7 @@ routerAdd('POST', '/api/tasks', function(c) {
       id: rec.id,
       title: String(rec.get('title') || ''),
       status: String(rec.get('status') || 'todo'),
+      completed_at: dates.dateOrNull(rec.get('completed_at')),
       createdBy: userId,
       createdByType: isAgent ? 'agent' : 'user',
       workspaceId: familyId,
@@ -212,6 +214,7 @@ routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
 routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
+    var dates = require(__hooks + '/lib/dates.js');
     var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
     if (tokenAuth) return tokenAuth;
 
@@ -241,6 +244,9 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
 
     var body = info.body || {};
     var changed = false;
+    // Capture the pre-update status BEFORE applying the new one so the
+    // completion transition can be detected reliably (GH#14).
+    var wasDone = String(rec.get('status') || '') === 'done';
 
     if (body.title !== undefined) { rec.set('title', String(body.title).trim() || rec.get('title')); changed = true; }
     if (body.status !== undefined) { rec.set('status', String(body.status)); changed = true; }
@@ -277,8 +283,15 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
     if (body.blocked !== undefined) { rec.set('blocked', body.blocked === true || body.blocked === 'true'); changed = true; }
     if (body.archived !== undefined) { rec.set('archived', body.archived === true || body.archived === 'true'); changed = true; }
 
-    if (body.status === 'done' && String(rec.get('status') || '') !== 'done') {
+    // Stamp completion only on a REAL todo→done transition (wasDone was
+    // captured before the status field above was overwritten), and clear
+    // completed_at when a done task is reopened so it leaves the "done
+    // today" counter (GH#14).
+    if (body.status === 'done' && !wasDone) {
       rec.set('completed_at', new Date().toISOString());
+      changed = true;
+    } else if (body.status !== undefined && body.status !== 'done' && wasDone) {
+      rec.set('completed_at', null);
       changed = true;
     }
 
@@ -289,6 +302,7 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
       id: taskId,
       title: String(rec.get('title') || ''),
       status: String(rec.get('status') || 'todo'),
+      completed_at: dates.dateOrNull(rec.get('completed_at')),
       updated: true
     });
   } catch(e) {
@@ -301,6 +315,7 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
 routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
+    var dates = require(__hooks + '/lib/dates.js');
     var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
     if (tokenAuth) return tokenAuth;
 
@@ -330,11 +345,22 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
 
     var body = info.body || {};
     var changed = false;
+    // Capture the pre-update status BEFORE applying the new one so the
+    // completion transition can be detected reliably (GH#14).
+    var wasDone = String(rec.get('status') || '') === 'done';
 
     if (body.title !== undefined) { rec.set('title', String(body.title).trim() || rec.get('title')); changed = true; }
     if (body.status !== undefined) { rec.set('status', String(body.status)); changed = true; }
     if (body.assigned_to !== undefined) { rec.set('assigned_to', String(body.assigned_to)); changed = true; }
     if (body.due_date !== undefined) { rec.set('due_date', body.due_date ? String(body.due_date) : ''); changed = true; }
+
+    if (body.status === 'done' && !wasDone) {
+      rec.set('completed_at', new Date().toISOString());
+      changed = true;
+    } else if (body.status !== undefined && body.status !== 'done' && wasDone) {
+      rec.set('completed_at', null);
+      changed = true;
+    }
 
     if (!changed) return c.json(200, { id: subtaskId, message: 'No changes' });
     $app.save(rec);
@@ -343,6 +369,7 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
       id: subtaskId,
       title: String(rec.get('title') || ''),
       status: String(rec.get('status') || 'todo'),
+      completed_at: dates.dateOrNull(rec.get('completed_at')),
       updated: true
     });
   } catch(e) {
