@@ -870,7 +870,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
               {activeEditor === 'priority' && (
                 <div className="mt-2">
                   <div className="flex items-center gap-1.5">
-                    <button type="button" onClick={() => { updateTask(task.id, { priority: null }); setActiveEditor(null); }} className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${!task.priority ? 'bg-neutral-900 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>None</button>
+                    <button type="button" onClick={() => { updateTask(task.id, { priority: null }); setActiveEditor(null); }} className={`px-2 py-1.5 rounded text-xs font-medium transition-colors ${!task.priority ? 'bg-neutral-900 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'}`}>{t('filters.none')}</button>
                     {PRIORITY_ORDER.map((p) => (
                       <button
                         key={p}
@@ -941,7 +941,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
 
       {subtaskPendingDelete && (
         <ConfirmDialog
-          title={`Verwijder subtask "${subtaskPendingDelete.title}"?`}
+          title={t('tasks.confirmDeleteSubtaskTitle').replace('{title}', subtaskPendingDelete.title)}
           confirmLabel={t('common.delete')}
           onConfirm={handleSubtaskDelete}
           onCancel={() => setSubtaskPendingDelete(null)}

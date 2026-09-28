@@ -72,7 +72,8 @@
     "toggleSidebar": "Seitenleiste umschalten",
     "sidebar": "Seitenleiste",
     "mobileSidebarDescription": "Zeigt die mobile Seitenleiste an.",
-    "errorLoadingImage": "Fehler beim Laden des Bildes"
+    "errorLoadingImage": "Fehler beim Laden des Bildes",
+    "manage": "Verwalten"
   },
   "onboarding": {
     "accountCreationFailed": "Kontoerstellung fehlgeschlagen. Bitte versuche es erneut.",
@@ -218,7 +219,8 @@
     "clearAssigneeAria": "Zugewiesene Person entfernen",
     "removeAssignee": "Zugewiesene Person entfernen",
     "deleteTask": "Aufgabe löschen",
-    "confirmDeleteCompleted": "Alle abgeschlossenen Aufgaben löschen?"
+    "confirmDeleteCompleted": "Alle abgeschlossenen Aufgaben löschen?",
+    "confirmDeleteSubtaskTitle": "Unteraufgabe „{title}\" löschen?"
   },
   "items": {
     "title": "Artikel",
@@ -248,7 +250,8 @@
     "itemOrShopPrompt": "Artikel oder Geschäft?",
     "sortTasks": "Aufgaben sortieren",
     "priority": "Priorität",
-    "dueDate": "Fälligkeitsdatum"
+    "dueDate": "Fälligkeitsdatum",
+    "none": "Keine"
   },
   "groceries": {
     "empty": "Keine Artikel",
@@ -553,7 +556,9 @@
     "registrationFailed": "Registrierung fehlgeschlagen",
     "createAccount": "Konto erstellen",
     "appErrorDescription": "Etwas ist schiefgelaufen. Setze alle Daten zurück, um fortzufahren.",
-    "resetAllData": "Alle Daten zurücksetzen & neu starten"
+    "resetAllData": "Alle Daten zurücksetzen & neu starten",
+    "firstNamePlaceholder": "Max",
+    "lastNamePlaceholder": "Mustermann"
   },
   "repeat": {
     "day": "Jeden Tag",

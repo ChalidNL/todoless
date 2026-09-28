@@ -1,5 +1,6 @@
 import React from 'react';
 import { Home, Lock, Users } from 'lucide-react';
+import { t } from '../../i18n/translations';
 import type { LabelVisibility } from '../../types';
 
 type BadgeLabel = {
@@ -16,9 +17,9 @@ interface LabelBadgeProps {
 
 const VisibilityIcon = ({ visibility }: { visibility: LabelVisibility }) => {
   const cls = 'w-3 h-3 opacity-80';
-  if (visibility === 'private') return <Lock className={cls} aria-label="Private" />;
-  if (visibility === 'shared') return <Users className={cls} aria-label="Shared" />;
-  return <Home className={cls} aria-label="Family" />;
+  if (visibility === 'private') return <Lock className={cls} aria-label={t('labels.visibilityPrivate')} />;
+  if (visibility === 'shared') return <Users className={cls} aria-label={t('labels.visibilityShared')} />;
+  return <Home className={cls} aria-label={t('labels.visibilityFamily')} />;
 };
 
 export const LabelBadge = ({ label, onRemove, size = 'md' }: LabelBadgeProps) => {

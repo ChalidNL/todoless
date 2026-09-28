@@ -695,7 +695,7 @@ export const Settings = () => {
               </div>
 
               <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
-                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                <p className="text-sm font-medium text-neutral-700">{t('settings.visibility')}</p>
                 {labelVisibilityOptions.map((option) => {
                   const Icon = option.icon;
                   return (
@@ -834,7 +834,7 @@ export const Settings = () => {
               </div>
 
               <div className="space-y-3 rounded-lg border border-neutral-200 p-3">
-                <p className="text-sm font-medium text-neutral-700">Zichtbaarheid</p>
+                <p className="text-sm font-medium text-neutral-700">{t('settings.visibility')}</p>
                 {labelVisibilityOptions.map((option) => {
                   const Icon = option.icon;
                   return (

@@ -165,7 +165,7 @@ export function LabelsView() {
                   <Tag className="h-3 w-3" /> {label.name}
                 </span>
                 <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold capitalize text-[var(--app-text-muted)]"><Icon className="h-3 w-3" /> {visibilityLabel(visibility)}</span>
-                <button type="button" onClick={() => expandLabel(label)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`Edit ${label.name}`}>
+                <button type="button" onClick={() => expandLabel(label)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`${t('common.edit')} ${label.name}`}>
                   {isExpanded ? <ChevronUp className="h-[15px] w-[15px]" /> : <ChevronDown className="h-[15px] w-[15px]" />}
                 </button>
               </div>

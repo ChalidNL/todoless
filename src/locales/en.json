@@ -72,7 +72,8 @@
     "toggleSidebar": "Toggle Sidebar",
     "sidebar": "Sidebar",
     "mobileSidebarDescription": "Displays the mobile sidebar.",
-    "errorLoadingImage": "Error loading image"
+    "errorLoadingImage": "Error loading image",
+    "manage": "Manage"
   },
   "onboarding": {
     "accountCreationFailed": "Account creation failed. Please try again.",
@@ -218,7 +219,8 @@
     "clearAssigneeAria": "Clear assignee",
     "removeAssignee": "Remove assignee",
     "deleteTask": "Delete task",
-    "confirmDeleteCompleted": "Delete all completed tasks?"
+    "confirmDeleteCompleted": "Delete all completed tasks?",
+    "confirmDeleteSubtaskTitle": "Delete subtask \"{title}\"?"
   },
   "items": {
     "title": "Items",
@@ -248,7 +250,8 @@
     "itemOrShopPrompt": "Item or shop?",
     "sortTasks": "Sort tasks",
     "priority": "Priority",
-    "dueDate": "Due date"
+    "dueDate": "Due date",
+    "none": "None"
   },
   "groceries": {
     "empty": "No items yet",
@@ -554,7 +557,9 @@
     "registrationFailed": "Registration failed",
     "createAccount": "Create Account",
     "appErrorDescription": "Something went wrong. Reset all data to continue.",
-    "resetAllData": "Reset All Data & Restart"
+    "resetAllData": "Reset All Data & Restart",
+    "firstNamePlaceholder": "John",
+    "lastNamePlaceholder": "Doe"
   },
   "repeat": {
     "day": "Every day",

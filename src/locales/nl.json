@@ -72,7 +72,8 @@
     "toggleSidebar": "Sidebar wisselen",
     "sidebar": "Sidebar",
     "mobileSidebarDescription": "Toont de mobiele sidebar.",
-    "errorLoadingImage": "Afbeelding laden mislukt"
+    "errorLoadingImage": "Afbeelding laden mislukt",
+    "manage": "Beheren"
   },
   "onboarding": {
     "accountCreationFailed": "Account aanmaken mislukt. Probeer het opnieuw.",
@@ -218,7 +219,8 @@
     "clearAssigneeAria": "Toegewezen persoon wissen",
     "removeAssignee": "Toegewezen persoon verwijderen",
     "deleteTask": "Taak verwijderen",
-    "confirmDeleteCompleted": "Alle voltooide taken verwijderen?"
+    "confirmDeleteCompleted": "Alle voltooide taken verwijderen?",
+    "confirmDeleteSubtaskTitle": "Subtaak \"{title}\" verwijderen?"
   },
   "items": {
     "title": "Items",
@@ -248,7 +250,8 @@
     "itemOrShopPrompt": "Item of winkel?",
     "sortTasks": "Taken sorteren",
     "priority": "Prioriteit",
-    "dueDate": "Vervaldatum"
+    "dueDate": "Vervaldatum",
+    "none": "Geen"
   },
   "groceries": {
     "empty": "Geen items",
@@ -554,7 +557,9 @@
     "registrationFailed": "Registratie mislukt",
     "createAccount": "Account aanmaken",
     "appErrorDescription": "Er is iets misgegaan. Reset alle data om door te gaan.",
-    "resetAllData": "Alle data resetten & herstarten"
+    "resetAllData": "Alle data resetten & herstarten",
+    "firstNamePlaceholder": "Jan",
+    "lastNamePlaceholder": "Jansen"
   },
   "repeat": {
     "day": "Elke dag",

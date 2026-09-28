@@ -72,7 +72,8 @@
     "toggleSidebar": "Basculer la barre latérale",
     "sidebar": "Barre latérale",
     "mobileSidebarDescription": "Affiche la barre latérale mobile.",
-    "errorLoadingImage": "Erreur de chargement de l’image"
+    "errorLoadingImage": "Erreur de chargement de l’image",
+    "manage": "Gérer"
   },
   "onboarding": {
     "accountCreationFailed": "Échec de la création du compte. Veuillez réessayer.",
@@ -218,7 +219,8 @@
     "clearAssigneeAria": "Effacer l'assigné",
     "removeAssignee": "Supprimer l'assigné",
     "deleteTask": "Supprimer la tâche",
-    "confirmDeleteCompleted": "Supprimer toutes les tâches terminées ?"
+    "confirmDeleteCompleted": "Supprimer toutes les tâches terminées ?",
+    "confirmDeleteSubtaskTitle": "Supprimer la sous-tâche « {title} » ?"
   },
   "items": {
     "title": "Articles",
@@ -248,7 +250,8 @@
     "itemOrShopPrompt": "Article ou magasin ?",
     "sortTasks": "Trier les tâches",
     "priority": "Priorité",
-    "dueDate": "Date d’échéance"
+    "dueDate": "Date d’échéance",
+    "none": "Aucune"
   },
   "groceries": {
     "empty": "Aucun article",
@@ -553,7 +556,9 @@
     "registrationFailed": "Inscription échouée",
     "createAccount": "Créer le compte",
     "appErrorDescription": "Une erreur est survenue. Réinitialisez toutes les données pour continuer.",
-    "resetAllData": "Réinitialiser toutes les données et redémarrer"
+    "resetAllData": "Réinitialiser toutes les données et redémarrer",
+    "firstNamePlaceholder": "Jean",
+    "lastNamePlaceholder": "Dupont"
   },
   "repeat": {
     "day": "Chaque jour",

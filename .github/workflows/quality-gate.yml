@@ -41,6 +41,9 @@ jobs:
       - name: Run PocketBase contract tests
         run: node --test tests/*.test.mjs
 
+      - name: Audit hardcoded visible strings (i18n gate)
+        run: npm run audit:visible-strings
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 

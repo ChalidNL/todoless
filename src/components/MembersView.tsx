@@ -76,7 +76,7 @@ export function MembersView() {
                     type="button"
                     onClick={() => setExpandedId(expanded ? null : member.id)}
                     className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]"
-                    aria-label={`Manage ${name}`}
+                    aria-label={`${t('common.manage')} ${name}`}
                     aria-expanded={expanded}
                   >
                     {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}

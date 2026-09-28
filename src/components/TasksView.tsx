@@ -163,7 +163,7 @@ export const TasksView = () => {
           sortValue={sortMode}
           onSortChange={(value) => setSortMode(value as SortMode)}
           sortOptions={[
-            { value: 'alpha', label: 'A-Z' },
+            { value: 'alpha', label: t('settings.sortAlpha') },
             { value: 'priority', label: t('filters.priority') },
             { value: 'dueDate', label: t('filters.dueDate') },
           ]}

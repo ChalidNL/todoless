@@ -50,7 +50,7 @@ function FocusCard({ total, due, blocked, onStart }: { total: number; due: numbe
           <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-3xl bg-white/20 ring-1 ring-white/25 backdrop-blur-sm">
             <Target className="h-6 w-6" />
           </div>
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-white/75">Focus</p>
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-white/75">{t('tasks.focus')}</p>
           <h2 className="mt-1 text-[34px] font-black leading-none tracking-[-0.06em]">{total}</h2>
           <p className="mt-2 max-w-[220px] text-sm font-semibold text-white/85">{t('tasks.focusHeroSubtitle')}</p>
         </div>

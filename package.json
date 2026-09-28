@@ -86,6 +86,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "security:secrets": "bash scripts/security/scan-secrets.sh"
+    "security:secrets": "bash scripts/security/scan-secrets.sh",
+    "audit:visible-strings": "node scripts/audit-visible-strings.cjs"
   }
 }

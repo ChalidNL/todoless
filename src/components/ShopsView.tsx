@@ -46,7 +46,7 @@ export function ShopsView() {
           <article key={shop.id} className="app-card app-animate-in flex items-center gap-3 px-4 py-3">
             <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)]" style={{ background: `${shop.color || '#ec4899'}15`, color: shop.color || '#ec4899' }}><Store className="h-[18px] w-[18px]" /></span>
             <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-[var(--app-text)]">{shop.name}</span>
-            <button type="button" onClick={() => openEditStore(shop)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`Edit ${shop.name}`}><Pencil className="h-[15px] w-[15px]" /></button>
+            <button type="button" onClick={() => openEditStore(shop)} className="grid h-[34px] w-[34px] place-items-center rounded-[var(--app-radius-md)] border border-[var(--app-border-subtle)] bg-[var(--app-bg)] text-[var(--app-text-muted)]" aria-label={`${t('common.edit')} ${shop.name}`}><Pencil className="h-[15px] w-[15px]" /></button>
           </article>
         ))}
       </div>

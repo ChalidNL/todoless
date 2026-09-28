@@ -187,7 +187,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               className="auth-input"
-              placeholder="John"
+              placeholder={t('auth.firstNamePlaceholder')}
             />
           </div>
 
@@ -200,7 +200,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               className="auth-input"
-              placeholder="Doe"
+              placeholder={t('auth.lastNamePlaceholder')}
             />
           </div>
 

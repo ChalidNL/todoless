@@ -30,14 +30,14 @@ interface AppHeaderProps {
 }
 
 const SCREEN_THEMES = {
-  inbox: { color: '#3b82f6', bg: '#eff6ff', badgeLabel: 'INBOX', Icon: Inbox },
-  taken: { color: '#22c55e', bg: '#f0fdf4', badgeLabel: 'TAKEN', Icon: CheckSquare },
-  agenda: { color: '#f97316', bg: '#fff7ed', badgeLabel: 'AGENDA', Icon: CalendarDays },
-  shop: { color: '#ec4899', bg: '#fdf2f8', badgeLabel: 'SHOP', Icon: ShoppingCart },
-  leden: { color: '#06b6d4', bg: '#ecfeff', badgeLabel: 'FAMILIE', Icon: Users },
-  labels: { color: '#eab308', bg: '#fefce8', badgeLabel: 'LABELS', Icon: Tag },
-  focus: { color: '#8b5cf6', bg: '#f5f3ff', badgeLabel: 'FOCUS', Icon: Target },
-  instellingen: { color: '#6366f1', bg: '#eef2ff', badgeLabel: 'INSTELLINGEN', Icon: Settings },
+  inbox: { color: '#3b82f6', bg: '#eff6ff', badgeKey: 'nav.inbox', Icon: Inbox },
+  taken: { color: '#22c55e', bg: '#f0fdf4', badgeKey: 'nav.tasks', Icon: CheckSquare },
+  agenda: { color: '#f97316', bg: '#fff7ed', badgeKey: 'nav.calendar', Icon: CalendarDays },
+  shop: { color: '#ec4899', bg: '#fdf2f8', badgeKey: 'nav.groceries', Icon: ShoppingCart },
+  leden: { color: '#06b6d4', bg: '#ecfeff', badgeKey: 'members.title', Icon: Users },
+  labels: { color: '#eab308', bg: '#fefce8', badgeKey: 'settings.labels', Icon: Tag },
+  focus: { color: '#8b5cf6', bg: '#f5f3ff', badgeKey: 'tasks.focus', Icon: Target },
+  instellingen: { color: '#6366f1', bg: '#eef2ff', badgeKey: 'settings.title', Icon: Settings },
 } as const;
 
 export function AddButton({ onClick, color = 'var(--app-primary)' }: { onClick: () => void; color?: string }) {
@@ -291,7 +291,7 @@ export const AppHeader = ({
         <div className="mt-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
-            <span className="text-sm font-black tracking-[0.06em]" style={{ color: theme.color }}>{theme.badgeLabel}</span>
+            <span className="text-sm font-black tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
             {count !== undefined && (
               <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
             )}

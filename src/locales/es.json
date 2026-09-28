@@ -72,7 +72,8 @@
     "toggleSidebar": "Alternar barra lateral",
     "sidebar": "Barra lateral",
     "mobileSidebarDescription": "Muestra la barra lateral móvil.",
-    "errorLoadingImage": "Error al cargar la imagen"
+    "errorLoadingImage": "Error al cargar la imagen",
+    "manage": "Gestionar"
   },
   "onboarding": {
     "accountCreationFailed": "Error al crear la cuenta. Inténtalo de nuevo.",
@@ -218,7 +219,8 @@
     "clearAssigneeAria": "Quitar asignado",
     "removeAssignee": "Quitar asignado",
     "deleteTask": "Eliminar tarea",
-    "confirmDeleteCompleted": "¿Eliminar todas las tareas completadas?"
+    "confirmDeleteCompleted": "¿Eliminar todas las tareas completadas?",
+    "confirmDeleteSubtaskTitle": "¿Eliminar la subtarea \"{title}\"?"
   },
   "items": {
     "title": "Artículos",
@@ -248,7 +250,8 @@
     "itemOrShopPrompt": "¿Artículo o tienda?",
     "sortTasks": "Ordenar tareas",
     "priority": "Prioridad",
-    "dueDate": "Fecha de vencimiento"
+    "dueDate": "Fecha de vencimiento",
+    "none": "Ninguno"
   },
   "groceries": {
     "empty": "Sin artículos",
@@ -553,7 +556,9 @@
     "registrationFailed": "Error al registrarse",
     "createAccount": "Crear cuenta",
     "appErrorDescription": "Algo salió mal. Restablece todos los datos para continuar.",
-    "resetAllData": "Restablecer todos los datos y reiniciar"
+    "resetAllData": "Restablecer todos los datos y reiniciar",
+    "firstNamePlaceholder": "Juan",
+    "lastNamePlaceholder": "García"
   },
   "repeat": {
     "day": "Cada día",

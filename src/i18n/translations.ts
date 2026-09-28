@@ -101,6 +101,7 @@ interface TranslationStructure {
     warning: string;
     yes: string;
     back: string;
+    manage: string;
   };
   onboarding: {
     accountCreationFailed: string;
@@ -168,6 +169,7 @@ interface TranslationStructure {
   };
   filters: {
     title: string;
+    none: string;
   };
   groceries: {
     empty: string;
@@ -487,6 +489,7 @@ export const translations: Record<Language, TranslationStructure> = {
       warning: 'Warning',
       yes: 'Yes',
       back: 'Back',
+      manage: 'Manage',
     },
     onboarding: {
       accountCreationFailed: 'Account creation failed. Please try again.',
@@ -556,6 +559,7 @@ export const translations: Record<Language, TranslationStructure> = {
       subtasksTooltip: 'Sub-tasks',
       viewSubtasks: 'View sub-tasks',
       confirmDeleteCompleted: 'Delete all completed tasks?',
+      confirmDeleteSubtaskTitle: 'Delete subtask "{title}"?',
     },
     items: {
       title: 'Items',
@@ -579,6 +583,7 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
+      none: 'None',
     },
     groceries: {
       empty: 'No items yet',
@@ -894,6 +899,7 @@ export const translations: Record<Language, TranslationStructure> = {
       warning: 'Avertissement',
       yes: 'Oui',
       back: 'Retour',
+      manage: 'Gérer',
     },
     onboarding: {
       accountCreationFailed: 'Échec de la création du compte. Veuillez réessayer.',
@@ -961,6 +967,7 @@ export const translations: Record<Language, TranslationStructure> = {
       subtasksTooltip: 'Sous-tâches',
       viewSubtasks: 'Voir les sous-tâches',
       confirmDeleteCompleted: 'Supprimer toutes les tâches terminées ?',
+      confirmDeleteSubtaskTitle: 'Supprimer la sous-tâche « {title} » ?',
     },
     items: {
       title: 'Articles',
@@ -984,6 +991,7 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filtres',
+      none: 'Aucune',
     },
     groceries: {
       empty: 'Aucun article',
@@ -1299,6 +1307,7 @@ export const translations: Record<Language, TranslationStructure> = {
       warning: 'Waarschuwing',
       yes: 'Ja',
       back: 'Terug',
+      manage: 'Beheren',
     },
     onboarding: {
       accountCreationFailed: 'Account aanmaken mislukt. Probeer het opnieuw.',
@@ -1368,6 +1377,7 @@ export const translations: Record<Language, TranslationStructure> = {
       subtasksTooltip: 'Sub-taken',
       viewSubtasks: 'Sub-taken bekijken',
       confirmDeleteCompleted: 'Alle voltooide taken verwijderen?',
+      confirmDeleteSubtaskTitle: 'Subtaak "{title}" verwijderen?',
     },
     items: {
       title: 'Items',
@@ -1391,6 +1401,7 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filters',
+      none: 'Geen',
     },
     groceries: {
       empty: 'Geen items',
@@ -1706,6 +1717,7 @@ export const translations: Record<Language, TranslationStructure> = {
       warning: 'Warnung',
       yes: 'Ja',
       back: 'Zurück',
+      manage: 'Verwalten',
     },
     onboarding: {
       accountCreationFailed: 'Kontoerstellung fehlgeschlagen. Bitte versuchen Sie es erneut.',
@@ -1773,6 +1785,7 @@ export const translations: Record<Language, TranslationStructure> = {
       subtasksTooltip: 'Teilaufgaben',
       viewSubtasks: 'Teilaufgaben anzeigen',
       confirmDeleteCompleted: 'Alle abgeschlossenen Aufgaben löschen?',
+      confirmDeleteSubtaskTitle: 'Unteraufgabe „{title}" löschen?',
     },
     items: {
       title: 'Artikel',
@@ -1796,6 +1809,7 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     filters: {
       title: 'Filter',
+      none: 'Keine',
     },
     groceries: {
       empty: 'Keine Artikel',
@@ -2111,6 +2125,7 @@ export const translations: Record<Language, TranslationStructure> = {
       warning: 'Advertencia',
       yes: 'Sí',
       back: 'Volver',
+      manage: 'Gestionar',
     },
     onboarding: {
       accountCreationFailed: 'Error al crear la cuenta.',
@@ -2154,6 +2169,7 @@ export const translations: Record<Language, TranslationStructure> = {
     },
     tasks: {
       confirmDeleteCompleted: '¿Eliminar todas las tareas completadas?',
+      confirmDeleteSubtaskTitle: '¿Eliminar la subtarea "{title}"?',
     },
     items: {
       title: 'Artículos',
@@ -2171,7 +2187,7 @@ export const translations: Record<Language, TranslationStructure> = {
       sortAlpha: 'A-Z',
     },
     notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
-    filters: { title: 'Filtros' },
+    filters: { title: 'Filtros', none: 'Ninguno' },
     groceries: { empty: 'Sin artículos' },
     settings: {
       account: 'Cuenta', active: 'Activo', addLabel: 'Añadir etiqueta',
@@ -2321,7 +2337,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     "dashboard": {
       "inbox": "Inbox",
       "todoSprint": "Todo Sprint",
-      "blocked": "Geblokkeerd",
+      "blocked": "Blocked",
       "doneSprint": "Done Sprint"
     },
     "nav": {

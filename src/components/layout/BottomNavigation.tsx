@@ -16,8 +16,9 @@ interface BottomNavigationProps {
 export function BottomNavigation({ items }: BottomNavigationProps) {
   return (
     <nav
-      aria-label="Primary"
       className="app-bottom-nav mx-auto w-full max-w-xl flex-shrink-0 z-40"
+      // i18n-ignore: primary-app-nav landmark label (screen-reader only), kept technical by convention.
+      aria-label="Primary"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}
     >
       <div className="mx-auto flex items-center justify-around gap-1 px-2 pt-2">
