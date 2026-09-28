@@ -95,4 +95,53 @@ describe('CompactTaskCard attributes', () => {
 
     expect(addLabel).toHaveBeenCalledWith(expect.objectContaining({ name: 'School', visibility: 'family' }));
   });
+
+  it('derives the subtask chip from the child linkedTo even when parent subtaskIds is stale/absent (GH#88)', () => {
+    // Parent has NO subtaskIds (stale/absent cache) but a child task links to it.
+    // The subtask list must come from the child's linkedTo — the single source of truth.
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{ ...parentTask, subtaskIds: undefined }, subtask],
+    });
+    render(<CompactTaskCard task={{ ...parentTask, subtaskIds: undefined }} />);
+
+    expect(screen.getByText('0/1')).toBeInTheDocument();
+  });
+
+  it('promotes a subtask to a main task with a single child update and no parent write (GH#88)', () => {
+    const updateTask = vi.fn();
+    useAppMock.mockReturnValue({ ...baseAppValue, updateTask });
+    render(<CompactTaskCard task={subtask} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Editor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Other actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make main task again' }));
+
+    // Only the child's linkedTo/linkedType are cleared — no update to the parent's subtaskIds.
+    expect(updateTask).toHaveBeenCalledTimes(1);
+    expect(updateTask).toHaveBeenCalledWith('subtask-1', { linkedTo: null, linkedType: null });
+  });
+
+  it('links a task under a parent with a single child update and no parent write (GH#88)', () => {
+    const updateTask = vi.fn();
+    useAppMock.mockReturnValue({ ...baseAppValue, updateTask });
+    const standalone: Task = { ...subtask, id: 'standalone-1', linkedTo: undefined, linkedType: undefined };
+    const candidateParent: Task = { ...parentTask, id: 'candidate-1', title: 'Candidate parent' };
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      updateTask,
+      tasks: [standalone, candidateParent],
+    });
+    render(<CompactTaskCard task={standalone} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Editor' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Other actions' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Make sub-task' }));
+    const parentButtons = screen.getAllByRole('button', { name: /Candidate parent/ });
+    fireEvent.click(parentButtons[parentButtons.length - 1]);
+
+    // Exactly one update, on the child — the parent list is derived, not written.
+    expect(updateTask).toHaveBeenCalledTimes(1);
+    expect(updateTask).toHaveBeenCalledWith('standalone-1', { linkedTo: 'candidate-1', linkedType: 'task' });
+  });
 });

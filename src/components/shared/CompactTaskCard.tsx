@@ -143,10 +143,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, task.dueDate);
   const hasComment = !!task.blockedComment?.trim();
 
-  // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship)
-  const subtasks = (task.subtaskIds || [])
-    .map(id => tasks.find(t => t.id === id))
-    .filter(Boolean) as Task[];
+  // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship).
+  // Derived from the child's linkedTo — the single source of truth (GH#88). The old
+  // parent-side subtaskIds array is a redundant cache that could disagree with the
+  // children after a partial update, so it is no longer read here.
+  const subtasks = tasks.filter(
+    (t) => t.linkedType === 'task' && t.linkedTo === task.id,
+  );
   const subtaskCount = subtasks.length;
   const completedSubtaskCount = subtasks.filter(s => s.status === 'done').length;
 
@@ -355,23 +358,13 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     setParentSearch('');
   };
 
-  const detachFromParentTask = (parentTaskId?: string | null) => {
-    if (!parentTaskId) return;
-    const parentTask = tasks.find((candidate) => candidate.id === parentTaskId);
-    if (!parentTask?.subtaskIds?.includes(task.id)) return;
-
-    updateTask(parentTask.id, {
-      subtaskIds: parentTask.subtaskIds.filter((subtaskId) => subtaskId !== task.id),
-    });
-  };
-
   const linkToParentTask = (parentTask: Task) => {
-    detachFromParentTask(task.linkedTo);
+    // GH#88: the child's linkedTo/linkedType is the single source of truth — the
+    // parent's subtask list is derived from it (see `subtasks` above). One update
+    // on the child is enough; the old flow also wrote the parent's subtaskIds in
+    // separate requests, which could fail halfway and leave the two
+    // representations disagreeing.
     updateTask(task.id, { linkedTo: parentTask.id, linkedType: 'task' });
-    const current = parentTask.subtaskIds || [];
-    if (!current.includes(task.id)) {
-      updateTask(parentTask.id, { subtaskIds: [...current, task.id] });
-    }
     showCompletionMessage(t('tasks.linkedUnder').replace('{title}', parentTask.title));
     resetParentPicker();
     setActiveEditor(null);
@@ -896,7 +889,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   <button
                     type="button"
                     onClick={() => {
-                      if (task.linkedType === 'task' && task.linkedTo) { detachFromParentTask(task.linkedTo); updateTask(task.id, { linkedTo: null, linkedType: null }); showCompletionMessage(t('tasks.promotedStandalone')); resetParentPicker(); setActiveEditor(null); return; }
+                      if (task.linkedType === 'task' && task.linkedTo) { updateTask(task.id, { linkedTo: null, linkedType: null }); showCompletionMessage(t('tasks.promotedStandalone')); resetParentPicker(); setActiveEditor(null); return; }
                       setShowParentPicker((current) => !current); setParentSearch('');
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left rounded border transition-colors ${task.linkedType === 'task' && task.linkedTo ? 'border-purple-200 bg-purple-50 text-purple-700' : 'border-neutral-200 hover:bg-neutral-50'}`}

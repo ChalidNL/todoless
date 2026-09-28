@@ -708,13 +708,29 @@ routerAdd('POST', '/api/v1', (c) => {
       var parent = $app.findRecordById('tasks', taskId);
       if (!parent) return c.json(404, { error: 'Parent task not found' });
       if (!_canAccessTask(parent)) return c.json(404, { error: 'Parent task not found' });
-      var existing = parent.get('subtask_ids') || [];
-      if (!Array.isArray(existing)) existing = [];
-      if (existing.indexOf(subtaskId) === -1) {
-        existing.push(subtaskId);
-        parent.set('subtask_ids', existing);
-        $app.save(parent);
-      }
+      var child = null;
+      try { child = $app.findRecordById('tasks', subtaskId); } catch(e) {}
+      if (!child) return c.json(404, { error: 'Subtask not found' });
+      if (!_canAccessTask(child)) return c.json(404, { error: 'Subtask not found' });
+      // GH#88: write both sides in one transaction so the child's linked_to and
+      // the parent's subtask_ids can never disagree on a partial failure.
+      $app.runInTransaction(function(txApp) {
+        var tdao = txApp.dao();
+        var txParent = tdao.findRecordById('tasks', taskId);
+        var txChild = tdao.findRecordById('tasks', subtaskId);
+        if (String(txChild.get('linked_to') || '') !== String(taskId)) {
+          txChild.set('linked_to', taskId);
+          txChild.set('linked_type', 'task');
+          tdao.saveRecord(txChild);
+        }
+        var existing = txParent.get('subtask_ids') || [];
+        if (!Array.isArray(existing)) existing = [];
+        if (existing.indexOf(subtaskId) === -1) {
+          existing.push(subtaskId);
+          txParent.set('subtask_ids', existing);
+          tdao.saveRecord(txParent);
+        }
+      });
       return c.json(200, { success: true });
     }
 
