@@ -33,7 +33,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
+    } catch(e) { return respondError(c, e, 500); }
   }
   try {
     var ba = _bam(c);
@@ -61,7 +61,7 @@ routerAdd('GET', '/api/v1/api-tokens', (c) => {
       });
     }
     return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── CREATE token (POST) ───────────────────────────────────────────────────
@@ -91,7 +91,7 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
+    } catch(e) { return respondError(c, e, 500); }
   }
   function _gt(len) { if(typeof len==='undefined')len=48;var c='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',r='';for(var i=0;i<len;i++){r+=c.charAt(Math.floor(Math.random()*c.length));}return'tl_'+r; }
   function _ht(tok) { try { return $security.SHA256(tok); } catch(e) { var h=0;if(tok.length===0)return'd';for(var i=0;i<tok.length;i++){h=((h<<5)-h)+tok.charCodeAt(i);h=h&h;}return'd_'+Math.abs(h).toString(16).padStart(8,'0');} }
@@ -151,7 +151,7 @@ routerAdd('POST', '/api/v1/api-tokens', (c) => {
       created: new Date().toISOString(),
       message: 'Save this token — it will not be shown again.',
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
@@ -181,7 +181,7 @@ routerAdd('DELETE', '/api/v1/api-tokens/:id', (c) => {
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
+    } catch(e) { return respondError(c, e, 500); }
   }
   try {
     var ba = _bam(c);
@@ -200,7 +200,7 @@ routerAdd('DELETE', '/api/v1/api-tokens/:id', (c) => {
 
     $app.delete(token);
     return c.json(200, { deleted: true, id: tokenId });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
@@ -230,7 +230,7 @@ routerAdd('PATCH', '/api/v1/api-tokens/:id/toggle', (c) => {
       c.set('apiTokenInfo',{token_id:tokRec.id,token_name:String(tokRec.get('name')||''),user_id:user.id,user_role:String(user.get('role')||'user'),user_name:String(user.get('name')||user.get('email')||''),family_id:String(user.get('family_id')||''),permissions:perms});
       c.set('authRecord',user);
       return null;
-    } catch(e) { return c.json(500,{'error':'Token auth error: '+String(e)}); }
+    } catch(e) { return respondError(c, e, 500); }
   }
   try {
     var ba = _bam(c);
@@ -257,5 +257,5 @@ routerAdd('PATCH', '/api/v1/api-tokens/:id/toggle', (c) => {
       enabled: newVal,
       message: newVal ? 'Token enabled' : 'Token disabled',
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });

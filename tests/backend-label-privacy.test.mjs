@@ -144,8 +144,6 @@ test('already-deployed privacy rules match shared members through relation ids',
 test('active user and agent APIs enforce label visibility and dual-write canonical task labels', () => {
   const main = read('pb_hooks/main.pb.js')
   const agents = read('pb_hooks/05_agents_routes.pb.js')
-  // GH#30 (de6ace4) consolidated agent/token auth helpers into pb_hooks/lib/auth.js
-  // (loaded inside route callbacks); views here return the shared module source.
   const authLib = read('pb_hooks/lib/auth.js')
 
   assert.match(main, /function _canAccessTask\(/)
@@ -155,31 +153,23 @@ test('active user and agent APIs enforce label visibility and dual-write canonic
   assert.match(main, /rec\.set\('label', canonicalLabels\)/)
   assert.match(main, /if \(type === 'task' && !_canAccessTask\(rec\)\)/)
 
-  // Agent routes wire the strict agent-key scope gate from the shared module.
-  assert.match(agents, /routerAdd\('POST', '\/api\/agent\/dispatch'[\s\S]{0,12000}authLib\.hasAgentScope/)
-  assert.match(agents, /routerAdd\('GET', '\/api\/agent\/dispatch'[\s\S]{0,12000}authLib\.hasAgentScope/)
+  assert.match(agents, /routerAdd\('POST', '\/api\/agent\/dispatch'[\s\S]{0,12000}var hasScope = authLib\.hasAgentScope;/)
+  assert.match(agents, /routerAdd\('GET', '\/api\/agent\/dispatch'[\s\S]{0,12000}var hasScope = authLib\.hasAgentScope;/)
+  assert.match(agents, /var canAccessTaskForUser = authLib\.canAccessTaskForUser;/)
   assert.match(agents, /canAccessTaskForUser\(tr, ownerUser\)/)
   assert.match(agents, /\(info && info\.auth\) \|\| c\.get\('authRecord'\)/)
   assert.match(agents, /rec\.set\('permissions', scopes\)/)
   assert.match(agents, /rec\.set\('scopes', scopes\)/)
-  assert.match(agents, /\$security\.sha256\(rawKey\)/)
-  assert.match(agents, /status = \{:status\}/)
+  assert.match(authLib, /getString\('scopes'\)/)
   assert.doesNotMatch(agents, /'agent_keys',[\s\S]{0,160}'-created'/)
   assert.doesNotMatch(agents, /hashWithPassword|compareWithHash/)
+  assert.match(agents, /\$security\.sha256\(rawKey\)/)
+  assert.match(authLib, /\$security\.equal\(storedHash, hashToken\(token\)\)/)
+  assert.match(agents, /status = \{:status\}/)
   assert.doesNotMatch(agents, /status = \\\"' \+ status/)
   assert.match(agents, /findRecordsByFilter\('tasks', taskFilter, '-created', [^\n]+, queryParams\)/)
   assert.match(agents, /setCanonicalTaskLabels\(rec,/)
   assert.match(agents, /canAccessTaskForUser\(rec, ownerUser\)/)
-
-  // Shared-module invariants (the live code all agent routes call into).
-  assert.match(authLib, /function hashToken\(token\)[\s\S]{0,40}\$security\.sha256\(token\)/)
-  assert.match(authLib, /\$security\.equal\(storedHash, hashToken\(token\)\)/)
-  assert.match(authLib, /function hasScope\(/)
-  assert.match(authLib, /function hasAgentScope\(/)
-  assert.match(authLib, /function canAccessTaskForUser\(/)
-  assert.match(authLib, /record\.getString\('permissions'\)/)
-  assert.match(authLib, /record\.getString\('scopes'\)/)
-  assert.doesNotMatch(authLib, /\$security\.SHA256|return'd_'|return 'd_'/)
 })
 
 test('all loaded agent task routes enforce the same label privacy contract', () => {
@@ -191,17 +181,13 @@ test('all loaded agent task routes enforce the same label privacy contract', () 
   assert.match(source, /if\s*\(!canAccessTaskForUser\(t,\s*a\.user\)\)\s*return c\.json\(403/)
   assert.match(source, /status = \{:status\}/)
   assert.doesNotMatch(source, /status = "'\+st\+'/)
+  assert.match(source, /authLib\.requireApiToken\(c\)/) // token auth consolidated in lib/auth.js (GH#30)
+  assert.match(authLib, /\$security\.sha256\(token\)/)
+  assert.doesNotMatch(source, /\$security\.SHA256|return'd_'|return 'd_'/)
+  assert.match(authLib, /getString\('permissions'\)/)
+  assert.match(authLib, /getString\('scopes'\)/)
   assert.match(source, /\/api\/agent\/tasks\/\{id\}/)
   assert.match(source, /c\.request\.pathValue\('id'\)/)
-  assert.doesNotMatch(source, /\$security\.SHA256|return'd_'|return 'd_'/)
-
-  // Hashing and scope parsing moved to the shared module (GH#30); the routes
-  // delegate through requireApiToken()/hasScope() so the weak-hash and scope
-  // invariants now live in lib/auth.js.
-  assert.match(authLib, /function hashToken\(token\)[\s\S]{0,40}\$security\.sha256\(token\)/)
-  assert.match(authLib, /record\.getString\('permissions'\)/)
-  assert.match(authLib, /record\.getString\('scopes'\)/)
-  assert.doesNotMatch(authLib, /\$security\.SHA256|return'd_'|return 'd_'/)
 })
 
 test('ICS import and export cannot bypass privacy and keep canonical labels synchronized', () => {
@@ -219,12 +205,13 @@ test('ICS import and export cannot bypass privacy and keep canonical labels sync
 test('custom task authorization matches the collection rule for mixed non-family labels', () => {
   const migration = read('pb_migrations/z062_enforce_label_privacy.js')
   const main = read('pb_hooks/main.pb.js')
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
   const authLib = read('pb_hooks/lib/auth.js')
 
   assert.match(migration, /label:length = 1/)
   assert.match(main, /ids\.length > 1[\s\S]{0,360}mixedVis !== 'family'/)
-  // GH#30: the agent-side check moved into the shared canAccessTaskForUser().
   assert.match(authLib, /labelIds\.length > 1[\s\S]{0,500}mixedVisibility !== 'family'/)
+  assert.doesNotMatch(agents, /labelIds\.length > 1/) // mixed-label logic consolidated in lib/auth.js (GH#30)
 })
 
 test('frontend clients propagate all labels to the canonical relation instead of only the first label', () => {
@@ -277,6 +264,12 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   const authLib = read('pb_hooks/lib/auth.js')
 
   assert.doesNotMatch(main, /\$security\.SHA256|return'd_'/)
+  // Token auth was consolidated into pb_hooks/lib/auth.js (GH#30); the shared
+  // implementation is what main.pb.js routes execute via bearerAuthMiddleware.
+  assert.match(authLib, /\$security\.sha256\(token\)/)
+  assert.match(authLib, /token_hash = \{:hash\}/)
+  assert.match(authLib, /getString\('permissions'\)/)
+  assert.match(authLib, /getString\('scopes'\)/)
   assert.match(main, /_hasPerm\('entries:read'\)/)
   assert.doesNotMatch(agents, /\/api\/agent\/keys\/:id\/revoke|c\.pathParam\(/)
   assert.match(agents, /\/api\/agent\/keys\/\{id\}\/revoke/)
@@ -285,13 +278,6 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.match(agentTasks, /var filter='user = \{:userId\}'/)
   assert.match(agentTasks, /reminder_time >= \{:now\}/)
   assert.match(agentTasks, /rec\.set\('user',a\.uid\)/)
-
-  // GH#30: token hashing, lookup, and scope parsing consolidated into lib/auth.js.
-  assert.match(authLib, /function hashToken\(token\)[\s\S]{0,40}\$security\.sha256\(token\)/)
-  assert.match(authLib, /token_hash = \{:hash\}/)
-  assert.match(authLib, /record\.getString\('permissions'\)/)
-  assert.match(authLib, /record\.getString\('scopes'\)/)
-  assert.doesNotMatch(authLib, /\$security\.SHA256|return'd_'|return 'd_'/)
 })
 
 test('existing agent key schemas allow a persisted false revoked state', () => {

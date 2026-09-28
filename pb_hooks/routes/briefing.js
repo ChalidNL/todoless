@@ -136,7 +136,7 @@ routerAdd('POST', '/api/v1/briefing/generate', (c) => {
     $app.save(rec);
 
     return c.json(200, briefing);
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ── GET /api/v1/briefing — get today's cached briefing ──
@@ -172,7 +172,7 @@ routerAdd('GET', '/api/v1/briefing', (c) => {
       date: cached.get('date'),
       briefing: briefing,
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ── DELETE /api/v1/briefing — clear today's cached briefing ──
@@ -196,5 +196,5 @@ routerAdd('DELETE', '/api/v1/briefing', (c) => {
     }
 
     return c.json(200, { deleted: true });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });

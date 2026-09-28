@@ -183,7 +183,7 @@ function registerCompanionDeviceHandler(c) {
       device: _companionDeviceResponse(result.record),
     });
   } catch (e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    return respondError(c, e, 500);
   }
 }
 
@@ -213,7 +213,7 @@ function createCompanionTestNotificationHandler(c) {
       notification: emitted.payload,
     });
   } catch (e) {
-    return c.json(500, { error: String(e), stack: String(e.stack || '') });
+    return respondError(c, e, 500);
   }
 }
 

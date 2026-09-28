@@ -21,6 +21,22 @@
 // Privacy: logs method + path only (no query string, no headers, no body),
 // remote IP and authenticated user id — never passwords/tokens/invite codes.
 
+// ─── Shared error responder (GH#9) ───────────────────────────────────────────
+// Compatibility shim: the implementation lives in pb_hooks/lib/errors.js.
+// Binding `respondError` as a global lets every custom route handler answer
+// unexpected exceptions with a generic message while logging the real error
+// server-side (PRD NFR-SEC-002 — no stack traces / internal details to clients).
+
+function _errorsLib() {
+  return require(__hooks + '/lib/errors.js');
+}
+
+function respondError(c, e, status, message, extra) {
+  return _errorsLib().respondError(c, e, status, message, extra);
+}
+
+globalThis.respondError = respondError;
+
 routerUse(function (e) {
   var startMs = Date.now();
 

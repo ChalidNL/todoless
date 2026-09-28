@@ -114,7 +114,7 @@ routerAdd('GET', '/api/hook-health', (c) => {
     $app.findRecordsByFilter('users', 'id != ""', '', 1, 0);
     return c.json(200, { ok: true });
   } catch (err) {
-    return c.json(500, { ok: false, error: String((err && err.message) || err) });
+    return respondError(c, err, 500, 'Internal server error', { ok: false });
   }
 });
 
@@ -195,7 +195,7 @@ routerAdd('POST', '/api/invites/create', (c) => {
       type: type,
     });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -242,7 +242,7 @@ routerAdd('GET', '/api/validate-invite', (c) => {
       family_name: familyName,
       invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ── User registration (no auth required) ──
@@ -428,7 +428,7 @@ try {
       res.push(e);
     }
     return c.json(200, res);
-  } catch(e) { return c.json(400, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ── API v2: POST /api/v1 (unified action dispatcher) ──
@@ -852,7 +852,7 @@ try {
 
 
     return c.json(400, { error: 'Unknown action: ' + action });
-  } catch(e) { return c.json(400, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ── Load additional route files ──────────────────────────────────────
@@ -879,7 +879,7 @@ routerAdd('GET', '/api/agent/counts', (c) => {
       if (isEnabled) approved++; else pending++;
     }
     return c.json(200, { pending: pending, approved: approved });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // GET /api/agent/pending — returns tokens where enabled=false
@@ -905,7 +905,7 @@ routerAdd('GET', '/api/agent/pending', (c) => {
       });
     }
     return c.json(200, { agents: agents });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // POST /api/agent/approve — enables a token
@@ -942,7 +942,7 @@ routerAdd('POST', '/api/agent/approve', (c) => {
       status: 'approved',
       message: 'Agent approved. Token is now active.',
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // POST /api/agent/reject — deletes a pending token
@@ -970,7 +970,7 @@ routerAdd('POST', '/api/agent/reject', (c) => {
 
     $app.delete(token);
     return c.json(200, { deleted: true });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // GET /api/agent/list — returns all tokens with status
@@ -999,7 +999,7 @@ routerAdd('GET', '/api/agent/list', (c) => {
       });
     }
     return c.json(200, { agents: agents });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // DELETE /api/agent/:id — revoke token
@@ -1019,5 +1019,5 @@ routerAdd('DELETE', '/api/agent/{id}', (c) => {
     if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
     $app.delete(token);
     return c.json(200, { deleted: true });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });

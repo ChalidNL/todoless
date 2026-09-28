@@ -40,7 +40,7 @@ try {
       });
     }
     return c.json(200, result);
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── CREATE token (POST) ───────────────────────────────────────────────────
@@ -108,7 +108,7 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
       created: new Date().toISOString(),
       message: 'Save this token — it will not be shown again.',
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
@@ -141,7 +141,7 @@ try {
 
     $app.delete(token);
     return c.json(200, { deleted: true, id: tokenId });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
@@ -182,5 +182,5 @@ try {
       enabled: newVal,
       message: newVal ? 'Token enabled' : 'Token disabled',
     });
-  } catch(e) { return c.json(500, { error: String(e) }); }
+  } catch(e) { return respondError(c, e, 500); }
 });

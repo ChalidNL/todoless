@@ -154,7 +154,7 @@ routerAdd('POST', '/api/v1/agent/keys', function(c) {
       expires_at: expiresAt || null,
     });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 }, $apis.requireRecordAuth());
 
@@ -191,7 +191,7 @@ routerAdd('GET', '/api/v1/agent/keys', function(c) {
 
     return c.json(200, result);
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 }, $apis.requireRecordAuth());
 
@@ -219,7 +219,7 @@ routerAdd('POST', '/api/v1/agent/keys/:id/revoke', function(c) {
 
     return c.json(200, { id: rec.id, active: false });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 }, $apis.requireRecordAuth());
 
@@ -565,7 +565,7 @@ routerAdd('POST', '/api/v1/agent/dispatch', function(c) {
 
     return c.json(400, { error: 'Unknown action: ' + action + '. Valid actions: create, read, update, delete, complete, assign, set_labels, set_due_date' });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -632,7 +632,7 @@ routerAdd('GET', '/api/v1/agent/dispatch', function(c) {
 
     return c.json(200, results);
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -650,7 +650,7 @@ routerAdd('GET', '/api/v1/agent/auth-test', function(c) {
       active: !!agentKey.get('active'),
     });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -691,6 +691,6 @@ routerAdd('GET', '/api/v1/agent/audit-log', function(c) {
 
     return c.json(200, result);
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 }, $apis.requireRecordAuth());

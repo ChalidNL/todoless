@@ -140,7 +140,7 @@ routerAdd('GET', '/api/v1/agent/tasks', function(c) {
 
     return c.json(200, result);
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -202,7 +202,7 @@ routerAdd('PATCH', '/api/v1/agent/tasks/:id', function(c) {
       updated: true
     });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -262,7 +262,7 @@ routerAdd('POST', '/api/v1/agent/reminders', function(c) {
       created_at: record.created,
     });
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
 
@@ -311,6 +311,6 @@ routerAdd('GET', '/api/v1/agent/reminders', function(c) {
 
     return c.json(200, result);
   } catch (e) {
-    return c.json(500, { error: String(e) });
+    return respondError(c, e, 500);
   }
 });
