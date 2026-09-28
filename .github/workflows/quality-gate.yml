@@ -41,6 +41,15 @@ jobs:
       - name: Run PocketBase contract tests
         run: node --test tests/*.test.mjs
 
+      - name: Check migration immutability (no undeclared renames)
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            bash scripts/check-migration-immutability.sh HEAD~1
+          else
+            bash scripts/check-migration-immutability.sh origin/main
+          fi
+
       - name: Audit hardcoded visible strings (i18n gate)
         run: npm run audit:visible-strings
 
@@ -72,3 +81,19 @@ jobs:
 
       - name: Boot PocketBase with the repo's hooks/migrations and run the integration smoke suite (GH#98)
         run: bash scripts/pb-smoke.sh
+
+  migrations-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Migration idempotency regression (GH#34)
+        run: bash scripts/test-migrations-idempotent.sh
+
+      - name: Migration rename sync regression (GH#34)
+        run: bash scripts/test-migration-sync.sh

@@ -4,12 +4,14 @@ migrate((app) => {
   const collection = app.findCollectionByNameOrId('app_settings');
 
   // Add setup_complete flag — set globally once first admin setup is done
-  collection.fields.add(
-    new BoolField({
-      name: 'setup_complete',
-      required: false,
-    }),
-  );
+  if (!collection.fields.getByName('setup_complete')) {
+    collection.fields.add(
+      new BoolField({
+        name: 'setup_complete',
+        required: false,
+      }),
+    );
+  }
 
   app.save(collection);
 }, (app) => {

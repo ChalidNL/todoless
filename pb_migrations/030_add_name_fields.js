@@ -4,22 +4,28 @@ migrate(
     const users = app.findCollectionByNameOrId('users');
 
     // Add firstName field
-    const firstNameField = new TextField({
-      name: 'first_name',
-    });
-    users.fields.add(firstNameField);
+    if (!users.fields.getByName('first_name')) {
+      const firstNameField = new TextField({
+        name: 'first_name',
+      });
+      users.fields.add(firstNameField);
+    }
 
     // Add lastName field
-    const lastNameField = new TextField({
-      name: 'last_name',
-    });
-    users.fields.add(lastNameField);
+    if (!users.fields.getByName('last_name')) {
+      const lastNameField = new TextField({
+        name: 'last_name',
+      });
+      users.fields.add(lastNameField);
+    }
 
     // Add displayName field
-    const displayNameField = new TextField({
-      name: 'display_name',
-    });
-    users.fields.add(displayNameField);
+    if (!users.fields.getByName('display_name')) {
+      const displayNameField = new TextField({
+        name: 'display_name',
+      });
+      users.fields.add(displayNameField);
+    }
 
     app.save(users);
 

@@ -1,6 +1,12 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate(
   (app) => {
+    // Guard: skip if the collection already exists (idempotent re-run)
+    try {
+      app.findCollectionByNameOrId('external_references');
+      return;
+    } catch {}
+
     // Generic external reference model.
     // Links any todoless entity (task, grocery, note) to an entity in an external system.
     // Polymorphic via entity_type + entity_id (text fields, not relations).

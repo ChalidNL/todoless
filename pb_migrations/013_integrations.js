@@ -1,5 +1,11 @@
 migrate(
   (app) => {
+    // Guard: skip if the collection already exists (idempotent re-run)
+    try {
+      app.findCollectionByNameOrId('integrations');
+      return;
+    } catch {}
+
     app.save(
       new Collection({
         name: 'integrations',
