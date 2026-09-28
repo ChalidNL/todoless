@@ -51,6 +51,7 @@
     "search": "Buscar",
     "searchDot": "Buscar...",
     "searchTooltip": "Buscar",
+    "sort": "Ordenar",
     "settings": "Configuración",
     "share": "Compartir",
     "success": "Éxito",
@@ -237,7 +238,18 @@
     "sortLabel": "Ordenar",
     "sortCategory": "Por categoría",
     "sortCategoryAlpha": "Categoría A-Z",
-    "sortAlpha": "A-Z"
+    "sortAlpha": "A-Z",
+    "decreaseQuantity": "Reducir cantidad",
+    "increaseQuantity": "Aumentar cantidad",
+    "clearShop": "Quitar tienda",
+    "convertToTaskTooltip": "Convertir en tarea",
+    "createShopButton": "Crear tienda",
+    "noShopsFound": "No se encontraron tiendas",
+    "searchOrCreateShopPlaceholder": "Buscar o crear una tienda…",
+    "selectShopTooltip": "Seleccionar tienda",
+    "shopInputAria": "Nombre de la tienda",
+    "shopInputPlaceholder": "Nombre de la tienda…",
+    "shopSelectorLabel": "Tienda"
   },
   "notes": {
     "title": "Notas",
@@ -476,7 +488,8 @@
     "threeDays": "3 días",
     "week": "Semana",
     "workweek": "Semana laboral",
-    "month": "Mes"
+    "month": "Mes",
+    "viewLabel": "Vista de calendario"
   },
   "inbox": {
     "title": "Bandeja de entrada",
@@ -582,5 +595,12 @@
     "calendar": "Calendario",
     "groceries": "Compras",
     "settings": "Ajustes"
+  },
+  "dashboard": {
+    "inbox": "Entrada",
+    "todoSprint": "Sprint por hacer",
+    "doneSprint": "Sprint hecho",
+    "blocked": "Bloqueado",
+    "doneToday": "Hecho hoy"
   }
 }

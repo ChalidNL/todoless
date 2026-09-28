@@ -103,6 +103,7 @@ interface TranslationStructure {
     yes: string;
     back: string;
     manage: string;
+    sort: string;
   };
   onboarding: {
     accountCreationFailed: string;
@@ -162,6 +163,17 @@ interface TranslationStructure {
     sortCategory: string;
     sortCategoryAlpha: string;
     sortAlpha: string;
+    decreaseQuantity: string;
+    increaseQuantity: string;
+    clearShop: string;
+    convertToTaskTooltip: string;
+    createShopButton: string;
+    noShopsFound: string;
+    searchOrCreateShopPlaceholder: string;
+    selectShopTooltip: string;
+    shopInputAria: string;
+    shopInputPlaceholder: string;
+    shopSelectorLabel: string;
   };
   notes: {
     title: string;
@@ -492,6 +504,7 @@ const translations: Record<Language, TranslationStructure> = {
       yes: 'Yes',
       back: 'Back',
       manage: 'Manage',
+      sort: 'Sort',
     },
     onboarding: {
       accountCreationFailed: 'Account creation failed. Please try again.',
@@ -584,6 +597,17 @@ const translations: Record<Language, TranslationStructure> = {
       sortCategory: 'By category',
       sortCategoryAlpha: 'Category A-Z',
       sortAlpha: 'A-Z',
+      decreaseQuantity: 'Decrease quantity',
+      increaseQuantity: 'Increase quantity',
+      clearShop: 'Clear shop',
+      convertToTaskTooltip: 'Convert to task',
+      createShopButton: 'Create shop',
+      noShopsFound: 'No shops found',
+      searchOrCreateShopPlaceholder: 'Search or create a shop…',
+      selectShopTooltip: 'Select shop',
+      shopInputAria: 'Shop name',
+      shopInputPlaceholder: 'Shop name…',
+      shopSelectorLabel: 'Shop',
     },
     notes: {
       title: 'Notes',
@@ -911,6 +935,7 @@ const translations: Record<Language, TranslationStructure> = {
       yes: 'Oui',
       back: 'Retour',
       manage: 'Gérer',
+      sort: 'Trier',
     },
     onboarding: {
       accountCreationFailed: 'Échec de la création du compte. Veuillez réessayer.',
@@ -1001,6 +1026,17 @@ const translations: Record<Language, TranslationStructure> = {
       sortCategory: 'Par catégorie',
       sortCategoryAlpha: 'Catégorie A-Z',
       sortAlpha: 'A-Z',
+      decreaseQuantity: 'Diminuer la quantité',
+      increaseQuantity: 'Augmenter la quantité',
+      clearShop: 'Effacer le magasin',
+      convertToTaskTooltip: 'Convertir en tâche',
+      createShopButton: 'Créer un magasin',
+      noShopsFound: 'Aucun magasin trouvé',
+      searchOrCreateShopPlaceholder: 'Rechercher ou créer un magasin…',
+      selectShopTooltip: 'Choisir un magasin',
+      shopInputAria: 'Nom du magasin',
+      shopInputPlaceholder: 'Nom du magasin…',
+      shopSelectorLabel: 'Magasin',
     },
     notes: {
       title: 'Notes',
@@ -1328,6 +1364,7 @@ const translations: Record<Language, TranslationStructure> = {
       yes: 'Ja',
       back: 'Terug',
       manage: 'Beheren',
+      sort: 'Sorteren',
     },
     onboarding: {
       accountCreationFailed: 'Account aanmaken mislukt. Probeer het opnieuw.',
@@ -1420,6 +1457,17 @@ const translations: Record<Language, TranslationStructure> = {
       sortCategory: 'Per categorie',
       sortCategoryAlpha: 'Categorie A-Z',
       sortAlpha: 'A-Z',
+      decreaseQuantity: 'Aantal verlagen',
+      increaseQuantity: 'Aantal verhogen',
+      clearShop: 'Winkel wissen',
+      convertToTaskTooltip: 'Omzetten naar taak',
+      createShopButton: 'Winkel maken',
+      noShopsFound: 'Geen winkels gevonden',
+      searchOrCreateShopPlaceholder: 'Zoek of maak een winkel…',
+      selectShopTooltip: 'Winkel kiezen',
+      shopInputAria: 'Winkelnaam',
+      shopInputPlaceholder: 'Winkelnaam…',
+      shopSelectorLabel: 'Winkel',
     },
     notes: {
       title: 'Notities',
@@ -1611,7 +1659,7 @@ const translations: Record<Language, TranslationStructure> = {
       description: 'Beschrijving',
       saveEvent: 'Evenement opslaan',
       eventDescription: 'Evenement beschrijving',
-      schedule: 'Schedule',
+      schedule: 'Agenda',
       day: 'Dag',
       threeDays: '3 dagen',
       '3days': '3 dagen',
@@ -1747,6 +1795,7 @@ const translations: Record<Language, TranslationStructure> = {
       yes: 'Ja',
       back: 'Zurück',
       manage: 'Verwalten',
+      sort: 'Sortieren',
     },
     onboarding: {
       accountCreationFailed: 'Kontoerstellung fehlgeschlagen. Bitte versuchen Sie es erneut.',
@@ -1837,6 +1886,17 @@ const translations: Record<Language, TranslationStructure> = {
       sortCategory: 'Nach Kategorie',
       sortCategoryAlpha: 'Kategorie A-Z',
       sortAlpha: 'A-Z',
+      decreaseQuantity: 'Menge verringern',
+      increaseQuantity: 'Menge erhöhen',
+      clearShop: 'Geschäft entfernen',
+      convertToTaskTooltip: 'In Aufgabe umwandeln',
+      createShopButton: 'Geschäft erstellen',
+      noShopsFound: 'Keine Geschäfte gefunden',
+      searchOrCreateShopPlaceholder: 'Geschäft suchen oder erstellen…',
+      selectShopTooltip: 'Geschäft auswählen',
+      shopInputAria: 'Geschäftsname',
+      shopInputPlaceholder: 'Geschäftsname…',
+      shopSelectorLabel: 'Geschäft',
     },
     notes: {
       title: 'Notizen',
@@ -2164,6 +2224,7 @@ const translations: Record<Language, TranslationStructure> = {
       yes: 'Sí',
       back: 'Volver',
       manage: 'Gestionar',
+      sort: 'Ordenar',
     },
     onboarding: {
       accountCreationFailed: 'Error al crear la cuenta.',
@@ -2230,6 +2291,17 @@ const translations: Record<Language, TranslationStructure> = {
       sortCategory: 'Por categoría',
       sortCategoryAlpha: 'Categoría A-Z',
       sortAlpha: 'A-Z',
+      decreaseQuantity: 'Reducir cantidad',
+      increaseQuantity: 'Aumentar cantidad',
+      clearShop: 'Quitar tienda',
+      convertToTaskTooltip: 'Convertir en tarea',
+      createShopButton: 'Crear tienda',
+      noShopsFound: 'No se encontraron tiendas',
+      searchOrCreateShopPlaceholder: 'Buscar o crear una tienda…',
+      selectShopTooltip: 'Seleccionar tienda',
+      shopInputAria: 'Nombre de la tienda',
+      shopInputPlaceholder: 'Nombre de la tienda…',
+      shopSelectorLabel: 'Tienda',
     },
     notes: { title: 'Notas', newNote: 'Nueva nota', content: 'Contenido' },
     filters: { title: 'Filtros', none: 'Ninguno' },
@@ -2464,13 +2536,13 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "sharedMembers": "Gedeelde leden"
     },
     "dashboard": {
-      "inbox": "Inbox",
-      "todoSprint": "Todo Sprint",
+      "inbox": "Postvak IN",
+      "todoSprint": "Te doen sprint",
       "blocked": "Geblokkeerd",
-      "doneSprint": "Done Sprint"
+      "doneSprint": "Afgeronde sprint"
     },
     "nav": {
-      "inbox": "Inbox",
+      "inbox": "Postvak IN",
       "tasks": "Taken",
       "calendar": "Agenda",
       "groceries": "Shop",
@@ -2544,10 +2616,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "sharedMembers": "Membres partagés"
     },
     "dashboard": {
-      "inbox": "Inbox",
-      "todoSprint": "Sprint todo",
+      "inbox": "Réception",
+      "todoSprint": "Sprint à faire",
       "blocked": "Bloqué",
-      "doneSprint": "Sprint fait"
+      "doneSprint": "Sprint terminé"
     },
     "nav": {
       "inbox": "Inbox",
@@ -2592,9 +2664,9 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "dashboard": {
       "inbox": "Eingang",
-      "todoSprint": "Todo Sprint",
+      "todoSprint": "Todo-Sprint",
       "blocked": "Blockiert",
-      "doneSprint": "Done Sprint"
+      "doneSprint": "Erledigter Sprint"
     },
     "nav": {
       "inbox": "Eingang",
@@ -2639,7 +2711,7 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
     },
     "dashboard": {
       "inbox": "Entrada",
-      "todoSprint": "Sprint todo",
+      "todoSprint": "Sprint por hacer",
       "blocked": "Bloqueado",
       "doneSprint": "Sprint hecho"
     },

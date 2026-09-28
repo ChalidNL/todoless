@@ -51,6 +51,7 @@
     "search": "Search",
     "searchDot": "Search...",
     "searchTooltip": "Search",
+    "sort": "Sort",
     "settings": "Settings",
     "share": "Share",
     "success": "Success",
@@ -237,7 +238,18 @@
     "sortLabel": "Sort",
     "sortCategory": "By category",
     "sortCategoryAlpha": "Category A-Z",
-    "sortAlpha": "A-Z"
+    "sortAlpha": "A-Z",
+    "decreaseQuantity": "Decrease quantity",
+    "increaseQuantity": "Increase quantity",
+    "clearShop": "Clear shop",
+    "convertToTaskTooltip": "Convert to task",
+    "createShopButton": "Create shop",
+    "noShopsFound": "No shops found",
+    "searchOrCreateShopPlaceholder": "Search or create a shop…",
+    "selectShopTooltip": "Select shop",
+    "shopInputAria": "Shop name",
+    "shopInputPlaceholder": "Shop name…",
+    "shopSelectorLabel": "Shop"
   },
   "notes": {
     "title": "Notes",
@@ -476,7 +488,8 @@
     "threeDays": "3 days",
     "week": "Week",
     "workweek": "Work week",
-    "month": "Month"
+    "month": "Month",
+    "viewLabel": "Calendar view"
   },
   "inbox": {
     "title": "Inbox",
@@ -583,5 +596,12 @@
     "calendar": "Calendar",
     "groceries": "Groceries",
     "settings": "Settings"
+  },
+  "dashboard": {
+    "inbox": "Inbox",
+    "todoSprint": "Todo Sprint",
+    "doneSprint": "Done Sprint",
+    "blocked": "Blocked",
+    "doneToday": "Done Today"
   }
 }

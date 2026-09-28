@@ -19,6 +19,7 @@ import type {
 
 const toTimestamp = (value?: string | null) => (value ? new Date(value).getTime() : undefined);
 
+/** Date → ISO string, or `null` for falsy input so PocketBase CLEARS the stored value. */
 const toISO = (value?: number | string | null): string | null => (value ? new Date(value).toISOString() : null);
 
 /** Payload of the single-call boot endpoint (GH#75): raw records already normalized. */
@@ -33,6 +34,19 @@ interface BootstrapPayload {
   reminders: Reminder[];
   settings: AppSettings | null;
 }
+
+/**
+ * Date field for a PATCH payload built from a Partial<T>.
+ *
+ * Only emits a value when the caller explicitly supplied the key. When it did,
+ * a falsy value becomes an explicit `null` so PocketBase CLEARS the stored date.
+ * Returning `undefined` instead would make JSON.stringify drop the key entirely
+ * and PocketBase would keep the old timestamp (see GH#80 / CERT2-TSK-001).
+ */
+const toISOIfPresent = <T extends object>(updates: T, key: keyof T): string | null | undefined =>
+  Object.prototype.hasOwnProperty.call(updates, key)
+    ? toISO(updates[key] as number | string | null | undefined)
+    : undefined;
 
 const relationIds = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(Boolean).map(String) : (value ? [String(value)] : []);
@@ -510,10 +524,10 @@ class PocketBaseClient {
       if (has('showInCalendar')) payload.show_in_calendar = updates.showInCalendar;
       if (has('repeatInterval')) payload.repeat_interval = updates.repeatInterval;
       if (has('isPrivate')) payload.is_private = updates.isPrivate;
-      if (has('archivedAt')) payload.archived_at = updates.archivedAt ? new Date(updates.archivedAt).toISOString() : undefined;
-      if (has('deleteAfter')) payload.delete_after = updates.deleteAfter ? new Date(updates.deleteAfter).toISOString() : undefined;
-      if (has('completedAt')) payload.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined;
-      if (has('completedBy')) payload.completed_by = updates.completedBy;
+      if (has('archivedAt')) payload.archived_at = toISO(updates.archivedAt);
+      if (has('deleteAfter')) payload.delete_after = toISO(updates.deleteAfter);
+      if (has('completedAt')) payload.completed_at = toISO(updates.completedAt);
+      if (has('completedBy')) payload.completed_by = updates.completedBy ?? null;
       if (has('focus')) payload.focus = updates.focus;
       if (has('linkedTo')) payload.linked_to = updates.linkedTo;
       if (has('linkedType')) payload.linked_type = updates.linkedType;
@@ -626,7 +640,7 @@ class PocketBaseClient {
       ...updates,
       shop_id: updates.shopId,
       assigned_to: updates.assignedTo,
-      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      due_date: toISOIfPresent(updates, 'dueDate'),
       linked_task_ids: updates.linkedTaskIds,
       linked_note_ids: updates.linkedNoteIds,
     });
@@ -673,7 +687,7 @@ class PocketBaseClient {
       linked_item_ids: updates.linkedItemIds,
       project_id: updates.projectId,
       assigned_to: updates.assignedTo,
-      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      due_date: toISOIfPresent(updates, 'dueDate'),
       repeat_interval: updates.repeatInterval,
       is_private: updates.isPrivate,
     });
@@ -766,8 +780,8 @@ class PocketBaseClient {
   async updateSprint(id: string, updates: Partial<Sprint>) {
     return pb.collection('sprints').update(id, {
       name: updates.name,
-      start_date: updates.startDate ? new Date(updates.startDate).toISOString() : undefined,
-      end_date: updates.endDate ? new Date(updates.endDate).toISOString() : undefined,
+      start_date: toISOIfPresent(updates, 'startDate'),
+      end_date: toISOIfPresent(updates, 'endDate'),
       duration: updates.duration,
       week_number: updates.weekNumber,
       year: updates.year,
@@ -823,8 +837,8 @@ class PocketBaseClient {
       title: updates.title,
       description: updates.description,
       location: updates.location,
-      start_time: updates.startTime ? new Date(updates.startTime).toISOString() : undefined,
-      end_time: updates.endTime ? new Date(updates.endTime).toISOString() : undefined,
+      start_time: toISOIfPresent(updates, 'startTime'),
+      end_time: toISOIfPresent(updates, 'endTime'),
       all_day: updates.allDay,
       timezone: updates.timezone,
       rrule: updates.rrule,
@@ -1149,7 +1163,7 @@ class PocketBaseClient {
       points_current: updates.pointsCurrent,
       target_user: updates.targetUser,
       completed: updates.completed,
-      completed_at: updates.completedAt ? new Date(updates.completedAt).toISOString() : undefined,
+      completed_at: toISOIfPresent(updates, 'completedAt'),
     });
   }
 
@@ -1191,7 +1205,7 @@ class PocketBaseClient {
       color: updates.color,
       status: updates.status,
       task_ids: updates.taskIds,
-      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
+      due_date: toISOIfPresent(updates, 'dueDate'),
     });
   }
 
@@ -1238,8 +1252,8 @@ class PocketBaseClient {
     return pb.collection('reminders').update(id, {
       title: updates.title,
       description: updates.description,
-      due_date: updates.dueDate ? new Date(updates.dueDate).toISOString() : undefined,
-      end_time: updates.endTime ? new Date(updates.endTime).toISOString() : undefined,
+      due_date: toISOIfPresent(updates, 'dueDate'),
+      end_time: toISOIfPresent(updates, 'endTime'),
       recurring: updates.recurring,
       assignee: updates.assignee,
       labels: updates.labels,
@@ -1249,7 +1263,7 @@ class PocketBaseClient {
       linked_to: updates.linkedTo,
       source: updates.source,
       dismissed: updates.dismissed,
-      dismissed_at: updates.dismissedAt ? new Date(updates.dismissedAt).toISOString() : undefined,
+      dismissed_at: toISOIfPresent(updates, 'dismissedAt'),
     });
   }
 

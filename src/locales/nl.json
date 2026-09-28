@@ -51,6 +51,7 @@
     "search": "Zoeken",
     "searchDot": "Zoeken...",
     "searchTooltip": "Zoeken",
+    "sort": "Sorteren",
     "settings": "Instellingen",
     "share": "Delen",
     "success": "Succes",
@@ -237,7 +238,18 @@
     "sortLabel": "Sorteren",
     "sortCategory": "Per categorie",
     "sortCategoryAlpha": "Categorie A-Z",
-    "sortAlpha": "A-Z"
+    "sortAlpha": "A-Z",
+    "decreaseQuantity": "Aantal verlagen",
+    "increaseQuantity": "Aantal verhogen",
+    "clearShop": "Winkel wissen",
+    "convertToTaskTooltip": "Omzetten naar taak",
+    "createShopButton": "Winkel maken",
+    "noShopsFound": "Geen winkels gevonden",
+    "searchOrCreateShopPlaceholder": "Zoek of maak een winkel…",
+    "selectShopTooltip": "Winkel kiezen",
+    "shopInputAria": "Winkelnaam",
+    "shopInputPlaceholder": "Winkelnaam…",
+    "shopSelectorLabel": "Winkel"
   },
   "notes": {
     "title": "Notities",
@@ -476,7 +488,8 @@
     "threeDays": "3 dagen",
     "week": "Week",
     "workweek": "Werkweek",
-    "month": "Maand"
+    "month": "Maand",
+    "viewLabel": "Agendaweergave"
   },
   "inbox": {
     "title": "Inbox",
@@ -583,5 +596,12 @@
     "calendar": "Agenda",
     "groceries": "Boodschappen",
     "settings": "Instellingen"
+  },
+  "dashboard": {
+    "inbox": "Postvak IN",
+    "todoSprint": "Te doen sprint",
+    "doneSprint": "Afgeronde sprint",
+    "blocked": "Geblokkeerd",
+    "doneToday": "Vandaag gedaan"
   }
 }
