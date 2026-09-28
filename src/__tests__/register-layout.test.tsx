@@ -55,7 +55,7 @@ describe('invite registration layout', () => {
     expect(password).toHaveAttribute('autocomplete', 'new-password');
     expect(confirmPassword).toHaveAttribute('autocomplete', 'new-password');
     expect(password).toHaveClass('auth-password-input');
-    expect(screen.getByText('Minimum 6 characters')).toHaveClass('auth-hint');
+    expect(screen.getByText('Minimum 8 characters')).toHaveClass('auth-hint');
 
     const visibilityButtons = screen.getAllByRole('button', { name: /password/i });
     expect(visibilityButtons).toHaveLength(2);
