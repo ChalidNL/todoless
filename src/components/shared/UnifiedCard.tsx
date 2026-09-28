@@ -126,9 +126,10 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
   const visibleShops = shops.filter((shop) => shop.name.toLowerCase().includes(shopInput.toLowerCase()));
 
-  // Subtasks (tasks only)
-  const subtasks: Task[] = isTask && (task as Task).subtaskIds
-    ? (task as Task).subtaskIds!.map(id => tasks.find(t => t.id === id)).filter(Boolean) as Task[]
+  // Subtasks (tasks only) — derived from the child's linkedTo, the single source
+  // of truth (GH#88); the parent-side subtaskIds cache is no longer read.
+  const subtasks: Task[] = isTask
+    ? tasks.filter(t => t.linkedType === 'task' && t.linkedTo === (task as Task).id)
     : [];
   const subtaskCount = subtasks.length;
   const completedSubtaskCount = subtasks.filter(s => s.status === 'done').length;

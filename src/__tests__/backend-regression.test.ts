@@ -68,4 +68,19 @@ describe('backend regression guards', () => {
     expect(hook).toContain('paperlessSubtaskTitles(userLanguage(config.userId))');
     expect(hook).not.toContain("var titles = ['Controleren', 'Verwerken / actie ondernemen', 'Archiveren'];");
   });
+
+  it('keeps subtask linking single-sourced on the child and atomic server-side (GH#88)', () => {
+    const hook = repoFile('pb_hooks/main.pb.js');
+    const client = repoFile('src/lib/pocketbase-client.ts');
+
+    // Server: add_subtask writes the child's linked_to and the parent's subtask_ids
+    // inside one transaction so a partial failure cannot leave them disagreeing.
+    expect(hook).toContain('// GH#88: write both sides in one transaction so the child\'s linked_to and');
+    expect(hook).toContain('$app.runInTransaction(function(txApp) {');
+
+    // Client: createSubtask no longer performs a separate parent subtask_ids update.
+    expect(client).not.toContain("pb.collection('tasks').update(parentId, { subtask_ids: ids })");
+    // Client: createTask no longer writes the derived cache field.
+    expect(client).not.toContain('subtask_ids: task.subtaskIds || []');
+  });
 });

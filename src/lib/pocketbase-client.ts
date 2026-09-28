@@ -456,7 +456,6 @@ class PocketBaseClient {
         delete_after: task.deleteAfter ? new Date(task.deleteAfter).toISOString() : null,
         completed_at: task.completedAt ? new Date(task.completedAt).toISOString() : null,
         completed_by: task.completedBy || null,
-        subtask_ids: task.subtaskIds || [],
         linked_to: task.linkedTo,
         linked_type: task.linkedType,
         linked_item_ids: task.linkedItemIds || [],
@@ -472,8 +471,12 @@ class PocketBaseClient {
     }
   }
 
-  // Create a subtask — PB SDK handles both child creation + parent subtask_ids update
+  // Create a subtask — child gets linkedTo/linkedType; parent list is derived (GH#88)
   async createSubtask(title: string, parentId: string): Promise<{ id: string }> {
+    // GH#88: create the child with linkedTo set — the child's linkedTo is the
+    // single source of truth. The parent's subtask list is derived from it, so
+    // no separate parent.subtask_ids write is needed (and a failed parent write
+    // used to leave the two representations disagreeing).
     const child = await this.createTask({
       title,
       status: 'todo',
@@ -483,18 +486,7 @@ class PocketBaseClient {
       linkedType: 'task',
       flag: false,
     } as any);
-    // Update parent's subtask_ids via PB SDK (reliable — no fetch/routing issues)
-    try {
-      const parent = await pb.collection('tasks').getOne(parentId);
-      const ids: string[] = (parent as any).subtask_ids || [];
-      if (ids.indexOf(child.id) === -1) {
-        ids.push(child.id);
-        await pb.collection('tasks').update(parentId, { subtask_ids: ids });
-      }
-    } catch {
-      // Parent update failed — subtask created but won't show up linked
-      // This shouldn't happen with valid auth
-    }
+
     return { id: child.id };
   }
 
