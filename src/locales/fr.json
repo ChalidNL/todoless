@@ -478,7 +478,8 @@
     "week": "Semaine",
     "workweek": "Semaine de travail",
     "month": "Mois",
-    "viewLabel": "Vue calendrier"
+    "viewLabel": "Vue calendrier",
+    "continued": "Suite"
   },
   "inbox": {
     "title": "Boîte de réception",

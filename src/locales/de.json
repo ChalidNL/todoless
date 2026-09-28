@@ -478,7 +478,8 @@
     "week": "Woche",
     "workweek": "Arbeitswoche",
     "month": "Monat",
-    "viewLabel": "Kalenderansicht"
+    "viewLabel": "Kalenderansicht",
+    "continued": "Fortsetzung"
   },
   "inbox": {
     "title": "Posteingang",

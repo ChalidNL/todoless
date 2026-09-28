@@ -478,7 +478,8 @@
     "week": "Semana",
     "workweek": "Semana laboral",
     "month": "Mes",
-    "viewLabel": "Vista de calendario"
+    "viewLabel": "Vista de calendario",
+    "continued": "Continuación"
   },
   "inbox": {
     "title": "Bandeja de entrada",

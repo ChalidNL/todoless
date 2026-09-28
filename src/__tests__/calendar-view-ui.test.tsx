@@ -267,4 +267,134 @@ describe('CalendarView UI', () => {
     expect(screen.getByTestId('calendar-3days-time-grid')).toBeInTheDocument();
     expect(screen.getByTestId('calendar-now-line')).toBeInTheDocument();
   });
+
+  it('shows multi-day timed entries in week view on every covered day with a continuation marker (GH#82)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0, 0, 0)); // Friday
+    const fri1800 = new Date(2026, 8, 25, 18, 0, 0, 0).getTime();
+    const sun1800 = new Date(2026, 8, 27, 18, 0, 0, 0).getTime();
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'trip',
+        title: 'Trip',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: fri1800,
+        startTime: fri1800,
+        endTime: sun1800,
+        showInCalendar: true,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'week' } });
+
+    // One timed slot per covered day: Friday, Saturday, Sunday.
+    expect(screen.getAllByTestId('calendar-timed-task-trip')).toHaveLength(3);
+    // Saturday and Sunday are continuation days.
+    expect(screen.getAllByTestId('calendar-continuation-marker')).toHaveLength(2);
+    vi.useRealTimers();
+  });
+
+  it('shows multi-day all-day entries in the all-day row for every covered day (GH#82)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0, 0, 0)); // Friday
+    const fri = new Date(2026, 8, 25, 0, 0, 0, 0).getTime();
+    const monExclusive = new Date(2026, 8, 28, 0, 0, 0, 0).getTime();
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'festival',
+        title: 'Festival',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: fri,
+        startTime: fri,
+        endTime: monExclusive,
+        allDay: true,
+        showInCalendar: true,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'week' } });
+
+    // All-day row renders the entry on Friday, Saturday and Sunday (not Monday).
+    expect(screen.getAllByText('Festival')).toHaveLength(3);
+    expect(screen.getAllByTestId('calendar-continuation-marker')).toHaveLength(2);
+    vi.useRealTimers();
+  });
+
+  it('shows multi-day entries in every spanned month cell with a continuation marker (GH#82)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0, 0, 0)); // Friday
+    const fri1800 = new Date(2026, 8, 25, 18, 0, 0, 0).getTime();
+    const sun1800 = new Date(2026, 8, 27, 18, 0, 0, 0).getTime();
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'trip',
+        title: 'Trip',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: fri1800,
+        startTime: fri1800,
+        endTime: sun1800,
+        showInCalendar: true,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
+
+    const monthGrid = screen.getByTestId('calendar-month-grid');
+    expect(within(monthGrid).getAllByTestId('compact-task-card-trip')).toHaveLength(3);
+    expect(within(monthGrid).getAllByTestId('calendar-continuation-marker')).toHaveLength(2);
+    vi.useRealTimers();
+  });
+
+  it('shows multi-day entries in the agenda when a continuation day is selected (GH#82)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 8, 25, 10, 0, 0, 0)); // Friday
+    const fri1800 = new Date(2026, 8, 25, 18, 0, 0, 0).getTime();
+    const sun1800 = new Date(2026, 8, 27, 18, 0, 0, 0).getTime();
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      tasks: [{
+        id: 'trip',
+        title: 'Trip',
+        status: 'todo',
+        blocked: false,
+        flag: false,
+        labels: [],
+        dueDate: fri1800,
+        startTime: fri1800,
+        endTime: sun1800,
+        showInCalendar: true,
+        createdAt: 1,
+      }],
+    });
+
+    render(<CalendarView />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
+
+    const monthGrid = screen.getByTestId('calendar-month-grid');
+    expect(within(monthGrid).getAllByTestId('compact-task-card-trip')).toHaveLength(3);
+    // Click the Saturday day-number button in the month grid (26 Sep 2026).
+    fireEvent.click(within(monthGrid).getByText('26'));
+
+    const agenda = screen.getByTestId('calendar-agenda-list');
+    expect(within(agenda).getByText('Trip')).toBeInTheDocument();
+    vi.useRealTimers();
+  });
 });

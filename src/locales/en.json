@@ -478,7 +478,8 @@
     "week": "Week",
     "workweek": "Work week",
     "month": "Month",
-    "viewLabel": "Calendar view"
+    "viewLabel": "Calendar view",
+    "continued": "Continued"
   },
   "inbox": {
     "title": "Inbox",

@@ -478,7 +478,8 @@
     "week": "Week",
     "workweek": "Werkweek",
     "month": "Maand",
-    "viewLabel": "Agendaweergave"
+    "viewLabel": "Agendaweergave",
+    "continued": "Vervolg"
   },
   "inbox": {
     "title": "Inbox",

@@ -63,7 +63,8 @@ export function buildCalendarItems({
       const placement = getTaskCalendarPlacement(task);
       if (!placement) return false;
       if (!placement.allDay) return overlaps(placement.startTime, placement.endTime, rangeStart, rangeEnd);
-      return overlaps(startOfLocalDay(placement.startTime), endOfLocalDay(placement.startTime), rangeStart, rangeEnd);
+      const allDay = allDaySpan(placement.startTime, placement.endTime);
+      return overlaps(allDay.start, allDay.end, rangeStart, rangeEnd);
     })
     .map(taskToItem);
 
@@ -119,6 +120,46 @@ export function endOfLocalDay(timestamp: number) {
   const d = new Date(timestamp);
   d.setHours(23, 59, 59, 999);
   return d.getTime();
+}
+
+/**
+ * Local-day span covered by an all-day entry.
+ *
+ * Single-day all-day entries (startTime === endTime) occupy exactly their own
+ * day. Multi-day all-day entries imported from ICS store an EXCLUSIVE end
+ * (RFC 5545 DTEND sits on the next midnight), so a span ending on day X covers
+ * the days up to X-1. The end boundary uses the local day of the end instant,
+ * which keeps start-of-day and end-of-day arithmetic timezone consistent.
+ */
+function allDaySpan(startTime: number, endTime: number): { start: number; end: number } {
+  const start = startOfLocalDay(startTime);
+  const rawEnd = startOfLocalDay(endTime);
+  const end = rawEnd > start ? rawEnd - 1 : endOfLocalDay(startTime);
+  return { start, end };
+}
+
+/**
+ * True when a calendar item occupies (or touches) the given local day.
+ * Timed entries match on range overlap; all-day entries match on their
+ * local-day span. This is the behaviour behind GH#82: an entry from Friday
+ * 18:00 to Sunday shows on Friday, Saturday AND Sunday.
+ */
+export function calendarItemCoversDay(item: CalendarItem, day: number): boolean {
+  const dayStart = startOfLocalDay(day);
+  const dayEnd = endOfLocalDay(day);
+  if (!item.allDay) {
+    return item.startTime <= dayEnd && item.endTime >= dayStart;
+  }
+  const span = allDaySpan(item.startTime, item.endTime);
+  return span.start <= dayEnd && span.end >= dayStart;
+}
+
+/**
+ * True when a calendar item covers the given day but did NOT start on it —
+ * used to render the multi-day continuation marker (GH#82).
+ */
+export function calendarItemContinuesOnDay(item: CalendarItem, day: number): boolean {
+  return !sameLocalDay(item.startTime, day) && calendarItemCoversDay(item, day);
 }
 
 export function startOfWeek(timestamp: number, firstDayOfWeek: 0 | 1 | 2 | 3 | 4 | 5 | 6 = 1) {
@@ -177,7 +218,9 @@ function taskToItem(task: Task): CalendarItem {
       kind: 'task',
       title: task.title,
       startTime: startOfLocalDay(placement.startTime),
-      endTime: startOfLocalDay(placement.startTime),
+      // Keep the real end so multi-day all-day entries (e.g. ICS imports) span
+      // every day they occupy instead of collapsing onto their start day (GH#82).
+      endTime: placement.endTime > placement.startTime ? placement.endTime : startOfLocalDay(placement.startTime),
       allDay: true,
       color: '#8B5CF6',
       source: task,
@@ -206,7 +249,13 @@ function getTaskCalendarPlacement(task: Task): { startTime: number; endTime: num
 
   const allDay = task.allDay === true || !hasClockTime(timestamp);
   if (allDay) {
-    return { startTime: timestamp, endTime: timestamp, allDay: true };
+    return {
+      startTime: timestamp,
+      // Preserve a real end for all-day spans (ICS imports store an exclusive
+      // next-midnight end); entries without an end are single-day.
+      endTime: task.endTime && task.endTime > timestamp ? task.endTime : timestamp,
+      allDay: true,
+    };
   }
 
   return {
