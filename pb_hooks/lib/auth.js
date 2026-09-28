@@ -236,7 +236,24 @@ function getAgentUserFamily(agentKey) {
   try { return $app.findRecordById('users', userId); } catch (_e) { return null; }
 }
 
-function auditLog(agentKey, action, entityType, entityId, details) {
+function getClientIP(c) {
+  if (!c) return '';
+  try {
+    if (typeof c.realIP === 'function') {
+      var realIP = String(c.realIP() || '');
+      if (realIP) return realIP;
+    }
+  } catch (_e) {}
+  try {
+    if (typeof c.remoteIP === 'function') {
+      var remoteIP = String(c.remoteIP() || '');
+      if (remoteIP) return remoteIP;
+    }
+  } catch (_e) {}
+  return '';
+}
+
+function auditLog(agentKey, action, entityType, entityId, details, c) {
   try {
     var audit = new Record($app.findCollectionByNameOrId('agent_audit_log'));
     audit.set('agent_key_id', agentKey.id);
@@ -245,7 +262,7 @@ function auditLog(agentKey, action, entityType, entityId, details) {
     audit.set('entity_type', entityType || '');
     audit.set('entity_id', entityId || '');
     audit.set('details', details || {});
-    audit.set('ip_address', '');
+    audit.set('ip_address', getClientIP(c));
     audit.set('user', agentKey.get('user'));
     $app.save(audit);
   } catch (_e) {}
@@ -313,6 +330,7 @@ module.exports = {
   isAdminLike: isAdminLike,
   gv: gv,
   getAgentUserFamily: getAgentUserFamily,
+  getClientIP: getClientIP,
   auditLog: auditLog,
   normalizeLabelIds: normalizeLabelIds,
   setCanonicalTaskLabels: setCanonicalTaskLabels,

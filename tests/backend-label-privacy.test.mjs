@@ -291,6 +291,32 @@ test('all active token and agent management routes use PB 0.35 APIs and bound fi
   assert.match(agentTasks, /rec\.set\('user',a\.uid\)/)
 })
 
+test('agent audit logs persist the request client IP (GH#24)', () => {
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+  const authLib = read('pb_hooks/lib/auth.js')
+
+  // Shared helper in auth.js: realIP() is TrustedProxy-aware, remoteIP() is the fallback
+  assert.match(authLib, /function getClientIP\(c\)/)
+  assert.match(authLib, /c\.realIP\(\)/)
+  assert.match(authLib, /c\.remoteIP\(\)/)
+
+  // Every auditLog() call site in the route file must forward the request context
+  const callSites = agents.match(/auditLog\([^;]*\)/g) || []
+  assert.ok(callSites.length >= 12, `expected >=12 auditLog call sites, got ${callSites.length}`)
+  for (const site of callSites) {
+    assert.match(site, /,\s*c\)$/, `call site not forwarding c: ${site}`)
+  }
+
+  // Exactly one shared auditLog definition, wired to getClientIP(c); no hard-coded empty ip
+  assert.doesNotMatch(authLib, /set\('ip_address',\s*''\)/)
+  assert.doesNotMatch(authLib, /set\('ip_address',\s*String\(''\s*\|\|\s*''\)\)/)
+  const auditLogDefinitions = authLib.match(/function auditLog\(agentKey, action, entityType, entityId, details, c\)/g) || []
+  const ipWrites = authLib.match(/set\('ip_address', getClientIP\(c\)\)/g) || []
+  assert.equal(auditLogDefinitions.length, 1)
+  assert.equal(ipWrites.length, 1)
+  assert.equal(auditLogDefinitions.length, ipWrites.length)
+})
+
 test('existing agent key schemas allow a persisted false revoked state', () => {
   const migration = read('pb_migrations/z064_fix_agent_key_revocation.js')
 
