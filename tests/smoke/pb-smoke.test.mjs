@@ -12,8 +12,8 @@
 // runs and shows as todo-failure in output, but does not fail the run. Flip them
 // to active tests when the referenced fix tickets land:
 //   - companion register   -> GH#8  (t_gh41a39209)
-//   - block enforcement    -> follow-up (t_318f2396)
 //   - ICS VEVENT for tasks -> GH#12 (t_gh246847d0)
+// (block enforcement t_318f2396 was flipped to an active test — see below.)
 //
 // GH#65 OpenAPI parity gate (active, not todo):
 //   - every documented path (from /api/openapi.json) must be registered by a
@@ -222,11 +222,24 @@ test('admin blocks the member', async () => {
   assert.equal(r.data?.blocked, true)
 })
 
-test('blocked member is rejected on read paths', { todo: 'block enforcement follow-up t_318f2396' }, async () => {
-  // Currently broken: member_status=blocked is stored but /api/v1 and native
-  // reads still return 200. Assertion stays as todo until t_318f2396 lands.
+test('blocked member is rejected on read paths', async () => {
+  // member_status=blocked must be enforced on every read path: the unified
+  // /api/v1 list action, PB native /api/collections/* reads, and /api/entries.
+  // Blocked keeps a valid auth token; all three paths must refuse it (403).
   const v1 = await api('POST', '/api/v1', { token: memberToken, body: { action: 'list' } })
-  assert.equal(v1.status, 401)
+  assert.equal(v1.status, 403)
+  const v1Data = v1.data || {}
+  assert.equal(v1Data.error, 'Account is blocked', 'v1 list should name the block reason')
+
+  const nativeTasks = await api('GET', '/api/collections/tasks/records?perPage=100', { token: memberToken })
+  assert.equal(nativeTasks.status, 403)
+
+  const nativeItems = await api('GET', '/api/collections/items/records?perPage=100', { token: memberToken })
+  assert.equal(nativeItems.status, 403)
+
+  const entries = await api('GET', '/api/entries', { token: memberToken })
+  assert.equal(entries.status, 403)
+  assert.equal((entries.data || {}).error, 'Account is blocked', '/api/entries should name the block reason')
 })
 
 test('admin unblocks the member', async () => {
@@ -240,6 +253,12 @@ test('admin unblocks the member', async () => {
 test('unblocked member regains access', async () => {
   const v1 = await api('POST', '/api/v1', { token: memberToken, body: { action: 'list' } })
   assert.equal(v1.status, 200)
+
+  const native = await api('GET', '/api/collections/tasks/records?perPage=100', { token: memberToken })
+  assert.equal(native.status, 200)
+
+  const entries = await api('GET', '/api/entries', { token: memberToken })
+  assert.equal(entries.status, 200)
 })
 
 // --- 6b. GH#27 member deletion retention -------------------------------
