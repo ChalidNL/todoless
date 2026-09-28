@@ -18,6 +18,7 @@ import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { CalendarImportExport } from './CalendarImportExport';
 import { sortLabelsByVisibility } from '../lib/label-utils';
+import { copyTextToClipboard } from '../lib/clipboard';
 
 function SettingsNavItem({ href, icon, title, subtitle, external }: { href: string; icon: React.ReactNode; title: string; subtitle: string; external?: boolean }) {
   return (
@@ -291,32 +292,8 @@ export const Settings = () => {
   const handleCopyAppInfo = async () => {
     const payload = `App Info\nVersion: ${appVersion}\nCommit: ${appCommit}`;
 
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(payload);
-        showCompletionMessage(t('common.copied'));
-        return;
-      }
-
-      const textarea = document.createElement('textarea');
-      textarea.value = payload;
-      textarea.setAttribute('readonly', '');
-      textarea.style.position = 'fixed';
-      textarea.style.top = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-
-      const ok = document.execCommand('copy');
-      document.body.removeChild(textarea);
-
-      if (ok) {
-        showCompletionMessage(t('common.copied'));
-      } else {
-        showCompletionMessage(t('settings.copyFailed'));
-      }
-    } catch {
-      showCompletionMessage(t('settings.copyFailed'));
-    }
+    const ok = await copyTextToClipboard(payload);
+    showCompletionMessage(ok ? t('common.copied') : t('settings.copyFailed'));
   };
 
   const handleUpdateApp = async () => {
