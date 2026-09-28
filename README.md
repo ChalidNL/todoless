@@ -189,7 +189,7 @@ todoless does not create a PocketBase superuser automatically; the web onboardin
 docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-very-strong-password'
 ```
 
-> Automatic bootstrap from `POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_PASSWORD` is tracked in [issue #50](https://github.com/ChalidNL/todoless/issues/50); until then the one-liner above is the supported path.
+> Automatic bootstrap from `POCKETBASE_ADMIN_EMAIL` / `POCKETBASE_ADMIN_PASSWORD` is tracked in [issue #50](https://github.com/ChalidNL/todoless/issues/50); until then the one-liner above is the supported path. The command writes to the same `pb_data` database the server uses (`--dir=/pb_data`).
 
 **2. Reach the dashboard safely — Option A: temporary SSH tunnel (recommended)**
 
@@ -201,7 +201,7 @@ docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-
 2. Recreate the container: `docker compose up -d pocketbase`
 3. From your workstation, tunnel into it: `ssh -L 8090:127.0.0.1:8090 user@your-server`
 4. Open **http://127.0.0.1:8090/_/** on your workstation and sign in with the superuser you created.
-5. When finished, remove the three port lines and `docker compose up -d pocketbase` — the dashboard is unreachable again.
+5. When finished, remove the two lines you added and `docker compose up -d pocketbase` — the dashboard is unreachable again.
 
 Binding to `127.0.0.1` (not `0.0.0.0`) keeps the port off your LAN; only the SSH tunnel can reach it.
 
