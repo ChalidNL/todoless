@@ -76,6 +76,14 @@ migrate_renames() {
   db="${PB_DATA_FILE:-/pb_data/data.db}"
   migs_dir="${PB_MIGRATIONS_DIR:-/pb_migrations}"
 
+  # The sync is what keeps renamed migrations from re-running on existing
+  # installs; without sqlite3 a broken image would fail only later, deep inside
+  # PocketBase. Fail fast instead.
+  if ! command -v sqlite3 >/dev/null 2>&1; then
+    echo "[entrypoint] ERROR: sqlite3 not found — cannot apply migration rename sync (GH#38)" >&2
+    exit 1
+  fi
+
   # Fresh installs have no _migrations table yet — nothing to map, and PB will
   # happily apply every bundled migration for the first time.
   has_table="$(sqlite3 "$db" "SELECT 1 FROM sqlite_master WHERE type='table' AND name='_migrations' LIMIT 1;" 2>/dev/null || true)"

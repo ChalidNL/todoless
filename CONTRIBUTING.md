@@ -52,9 +52,9 @@ in **lexical file-name order**, so the file name *is* the execution order.
 - Never duplicate a prefix and never reuse a number — two files sharing a prefix
   make it impossible to tell which runs when.
 - To append a new migration, use the next free number: `071_…`, `072_…`, …
-- To insert a migration between existing numbered files, use PocketBase's own
+- To append a migration without picking a number, use PocketBase's own
   timestamp naming — e.g. `1727000000_description.js` — which sorts lexically
-  after every `NNN_` file while remaining unique.
+  after every `NNN_` file while staying unique.
 - There is no `z`-prefix trick anymore; it was removed when the numbering was
   normalised (GH#38).
 - **Never rename an applied migration.** PocketBase tracks applied migrations
