@@ -203,6 +203,38 @@ describe('CalendarView UI', () => {
     expect(within(agenda).queryByText('No calendar items')).not.toBeInTheDocument();
   });
 
+  it('navigates month view by calendar month, not 28-day chunks (GH#81)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 5, 15, 10, 0, 0, 0)); // June 15, 2026
+    render(<CalendarView />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent('June 15, 2026');
+
+    // Next: one calendar month forward, same day — the old delta*28 drift would land on July 13.
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent('July 15, 2026');
+
+    // Previous twice: back to May 15, without the 28-day drift.
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent('May 15, 2026');
+    vi.useRealTimers();
+  });
+
+  it('clamps month navigation from Jan 31 to the last day of February (GH#81)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 0, 31, 10, 0, 0, 0)); // Jan 31, 2026
+    render(<CalendarView />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Calendar view' }), { target: { value: 'month' } });
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent('January 31, 2026');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByTestId('calendar-period-title')).toHaveTextContent('February 28, 2026');
+    vi.useRealTimers();
+  });
+
   it('keeps dated tasks visible across day, 3-day, week, month, and schedule views', () => {
     const now = new Date();
     const taskStart = new Date(now);

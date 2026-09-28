@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Task } from '../types';
 import {
+  addMonths,
   buildCalendarItems,
   expandRecurringTask,
   formatDateInputValue,
@@ -101,6 +102,25 @@ describe('calendar utilities', () => {
     const value = Date.parse('2026-06-16T15:30:00.000Z');
     expect(formatDateInputValue(value)).toMatch(/^2026-06-16T/);
     expect(sameLocalDay(value, Date.parse('2026-06-16T20:00:00.000Z'))).toBe(true);
+  });
+
+  it('addMonths moves by calendar month preserving the local day', () => {
+    const jan15 = new Date(2026, 0, 15, 0, 0, 0, 0).getTime();
+    expect(addMonths(jan15, 1)).toBe(new Date(2026, 1, 15, 0, 0, 0, 0).getTime());
+    expect(addMonths(jan15, -1)).toBe(new Date(2025, 11, 15, 0, 0, 0, 0).getTime());
+    expect(addMonths(jan15, 0)).toBe(jan15);
+    // December → January crosses the year boundary.
+    expect(addMonths(new Date(2026, 11, 10, 0, 0, 0, 0).getTime(), 1))
+      .toBe(new Date(2027, 0, 10, 0, 0, 0, 0).getTime());
+  });
+
+  it('addMonths clamps to the target month last day instead of overflowing', () => {
+    const jan31 = new Date(2026, 0, 31, 0, 0, 0, 0).getTime();
+    expect(addMonths(jan31, 1)).toBe(new Date(2026, 1, 28, 0, 0, 0, 0).getTime());
+    const jan31Leap = new Date(2024, 0, 31, 0, 0, 0, 0).getTime();
+    expect(addMonths(jan31Leap, 1)).toBe(new Date(2024, 1, 29, 0, 0, 0, 0).getTime());
+    expect(addMonths(new Date(2026, 2, 31, 0, 0, 0, 0).getTime(), -1))
+      .toBe(new Date(2026, 1, 28, 0, 0, 0, 0).getTime());
   });
 });
 

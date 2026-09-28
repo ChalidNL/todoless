@@ -144,6 +144,21 @@ export function addDays(timestamp: number, days: number) {
   return d.getTime();
 }
 
+/**
+ * Moves a timestamp by a whole number of calendar months while preserving the
+ * local day-of-month (clamped to the target month's last day, e.g. Jan 31 → Feb 28/29).
+ * Unlike `addDays(t, 28 * n)`, navigation stays anchored to the same relative day
+ * instead of drifting 2-3 days per jump.
+ */
+export function addMonths(timestamp: number, months: number) {
+  const d = new Date(timestamp);
+  const target = new Date(d.getFullYear(), d.getMonth() + months, 1);
+  const lastDayOfTarget = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(d.getDate(), lastDayOfTarget));
+  target.setHours(d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
+  return target.getTime();
+}
+
 export function formatDateInputValue(timestamp: number) {
   const d = new Date(timestamp);
   const pad = (value: number) => String(value).padStart(2, '0');
