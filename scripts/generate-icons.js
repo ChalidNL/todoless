@@ -83,55 +83,10 @@ async function main() {
   // Generate beta set
   await generateSet(svgBetaBuf, iconBetaDir, '', 'BETA');
 
-  // Manifest — regular
-  const manifest = {
-    name: 'todoless',
-    short_name: 'todoless',
-    description: 'Self-hosted productivity app',
-    start_url: '/',
-    scope: '/',
-    display: 'standalone',
-    display_override: ['standalone', 'minimal-ui'],
-    orientation: 'portrait',
-    background_color: '#f8f7ff',
-    theme_color: '#f8f7ff',
-    categories: ['productivity', 'utilities'],
-    icons: [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-    ],
-    screenshots: [],
-    launch_handler: { client_mode: 'navigate-existing' },
-  };
-  writeFileSync(resolve(publicDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
-  writeFileSync(resolve(publicDir, 'manifest.webmanifest'), `${JSON.stringify(manifest, null, 2)}\n`);
-  console.log('  ✓ manifest.json / manifest.webmanifest (regular)');
-
-  // Manifest — beta
-  const manifestBeta = {
-    name: 'todoless β',
-    short_name: 'todoless β',
-    description: 'Self-hosted productivity app (beta)',
-    start_url: '/',
-    scope: '/',
-    display: 'standalone',
-    display_override: ['standalone', 'minimal-ui'],
-    orientation: 'portrait',
-    background_color: '#f8f7ff',
-    theme_color: '#f8f7ff',
-    categories: ['productivity', 'utilities'],
-    icons: [
-      { src: '/icons-beta/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icons-beta/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { src: '/icons-beta/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-    ],
-    screenshots: [],
-    launch_handler: { client_mode: 'navigate-existing' },
-  };
-  writeFileSync(resolve(publicDir, 'manifest-beta.json'), `${JSON.stringify(manifestBeta, null, 2)}\n`);
-  writeFileSync(resolve(publicDir, 'manifest-beta.webmanifest'), `${JSON.stringify(manifestBeta, null, 2)}\n`);
-  console.log('  ✓ manifest-beta.json / manifest-beta.webmanifest (beta)');
+  // Manifest — generated at build time by VitePWA (see src/config/pwa-manifest.ts).
+  // No static manifest files are written to public/ anymore (GH-93): keeping them
+  // caused duplicate <link rel="manifest"> entries and drift from the generated one.
+  console.log('  ✓ manifest handled by VitePWA build config (no static files)');
 
   // Copy appropriate favicon for default (regular)
   copyFileSync(resolve(iconDir, 'favicon.svg'), resolve(publicDir, 'favicon.svg'));
