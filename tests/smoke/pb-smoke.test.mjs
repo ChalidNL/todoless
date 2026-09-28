@@ -217,6 +217,117 @@ test('unblocked member regains access', async () => {
   assert.equal(v1.status, 200)
 })
 
+// --- 6b. GH#27 member deletion retention -------------------------------
+async function registerDisposableMember(email, name) {
+  const invite = await api('POST', '/api/invites/create', { token: adminToken, body: { type: 'human' } })
+  assert.equal(invite.status, 201)
+  const registered = await api('POST', '/api/register', {
+    body: { email, password: 'password123', passwordConfirm: 'password123', name, invite_code: invite.data.code, user_type: 'family_member', language: 'en' },
+  })
+  assert.equal(registered.status, 201)
+  const login = await auth(email, 'password123')
+  assert.ok(login.token, 'expected disposable member token')
+  return { user: registered.data.user, token: login.token }
+}
+
+async function getRecord(collection, id, token = adminToken) {
+  return api('GET', `/api/collections/${collection}/records/${id}`, { token })
+}
+
+test('deleting a member preserves family-visible records and blocks native user delete (GH#27)', async () => {
+  const disposable = await registerDisposableMember('delete-target@smoke.test', 'Delete Target')
+  const target = disposable.user
+  const targetToken = disposable.token
+
+  const label = await api('POST', '/api/collections/labels/records', {
+    token: targetToken,
+    body: { name: 'Delete Target Label', color: '#ff00aa', is_private: false, visibility: 'family', owner: target.id, family: admin.family_id, user: target.id, shared_with: [admin.id] },
+  })
+  assert.equal(label.status, 200)
+
+  const task = await api('POST', '/api/collections/tasks/records', {
+    token: targetToken,
+    body: { title: 'Delete Target Task', is_private: false, status: 'todo', user: target.id, assigned_to: target.id, completed_by: target.id, label: [label.data.id] },
+  })
+  assert.equal(task.status, 200)
+
+  const item = await api('POST', '/api/collections/items/records', {
+    token: targetToken,
+    body: { title: 'Delete Target Grocery', completed: false, user: target.id, assigned_to: target.id },
+  })
+  assert.equal(item.status, 200)
+
+  const note = await api('POST', '/api/collections/notes/records', {
+    token: targetToken,
+    body: { title: 'Delete Target Note', content: 'must survive member deletion', is_private: false, user: target.id, assigned_to: target.id },
+  })
+  assert.equal(note.status, 200)
+
+  const shop = await api('POST', '/api/collections/shops/records', {
+    token: targetToken,
+    body: { name: 'Delete Target Shop', color: '#00aaff', user: target.id },
+  })
+  assert.equal(shop.status, 200)
+
+  const privateTask = await api('POST', '/api/collections/tasks/records', {
+    token: targetToken,
+    body: { title: 'Delete Target Private Task', is_private: true, status: 'todo', user: target.id },
+  })
+  assert.equal(privateTask.status, 200)
+
+  const nativeDelete = await api('DELETE', `/api/collections/users/records/${target.id}`, { token: adminToken })
+  assert.notEqual(nativeDelete.status, 204, 'native users delete must be blocked')
+  assert.ok(nativeDelete.status >= 400, `expected native delete rejection, got ${nativeDelete.status}`)
+  const stillThere = await getRecord('users', target.id)
+  assert.equal(stillThere.status, 200)
+
+  const deleted = await api('POST', '/api/v1', { token: adminToken, body: { action: 'delete_user', user_id: target.id } })
+  assert.equal(deleted.status, 200)
+  assert.equal(deleted.data?.deleted, true)
+  assert.equal(deleted.data?.counts?.transferred?.tasks, 1)
+  assert.equal(deleted.data?.counts?.transferred?.items, 1)
+  assert.equal(deleted.data?.counts?.transferred?.notes, 1)
+  assert.equal(deleted.data?.counts?.transferred?.labels, 1)
+  assert.equal(deleted.data?.counts?.transferred?.shops, 1)
+  assert.equal(deleted.data?.counts?.cascaded_private?.tasks, 1, 'private task must be counted as cascaded, not transferred')
+  assert.equal(deleted.data?.counts?.cleared?.['tasks.assigned_to'], 1)
+  assert.equal(deleted.data?.counts?.cleared?.['tasks.completed_by'], 1)
+  assert.equal(deleted.data?.counts?.cleared?.['items.assigned_to'], 1)
+  assert.equal(deleted.data?.counts?.cleared?.['notes.assigned_to'], 1)
+
+  const gone = await getRecord('users', target.id)
+  assert.equal(gone.status, 404)
+
+  const privateTaskAfter = await getRecord('tasks', privateTask.data.id)
+  assert.equal(privateTaskAfter.status, 404, 'private task must not survive under the admin')
+
+  const taskAfter = await getRecord('tasks', task.data.id)
+  assert.equal(taskAfter.status, 200)
+  assert.equal(taskAfter.data?.user, admin.id)
+  assert.ok(!taskAfter.data?.assigned_to, 'task assigned_to should be cleared')
+  assert.ok(!taskAfter.data?.completed_by, 'task completed_by should be cleared')
+
+  const itemAfter = await getRecord('items', item.data.id)
+  assert.equal(itemAfter.status, 200)
+  assert.equal(itemAfter.data?.user, admin.id)
+  assert.ok(!itemAfter.data?.assigned_to, 'item assigned_to should be cleared')
+
+  const noteAfter = await getRecord('notes', note.data.id)
+  assert.equal(noteAfter.status, 200)
+  assert.equal(noteAfter.data?.user, admin.id)
+  assert.ok(!noteAfter.data?.assigned_to, 'note assigned_to should be cleared')
+
+  const labelAfter = await getRecord('labels', label.data.id)
+  assert.equal(labelAfter.status, 200)
+  assert.equal(labelAfter.data?.user, admin.id)
+  assert.equal(labelAfter.data?.owner, admin.id)
+  assert.ok(!(labelAfter.data?.shared_with || []).includes(target.id), 'label shared_with should drop deleted member')
+
+  const shopAfter = await getRecord('shops', shop.data.id)
+  assert.equal(shopAfter.status, 200)
+  assert.equal(shopAfter.data?.user, admin.id)
+})
+
 // --- 7. Complete a recurring task -------------------------------------
 test('recurring task can be created and completed (api/v1 complete)', async () => {
   const rec = await api('POST', '/api/collections/tasks/records', {
