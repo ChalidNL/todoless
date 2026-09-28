@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t, SUPPORTED_UI_LANGUAGES, type SupportedUiLanguage } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
+import { PASSWORD_MIN_LENGTH } from '../lib/password';
 import { userDisplayName } from '../types';
 import { Button } from './ui/AppButton';
 import { SettingsDetailHeader } from './shared/SettingsDetailHeader';
@@ -59,8 +60,8 @@ export function ProfileView() {
       showCompletionMessage(t('settings.passwordRequired'));
       return;
     }
-    if (password.length < 6) {
-      showCompletionMessage(t('settings.passwordMinLength').replace('{n}', '6'));
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      showCompletionMessage(t('settings.passwordMinLength').replace('{n}', String(PASSWORD_MIN_LENGTH)));
       return;
     }
     if (password !== passwordConfirm) {

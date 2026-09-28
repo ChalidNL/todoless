@@ -20,6 +20,7 @@ import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, should
 import { CalendarImportExport } from './CalendarImportExport';
 import { sortLabelsByVisibility } from '../lib/label-utils';
 import { copyTextToClipboard } from '../lib/clipboard';
+import { PASSWORD_MIN_LENGTH } from '../lib/password';
 
 // Version polling: check on mount and on focus/visibility only, throttled to at most
 // once per VERSION_CHECK_MIN_INTERVAL_MS instead of a fixed 60s background poll (GH#78).
@@ -213,8 +214,8 @@ export const Settings = () => {
       setPasswordError(t('settings.passwordRequired'));
       return;
     }
-    if (newPassword.length < 6) {
-      setPasswordError(t('settings.passwordMinLength').replace('{n}', '6'));
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setPasswordError(t('settings.passwordMinLength').replace('{n}', String(PASSWORD_MIN_LENGTH)));
       return;
     }
     if (newPassword !== confirmPassword) {

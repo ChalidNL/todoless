@@ -3,6 +3,7 @@ import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
 import { api } from '../lib/pocketbase-client';
+import { PASSWORD_MIN_LENGTH } from '../lib/password';
 import { t, translatePbError } from '../i18n/translations';
 
 interface RegisterProps {
@@ -69,7 +70,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < PASSWORD_MIN_LENGTH) {
       setError(t('auth.passwordMinLength'));
       return;
     }

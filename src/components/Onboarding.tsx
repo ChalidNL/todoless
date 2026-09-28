@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { PASSWORD_MIN_LENGTH } from '../lib/password';
 import { api } from '../lib/pocketbase-client';
 import { pb } from '../lib/pocketbase';
 import { AppMark } from './shared/AppLogo';
@@ -163,7 +164,7 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
     if (!firstName.trim()) { setError(t('onboarding.pleaseEnterFirstName')); return; }
     if (!email.trim()) { setError(t('onboarding.pleaseEnterEmail')); return; }
     if (!password) { setError(t('onboarding.pleaseEnterPassword')); return; }
-    if (password.length < 8) { setError(t('onboarding.passwordMinLength')); return; }
+    if (password.length < PASSWORD_MIN_LENGTH) { setError(t('onboarding.passwordMinLength')); return; }
     if (!passwordConfirm) { setError(t('onboarding.pleaseConfirmPassword')); return; }
     if (password !== passwordConfirm) { setError(t('onboarding.passwordsDoNotMatch')); return; }
     if (!familyName.trim()) { setError(t('onboarding.workspaceNameMissing')); return; }
