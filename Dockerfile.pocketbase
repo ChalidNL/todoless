@@ -1,4 +1,4 @@
-FROM ghcr.io/muchobien/pocketbase:0.35.1
+FROM ghcr.io/muchobien/pocketbase:0.40.4
 
 # Install curl for healthcheck (wget not available in this image)
 RUN apk add --no-cache curl

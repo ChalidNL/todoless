@@ -279,7 +279,7 @@ Only clients from those private ranges can reach the dashboard; everyone else is
 
 ## Tech stack
 - **Frontend:** React 18 + Vite 6 + Tailwind CSS
-- **Backend:** PocketBase 0.35 (SQLite + auth + REST API + realtime)
+- **Backend:** PocketBase 0.40 (SQLite + auth + REST API + realtime)
 - **Deployment:** Docker Compose, pre-built GHCR images
 - **Privacy:** everything runs on your hardware
 
