@@ -680,3 +680,57 @@ test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', 
   const t3 = await listLastUsed()
   assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
 })
+
+// --- 13. Owner-role user can manage agent keys (GH#23) --------------------
+// Every other route family treats `owner` as a superset of `admin`; the agent
+// key routes must accept both. The bootstrap first user is 'admin', so promote
+// the smoke admin to 'owner' through the live role-change dispatcher
+// (POST /api/v1 action=set_role, see pb_hooks/main.pb.js), then verify the four
+// admin-gated agent endpoints answer 20x instead of 403.
+test('owner role can create/list/revoke agent keys and read audit log (GH#23)', async () => {
+  assert.ok(adminToken, 'expected admin session from earlier bootstrap')
+  assert.ok(admin?.id, 'expected bootstrap admin record')
+
+  // Promote the smoke admin to owner for the remainder of this test.
+  const promoted = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'set_role', user_id: admin.id, role: 'owner' },
+  })
+  assert.equal(promoted.status, 200, 'owner promotion should succeed')
+  assert.equal(promoted.data?.role, 'owner')
+
+  // Re-auth so the session token reflects the owner role.
+  const ownerAuth = await auth('admin@smoke.test', 'password123')
+  assert.ok(ownerAuth.token, 'expected owner token')
+  const ownerToken = ownerAuth.token
+
+  // POST /api/agent/keys — was 403 for owner before GH#23.
+  const created = await api('POST', '/api/agent/keys', {
+    token: ownerToken,
+    body: { name: 'smoke-owner', scopes: ['entries:read'] },
+  })
+  assert.equal(created.status, 201, 'owner should be able to create an agent key')
+  const keyId = created.data?.id
+  const rawKey = created.data?.key
+  assert.ok(keyId && rawKey, 'expected key id and raw key')
+
+  // GET /api/agent/keys — was 403 for owner before GH#23.
+  const list = await api('GET', '/api/agent/keys', { token: ownerToken })
+  assert.equal(list.status, 200, 'owner should be able to list agent keys')
+  const found = (list.data || []).find((k) => k.id === keyId)
+  assert.ok(found, 'created key should appear in owner list')
+
+  // POST /api/agent/keys/{id}/revoke — was 403 for owner before GH#23.
+  const revoke = await api('POST', `/api/agent/keys/${keyId}/revoke`, { token: ownerToken })
+  assert.equal(revoke.status, 200, 'owner should be able to revoke an agent key')
+  assert.equal(revoke.data?.active, false)
+
+  // GET /api/agent/audit-log — was 403 for owner before GH#23.
+  const audit = await api('GET', '/api/agent/audit-log', { token: ownerToken })
+  assert.equal(audit.status, 200, 'owner should be able to read the agent audit log')
+
+  // Sanity: a regular member is still rejected on the same routes.
+  assert.ok(memberToken, 'expected member session from earlier bootstrap')
+  const memberDenied = await api('GET', '/api/agent/audit-log', { token: memberToken })
+  assert.equal(memberDenied.status, 403, 'plain member must still be denied')
+})
