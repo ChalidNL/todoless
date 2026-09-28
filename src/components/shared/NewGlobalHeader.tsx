@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell, ChevronDown } from 'lucide-react';
+import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { t } from '../../i18n/translations';
 import { AppLogo } from './AppLogo';
 
 interface AppHeaderProps {
+  type?: string;
   screen?: 'inbox' | 'taken' | 'agenda' | 'shop' | 'leden' | 'labels' | 'focus' | 'instellingen';
   onSearch?: (query: string) => void;
   onAdd?: (value: string, metadata?: { assignee?: string; labels?: string[]; dueDate?: number; sprintId?: string; shopId?: string }) => void;
@@ -18,7 +19,6 @@ interface AppHeaderProps {
   showInputActions?: boolean;
   onFilter?: (filters: any) => void;
   searchPlaceholder?: string;
-  type?: 'task' | 'item' | 'note' | 'calendar';
   showFilters?: boolean;
   showSearch?: boolean;
   showAdd?: boolean;
@@ -68,7 +68,6 @@ export const AppHeader = ({
   cancelAriaLabel = t('common.cancel'),
   showInputActions = true,
   searchPlaceholder = t('common.searchDot'),
-  type = 'task',
   showFilters = true,
   showSearch = true,
   showAdd = true,
@@ -314,4 +313,4 @@ export const AppHeader = ({
   );
 };
 
-export const NewGlobalHeader = AppHeader;
+

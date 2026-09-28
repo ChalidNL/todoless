@@ -1,4 +1,4 @@
-export interface PwaManifestIcon {
+interface PwaManifestIcon {
   src: string;
   sizes: string;
   type: string;

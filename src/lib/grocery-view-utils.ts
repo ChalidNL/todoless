@@ -3,7 +3,7 @@ import { categorizeItem } from './grocery-categories';
 
 export type GrocerySortMode = 'alpha' | 'category';
 
-export function compareGroceriesAlpha(left: Pick<Item, 'title'>, right: Pick<Item, 'title'>): number {
+function compareGroceriesAlpha(left: Pick<Item, 'title'>, right: Pick<Item, 'title'>): number {
   return left.title.toLocaleLowerCase().localeCompare(right.title.toLocaleLowerCase(), 'nl');
 }
 

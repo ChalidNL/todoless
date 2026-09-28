@@ -1,7 +1,4 @@
 import React from 'react';
-import { Tag, User, CalendarDays, AlertTriangle, Target, MessageSquare, Flag, MoreHorizontal, Trash2 } from 'lucide-react';
-import { t } from '../../i18n/translations';
-import { PRIORITY_COLORS } from '../../lib/priority';
 
 // Subtask icon
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -52,7 +49,6 @@ interface TaskActionBarProps {
 export const TaskActionBar = React.memo(function TaskActionBar({
   buttons,
   themeColor = '#22c55e',
-  activeEditor,
 }: TaskActionBarProps) {
   const renderButton = (b: ActionButton) => {
     const btnClass = `p-1.5 rounded transition-all duration-150 ${

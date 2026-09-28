@@ -425,7 +425,7 @@ interface TranslationStructure {
   };
 }
 
-export const translations: Record<Language, TranslationStructure> = {
+const translations: Record<Language, TranslationStructure> = {
   en: {
     common: {
       add: 'Add',

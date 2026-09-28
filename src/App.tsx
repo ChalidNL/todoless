@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './components/AuthProvider';
@@ -98,10 +98,9 @@ function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
-  const { completionMessage, tasks, items, dataLoadState, loadError, retryLoad } = useApp();
+  const { completionMessage, dataLoadState, loadError, retryLoad } = useApp();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
-  const location = useLocation();
 
   useEffect(() => {
     const checkFirstRun = async () => {

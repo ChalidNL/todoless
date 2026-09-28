@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
-import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, RotateCcw, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare, Save } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Trash2, Tag, User, CalendarDays, Flag, ArrowLeftRight, X, AlertTriangle, Inbox, Target, GitBranch, MoreHorizontal, Edit2, MessageSquare, Save } from 'lucide-react';
 import { t, formatDate } from '../../i18n/translations';
 import { getRepeatChipLabel, getRepeatLabel, getRepeatOptions } from '../../lib/repeat-options';
 import { getCompactUserName } from '../../lib/member-role-utils';
@@ -10,8 +10,7 @@ import { combineLocalDateAndTime, formatLocalDateInputValue, formatLocalTimeInpu
 import { buildFlagUpdate, getCommentButtonActive } from '../../lib/task-attribute-utils';
 import { entityColor } from '../../lib/entity-colors';
 import { PRIORITY_COLORS, PRIORITY_LABELS, PRIORITY_ORDER } from '../../lib/priority';
-import { PriorityIcon } from '../../lib/PriorityIcon';
-import { TaskMetaRow, type MetaRowData } from './TaskMetaRow';
+import { TaskMetaRow } from './TaskMetaRow';
 import { TaskActionBar } from './TaskActionBar';
 
 // Local subtask icon (still used by inline editor)
@@ -21,7 +20,6 @@ const SubtaskIcon = ({ className }: { className?: string }) => (
     <circle cx="8" cy="8" r="2.5" fill="currentColor" />
   </svg>
 );
-import { AttributeChip } from './AttributeChip';
 
 interface CompactTaskCardProps {
   task: Task;
@@ -83,12 +81,11 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
 );
 
 export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false, calendarPopoverAlign = 'left' }: CompactTaskCardProps) => {
-  const { updateTask, deleteTask, labels, users, shops, tasks, addLabel, addTask, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
+  const { updateTask, deleteTask, labels, users, tasks, addLabel, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
   const [assigneeSearch, setAssigneeSearch] = useState('');
   const [labelInput, setLabelInput] = useState('');
-  const [isDeleteHover, setIsDeleteHover] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [titleDraft, setTitleDraft] = useState(startExpanded ? task.title : '');
   const [subtaskTitle, setSubtaskTitle] = useState('');
@@ -188,16 +185,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     setActiveEditor(null);
   };
 
-  const clearAllSchedule = () => {
-    updateTask(task.id, { dueDate: null, repeatInterval: null });
-  };
-
   const clearAllLabels = () => {
     updateTask(task.id, { labels: [] });
-  };
-
-  const clearPriority = () => {
-    updateTask(task.id, { priority: null });
   };
 
   const openCommentEditor = (flagActivation = false) => {
@@ -248,12 +237,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     }
 
     openCommentEditor(true);
-  };
-
-  const removeLabel = (labelId: string) => {
-    updateTask(task.id, {
-      labels: task.labels.filter((id) => id !== labelId),
-    });
   };
 
   const handleDelete = () => {
@@ -351,11 +334,6 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const isDateFiltered = (ds: string) => isChipFilterActive('date', ds);
   const isRepeatFiltered = (repeatInterval?: RepeatInterval | null) => repeatInterval ? isChipFilterActive('repeat', repeatInterval) : false;
   const cardPaddingClass = compact && !showMenu ? 'p-1.5' : 'p-2.5';
-
-  const openEditor = (editor: TaskEditor) => {
-    setShowMenu(true);
-    setActiveEditor(editor);
-  };
 
   const expandFromCardClick = (event: React.MouseEvent<HTMLDivElement>) => {
     trackInteraction();

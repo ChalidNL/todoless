@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, ElementType, ReactNode } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'ghost';
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'border-0 bg-[linear-gradient(135deg,#6366f1,#8b5cf6)] text-white shadow-[0_6px_20px_rgba(99,102,241,0.38)]',

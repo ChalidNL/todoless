@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
 import { api } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
@@ -266,7 +266,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [sharedView, setSharedView] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
-  const [progressStats, setProgressStats] = useState<ProgressStats>({
+  const [progressStats] = useState<ProgressStats>({
     tasksCompletedThisWeek: 0,
     lastWeekReset: getWeekStart(),
   });
@@ -328,10 +328,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
     void (async () => {
       if (entry.type === 'task') {
-        const { type, completed, ...taskData } = entry;
+        const { completed, ...taskData } = entry;
         await api.createTask({ ...taskData, status: completed ? 'done' : 'todo' });
       } else {
-        const { type, status, blocked, blockedComment, flag, ...itemData } = entry;
+        const { blocked, blockedComment, flag, ...itemData } = entry;
         await api.createItem(itemData);
       }
       await refreshEntries();
@@ -343,10 +343,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
       const entry = entries.find(e => e.id === id);
       if (entry?.type === 'task') {
-        const { type, completed, ...taskUpdates } = updates;
+        const { completed, ...taskUpdates } = updates;
         await api.updateTask(id, taskUpdates);
       } else if (entry?.type === 'item') {
-        const { type, status, blocked, blockedComment, flag, ...itemUpdates } = updates;
+        const { blocked, blockedComment, flag, ...itemUpdates } = updates;
         await api.updateItem(id, itemUpdates);
       }
       await refreshEntries();

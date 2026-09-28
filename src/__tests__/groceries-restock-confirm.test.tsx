@@ -1,4 +1,3 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { GroceriesView } from '../components/groceries/GroceriesView';
@@ -14,7 +13,7 @@ vi.mock('../components/shared/UnifiedCard', () => ({
 }));
 
 vi.mock('../components/shared/NewGlobalHeader', () => ({
-  NewGlobalHeader: () => <div data-testid="new-global-header" />,
+  AppHeader: () => <div data-testid="new-global-header" />,
 }));
 
 const baseAppValue = {

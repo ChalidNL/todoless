@@ -581,5 +581,3 @@ export const api = {
     async delete(id: string) { await pb.collection('reminders').delete(id); },
   },
 };
-
-export type ApiClient = typeof api;
