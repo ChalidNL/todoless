@@ -215,6 +215,17 @@ routerAdd('GET','/api/ics-export',function(c){
   function icsLine(name,value){if(value===undefined||value===null)value='';var text=String(value).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');var line=name+':'+text;if(line.length<=75)return line;var out='';var pos=0;var take=75;while(pos<line.length){out+=line.substring(pos,pos+take);pos+=take;if(pos<line.length){out+='\r\n ';take=74;}}return out;}
   function genUid(taskId,familyId){return'todoless-'+String(taskId)+'@family-'+String(familyId);}
   function canAccessTaskForUser(record,user){if(!record||!user)return false;var userId=user.id;var ownerId=String(record.get('user')||'');if(ownerId===userId)return true;if(record.get('is_private')===true||record.get('is_private')===1||record.get('is_private')==='true')return false;var familyId=String(user.get('family_id')||'');if(!familyId||!ownerId)return false;try{if(String($app.findRecordById('users',ownerId).get('family_id')||'')!==familyId)return false;}catch(e){return false;}var labelIds=record.get('label')||record.get('labels')||[];if(!Array.isArray(labelIds))labelIds=labelIds?[String(labelIds)]:[];var labels=[];for(var i=0;i<labelIds.length;i++){try{labels.push($app.findRecordById('labels',String(labelIds[i]||'')));}catch(e){return false;}}if(labelIds.length>1){for(var mi=0;mi<labels.length;mi++){var mv=String(labels[mi].get('visibility')||(labels[mi].get('is_private')?'private':'family'));if(mv!=='family')return false;}}for(var li=0;li<labels.length;li++){var label=labels[li];var visibility=String(label.get('visibility')||(label.get('is_private')?'private':'family'));var labelOwner=String(label.get('owner')||label.get('user')||'');var labelFamily=String(label.get('family')||'');if(!labelFamily&&labelOwner){try{labelFamily=String($app.findRecordById('users',labelOwner).get('family_id')||'');}catch(e){return false;}}if(visibility==='private'&&labelOwner!==userId)return false;if(visibility==='shared'){var shared=label.get('shared_with')||[];if(!Array.isArray(shared))shared=shared?[String(shared)]:[];if(labelOwner!==userId&&shared.indexOf(userId)===-1)return false;}if(visibility==='family'&&labelFamily!==familyId)return false;}return true;}
+  // Empty PocketBase date fields are truthy DateTime objects in the JSVM
+  // (isZero() === true, String() === ''), so truthiness can never be used to
+  // detect a real date (GH#11). Returns true only when the field holds one.
+  function hasDate(record,field){
+    try{
+      var v=record.get(field);
+      if(!v)return false;
+      if(typeof v==='object'&&typeof v.isZero==='function')return !v.isZero();
+      return String(v).trim()!=='';
+    }catch(e){return false;}
+  }
   try{
     var info=c.requestInfo();
     var auth=(info&&info.auth)||c.get('authRecord')||null;
@@ -265,14 +276,22 @@ routerAdd('GET','/api/ics-export',function(c){
       var dtStart='';
       var dtEnd='';
 
+      // Empty PB date fields are truthy DateTime objects in the JSVM, so the
+      // old `t.get('start_time') || t.get('due_date')` fallback never fired
+      // and due-date-only tasks were dropped (GH#12). Detect real dates with
+      // hasDate() and prefer start_time, falling back to due_date.
+      var hasStart=hasDate(t,'start_time');
+      var hasDue=hasDate(t,'due_date');
+      var hasEnd=hasDate(t,'end_time');
+
       if(allDay){
         // All-day: DATE format (no time). RFC 5545: DTEND;VALUE=DATE is EXCLUSIVE,
         // so a single-day event must end on the NEXT day.
-        var sd=t.get('start_time')||t.get('due_date');
-        var ed=t.get('end_time');
+        var sd=hasStart?String(t.get('start_time')):(hasDue?String(t.get('due_date')):'');
+        var ed=hasEnd?String(t.get('end_time')):'';
         if(sd){
           try{
-            var d=new Date(String(sd).replace(' ','T'));
+            var d=new Date(sd.replace(' ','T'));
             if(!isNaN(d.getTime())){
               var y=d.getFullYear();
               var M=String(d.getMonth()+1).padStart(2,'0');
@@ -282,7 +301,7 @@ routerAdd('GET','/api/ics-export',function(c){
               // the exclusive DTEND, so it is already the day after the last event day).
               if(ed){
                 try{
-                  var d2=new Date(String(ed).replace(' ','T'));
+                  var d2=new Date(ed.replace(' ','T'));
                   if(!isNaN(d2.getTime())){
                     var y2=d2.getFullYear();
                     var M2=String(d2.getMonth()+1).padStart(2,'0');
@@ -303,12 +322,13 @@ routerAdd('GET','/api/ics-export',function(c){
           }catch(ex2){}
         }
       }else{
-        // Timed event: DATE-TIME in UTC
-        var st=t.get('start_time');
-        var et=t.get('end_time');
+        // Timed event: DATE-TIME in UTC. Fall back to due_date when the task
+        // has no start_time so due-date-only tasks are exported too.
+        var st=hasStart?String(t.get('start_time')):(hasDue?String(t.get('due_date')):'');
+        var et=hasEnd?String(t.get('end_time')):'';
         if(st){
           try{
-            var stDate=new Date(String(st).replace(' ','T'));
+            var stDate=new Date(st.replace(' ','T'));
             if(!isNaN(stDate.getTime())){
               dtStart=icsDt(stDate.getTime());
             }
@@ -316,7 +336,7 @@ routerAdd('GET','/api/ics-export',function(c){
         }
         if(et){
           try{
-            var etDate=new Date(String(et).replace(' ','T'));
+            var etDate=new Date(et.replace(' ','T'));
             if(!isNaN(etDate.getTime())){
               dtEnd=icsDt(etDate.getTime());
             }
@@ -331,10 +351,12 @@ routerAdd('GET','/api/ics-export',function(c){
       ics+='DTSTAMP:'+icsDt(Date.now())+'\r\n';
       if(allDay){
         ics+='DTSTART;VALUE=DATE:'+dtStart+'\r\n';
-        ics+='DTEND;VALUE=DATE:'+dtEnd+'\r\n';
+        if(dtEnd)ics+='DTEND;VALUE=DATE:'+dtEnd+'\r\n';
       }else{
         ics+='DTSTART:'+dtStart+'\r\n';
-        ics+='DTEND:'+dtEnd+'\r\n';
+        // DTEND is optional for timed events; emit it only when a real end
+        // exists so the feed never carries an empty DTEND: line.
+        if(dtEnd)ics+='DTEND:'+dtEnd+'\r\n';
       }
       ics+=icsLine('SUMMARY',title)+'\r\n';
       if(desc)ics+=icsLine('DESCRIPTION',desc)+'\r\n';
