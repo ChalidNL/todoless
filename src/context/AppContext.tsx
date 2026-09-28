@@ -251,6 +251,27 @@ const defaultSettings: AppSettings = {
   reminderMinutes: 15,
 };
 
+// Single source of truth for the task/item -> unified entries mapping.
+// Used by BOTH the legacy refreshEntries() path and the GH#75 bootstrap path
+// so the two can never diverge.
+const buildEntries = (fetchedTasks: Task[], fetchedItems: Item[]): Entry[] => {
+  const taskEntries: Entry[] = fetchedTasks.map(t => ({
+    ...t,
+    type: 'task' as const,
+    completed: t.status === 'done',
+  }));
+  const itemEntries: Entry[] = fetchedItems.map(i => ({
+    ...i,
+    type: 'item' as const,
+    status: i.completed ? 'done' as const : 'todo' as const,
+    blocked: false,
+    flag: false,
+    focus: i.focus ?? false,
+    completed: i.completed,
+  }));
+  return [...taskEntries, ...itemEntries];
+};
+
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<Item[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -306,23 +327,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       api.getTasks(),
       api.getItems(),
     ]);
-    const taskEntries: Entry[] = fetchedTasks.map(t => ({
-      ...t,
-      type: 'task' as const,
-      completed: t.status === 'done',
-    }));
-    const itemEntries: Entry[] = fetchedItems.map(i => ({
-      ...i,
-      type: 'item' as const,
-      status: i.completed ? 'done' as const : 'todo' as const,
-      blocked: false,
-      flag: false,
-      focus: i.focus ?? false,
-      completed: i.completed,
-    }));
     setTasks(fetchedTasks);
     setItems(fetchedItems);
-    setEntries([...taskEntries, ...itemEntries]);
+    setEntries(buildEntries(fetchedTasks, fetchedItems));
   };
 
   const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
@@ -408,26 +415,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      await Promise.all([
-        refreshItems(),
-        refreshTasks(),
-        refreshNotes(),
-        refreshLabels(),
-        refreshShops(),
-        refreshSprints(),
-        refreshUsers(),
-        refreshInvites(),
-        refreshRewards(),
-        refreshGoals(),
-        refreshProjects(),
-        refreshReminders(),
-        refreshSettings(),
-        refreshEntries(),
-      ]);
+      // GH#75: single family-scoped bootstrap call instead of 14 parallel
+      // collection fetches. Sprints/rewards/goals/projects are deliberately
+      // NOT fetched at boot (no component renders them from this state).
+      const boot = await api.getBootstrap();
+      setTasks(boot.tasks);
+      setItems(boot.items);
+      setNotes(boot.notes);
+      setLabels(boot.labels);
+      setShops(boot.shops);
+      setUsers(boot.users);
+      setInviteCodes(boot.invites);
+      setReminders(boot.reminders);
+      setEntries(buildEntries(boot.tasks, boot.items));
+      if (boot.settings) {
+        setAppSettings(prev => ({
+          ...prev,
+          ...boot.settings,
+          currentUserId: pb.authStore.record?.id,
+          hasCompletedOnboarding: true,
+        }));
+      } else {
+        // No settings record yet — let the legacy path create the default.
+        await refreshSettings();
+      }
       setDataLoadState('ready');
     } catch (error) {
-      setDataLoadState('error');
-      setLoadError(error instanceof Error && error.message ? error.message : t('common.error'));
+      // Fallback: legacy per-collection refresh MINUS the collections the UI
+      // never shows (sprints/rewards/goals/projects).
+      console.error('refreshAll: /api/bootstrap failed, falling back to per-collection refresh', error);
+      try {
+        await Promise.all([
+          refreshItems(),
+          refreshTasks(),
+          refreshNotes(),
+          refreshLabels(),
+          refreshShops(),
+          refreshUsers(),
+          refreshInvites(),
+          refreshReminders(),
+          refreshSettings(),
+          refreshEntries(),
+        ]);
+        setDataLoadState('ready');
+      } catch (error2) {
+        setDataLoadState('error');
+        setLoadError(error2 instanceof Error && error2.message ? error2.message : t('common.error'));
+      }
     }
   };
 
