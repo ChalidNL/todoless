@@ -5,6 +5,7 @@ import { useAuth } from './AuthProvider';
 import { ApiToken, userDisplayName, Agent, type Label, type LabelVisibility, type User } from '../types';
 import { t, type SupportedUiLanguage, SUPPORTED_UI_LANGUAGES } from '../i18n/translations';
 import { changeAppLanguage } from '../i18n';
+import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp, ChevronRight, Plus, Edit2, Trash2, X, LogOut, Eye, EyeOff, Copy, Check, Lock, ExternalLink, Plug, Bot, RefreshCw, Shield, Users, Home, UserCircle2, Tag, SlidersHorizontal, Bell, Store, Camera } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
 import { AttributeChip } from './shared/AttributeChip';
@@ -25,15 +26,28 @@ import { copyTextToClipboard } from '../lib/clipboard';
 const VERSION_CHECK_MIN_INTERVAL_MS = 5 * 60_000;
 
 function SettingsNavItem({ href, icon, title, subtitle, external }: { href: string; icon: React.ReactNode; title: string; subtitle: string; external?: boolean }) {
-  return (
-    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined} className="flex min-h-[var(--app-touch-target)] items-center gap-3 rounded-[20px] px-3 py-3 transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]">
+  const className = "flex min-h-[var(--app-touch-target)] items-center gap-3 rounded-[20px] px-3 py-3 transition hover:bg-[var(--app-surface-2)] active:scale-[0.97]";
+  const inner = (
+    <>
       <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[var(--app-primary-soft)] text-[var(--app-primary)]">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-black text-[var(--app-text)]">{title}</span>
         <span className="block truncate text-xs font-semibold text-[var(--app-text-muted)]">{subtitle}</span>
       </span>
       {external ? <ExternalLink className="h-5 w-5 text-[var(--app-text-soft)]" /> : <ChevronRight className="h-5 w-5 text-[var(--app-text-soft)]" />}
-    </a>
+    </>
+  );
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    );
+  }
+  return (
+    <Link to={href} className={className}>
+      {inner}
+    </Link>
   );
 }
 
@@ -594,7 +608,7 @@ export const Settings = () => {
       <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
 
       <div className="mx-auto max-w-2xl pb-24 pt-3">
-        <a href="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
+        <Link to="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
           <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
           <span className="relative grid h-[84px] w-[84px] place-items-center rounded-full border-[3px] border-white/60 bg-white/25 text-[32px] font-black text-white shadow-lg">
             {initials}
@@ -606,20 +620,15 @@ export const Settings = () => {
             <span className="block text-xl font-black tracking-[-0.01em]">{displayName}</span>
             <span className="mt-1 block text-sm font-semibold text-white/80">{currentUser.email}</span>
           </span>
-        </a>
+        </Link>
 
         <div className="mx-4 mb-3 overflow-hidden rounded-[var(--app-radius-card)] bg-[var(--app-surface)] shadow-[var(--app-shadow-card)]">
           {settingsItems.map((item, index) => {
             const Icon = item.icon;
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                target={item.external ? '_blank' : undefined}
-                rel={item.external ? 'noopener noreferrer' : undefined}
-                className="flex min-h-[64px] items-center gap-3 px-4 py-3 text-left active:scale-[0.99]"
-                style={{ borderBottom: index < settingsItems.length - 1 ? '1px solid var(--app-border-subtle)' : 'none' }}
-              >
+            const itemClassName = "flex min-h-[64px] items-center gap-3 px-4 py-3 text-left active:scale-[0.99]";
+            const borderStyle = { borderBottom: index < settingsItems.length - 1 ? '1px solid var(--app-border-subtle)' : 'none' };
+            const inner = (
+              <>
                 <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-[var(--app-radius-md)]" style={{ background: `${item.color}15`, color: item.color }}>
                   <Icon className="h-[18px] w-[18px]" strokeWidth={2.1} />
                 </span>
@@ -628,7 +637,19 @@ export const Settings = () => {
                   {item.sub && <span className="mt-0.5 block truncate text-xs font-medium text-[var(--app-text-muted)]">{item.sub}</span>}
                 </span>
                 {item.external ? <ExternalLink className="h-[15px] w-[15px] text-[var(--app-text-soft)]" /> : <ChevronRight className="h-[15px] w-[15px] text-[var(--app-text-soft)]" />}
-              </a>
+              </>
+            );
+            if (item.external) {
+              return (
+                <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" className={itemClassName} style={borderStyle}>
+                  {inner}
+                </a>
+              );
+            }
+            return (
+              <Link key={item.href} to={item.href} className={itemClassName} style={borderStyle}>
+                {inner}
+              </Link>
             );
           })}
         </div>
