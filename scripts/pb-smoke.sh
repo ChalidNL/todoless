@@ -16,6 +16,10 @@
 set -euo pipefail
 
 PB_VERSION="${PB_VERSION:-0.40.4}"
+# Export so the booted binary (and the test env) inherit it: /api/version
+# reports PB_VERSION via the build-time env (GH#33), and pb-migration-upgrade.sh
+# uses the same field as its port-collision ownership guard.
+export PB_VERSION
 PB_PORT="${PB_PORT:-8090}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -78,7 +82,7 @@ echo "[pb-smoke] PocketBase healthy. Running tests/smoke ..."
 # --- 4. Run the smoke suite --------------------------------------------------
 (
   cd "$ROOT"
-  PB_URL="http://127.0.0.1:${PB_PORT}" node --test tests/smoke/*.test.mjs
+  PB_URL="http://127.0.0.1:${PB_PORT}" PB_VERSION="$PB_VERSION" node --test tests/smoke/*.test.mjs
 )
 
 # --- 5. GH#56: request/error logs must reach stdout + _logs ---------------

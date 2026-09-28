@@ -1,5 +1,15 @@
 FROM ghcr.io/muchobien/pocketbase:0.40.4
 
+# Runtime version endpoint (GH#33): branch/commit/pb baked at build time so
+# /api/version reports the real source branch, commit and PocketBase version
+# instead of hard-coded literals. PB_VERSION default must match the FROM tag.
+ARG TODOLESS_BRANCH=unknown
+ARG COMMIT_SHA=unknown
+ARG PB_VERSION=0.40.4
+ENV TODOLESS_BRANCH=$TODOLESS_BRANCH
+ENV COMMIT_SHA=$COMMIT_SHA
+ENV PB_VERSION=$PB_VERSION
+
 # Install curl for healthcheck (wget not available in this image)
 RUN apk add --no-cache curl
 

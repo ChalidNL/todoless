@@ -59,7 +59,9 @@ services:
     environment:
       TZ: Europe/Amsterdam
       DEPLOY_ENV: production
-      COMMIT_SHA: ${COMMIT_SHA:-unknown}
+      # branch/commit are baked into the image at build time (GH#33); a runtime
+      # -e COMMIT_SHA/TODOLESS_BRANCH override (as in todoless-deploy-prod.sh)
+      # wins when explicitly provided.
       LOG_LEVEL: ${LOG_LEVEL:-info}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
