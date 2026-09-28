@@ -871,9 +871,6 @@ test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', 
   const third = await api('GET', '/api/agent/auth-test', { token: rawKey })
   assert.equal(third.status, 200)
   const t3 = await listLastUsed()
-  assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
-})
-
 // --- 13. Owner-role user can manage agent keys (GH#23) --------------------
 // Every other route family treats `owner` as a superset of `admin`; the agent
 // key routes must accept both. The bootstrap first user is 'admin', so promote
@@ -926,4 +923,65 @@ test('owner role can create/list/revoke agent keys and read audit log (GH#23)', 
   assert.ok(memberToken, 'expected member session from earlier bootstrap')
   const memberDenied = await api('GET', '/api/agent/audit-log', { token: memberToken })
   assert.equal(memberDenied.status, 403, 'plain member must still be denied')
+})
+
+  assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
+})
+
+// --- 14. GH#21: GET /api/agent/dispatch enforces active/expires_at -------
+// The GET dispatch route is the lightweight read alternative to POST read;
+// it must reject revoked (active=false) and expired (expires_at in the past)
+// agent keys exactly like the POST variant does. Before GH#21 the GET
+// handler skipped both checks, so an expired/revoked key kept reading data.
+test('agent dispatch GET rejects revoked and expired keys like POST (GH#21)', async () => {
+  assert.ok(adminToken, 'expected admin session from earlier bootstrap')
+
+  // 1) A valid key is accepted by GET dispatch (baseline that the route works).
+  const valid = await api('POST', '/api/agent/keys', {
+    token: adminToken,
+    body: { name: 'smoke-gh21-valid', scopes: ['entries:read'] },
+  })
+  assert.equal(valid.status, 201, 'agent key create should succeed')
+  const validKey = valid.data?.key
+  const validId = valid.data?.id
+  assert.ok(validKey, 'expected raw key on creation')
+
+  const ok = await api('GET', '/api/agent/dispatch', { token: validKey })
+  assert.equal(ok.status, 200, 'valid key should be accepted by GET dispatch')
+
+  // 2) An expired key (expires_at in the past) is rejected by GET dispatch.
+  const expired = await api('POST', '/api/agent/keys', {
+    token: adminToken,
+    body: { name: 'smoke-gh21-expired', scopes: ['entries:read'], expires_at: '2000-01-01 00:00:00.000Z' },
+  })
+  assert.equal(expired.status, 201, 'agent key create should succeed')
+  const expiredKey = expired.data?.key
+  assert.ok(expiredKey, 'expected raw key on creation')
+
+  const rejected = await api('GET', '/api/agent/dispatch', { token: expiredKey })
+  assert.equal(rejected.status, 403, 'expired key must be rejected by GET dispatch')
+  assert.match(String(rejected.data?.error || ''), /expired/i, 'expected expired-key error')
+
+  // POST variant rejects the same expired key identically (parity check).
+  const rejectedPost = await api('POST', '/api/agent/dispatch', {
+    token: expiredKey,
+    body: { action: 'read', type: 'task', id: 'does-not-exist' },
+  })
+  assert.equal(rejectedPost.status, 403, 'expired key must be rejected by POST dispatch too')
+  assert.match(String(rejectedPost.data?.error || ''), /expired/i, 'expected expired-key error')
+
+  // 3) A revoked key (active=false) is rejected by GET dispatch.
+  // authFromAgentKey() already filters `active = true` in its DB query, so a
+  // revoked key fails at the auth layer (401) for BOTH verbs — same as POST.
+  const revoke = await api('POST', `/api/agent/keys/${validId}/revoke`, { token: adminToken })
+  assert.equal(revoke.status, 200, 'revoke should succeed')
+
+  const revoked = await api('GET', '/api/agent/dispatch', { token: validKey })
+  assert.equal(revoked.status, 401, 'revoked key must be rejected by GET dispatch (auth layer)')
+
+  const revokedPost = await api('POST', '/api/agent/dispatch', {
+    token: validKey,
+    body: { action: 'read', type: 'task', id: 'does-not-exist' },
+  })
+  assert.equal(revokedPost.status, 401, 'revoked key must be rejected by POST dispatch too (auth layer)')
 })
