@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
@@ -18,6 +18,10 @@ import { pb } from '../lib/pocketbase';
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { CalendarImportExport } from './CalendarImportExport';
 import { sortLabelsByVisibility } from '../lib/label-utils';
+
+// Version polling: check on mount and on focus/visibility only, throttled to at most
+// once per VERSION_CHECK_MIN_INTERVAL_MS instead of a fixed 60s background poll (GH#78).
+const VERSION_CHECK_MIN_INTERVAL_MS = 5 * 60_000;
 
 function SettingsNavItem({ href, icon, title, subtitle, external }: { href: string; icon: React.ReactNode; title: string; subtitle: string; external?: boolean }) {
   return (
@@ -124,33 +128,37 @@ export const Settings = () => {
     [currentUser?.family_id, familyName, users]
   );
 
+  const lastVersionCheckRef = useRef(0);
+
   const checkForAppUpdate = useCallback(async () => {
     const latestAppVersion = await fetchLatestAppVersion();
     setUpdateAvailable(shouldShowUpdateButton(currentAppVersion, latestAppVersion));
   }, [currentAppVersion]);
 
   useEffect(() => {
-    void checkForAppUpdate();
+    const checkVersionIfStale = () => {
+      const now = Date.now();
+      if (now - lastVersionCheckRef.current < VERSION_CHECK_MIN_INTERVAL_MS) return;
+      lastVersionCheckRef.current = now;
+      void checkForAppUpdate();
+    };
+
+    checkVersionIfStale();
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        void checkForAppUpdate();
+        checkVersionIfStale();
       }
     };
 
     const handleFocus = () => {
-      void checkForAppUpdate();
+      checkVersionIfStale();
     };
-
-    const intervalId = window.setInterval(() => {
-      void checkForAppUpdate();
-    }, 60000);
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };

@@ -37,24 +37,42 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
   const [subtaskTitle, setSubtaskTitle] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Edit mode inactivity timeout (60s)
-  const lastInteractionRef = useRef(Date.now());
+  // Edit mode inactivity timeout (60s): one setTimeout, reset on interaction (GH#78)
+  const inactivityTimerRef = useRef<number | null>(null);
+  const showMenuRef = useRef(showMenu);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!showMenu) return;
-    const interval = setInterval(() => {
-      if (Date.now() - lastInteractionRef.current > 60_000) {
-        setShowMenu(false);
-        setActiveEditor(null);
-      }
-    }, 1_000);
-    return () => clearInterval(interval);
+    showMenuRef.current = showMenu;
   }, [showMenu]);
 
-  const trackInteraction = useCallback(() => {
-    lastInteractionRef.current = Date.now();
+  const scheduleInactivityClose = useCallback(() => {
+    if (inactivityTimerRef.current !== null) {
+      window.clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = window.setTimeout(() => {
+      inactivityTimerRef.current = null;
+      setShowMenu(false);
+      setActiveEditor(null);
+    }, 60_000);
   }, []);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    scheduleInactivityClose();
+    return () => {
+      if (inactivityTimerRef.current !== null) {
+        window.clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+    };
+  }, [showMenu, scheduleInactivityClose]);
+
+  const trackInteraction = useCallback(() => {
+    if (showMenuRef.current) {
+      scheduleInactivityClose();
+    }
+  }, [scheduleInactivityClose]);
 
   const isTask = type === 'task';
   const task = isTask ? (entity as Task) : null;
