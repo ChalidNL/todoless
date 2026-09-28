@@ -103,3 +103,4 @@ z066_family_shared_task_write_rules.js
 z066_normalize_invite_codes.js
 z067_enable_scheduled_backups.js
 z068_enforce_member_status_read_rules.js
+z069_add_autodate_fields_api_tokens_audit.js
