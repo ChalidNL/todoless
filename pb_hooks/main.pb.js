@@ -121,17 +121,26 @@ routerAdd('GET', '/api/hook-health', (c) => {
 // ── Version endpoint — returns deployment info for environment comparison ──
 routerAdd('GET', '/api/version', (c) => {
   var env = 'unknown';
+  var branch = 'unknown';
   var commit = 'unknown';
+  var pb = 'unknown';
   try {
     var os = $os;
     env = String(os.getenv('DEPLOY_ENV') || 'unknown');
+    branch = String(os.getenv('TODOLESS_BRANCH') || 'unknown');
     commit = String(os.getenv('COMMIT_SHA') || 'unknown');
+    // Real PocketBase version. Newer PB releases expose app.version(); older
+    // ones rely on the build-time PB_VERSION env (see Dockerfile.pocketbase).
+    try {
+      if (typeof $app.version === 'function') pb = String($app.version());
+    } catch(e) { /* ignore */ }
+    if (pb === 'unknown') pb = String(os.getenv('PB_VERSION') || 'unknown');
   } catch(e) { /* os not available */ }
   return c.json(200, {
-    branch: 'main',
+    branch: branch,
     commit: commit,
     env: env,
-    pb: '0.35.1',
+    pb: pb,
     note: 'See GitHub releases for full changelog'
   });
 });
