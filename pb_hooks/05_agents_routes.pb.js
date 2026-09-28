@@ -275,24 +275,39 @@ try {
 
       // List mode
       var q = info.query || {};
+      function pageSpec(src) { var page = parseInt(String(gv(src, 'page', '1')), 10); if (isNaN(page) || page < 1) page = 1; var perPage = parseInt(String(gv(src, 'perPage', gv(src, 'per_page', gv(src, 'limit', '100')))), 10); if (isNaN(perPage) || perPage < 1) perPage = 100; if (perPage > 500) perPage = 500; var offset = (page - 1) * perPage; return { page: page, perPage: perPage, offset: offset, queryLimit: offset + perPage }; }
+      function readParam(name, fallback) { var v = gv(d, name, undefined); if (v === undefined) v = gv(q, name, fallback); return v; }
+      var pg = pageSpec({ page: readParam('page', '1'), perPage: readParam('perPage', readParam('per_page', readParam('limit', '100'))) });
       var family = familyQuery();
       var f = family.filter;
-      var queryParams = family.params;
-      var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
-      var t = String(gv(q, 'type', '')).trim();
-      var status = String(gv(q, 'status', '')).trim();
+      var t = String(readParam('type', '')).trim();
+      var status = String(readParam('status', '')).trim();
       var validReadStatuses = ['', 'backlog', 'todo', 'done'];
       if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
 
       var results = [];
+      // See note in pb_hooks/main.pb.js (_fetchAccessiblePage): LIMIT applied before a
+      // post-fetch access predicate + fixed-offset slice can silently drop legitimate
+      // records. Fetch adaptively until enough post-predicate rows exist for this page.
+      var PAGE_FETCH_HARD_CAP = 5000;
+      function _fetchAccessiblePage(collection, filter, params, predicate, needCount) {
+        var limit = Math.min(PAGE_FETCH_HARD_CAP, needCount);
+        var raw, filtered;
+        while (true) {
+          raw = $app.findRecordsByFilter(collection, filter, '-created', limit, 0, params);
+          filtered = predicate ? raw.filter(predicate) : raw;
+          if (filtered.length >= needCount || raw.length < limit || limit >= PAGE_FETCH_HARD_CAP) return filtered;
+          limit = Math.min(PAGE_FETCH_HARD_CAP, limit * 2);
+        }
+      }
 
       if (!t || t === 'task') {
         var taskFilter = f;
+        var queryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
         if (status) { taskFilter += ' && status = {:status}'; queryParams.status = status; }
-        var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', 10000, 0, queryParams);
+        var tasks = _fetchAccessiblePage('tasks', taskFilter, queryParams, function(tr){ return canAccessTaskForUser(tr, ownerUser); }, pg.queryLimit);
         for (var ti = 0; ti < tasks.length; ti++) {
           var tr = tasks[ti];
-          if (!canAccessTaskForUser(tr, ownerUser)) continue;
           results.push({
             id: tr.id, type: 'task',
             title: String(tr.get('title') || ''),
@@ -311,7 +326,11 @@ try {
 
       if (!t || t === 'grocery') {
         var itemFilter = f;
-        var items = $app.findRecordsByFilter('items', itemFilter, '-created', 10000, 0, itemQueryParams);
+        var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
+        if (status === 'done') itemFilter += ' && completed = true';
+        else if (status === 'todo') itemFilter += ' && completed = false';
+        else if (status === 'backlog') itemFilter += ' && id = ""';
+        var items = _fetchAccessiblePage('items', itemFilter, itemQueryParams, null, pg.queryLimit);
         for (var ii = 0; ii < items.length; ii++) {
           var ir = items[ii];
           results.push({
@@ -332,7 +351,8 @@ try {
       }
 
       auditLog(agentKey, 'read', 'entries', '', { count: results.length }, c);
-      return c.json(200, results);
+      var pagedResults = results.sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); }).slice(pg.offset, pg.offset + pg.perPage);
+      return c.json(200, pagedResults);
     }
 
     // ── Write actions (require entries:write scope) ────────────────────────
@@ -595,18 +615,36 @@ try {
     var status = String(gv(q, 'status', '')).trim();
     var validReadStatuses = ['', 'backlog', 'todo', 'done'];
     if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
-    var limit = parseInt(gv(q, 'limit', '100'), 10);
-    if (limit < 1) limit = 100;
+    var page = parseInt(gv(q, 'page', '1'), 10);
+    if (isNaN(page) || page < 1) page = 1;
+    var limit = parseInt(gv(q, 'perPage', gv(q, 'per_page', gv(q, 'limit', '100'))), 10);
+    if (isNaN(limit) || limit < 1) limit = 100;
+    if (limit > 500) limit = 500;
+    var offset = (page - 1) * limit;
+    var queryLimit = offset + limit;
 
     var results = [];
+    // See note in pb_hooks/main.pb.js (_fetchAccessiblePage): LIMIT applied before a
+    // post-fetch access predicate + fixed-offset slice can silently drop legitimate
+    // records. Fetch adaptively until enough post-predicate rows exist for this page.
+    var PAGE_FETCH_HARD_CAP3 = 5000;
+    function _fetchAccessiblePage3(collection, filter, params, predicate, needCount) {
+      var lim = Math.min(PAGE_FETCH_HARD_CAP3, needCount);
+      var raw, filtered;
+      while (true) {
+        raw = $app.findRecordsByFilter(collection, filter, '-created', lim, 0, params);
+        filtered = predicate ? raw.filter(predicate) : raw;
+        if (filtered.length >= needCount || raw.length < lim || lim >= PAGE_FETCH_HARD_CAP3) return filtered;
+        lim = Math.min(PAGE_FETCH_HARD_CAP3, lim * 2);
+      }
+    }
 
     if (!t || t === 'task') {
       var taskFilter = f;
       if (status) { taskFilter += ' && status = {:status}'; queryParams.status = status; }
-      var tasks = $app.findRecordsByFilter('tasks', taskFilter, '-created', limit, 0, queryParams);
+      var tasks = _fetchAccessiblePage3('tasks', taskFilter, queryParams, function(tr){ return canAccessTaskForUser(tr, ownerUser); }, queryLimit);
       for (var ti = 0; ti < tasks.length; ti++) {
         var tr = tasks[ti];
-        if (!canAccessTaskForUser(tr, ownerUser)) continue;
         results.push({
           id: tr.id, type: 'task',
           title: String(tr.get('title') || ''),
@@ -621,7 +659,11 @@ try {
     }
 
     if (!t || t === 'grocery') {
-      var items = $app.findRecordsByFilter('items', f, '-created', limit, 0, itemQueryParams);
+      var itemFilter = f;
+      if (status === 'done') itemFilter += ' && completed = true';
+      else if (status === 'todo') itemFilter += ' && completed = false';
+      else if (status === 'backlog') itemFilter += ' && id = ""';
+      var items = _fetchAccessiblePage3('items', itemFilter, itemQueryParams, null, queryLimit);
       for (var ii = 0; ii < items.length; ii++) {
         var ir = items[ii];
         results.push({
@@ -638,7 +680,8 @@ try {
       }
     }
 
-    return c.json(200, results);
+    var pagedResults = results.sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); }).slice(offset, offset + limit);
+    return c.json(200, pagedResults);
   } catch (e) {
     return c.json(500, { error: String(e) });
   }

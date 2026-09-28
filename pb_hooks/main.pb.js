@@ -297,15 +297,6 @@ routerAdd('POST', '/api/register', (c) => {
     if (!shouldBootstrap && !setupDone && !String(d.invite_code || '').trim()) {
       throw new BadRequestError('Registration requires a valid invite code once the first account exists.', {});
     }
-    // GH#15 — the very first account bootstraps a brand-new family and must be
-    // its admin. Agents can never hold admin/owner (see set_role's
-    // "Agents cannot be assigned admin or owner roles" guard below), so
-    // bootstrapping with user_type agent/family_assistant would strand the
-    // family with no admin and no UI path to create one. Require a human
-    // first; agents join afterwards via invite.
-    if (shouldBootstrap && memberType === 'agent') {
-      return c.json(400, { error: 'The first account must be a human user so the family has an admin. Register as a human first, then add agent accounts via invite.' });
-    }
     if (shouldBootstrap) {
       // ── First user / setup flow ──
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
@@ -413,21 +404,61 @@ try {
       return true;
     }
     var q = info.query || {};
-    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
-      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
-    });
-    var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
-      return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
-    });
-    var all = tasks.concat(items);
-    var t = (q.type||'').trim(), s = (q.status||'').trim(), a = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
-    var res = [];
-    for (var i=0;i<all.length;i++) { var e=all[i];
-      if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a && e.assignee_id!==a) continue;
-      if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
-      res.push(e);
+    function _pageParams(src){ var page=parseInt(String(src.page||'1'),10); if(isNaN(page)||page<1)page=1; var perPage=parseInt(String(src.perPage||src.per_page||src.limit||'100'),10); if(isNaN(perPage)||perPage<1)perPage=100; if(perPage>500)perPage=500; var offset=(page-1)*perPage; return {page:page,perPage:perPage,offset:offset,queryLimit:offset+perPage}; }
+    function _createdSort(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); }
+    // Post-fetch access predicates (_canAccessTask/_canRead) can drop rows that the
+    // DB-level filter already matched. A fixed LIMIT of offset+perPage combined with a
+    // fixed-offset slice would then silently skip legitimate records once any row ahead
+    // of the offset gets filtered out. Fetch adaptively: keep doubling the raw LIMIT
+    // until we have enough *accessible* rows to satisfy offset+perPage, the collection is
+    // exhausted, or a hard safety cap is hit (family-scoped, so generous is cheap).
+    var PAGE_FETCH_HARD_CAP = 5000;
+    function _fetchAccessiblePage(collection, filter, params, predicate, needCount) {
+      // Clamp the initial raw LIMIT to the hard safety cap so a deep page request
+      // (huge offset) can never drive an unbounded DB LIMIT; the loop below grows
+      // only from this bounded start.
+      var limit = Math.min(PAGE_FETCH_HARD_CAP, needCount);
+      var raw, filtered;
+      while (true) {
+        raw = $app.findRecordsByFilter(collection, filter, '-created', limit, 0, params);
+        filtered = predicate ? raw.filter(predicate) : raw;
+        if (filtered.length >= needCount || raw.length < limit || limit >= PAGE_FETCH_HARD_CAP) return filtered;
+        limit = Math.min(PAGE_FETCH_HARD_CAP, limit * 2);
+      }
     }
-    return c.json(200, res);
+    var pg = _pageParams(q);
+    var t = String(q.type||'').trim(), s = String(q.status||'').trim(), a = String(q.assignee_id||'').trim(), l = String(q.label||'').trim(), sh = String(q.shop_id||'').trim();
+    var familyId = String(auth.get('family_id') || '').trim();
+    var baseFilter = familyId ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var baseParams = familyId ? { familyId: familyId } : { userId: auth.id };
+    var tasks = [];
+    if (!t || t === 'task') {
+      var taskFilter = baseFilter;
+      var taskParams = {}; for (var tk in baseParams) taskParams[tk] = baseParams[tk];
+      if (s) { taskFilter += ' && status = {:status}'; taskParams.status = s; }
+      if (a) { taskFilter += ' && assigned_to = {:assigneeId}'; taskParams.assigneeId = a; }
+      if (l) { taskFilter += ' && (label ?= {:labelId} || labels ?= {:labelId})'; taskParams.labelId = l; }
+      tasks = _fetchAccessiblePage('tasks', taskFilter, taskParams, _canAccessTask, pg.queryLimit).map(function(r) {
+        return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
+      });
+    }
+    var items = [];
+    if (!t || t === 'grocery') {
+      var itemFilter = baseFilter;
+      var itemParams = {}; for (var ik in baseParams) itemParams[ik] = baseParams[ik];
+      if (s === 'done') itemFilter += ' && completed = true';
+      else if (s === 'todo') itemFilter += ' && completed = false';
+      else if (s === 'backlog') itemFilter += ' && id = ""';
+      else if (s) itemFilter += ' && id = ""';
+      if (a) { itemFilter += ' && assigned_to = {:assigneeId}'; itemParams.assigneeId = a; }
+      if (l) { itemFilter += ' && labels ?= {:labelId}'; itemParams.labelId = l; }
+      if (sh) { itemFilter += ' && shop_id = {:shopId}'; itemParams.shopId = sh; }
+      items = _fetchAccessiblePage('items', itemFilter, itemParams, _canRead, pg.queryLimit).map(function(r) {
+        return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
+      });
+    }
+    var merged = tasks.concat(items).sort(_createdSort).slice(pg.offset, pg.offset + pg.perPage);
+    return c.json(200, merged);
   } catch(e) { return c.json(400, { error: String(e) }); }
 });
 
@@ -488,22 +519,57 @@ try {
     function _isFamilyAdmin(user){ var r=String(user&&user.get('role')||''); return r==='admin'||r==='owner'; }
 
     if (action === 'list') {
-    var q = info.query || {};
-      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
-        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
-      });
-      var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
-        return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
-      });
-      var all = tasks.concat(items);
-      var t = (q.type||'').trim(), s = (q.status||'').trim(), a2 = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
-      var res = [];
-      for (var i=0;i<all.length;i++) { var e=all[i];
-        if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a2 && e.assignee_id!==a2) continue;
-        if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
-        res.push(e);
+      var q = info.query || {};
+      function _listParam(name, fallback){ var v = gv(d, name, undefined); if(v === undefined) v = gv(q, name, fallback); return v; }
+      function _pageParams(src){ var page=parseInt(String(src.page||'1'),10); if(isNaN(page)||page<1)page=1; var perPage=parseInt(String(src.perPage||src.per_page||src.limit||'100'),10); if(isNaN(perPage)||perPage<1)perPage=100; if(perPage>500)perPage=500; var offset=(page-1)*perPage; return {page:page,perPage:perPage,offset:offset,queryLimit:offset+perPage}; }
+      function _createdSort(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); }
+      var pg = _pageParams({ page:_listParam('page','1'), perPage:_listParam('perPage', _listParam('per_page', _listParam('limit','100'))) });
+      var t = String(_listParam('type','')).trim(), s = String(_listParam('status','')).trim(), a2 = String(_listParam('assignee_id','')).trim(), l = String(_listParam('label','')).trim(), sh = String(_listParam('shop_id','')).trim();
+      var familyId = String(auth.get('family_id') || '').trim();
+      var baseFilter = familyId ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+      var baseParams = familyId ? { familyId: familyId } : { userId: auth.id };
+      // See _fetchAccessiblePage note above (GET /api/entries): a fixed LIMIT + fixed-offset
+      // slice combined with a post-fetch access predicate can silently drop legitimate
+      // records. Fetch adaptively until enough accessible rows exist for this page.
+      var PAGE_FETCH_HARD_CAP2 = 5000;
+      function _fetchAccessiblePage2(collection, filter, params, predicate, needCount) {
+        var limit = Math.min(PAGE_FETCH_HARD_CAP2, needCount);
+        var raw, filtered;
+        while (true) {
+          raw = $app.findRecordsByFilter(collection, filter, '-created', limit, 0, params);
+          filtered = predicate ? raw.filter(predicate) : raw;
+          if (filtered.length >= needCount || raw.length < limit || limit >= PAGE_FETCH_HARD_CAP2) return filtered;
+          limit = Math.min(PAGE_FETCH_HARD_CAP2, limit * 2);
+        }
       }
-      return c.json(200, res);
+      var tasks = [];
+      if (!t || t === 'task') {
+        var taskFilter = baseFilter;
+        var taskParams = {}; for (var tk in baseParams) taskParams[tk] = baseParams[tk];
+        if (s) { taskFilter += ' && status = {:status}'; taskParams.status = s; }
+        if (a2) { taskFilter += ' && assigned_to = {:assigneeId}'; taskParams.assigneeId = a2; }
+        if (l) { taskFilter += ' && (label ?= {:labelId} || labels ?= {:labelId})'; taskParams.labelId = l; }
+        tasks = _fetchAccessiblePage2('tasks', taskFilter, taskParams, _canAccessTask, pg.queryLimit).map(function(r) {
+          return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+        });
+      }
+      var items = [];
+      if (!t || t === 'grocery') {
+        var itemFilter = baseFilter;
+        var itemParams = {}; for (var ik in baseParams) itemParams[ik] = baseParams[ik];
+        if (s === 'done') itemFilter += ' && completed = true';
+        else if (s === 'todo') itemFilter += ' && completed = false';
+        else if (s === 'backlog') itemFilter += ' && id = ""';
+        else if (s) itemFilter += ' && id = ""';
+        if (a2) { itemFilter += ' && assigned_to = {:assigneeId}'; itemParams.assigneeId = a2; }
+        if (l) { itemFilter += ' && labels ?= {:labelId}'; itemParams.labelId = l; }
+        if (sh) { itemFilter += ' && shop_id = {:shopId}'; itemParams.shopId = sh; }
+        items = _fetchAccessiblePage2('items', itemFilter, itemParams, _canAccess, pg.queryLimit).map(function(r) {
+          return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+        });
+      }
+      var merged = tasks.concat(items).sort(_createdSort).slice(pg.offset, pg.offset + pg.perPage);
+      return c.json(200, merged);
     }
 
     if (action === 'create') {

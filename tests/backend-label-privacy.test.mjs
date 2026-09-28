@@ -165,7 +165,7 @@ test('active user and agent APIs enforce label visibility and dual-write canonic
   assert.match(agents, /\$security\.sha256\(rawKey\)/)
   assert.match(agents, /\$security\.equal\(storedHash, \$security\.sha256\(token\)\)/)
   assert.match(agents, /status = \{:status\}/)
-  assert.doesNotMatch(agents, /status = \\\"' \+ status/)
+  assert.doesNotMatch(agents, /status = \\"' \+ status/)
   assert.match(agents, /findRecordsByFilter\('tasks', taskFilter, '-created', [^\n]+, queryParams\)/)
   assert.match(agents, /setCanonicalTaskLabels\(rec,/)
   assert.match(agents, /canAccessTaskForUser\(rec, ownerUser\)/)
@@ -309,4 +309,48 @@ test('every auto-loaded PocketBase hook uses PB 0.35 route and crypto APIs', () 
     assert.doesNotMatch(source, /\$request\.|\$env\.|new Fetch\(|RecordUpsertAction/, `${name} uses a removed PocketBase hook API`)
     assert.doesNotMatch(source, /findRecordsByFilter\([\s\S]{0,220}?,\s*0\s*,\s*0(?:\s*[,\)])/, `${name} uses a zero record limit`)
   }
+})
+
+
+test('GH28 entry list routes push family filters into DB and use bounded, drop-safe pagination', () => {
+  const main = read('pb_hooks/main.pb.js')
+  const agents = read('pb_hooks/05_agents_routes.pb.js')
+
+  assert.doesNotMatch(main, /findRecordsByFilter\('tasks',\s*'',\s*'-created',\s*10000,\s*0\)/)
+  assert.doesNotMatch(main, /findRecordsByFilter\('items',\s*'',\s*'-created',\s*10000,\s*0\)/)
+  assert.match(main, /user\.family_id = \{:familyId\}/)
+  assert.match(main, /user = \{:userId\}/)
+  assert.match(main, /if\(perPage>500\)perPage=500/)
+  assert.match(main, /status = \{:status\}/)
+  assert.match(main, /assigned_to = \{:assigneeId\}/)
+  assert.match(main, /label \?= \{:labelId\}/)
+  assert.match(main, /shop_id = \{:shopId\}/)
+  assert.equal((main.match(/s === 'backlog'\) itemFilter \+= ' && id = ""'/g) || []).length, 2)
+  // Post-fetch access predicates (_canAccessTask/_canRead) can drop DB-matched rows;
+  // a naive fixed-LIMIT + fixed-offset slice would then silently skip legitimate
+  // records. Both /api/entries and /api/v1 list must fetch adaptively (retry with a
+  // larger raw LIMIT until enough *accessible* rows exist) instead of taking a single
+  // fixed-size slice straight off the raw DB result.
+  assert.match(main, /function _fetchAccessiblePage\(collection, filter, params, predicate, needCount\)/)
+  assert.match(main, /function _fetchAccessiblePage2\(collection, filter, params, predicate, needCount\)/)
+  assert.match(main, /_fetchAccessiblePage\('tasks', taskFilter, taskParams, _canAccessTask, pg\.queryLimit\)/)
+  assert.match(main, /_fetchAccessiblePage\('items', itemFilter, itemParams, _canRead, pg\.queryLimit\)/)
+  assert.match(main, /_fetchAccessiblePage2\('tasks', taskFilter, taskParams, _canAccessTask, pg\.queryLimit\)/)
+  assert.match(main, /_fetchAccessiblePage2\('items', itemFilter, itemParams, _canAccess, pg\.queryLimit\)/)
+  assert.doesNotMatch(main, /findRecordsByFilter\('tasks', taskFilter, '-created', pg\.queryLimit, 0, taskParams\)\.filter/)
+  assert.doesNotMatch(main, /findRecordsByFilter\('items', itemFilter, '-created', pg\.queryLimit, 0, itemParams\)\.filter/)
+
+  assert.doesNotMatch(agents, /findRecordsByFilter\('tasks',[\s\S]{0,120}'-created',\s*10000,\s*0/)
+  assert.doesNotMatch(agents, /findRecordsByFilter\('items',[\s\S]{0,120}'-created',\s*10000,\s*0/)
+  assert.match(agents, /if \(perPage > 500\) perPage = 500/)
+  assert.match(agents, /if \(limit > 500\) limit = 500/)
+  assert.match(agents, /var offset = \(page - 1\) \* limit/)
+  assert.match(agents, /function _fetchAccessiblePage\(collection, filter, params, predicate, needCount\)/)
+  assert.match(agents, /function _fetchAccessiblePage3\(collection, filter, params, predicate, needCount\)/)
+  assert.match(agents, /_fetchAccessiblePage\('tasks', taskFilter, queryParams, function\(tr\)\{ return canAccessTaskForUser\(tr, ownerUser\); \}, pg\.queryLimit\)/)
+  assert.match(agents, /_fetchAccessiblePage\('items', itemFilter, itemQueryParams, null, pg\.queryLimit\)/)
+  assert.match(agents, /_fetchAccessiblePage3\('tasks', taskFilter, queryParams, function\(tr\)\{ return canAccessTaskForUser\(tr, ownerUser\); \}, queryLimit\)/)
+  assert.match(agents, /_fetchAccessiblePage3\('items', itemFilter, itemQueryParams, null, queryLimit\)/)
+  // The old "fetch LIMIT then .filter()/continue-skip then fixed slice" pattern must be gone.
+  assert.doesNotMatch(agents, /if \(!canAccessTaskForUser\(tr, ownerUser\)\) continue;/)
 })
