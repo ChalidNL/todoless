@@ -145,68 +145,6 @@ routerAdd('GET', '/api/version', (c) => {
   });
 });
 
-// ── Validation: create + immediate re-query (canonical path verification) ──
-routerAdd('POST', '/api/validate-create', function(c) {
-  try {
-    var info = c.requestInfo();
-    var body = info.body || {};
-    var type = String(body.type || 'task').trim();
-    var title = String(body.title || '').trim();
-    if (!title) return c.json(400, { error: 'title required' });
-
-    var auth = info.auth || c.get('authRecord');
-    if (!auth) return c.json(401, { error: 'Unauthorized' });
-
-    var collName = type === 'grocery' ? 'items' : 'tasks';
-    var coll = $app.findCollectionByNameOrId(collName);
-    var rec = new Record(coll);
-
-    rec.set('title', title);
-    rec.set('user', auth.id);
-
-    if (type === 'grocery') {
-      rec.set('completed', false);
-      rec.set('quantity', Number(body.quantity) || 1);
-      if (body.shop_id) rec.set('shop_id', body.shop_id);
-    } else {
-      rec.set('status', String(body.status || 'todo'));
-      rec.set('flag', false);
-      rec.set('is_private', false);
-    }
-
-    if (body.labels && Array.isArray(body.labels)) { rec.set('labels', body.labels); rec.set('label', body.labels); }
-    if (body.assigned_to) rec.set('assigned_to', body.assigned_to);
-    if (body.due_date) rec.set('due_date', body.due_date);
-    if (body.priority) rec.set('priority', body.priority);
-
-    $app.save(rec);
-
-    // ── Validation: immediately re-query as the same user ──
-    var verify = $app.findRecordById(collName, rec.id);
-    if (!verify) return c.json(500, { error: 'VALIDATION FAILED: record not found after save' });
-
-    var fid = String(auth.get('family_id') || '');
-    if (fid) {
-      var familyResults = $app.findRecordsByFilter(collName, 'user.family_id = {:familyId} && id = {:recordId}', '', 1, 0, { familyId: fid, recordId: rec.id });
-      if (familyResults.length === 0) {
-        return c.json(500, { error: 'VALIDATION FAILED: record not queryable by family ' + fid });
-      }
-    }
-
-    return c.json(201, {
-      ok: true,
-      id: rec.id,
-      type: type,
-      title: String(verify.get('title') || ''),
-      created: String(verify.get('created') || ''),
-      validated: true,
-      queriable_by_family: true
-    });
-  } catch(e) {
-    return c.json(500, { error: String(e) });
-  }
-});
-
 // ─── Routes loaded from pb_hooks/routes/ ──
 // Note: routes/openapi.js registers GET /api/openapi.json (inline spec)
 // Note: routes/docs.js registers GET /api/docs + /api/swagger (Swagger UI HTML)

@@ -78,9 +78,11 @@ test('request logger records 4xx statuses (unauthenticated + bad input)', async 
   assert.equal(noAuth.status, 401)
 
   // Custom-route 400 — also a warn line, and the response body must be intact.
-  const badInput = await api('POST', '/api/validate-create', { body: {} })
+  // (GH#26 removed the debug /api/validate-create endpoint; /api/validate-invite
+  // without a code is the auth-free custom-route 400 used instead.)
+  const badInput = await api('GET', '/api/validate-invite')
   assert.equal(badInput.status, 400)
-  assert.equal(badInput.data?.error, 'title required')
+  assert.equal(badInput.data?.message, 'code required')
 })
 
 // --- 1. setup-status (fresh boot has no users) -----------------------
