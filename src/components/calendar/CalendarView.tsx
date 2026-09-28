@@ -10,6 +10,7 @@ import { TaskCard } from '../shared/TaskCard';
 import type { Task } from '../../types';
 import {
   addDays,
+  addMonths,
   buildCalendarItems,
   endOfLocalDay,
   getDefaultCalendarView,
@@ -100,7 +101,7 @@ export function CalendarView() {
   };
 
   const jump = (delta: number) => {
-    if (mode === 'month') return setAnchor(addDays(anchor, delta * 28));
+    if (mode === 'month') return setAnchor(addMonths(anchor, delta));
     if (mode === 'schedule') return setAnchor(addDays(anchor, delta * 7));
     if (mode === 'week' || mode === 'workweek') return setAnchor(addDays(anchor, delta * 7));
     if (mode === '3days') return setAnchor(addDays(anchor, delta * 3));
