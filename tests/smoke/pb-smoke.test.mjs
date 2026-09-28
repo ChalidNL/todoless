@@ -72,6 +72,21 @@ test('request logger records 4xx statuses (unauthenticated + bad input)', async 
   assert.equal(badInput.data?.error, 'title required')
 })
 
+// --- 0c. GH#36: direct user creation stays closed after all migrations ------
+// users.createRule must be null (locked) when the full migration chain has
+// applied: an anonymous POST to the native users API must be forbidden. If a
+// migration or its down()-rollback restores '' (public), this returns 4xx
+// validation instead of 403 and the guard fails.
+test('anonymous direct create on users collection is forbidden (createRule = null) [GH#36]', async () => {
+  const r = await api('POST', '/api/collections/users/records', {
+    body: {
+      email: 'intruder@smoke.test', password: 'password123', passwordConfirm: 'password123',
+      name: 'Intruder', family_name: 'Nope', user_type: 'family_member', language: 'en',
+    },
+  })
+  assert.equal(r.status, 403, 'direct user creation must be blocked (createRule = null)')
+})
+
 // --- 1. setup-status (fresh boot has no users) -----------------------
 test('setup-status reports a fresh instance', async () => {
   const r = await api('GET', '/api/setup-status')
