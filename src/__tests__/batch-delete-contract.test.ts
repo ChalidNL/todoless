@@ -36,6 +36,13 @@ describe('GH#87 — batch delete of completed tasks', () => {
       expect(hook).toContain('Payload too large: max 500 tasks per batch');
       expect(hook).toMatch(/\$app\.delete\(records\[\w+\]\)/);
     });
+
+    it('documents the route in the served OpenAPI spec (GH#65 parity gate)', () => {
+      const openapi = repoFile('pb_hooks/10_openapi.pb.js');
+      expect(openapi).toContain('"/v1/tasks/batch-delete"');
+      expect(openapi).toContain('summary: "Batch delete tasks"');
+      expect(openapi).toContain('"413": { description: "Payload too large: max 500 tasks per batch" }');
+    });
   });
 
   describe('client behavior', () => {
