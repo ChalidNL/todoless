@@ -14,12 +14,19 @@
 //   - companion register   -> GH#8  (t_gh41a39209)
 //   - block enforcement    -> follow-up (t_318f2396)
 //   - ICS VEVENT for tasks -> GH#12 (t_gh246847d0)
-//   - OpenAPI path parity  -> GH#65 (t_ghcaa58e6a)
+//
+// GH#65 OpenAPI parity gate (active, not todo):
+//   - every documented path (from /api/openapi.json) must be registered by a
+//     routerAdd() in pb_hooks/*.pb.js or by PocketBase-native collection CRUD
+//   - every hook-registered route must be documented (vice versa)
+//   - every documented path must answer on the live server with its documented
+//     method (probe; 404 = missing route)
 //
 // Env: PB_URL (default http://127.0.0.1:8090)
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
 const BASE = process.env.PB_URL || 'http://127.0.0.1:8090'
 
@@ -284,7 +291,83 @@ test('companion device registration succeeds', { todo: 'companion 500 ReferenceE
   assert.ok(r.status === 201 || r.status === 200, `expected 2xx, got ${r.status}`)
 })
 
-// --- 11. OpenAPI paths vs registered routes ----------------------------
+// --- 11. OpenAPI paths vs registered routes (GH#65 parity gate) --------
+// The documented spec (GET /api/openapi.json) must match the routes that are
+// actually registered by the repo's hooks. Two independent sources of truth:
+//   1. Hook registry: routes exported by the hooks (routerAdd/routerGet/... in
+//      the auto-loaded pb_hooks/*.pb.js files) plus PocketBase-native CRUD
+//      (the spec deliberately documents the generic /collections/{collection}
+//      /records surface) — every documented path must be registered and every
+//      hook-registered route must be documented (vice versa).
+//   2. Live probe: every documented path must ANSWER on the live server (any
+//      status except 404 proves the route pattern exists; 404 means the route
+//      is NOT registered). Placeholder params probe the route pattern, not a
+//      specific record; PB-native {collection}/records/{id} is probed via its
+//      parent list route because a missing record id legitimately 404s.
+// This gate catches the historical drift where the spec documented a
+// fictitious /todoless/* tree that 404'd on every operation (DEF-API-001).
+
+// PocketBase auto-registers these native collection CRUD routes (not via hooks),
+// with these HTTP methods (PB 0.35 core API).
+const PB_NATIVE_METHODS = {
+  '/api/collections/{collection}/records': ['get', 'post'],
+  '/api/collections/{collection}/records/{id}': ['get', 'patch', 'delete'],
+}
+const PB_NATIVE_PATHS = Object.keys(PB_NATIVE_METHODS)
+
+// HTTP methods the parity gate tracks. routerAdd accepts arbitrary method tokens;
+// 'ANY' is a router helper for all standard methods, not a real HTTP method.
+const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options'])
+
+// Normalize a route path for comparison: PB echo uses :param and {param} forms.
+function normPath(p) {
+  return p.replace(/:([A-Za-z_][A-Za-z0-9_]*)/g, '{$1}')
+}
+
+// Routes registered by the repo's hooks: scan the auto-loaded pb_hooks/*.pb.js
+// files (PocketBase loads exactly these — top-level *.pb.js — nothing else) for
+// routerAdd('METHOD','/path'), routerGet('/path'), routerPost('/path'), etc.
+// Returns Map<full path, Set<http method>>.
+function hookRegistered() {
+  const hooksDir = fileURLToPath(new URL('../../pb_hooks', import.meta.url))
+  const routes = new Map()
+  const reAdd = /routerAdd\(\s*['"]([A-Za-z]+)['"]\s*,\s*['"]([^'"]+)['"]/g
+  const reVerb = /router(Get|Post|Put|Patch|Delete|Any|Head|Options)\(\s*['"]([^'"]+)['"]/g
+  for (const f of readdirSync(hooksDir).filter((f) => f.endsWith('.pb.js'))) {
+    const src = readFileSync(new URL(`../../pb_hooks/${f}`, import.meta.url), 'utf8')
+    let m
+    while ((m = reAdd.exec(src))) {
+      const method = m[1].toLowerCase()
+      if (!HTTP_METHODS.has(method)) continue
+      const path = normPath(m[2])
+      if (!routes.has(path)) routes.set(path, new Set())
+      routes.get(path).add(method)
+    }
+    while ((m = reVerb.exec(src))) {
+      const method = m[1].toLowerCase()
+      if (!HTTP_METHODS.has(method)) continue
+      const path = normPath(m[2])
+      if (!routes.has(path)) routes.set(path, new Set())
+      routes.get(path).add(method)
+    }
+  }
+  return routes
+}
+
+// Resolve a documented spec path to the absolute URL path the server serves it
+// at, using the spec's first server URL as the base (e.g. "/api").
+function resolveSpecPath(spec, p) {
+  const base = spec.servers?.[0]?.url?.replace(/\/+$/, '') || '/api'
+  return normPath((base.startsWith('http') ? new URL(base).pathname.replace(/\/+$/, '') : base) + p)
+}
+
+// Build a URL that hits the documented route pattern rather than a specific
+// record: path params become placeholder values ({collection} -> a real
+// collection so PB-native list routes answer).
+function probeUrlFor(full) {
+  return full.replace(/\{collection\}/g, 'tasks').replace(/\{[^}]+?\}/g, '__probe__')
+}
+
 test('openapi.json serves a valid spec with paths', async () => {
   const r = await api('GET', '/api/openapi.json')
   assert.equal(r.status, 200)
@@ -292,7 +375,87 @@ test('openapi.json serves a valid spec with paths', async () => {
   assert.ok(r.data?.paths && Object.keys(r.data.paths).length > 0, 'expected documented paths')
 })
 
-// --- 12. Docs page is fully vendored (GH#64) --------------------------------
+test('every documented OpenAPI path is registered (GH#65)', async () => {
+  const r = await api('GET', '/api/openapi.json')
+  assert.equal(r.status, 200)
+  const spec = r.data
+  const paths = Object.keys(spec?.paths || {})
+  assert.ok(paths.length > 0, 'expected documented paths')
+
+  // Static: every documented path must be registered by a hook or by PB-native
+  // collection CRUD, and every documented method must be registered for it.
+  const registered = hookRegistered()
+  const missing = []        // path not registered at all
+  const missingMethod = []  // path registered, but a documented method is not
+  for (const p of paths) {
+    const full = resolveSpecPath(spec, p)
+    const methods = Object.keys(spec.paths[p]).filter((k) => HTTP_METHODS.has(k.toLowerCase()))
+    const nativeMethods = PB_NATIVE_METHODS[full]
+    const hookMethods = registered.get(full)
+    if (!nativeMethods && !hookMethods) {
+      missing.push(`${p} (served at ${full})`)
+      continue
+    }
+    const registeredMethods = nativeMethods || [...hookMethods]
+    for (const k of methods) {
+      if (!registeredMethods.includes(k.toLowerCase())) {
+        missingMethod.push(`${k.toUpperCase()} ${full} — hook registers: ${(hookMethods ? [...hookMethods].sort().join(',') : 'PB-native only')}`)
+      }
+    }
+  }
+  assert.deepEqual(missing, [], 'documented OpenAPI paths that are NOT registered (missing from hooks or PB-native CRUD)')
+  assert.deepEqual(missingMethod, [], 'documented OpenAPI methods that are NOT registered for an existing path')
+
+  // Live probe: every documented method of every documented path must ANSWER on
+  // the live server. Any status except 404 proves the route pattern exists
+  // (401/400/500 still mean "registered"); 404 means the route is NOT there.
+  const failures = []
+  for (const p of paths) {
+    const full = resolveSpecPath(spec, p)
+    const methods = Object.keys(spec.paths[p]).filter((k) => HTTP_METHODS.has(k.toLowerCase()))
+    for (const k of methods) {
+      const method = k.toUpperCase()
+      let url = probeUrlFor(full)
+      // PB-native item route: probe the parent list route (a missing record id
+      // legitimately 404s regardless of whether the route is registered).
+      if (full === '/api/collections/{collection}/records/{id}') {
+        if (method !== 'GET') continue
+        url = '/api/collections/tasks/records'
+      }
+      const res = await fetch(BASE + url, { method, headers: { Accept: '*/*' } })
+      if (res.status === 404) failures.push(`${method} ${url} -> 404`)
+    }
+  }
+  assert.deepEqual(failures, [], 'documented OpenAPI paths/methods that answered 404 on the live server')
+})
+
+test('every hook-registered route is documented (GH#65, vice versa)', async () => {
+  const r = await api('GET', '/api/openapi.json')
+  assert.equal(r.status, 200)
+  const documented = new Map()
+  for (const [p, item] of Object.entries(r.data?.paths || {})) {
+    documented.set(
+      resolveSpecPath(r.data, p),
+      new Set(Object.keys(item).filter((k) => HTTP_METHODS.has(k.toLowerCase())).map((k) => k.toLowerCase())),
+    )
+  }
+  const registered = hookRegistered()
+  const missingPath = []    // hook route not documented at all
+  const missingMethod = []  // hook route documented, but a hook method is not
+  for (const [rp, methods] of registered) {
+    if (PB_NATIVE_METHODS[rp]) continue // PB-native generic surface is not a hook route
+    const docMethods = documented.get(rp)
+    if (!docMethods) {
+      missingPath.push(rp)
+      continue
+    }
+    for (const meth of methods) {
+      if (!docMethods.has(meth)) missingMethod.push(`${meth.toUpperCase()} ${rp}`)
+    }
+  }
+  assert.deepEqual(missingPath, [], 'hook-registered routes that are NOT documented in /api/openapi.json')
+  assert.deepEqual(missingMethod, [], 'hook-registered methods that are NOT documented for an existing path')
+})
 test('docs page (GET /api/docs) references only vendored swagger-ui assets', async () => {
   const r = await api('GET', '/api/docs')
   assert.equal(r.status, 200)
@@ -320,15 +483,4 @@ test('vendored swagger-ui-init.js is self-contained and external-call-free (GH#6
   assert.ok(init.includes('validatorUrl: null'), 'expected validatorUrl: null to disable external validation')
   const externalUrls = init.match(/https?:\/\//g) || []
   assert.equal(externalUrls.length, 0, `init must contain no external URLs (found ${externalUrls.length})`)
-})
-
-test('every documented OpenAPI path is registered on the live server', { todo: 'OpenAPI path parity — GH#65 (t_ghcaa58e6a)' }, async () => {
-  const r = await api('GET', '/api/openapi.json')
-  assert.equal(r.status, 200)
-  const paths = Object.keys(r.data?.paths || {})
-  assert.ok(paths.length > 0, 'expected documented paths')
-  for (const p of paths.slice(0, 20)) {
-    const res = await fetch(BASE + p, { method: 'GET', headers: { Authorization: `Bearer ${adminToken}` } })
-    assert.notEqual(res.status, 404, `documented path ${p} must be registered (got ${res.status})`)
-  }
 })
