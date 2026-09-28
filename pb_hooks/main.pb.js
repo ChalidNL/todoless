@@ -38,17 +38,6 @@
     var auth = info && info.auth ? info.auth : null;
     if (auth) rec.set('user', auth.id);
   }
-  // Auto-set family_id from user
-  if (!rec.get('family_id') || rec.get('family_id') === '') {
-    var uid = rec.get('user');
-    if (uid) {
-      try {
-        var u = $app.findRecordById('users', uid);
-        var fid = u.get('family_id');
-        if (fid) rec.set('family_id', fid);
-      } catch(ex) { /* user may not exist yet */ }
-    }
-  }
   // Subtask_ids from request data
   if (info) {
     try {
@@ -75,17 +64,6 @@ onRecordCreate('items', (e) => {
   if (!rec.get('user')) {
     var auth = info && info.auth ? info.auth : null;
     if (auth) rec.set('user', auth.id);
-  }
-  // Auto-set family_id from user
-  if (!rec.get('family_id') || rec.get('family_id') === '') {
-    var uid = rec.get('user');
-    if (uid) {
-      try {
-        var u = $app.findRecordById('users', uid);
-        var fid = u.get('family_id');
-        if (fid) rec.set('family_id', fid);
-      } catch(ex) { /* ignore */ }
-    }
   }
 });
 
@@ -536,13 +514,11 @@ try {
       var title = String(gv(d,'title','')).trim();
       var type = String(gv(d,'type','task')).trim();
       if (!title) return c.json(400, { error: 'title required' });
-      var fid = String(auth.get('family_id') || '').trim();
 
       if (type === 'task') {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('title', title);
         rec.set('user', auth.id);
-        if (fid) rec.set('family_id', fid);
         var s2 = String(gv(d,'status','todo')).trim();
         if (s2) rec.set('status', s2);
         var desc = String(gv(d,'description','')).trim();
@@ -580,7 +556,6 @@ try {
         rec = new Record($app.findCollectionByNameOrId('items'));
         rec.set('title', title);
         rec.set('user', auth.id);
-        if (fid) rec.set('family_id', fid);
         var qty = Number(gv(d,'quantity','1'));
         if (!isNaN(qty) && qty > 0) rec.set('quantity', qty);
         var shop = String(gv(d,'shop_id','')).trim();
