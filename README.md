@@ -156,9 +156,12 @@ docker compose up -d
 PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless/releases) for breaking changes before updating.
 
 ### Backups
-Your data lives in a single PocketBase directory. Back it up:
+
+PocketBase's built-in backup is enabled by default: it creates a **consistent zip snapshot every day at 02:00** (server time) and **keeps the last 7 backups**. Backups live in `pb_data/backups` (on the host: `/DATA/AppData/todoless/pb_data/backups`) and include the database plus all uploaded files. Download or restore them under **Settings → Backups** in the admin dashboard — you can also change the schedule/retention or mirror backups to S3-compatible storage there.
+
+> ⚠️ **Never copy the database while the app is running.** PocketBase uses SQLite in WAL mode: while the app is up there is a `data.db-wal` file holding the most recent writes, so copying `data.db` alone silently loses the last transactions. Use the built-in backup above (transaction-safe, runs while the app is up) or the offline recipe below (stopping PocketBase checkpoints the WAL first):
 ```bash
-# Stop PocketBase first for a clean backup
+# Manual alternative: stop PocketBase first for a clean copy
 docker compose stop pocketbase
 sudo cp -r /DATA/AppData/todoless/pb_data /backup/pb_data-$(date +%Y%m%d)
 docker compose start pocketbase
