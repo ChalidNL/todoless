@@ -420,6 +420,16 @@ test('deleting a member preserves family-visible records and blocks native user 
 })
 
 // --- 7. Complete a recurring task -------------------------------------
+// GH#7 (t_gh3654983b): completing a task with repeat_interval must create the
+// next occurrence immediately via pb_hooks/17_recurring.pb.js (onRecordAfter-
+// UpdateSuccess). The legacy hourly cron was never loaded, so before the fix
+// NO next occurrence was ever created.
+async function recurringOccurrences(title) {
+  const r = await api('GET', '/api/collections/tasks/records?perPage=200', { token: adminToken })
+  assert.equal(r.status, 200)
+  return (r.data?.items || []).filter((t) => t.title === title)
+}
+
 test('recurring task can be created and completed (api/v1 complete)', async () => {
   const rec = await api('POST', '/api/collections/tasks/records', {
     token: adminToken,
@@ -437,7 +447,54 @@ test('recurring task can be created and completed (api/v1 complete)', async () =
   const after = await api('GET', `/api/collections/tasks/records/${rec.data?.id}`, { token: adminToken })
   assert.equal(after.data?.status, 'done')
   assert.equal(after.data?.repeat_interval, 'day', 'repeat_interval must survive completion')
-  // NOTE: generating the NEXT occurrence is an (unimplemented) hourly-cron job — see GH#7.
+})
+
+test('completing a recurring task creates exactly one next occurrence (GH#7)', async () => {
+  const before = await recurringOccurrences('Smoke recurring task')
+  const doneOnes = before.filter((t) => t.status === 'done')
+  assert.equal(doneOnes.length, 1, 'expected the single completed recurring task')
+
+  // The completed 'Smoke recurring task' (daily, no due date) must have left a
+  // follow-up: the same title, status todo, repeat_interval preserved, and a
+  // due_date one day after its completed_at.
+  const next = before.filter((t) => t.status !== 'done')
+  assert.equal(
+    next.length,
+    1,
+    `expected exactly one next occurrence, got ${next.length}: ${JSON.stringify(before.map((t) => ({ id: t.id, status: t.status, due_date: t.due_date })))}`,
+  )
+  assert.equal(next[0].repeat_interval, 'day', 'next occurrence must keep the repeat interval')
+  const doneAt = new Date(doneOnes[0].completed_at || doneOnes[0].updated).getTime()
+  const expectedNext = new Date(doneAt)
+  expectedNext.setUTCDate(expectedNext.getUTCDate() + 1)
+  assert.equal(
+    new Date(next[0].due_date).toISOString(),
+    expectedNext.toISOString(),
+    'next occurrence must be due exactly one day after completion',
+  )
+})
+
+test('editing a done recurring task does not create a duplicate occurrence (GH#7)', async () => {
+  const before = await recurringOccurrences('Smoke recurring task')
+  const doneOne = before.find((t) => t.status === 'done')
+  assert.ok(doneOne, 'expected the completed recurring task to still exist')
+
+  // Touch the done task (comment edit) — the after-update hook must NOT treat
+  // this as a new completion (original().status is already 'done').
+  const touch = await api('PATCH', `/api/collections/tasks/records/${doneOne.id}`, {
+    token: adminToken,
+    body: { blocked_comment: 'edited while done' },
+  })
+  assert.equal(touch.status, 200)
+
+  const after = await recurringOccurrences('Smoke recurring task')
+  const open = after.filter((t) => t.status !== 'done')
+  assert.equal(
+    open.length,
+    1,
+    `editing a done recurring task must not spawn duplicates (open occurrences: ${open.length})`,
+  )
+  assert.equal(open[0].blocked_comment ?? '', '', 'the next occurrence must not inherit the edit')
 })
 
 // --- 7b. /api/v1 update action -----------------------------------------

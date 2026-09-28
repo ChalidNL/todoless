@@ -12,6 +12,7 @@ import { entityColor } from '../../lib/entity-colors';
 import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
 import { TaskMetaRow } from './TaskMetaRow';
 import { TaskActionBar } from './TaskActionBar';
+import { RepeatNextPreview } from './RepeatNextPreview';
 
 // Local subtask icon (still used by inline editor)
 const SubtaskIcon = ({ className }: { className?: string }) => (
@@ -767,6 +768,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       ))}
                     </select>
                   </div>
+                  <RepeatNextPreview repeatInterval={task.repeatInterval} dueDate={task.dueDate} />
                 </div>
               )}
 
