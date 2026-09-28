@@ -402,6 +402,10 @@ try {
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord');
     if (!auth) return c.json(401, { error: 'Unauthorized' });
+    var memberStatus = '';
+    try { memberStatus = String(auth.get('member_status') || ''); } catch (e) {}
+    if (memberStatus === 'blocked') return c.json(403, { error: 'Account is blocked' });
+    if (memberStatus === 'pending_approval') return c.json(403, { error: 'Account is pending approval' });
     var tokInfo = c.get('apiTokenInfo');
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
     if (!_hasPerm('entries:read') && !_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
@@ -467,6 +471,13 @@ try {
     if (needsAuth.indexOf(action) >= 0) {
       auth = info.auth || c.get('authRecord');
       if (!auth) return c.json(401, { error: 'Unauthorized' });
+      // GH#98 follow-up: member_status must be enforced on read/write paths, not
+      // only on the companion endpoints. A blocked or pending-approval account
+      // must not use the unified API even with a still-valid auth token.
+      var ms = '';
+      try { ms = String(auth.get('member_status') || ''); } catch (e) {}
+      if (ms === 'blocked') return c.json(403, { error: 'Account is blocked' });
+      if (ms === 'pending_approval') return c.json(403, { error: 'Account is pending approval' });
     }
 
     var gv = function(o,k,f) { if(f===undefined)f='';if(!o)return f;if(Object.prototype.hasOwnProperty.call(o,k)){var v=o[k];return(v===undefined||v===null)?f:v;}return f; };
