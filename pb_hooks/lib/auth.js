@@ -211,12 +211,11 @@ function isAdminLike(user) {
 
 function throttleLastUsedAt(record) {
   try {
+    // GH#11: empty PB date fields are truthy DateTime zero objects, so bare
+    // truthiness (`if (lastUsedRaw)`) is dead code. Use hasDateValue().
+    var dates = require(__hooks + '/lib/dates.js');
     var lastUsedRaw = record.get('last_used_at');
-    var lastUsedMs = 0;
-    if (lastUsedRaw) {
-      var lastUsedDate = new Date(String(lastUsedRaw).replace(' ', 'T'));
-      if (!isNaN(lastUsedDate.getTime())) lastUsedMs = lastUsedDate.getTime();
-    }
+    var lastUsedMs = dates.hasDateValue(lastUsedRaw) ? dates.toMs(lastUsedRaw) : 0;
     if (!lastUsedMs || (Date.now() - lastUsedMs) >= 60000) {
       record.set('last_used_at', new Date().toISOString());
       $app.save(record);

@@ -112,7 +112,7 @@ try {
         key_prefix: r.get('key_prefix'),
         scopes: r.get('permissions') || r.get('scopes') || [],
         active: !!r.get('active'),
-        last_used_at: r.get('last_used_at') || null,
+        last_used_at: dates.dateOrNull(r.get('last_used_at')),
         expires_at: dates.dateOrNull(r.get('expires_at')),
         created: r.created,
       });
