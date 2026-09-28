@@ -57,6 +57,19 @@ describe('copyTextToClipboard', () => {
     expect(result).toBe(false);
   });
 
+  it('cleans up the fallback textarea even when execCommand throws', async () => {
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: vi.fn(() => {
+      throw new Error('execCommand unavailable');
+    }) });
+    const removeSpy = vi.spyOn(document.body, 'removeChild');
+
+    const result = await copyTextToClipboard('https://example.test/register?invite=ABC');
+
+    expect(result).toBe(false);
+    expect(removeSpy).toHaveBeenCalled();
+    expect(document.body.querySelector('textarea')).toBeNull();
+  });
+
   it('returns false when the Clipboard API rejects', async () => {
     Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true });
     const writeText = vi.fn().mockRejectedValue(new Error('NotAllowedError'));
