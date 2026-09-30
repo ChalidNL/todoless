@@ -95,7 +95,7 @@ describe('UnifiedCard grocery item quantity floor', () => {
 
     render(<UnifiedCard entity={{ ...baseItem, quantity: 1 }} type="item" />);
 
-    const decreaseButton = screen.getByRole('button', { name: 'items.decreaseQuantity' });
+    const decreaseButton = screen.getByRole('button', { name: 'Decrease quantity' });
     expect(decreaseButton).toBeDisabled();
 
     fireEvent.click(decreaseButton);
@@ -108,7 +108,7 @@ describe('UnifiedCard grocery item quantity floor', () => {
 
     render(<UnifiedCard entity={{ ...baseItem, quantity: 2 }} type="item" />);
 
-    const decreaseButton = screen.getByRole('button', { name: 'items.decreaseQuantity' });
+    const decreaseButton = screen.getByRole('button', { name: 'Decrease quantity' });
     fireEvent.click(decreaseButton);
 
     expect(updateItem).toHaveBeenCalledWith('item-1', { quantity: 1 });
@@ -121,7 +121,7 @@ describe('UnifiedCard grocery item quantity floor', () => {
 
     render(<UnifiedCard entity={{ ...baseItem, quantity: 1 }} type="item" />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'items.increaseQuantity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Increase quantity' }));
 
     expect(updateItem).toHaveBeenCalledWith('item-1', { quantity: 2 });
   });

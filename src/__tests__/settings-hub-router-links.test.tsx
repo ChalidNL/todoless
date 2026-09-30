@@ -97,11 +97,13 @@ describe('settings hub navigation (GH#74)', () => {
     expect(screen.getByText('MEMBERS_ROUTE')).toBeInTheDocument();
   });
 
-  it('keeps the external integration entry a real anchor opened in a new tab', () => {
+  it('keeps the documentation entry a real anchor opened in a new tab (GH#74)', () => {
     renderSettingsHub();
 
-    const external = screen.getByRole('link', { name: /Integration/ });
-    expect(external).toHaveAttribute('href', '/api/swagger');
+    // GH#80: Integrations (swagger) row was intentionally removed from the hub;
+    // the settings.documentation row is now the external entry.
+    const external = screen.getByRole('link', { name: /Documentation/ });
+    expect(external.getAttribute('href')).toMatch(/^https?:\/\//);
     expect(external).toHaveAttribute('target', '_blank');
     expect(external).toHaveAttribute('rel', 'noopener noreferrer');
   });
