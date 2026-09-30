@@ -113,7 +113,7 @@ describe('redesign settings management parity', () => {
 
     render(<LabelsView />);
 
-    expect(screen.getByRole('button', { name: 'Edit Family' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit label: Family' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Edit Member Label' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
   });
@@ -149,7 +149,7 @@ describe('redesign settings management parity', () => {
     useAppMock.mockReturnValue({ ...baseApp, deleteLabel });
 
     render(<LabelsView />);
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Family' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Edit label: Family' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(window.confirm).toHaveBeenCalledTimes(1);

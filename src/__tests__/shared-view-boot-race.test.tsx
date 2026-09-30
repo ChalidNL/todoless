@@ -5,6 +5,7 @@ import { AppProvider, useApp } from '../context/AppContext';
 
 const mocks = vi.hoisted(() => {
   const api = {
+    getBootstrap: vi.fn(),
     getTasks: vi.fn(),
     getItems: vi.fn(),
     getSharedTasks: vi.fn(),
@@ -40,6 +41,20 @@ const user2 = { id: 'u2', name: 'Two', role: 'member', family_id: 'fam-1' };
 const taskRecord = { id: 't1', title: 'Task', status: 'todo' };
 const itemRecord = { id: 'i1', title: 'Item', completed: false };
 
+function bootstrapPayload(users: typeof user1[], tasks: unknown[] = [], items: unknown[] = []) {
+  return {
+    tasks,
+    items,
+    notes: [],
+    labels: [],
+    shops: [],
+    users,
+    invites: [],
+    reminders: [],
+    settings: {},
+  };
+}
+
 function Probe() {
   const { dataLoadState, sharedView, tasks, items } = useApp();
   return (
@@ -65,6 +80,7 @@ describe('shared-view boot race (GH#76)', () => {
     mocks.pb.authStore.isValid = true;
     mocks.pb.authStore.record = { id: 'u1', family_id: 'fam-1' };
 
+    mocks.api.getBootstrap.mockResolvedValue(bootstrapPayload([user1]));
     mocks.api.getUsers.mockResolvedValue([user1]);
     mocks.api.getTasks.mockResolvedValue([]);
     mocks.api.getItems.mockResolvedValue([]);
@@ -82,10 +98,8 @@ describe('shared-view boot race (GH#76)', () => {
     mocks.api.getSettings.mockResolvedValue({});
   });
 
-  it('family boot fetches tasks/items exactly once, pre-scoped to the shared view', async () => {
-    mocks.api.getUsers.mockResolvedValue([user1, user2]);
-    mocks.api.getSharedTasks.mockResolvedValue([taskRecord]);
-    mocks.api.getSharedItems.mockResolvedValue([itemRecord]);
+  it('family boot fetches once via /api/bootstrap and resolves the shared scope from the payload', async () => {
+    mocks.api.getBootstrap.mockResolvedValue(bootstrapPayload([user1, user2], [taskRecord], [itemRecord]));
 
     render(
       <AppProvider>
@@ -99,18 +113,17 @@ describe('shared-view boot race (GH#76)', () => {
     expect(screen.getByTestId('task-count')).toHaveTextContent('1');
     expect(screen.getByTestId('item-count')).toHaveTextContent('1');
 
-    // Single round-trip: the shared fetchers are used (not the private ones)
-    // and the shared-view effect must NOT start a second fetch after boot.
-    expect(mocks.api.getSharedTasks).toHaveBeenCalledTimes(1);
-    expect(mocks.api.getSharedItems).toHaveBeenCalledTimes(1);
+    // Single round-trip: /api/bootstrap is the only data call and the scope
+    // effect must NOT start a second fetch after boot (GH#75 + GH#76).
+    expect(mocks.api.getBootstrap).toHaveBeenCalledTimes(1);
+    expect(mocks.api.getSharedTasks).not.toHaveBeenCalled();
+    expect(mocks.api.getSharedItems).not.toHaveBeenCalled();
     expect(mocks.api.getTasks).not.toHaveBeenCalled();
     expect(mocks.api.getItems).not.toHaveBeenCalled();
   });
 
   it('single-user boot uses the full scope and never calls shared fetchers', async () => {
-    mocks.api.getUsers.mockResolvedValue([user1]);
-    mocks.api.getTasks.mockResolvedValue([taskRecord]);
-    mocks.api.getItems.mockResolvedValue([itemRecord]);
+    mocks.api.getBootstrap.mockResolvedValue(bootstrapPayload([user1], [taskRecord], [itemRecord]));
 
     render(
       <AppProvider>
@@ -121,10 +134,11 @@ describe('shared-view boot race (GH#76)', () => {
     await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('ready'));
 
     expect(screen.getByTestId('shared')).toHaveTextContent('false');
-    expect(mocks.api.getTasks).toHaveBeenCalledTimes(1);
-    expect(mocks.api.getItems).toHaveBeenCalledTimes(1);
+    expect(mocks.api.getBootstrap).toHaveBeenCalledTimes(1);
     expect(mocks.api.getSharedTasks).not.toHaveBeenCalled();
     expect(mocks.api.getSharedItems).not.toHaveBeenCalled();
+    expect(mocks.api.getTasks).not.toHaveBeenCalled();
+    expect(mocks.api.getItems).not.toHaveBeenCalled();
   });
 
   it('re-scopes with a single fresh fetch when a second member joins after boot', async () => {
@@ -136,9 +150,8 @@ describe('shared-view boot race (GH#76)', () => {
       }),
       unsubscribe: vi.fn(),
     }));
+    mocks.api.getBootstrap.mockResolvedValue(bootstrapPayload([user1], [taskRecord], [itemRecord]));
     mocks.api.getUsers.mockResolvedValue([user1]);
-    mocks.api.getTasks.mockResolvedValue([taskRecord]);
-    mocks.api.getItems.mockResolvedValue([itemRecord]);
 
     render(
       <AppProvider>
@@ -148,7 +161,7 @@ describe('shared-view boot race (GH#76)', () => {
 
     await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('ready'));
     expect(screen.getByTestId('shared')).toHaveTextContent('false');
-    expect(mocks.api.getTasks).toHaveBeenCalledTimes(1);
+    expect(mocks.api.getBootstrap).toHaveBeenCalledTimes(1);
     expect(mocks.api.getSharedTasks).not.toHaveBeenCalled();
 
     // A member joins: the users realtime event flips the view to shared and
@@ -162,8 +175,9 @@ describe('shared-view boot race (GH#76)', () => {
     await waitFor(() => expect(screen.getByTestId('shared')).toHaveTextContent('true'));
     expect(mocks.api.getSharedTasks).toHaveBeenCalledTimes(1);
     expect(mocks.api.getSharedItems).toHaveBeenCalledTimes(1);
-    // Boot fetch was already consumed; the scope switch adds only the shared fetch.
-    expect(mocks.api.getTasks).toHaveBeenCalledTimes(1);
+    // Boot fetch was already consumed via /api/bootstrap; the scope switch
+    // adds only the shared fetch.
+    expect(mocks.api.getTasks).not.toHaveBeenCalled();
     expect(screen.getByTestId('task-count')).toHaveTextContent('1');
     expect(screen.getByTestId('item-count')).toHaveTextContent('1');
   });

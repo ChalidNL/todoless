@@ -2454,7 +2454,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibilityPrivateDescription": "Only you see tasks with this label.",
       "visibilityFamilyDescription": "Everyone in the family sees tasks with this label.",
       "visibilitySharedDescription": "Only you and selected members see these tasks.",
-      "sharedMembers": "Shared members"
+      "sharedMembers": "Shared members",
+      "editLabel": "Edit label",
+      "readOnlyByOwner": "Read-only label by {owner}",
+      "anotherMember": "another member"
     },
     "dashboard": {
       "inbox": "Inbox",
@@ -2538,7 +2541,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibilityPrivateDescription": "Alleen jij ziet taken met dit label.",
       "visibilityFamilyDescription": "Iedereen in het gezin ziet taken met dit label.",
       "visibilitySharedDescription": "Alleen jij en geselecteerde leden zien deze taken.",
-      "sharedMembers": "Gedeelde leden"
+      "sharedMembers": "Gedeelde leden",
+      "editLabel": "Label bewerken",
+      "readOnlyByOwner": "Alleen-lezen label door {owner}",
+      "anotherMember": "een ander lid"
     },
     "dashboard": {
       "inbox": "Postvak IN",
@@ -2618,7 +2624,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibilityPrivateDescription": "Vous seul voyez les tâches avec ce label.",
       "visibilityFamilyDescription": "Toute la famille voit les tâches avec ce label.",
       "visibilitySharedDescription": "Seuls vous et les membres sélectionnés voyez ces tâches.",
-      "sharedMembers": "Membres partagés"
+      "sharedMembers": "Membres partagés",
+      "editLabel": "Modifier le label",
+      "readOnlyByOwner": "Label en lecture seule par {owner}",
+      "anotherMember": "un autre membre"
     },
     "dashboard": {
       "inbox": "Réception",
@@ -2665,7 +2674,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibilityPrivateDescription": "Nur du siehst Aufgaben mit diesem Label.",
       "visibilityFamilyDescription": "Alle in der Familie sehen Aufgaben mit diesem Label.",
       "visibilitySharedDescription": "Nur du und ausgewählte Mitglieder sehen diese Aufgaben.",
-      "sharedMembers": "Geteilte Mitglieder"
+      "sharedMembers": "Geteilte Mitglieder",
+      "editLabel": "Label bearbeiten",
+      "readOnlyByOwner": "Schreibgeschütztes Label von {owner}",
+      "anotherMember": "ein anderes Mitglied"
     },
     "dashboard": {
       "inbox": "Eingang",
@@ -2712,7 +2724,10 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibilityPrivateDescription": "Solo tú ves las tareas con esta etiqueta.",
       "visibilityFamilyDescription": "Toda la familia ve las tareas con esta etiqueta.",
       "visibilitySharedDescription": "Solo tú y los miembros seleccionados ven estas tareas.",
-      "sharedMembers": "Miembros compartidos"
+      "sharedMembers": "Miembros compartidos",
+      "editLabel": "Editar etiqueta",
+      "readOnlyByOwner": "Etiqueta de solo lectura por {owner}",
+      "anotherMember": "otro miembro"
     },
     "dashboard": {
       "inbox": "Entrada",

@@ -449,6 +449,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       // collection fetches. Sprints/rewards/goals/projects are deliberately
       // NOT fetched at boot (no component renders them from this state).
       const boot = await api.getBootstrap();
+      // GH#76: resolve the shared-view scope synchronously from the boot
+      // payload so the scope effect never starts a second, racing round-trip.
+      updateSharedView(boot.users.length > 1);
+      entriesScopeRef.current = boot.users.length > 1 ? 'shared' : 'all';
       setTasks(boot.tasks);
       setItems(boot.items);
       setNotes(boot.notes);
