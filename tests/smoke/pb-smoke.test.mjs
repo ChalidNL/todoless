@@ -886,6 +886,9 @@ test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', 
   const third = await api('GET', '/api/agent/auth-test', { token: rawKey })
   assert.equal(third.status, 200)
   const t3 = await listLastUsed()
+  assert.equal(t3, t1, 'last_used_at must not advance (third request within throttle window)')
+})
+
 // --- 13. Owner-role user can manage agent keys (GH#23) --------------------
 // Every other route family treats `owner` as a superset of `admin`; the agent
 // key routes must accept both. The bootstrap first user is 'admin', so promote
@@ -938,9 +941,6 @@ test('owner role can create/list/revoke agent keys and read audit log (GH#23)', 
   assert.ok(memberToken, 'expected member session from earlier bootstrap')
   const memberDenied = await api('GET', '/api/agent/audit-log', { token: memberToken })
   assert.equal(memberDenied.status, 403, 'plain member must still be denied')
-})
-
-  assert.equal(t3, t1, 'last_used_at must still be unchanged on the third rapid request')
 })
 
 // --- 14. GH#21: GET /api/agent/dispatch enforces active/expires_at -------
