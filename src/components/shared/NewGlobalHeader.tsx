@@ -223,19 +223,19 @@ export const AppHeader = ({
             min-height keeps the title baseline identical with/without the
             sort select (no per-screen offsets). */}
         <div className="mt-3 flex min-h-[var(--app-touch-target)] items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
-            <span className="text-sm font-semibold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <BadgeIcon className="h-[18px] w-[18px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
+            <span className="truncate text-sm font-semibold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
             {count !== undefined && (
-              <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
+              <span className="flex-shrink-0 rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
             )}
           </div>
           {isSortable && (
             <select
               value={sortValue}
               onChange={(event) => onSortChange?.(event.target.value)}
-              className="min-h-11 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
-              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
+              className="min-h-11 flex-shrink-0 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, width: '11.5rem' }}
               aria-label={sortAriaLabel}
               data-component="shared-select"
             >

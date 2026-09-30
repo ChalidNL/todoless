@@ -139,6 +139,38 @@ describe('AppHeader', () => {
     expect(screen.getByText('Due date')).toBeInTheDocument();
     expect(screen.getByText('Repeat')).toBeInTheDocument();
   });
+
+  it('renders the sort select at the same fixed width on every screen', () => {
+    const { container: inbox } = render(
+      <AppHeader
+        screen="inbox"
+        sortValue="alpha"
+        onSortChange={vi.fn()}
+        sortOptions={[
+          { value: 'alpha', label: 'A-Z' },
+          { value: 'newest', label: 'Newest first' },
+        ]}
+      />,
+    );
+    const { container: taken } = render(
+      <AppHeader
+        screen="taken"
+        sortValue="alpha"
+        onSortChange={vi.fn()}
+        sortOptions={[
+          { value: 'alpha', label: 'A-Z' },
+          { value: 'priority', label: 'Priority' },
+        ]}
+      />,
+    );
+
+    // The shared sort control must be visually identical on every screen —
+    // fixed width, not auto-sized to each screen's option labels.
+    const inboxSelect = inbox.querySelector('select[data-component="shared-select"]') as HTMLSelectElement;
+    const takenSelect = taken.querySelector('select[data-component="shared-select"]') as HTMLSelectElement;
+    expect(inboxSelect).toHaveStyle({ width: '11.5rem' });
+    expect(takenSelect).toHaveStyle({ width: '11.5rem' });
+  });
 });
 
 describe('AddButton', () => {
