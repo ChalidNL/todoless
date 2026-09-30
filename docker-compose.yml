@@ -2,7 +2,8 @@ name: todoless
 
 services:
   todoless:
-    image: ghcr.io/chalidnl/todoless-frontend:latest
+    # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
+    image: ghcr.io/chalidnl/todoless-frontend@sha256:e8066f302e921dd7907a7f2b3daa1b82726be14c07f5e9ef98664290aca5e373
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -43,7 +44,8 @@ services:
             en_US: Web UI
 
   pocketbase:
-    image: ghcr.io/chalidnl/todoless-pocketbase:latest
+    # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
+    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:84f3563f015a7903cfb2966c7032e5fa92528a11bdf21c5fed6ce426f3a065ae
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
@@ -64,7 +66,6 @@ services:
       # wins when explicitly provided.
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}  # inbound mail webhook shared secret (Bearer token); the mail webhook fails closed with 503 if unset
-      PAPERLESS_WEBHOOK_SECRET: ${PAPERLESS_WEBHOOK_SECRET:-}  # Paperless-ngx webhook shared secret; the paperless webhook fails closed with 503 if unset
       # GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
       # The entrypoint runs `pocketbase superuser upsert` when both are set.
       POCKETBASE_ADMIN_EMAIL: ${POCKETBASE_ADMIN_EMAIL:-}
@@ -98,9 +99,6 @@ services:
         - container: MAIL_WEBHOOK_SECRET
           description:
             en_US: Inbound mail webhook shared secret (Bearer token)
-        - container: PAPERLESS_WEBHOOK_SECRET
-          description:
-            en_US: Paperless-ngx webhook shared secret
         - container: POCKETBASE_ADMIN_EMAIL
           description:
             en_US: PocketBase admin (superuser) email - creates the dashboard login (/_/) on start (optional)

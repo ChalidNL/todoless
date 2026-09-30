@@ -23,7 +23,7 @@ migrate(
           name: 'source',
           type: 'select',
           required: true,
-          values: ['paperless', 'home_assistant', 'gmail', 'custom'],
+          values: ['home_assistant', 'gmail', 'custom'],
           maxSelect: 1,
         },
         {

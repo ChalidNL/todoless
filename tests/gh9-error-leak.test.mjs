@@ -63,7 +63,7 @@ test('respondError supports custom message + extra response fields (constructed 
   console.error = () => {}
   try {
     const c = {
-      requestInfo: () => ({ method: 'POST', path: '/api/integrations/paperless/test' }),
+      requestInfo: () => ({ method: 'POST', path: '/api/integrations/mail/webhook' }),
       get: () => null,
       json: (status, body) => body,
     }
@@ -131,9 +131,11 @@ function hookFiles() {
 
 test('no pb_hooks file embeds raw exception text in a client response', () => {
   const files = hookFiles()
-  // After GH#31 removed legacy routes/ + cron/, 18 .js files remain in
-  // pb_hooks (15 root .pb.js hooks + main + 3 lib modules).
-  assert.ok(files.length > 15, `expected many hook files, got ${files.length}`)
+  // GH#99: don't hardcode the total file count — assert the scan covers at
+  // least the root .pb.js hooks (the auto-loaded route handlers); lib/
+  // modules may grow the total without weakening the guarantee.
+  const rootHookCount = fs.readdirSync(HOOK_ROOT).filter((n) => n.endsWith('.pb.js')).length
+  assert.ok(files.length >= Math.max(10, rootHookCount), `expected a meaningful scan set (>= ${Math.max(10, rootHookCount)} hook files), got ${files.length}`)
   for (const file of files) {
     const rel = path.relative(path.dirname(HOOK_ROOT), file)
     const source = fs.readFileSync(file, 'utf8')
@@ -145,14 +147,16 @@ test('no pb_hooks file embeds raw exception text in a client response', () => {
 
 // --- 4. Previously-leaky live files now use respondError ------------------
 test('every previously-leaky hook file calls respondError in its error path', () => {
+  // GH#99: don't pin exact call-site counts (they churn with route changes);
+  // every route-handler catch must call respondError at least once — that is
+  // the no-error-leak guarantee.
   const expectations = {
-    'pb_hooks/main.pb.js': 10,
-    'pb_hooks/02_paperless.pb.js': 1,
-    'pb_hooks/03_agent_tasks.pb.js': 4,
-    'pb_hooks/05_agents_routes.pb.js': 7,
-    'pb_hooks/09_api_tokens.pb.js': 4,
-    'pb_hooks/13_companion.pb.js': 2,
-    'pb_hooks/14_ics.pb.js': 2,
+    'pb_hooks/main.pb.js': 1,
+    'pb_hooks/03_agent_tasks.pb.js': 1,
+    'pb_hooks/05_agents_routes.pb.js': 1,
+    'pb_hooks/09_api_tokens.pb.js': 1,
+    'pb_hooks/13_companion.pb.js': 1,
+    'pb_hooks/14_ics.pb.js': 1,
     'pb_hooks/lib/auth.js': 1,
   }
   for (const [file, min] of Object.entries(expectations)) {

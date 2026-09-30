@@ -56,19 +56,6 @@ describe('backend regression guards', () => {
     expect(migration).toContain('label:length = 0');
   });
 
-  it('localizes Paperless default subtasks from the integration owner language', () => {
-    const hook = repoFile('pb_hooks/02_paperless.pb.js');
-
-    expect(hook).toContain('function userLanguage(userId)');
-    expect(hook).toContain("$app.findRecordById('users', userId)");
-    expect(hook).toContain("user.get('language')");
-    expect(hook).toContain('function paperlessSubtaskTitles(lang)');
-    expect(hook).toContain("en: ['Review', 'Process / take action', 'Archive']");
-    expect(hook).toContain("nl: ['Controleren', 'Verwerken / actie ondernemen', 'Archiveren']");
-    expect(hook).toContain('paperlessSubtaskTitles(userLanguage(config.userId))');
-    expect(hook).not.toContain("var titles = ['Controleren', 'Verwerken / actie ondernemen', 'Archiveren'];");
-  });
-
   it('keeps subtask linking single-sourced on the child and atomic server-side (GH#88)', () => {
     const hook = repoFile('pb_hooks/main.pb.js');
     const client = repoFile('src/lib/pocketbase-client.ts');

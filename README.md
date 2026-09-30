@@ -136,7 +136,6 @@ The `.env.example` file documents available variables. Not all are used by the p
 | `POCKETBASE_ADMIN_EMAIL` | PocketBase superuser email - set together with the password to auto-create the dashboard login on start (optional) |
 | `POCKETBASE_ADMIN_PASSWORD` | PocketBase superuser password - set together with the email (optional) |
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
-| `PAPERLESS_WEBHOOK_SECRET` | Shared secret for the Paperless-ngx webhook; webhook fails closed with 503 if unset |
 | `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
 | `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
 | `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |

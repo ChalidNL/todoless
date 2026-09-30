@@ -564,7 +564,14 @@
     "appErrorDescription": "Something went wrong. Reset all data to continue.",
     "resetAllData": "Reset All Data & Restart",
     "firstNamePlaceholder": "John",
-    "lastNamePlaceholder": "Doe"
+    "lastNamePlaceholder": "Doe",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordHint": "Enter your email and we'll send you a reset link.",
+    "sendResetLink": "Send reset link",
+    "resetLinkSent": "Reset link sent. Check your email.",
+    "resetFailed": "Failed to send reset link. Please try again.",
+    "backToLogin": "Back to login"
   },
   "repeat": {
     "day": "Every day",

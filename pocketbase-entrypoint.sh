@@ -156,7 +156,6 @@ remove_stale "$PB_HOOKS_MANIFEST" "$PB_HOOKS_BUNDLED_DIR" "$PB_HOOKS_DIR" "hook"
 # image; `old_name` is a historical name some installs may still have recorded.
 MIGRATION_RENAMES="015_linked_entity_references.js|016_linked_entity_references.js
 015_notes_enhancements.js|017_notes_enhancements.js
-015_paperless_sync.js|019_paperless_sync.js
 015_reminders.js|020_reminders.js
 015_sprint_status.js|021_sprint_status.js
 015_tasks_reminders_module.js|022_tasks_reminders_module.js

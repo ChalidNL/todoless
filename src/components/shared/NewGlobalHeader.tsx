@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, SlidersHorizontal, X, Save, Search, Inbox, CheckSquare, CalendarDays, ShoppingCart, Users, Tag, Target, Settings, Bell } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { t } from '../../i18n/translations';
+import { t, formatDate } from '../../i18n/translations';
 import { AppLogo } from './AppLogo';
+import { getCompactUserName } from '../../lib/member-role-utils';
+import { entityColor } from '../../lib/entity-colors';
 
 interface AppHeaderProps {
   type?: string;
@@ -81,7 +83,7 @@ export const AppHeader = ({
   const [internalInputValue, setInternalInputValue] = useState('');
   const inputText = inputValue ?? internalInputValue;
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], users = [], tasks = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
+  const { toggleChipFilter, clearChipFilters, activeChipFilters = [], labels = [], users = [], tasks = [], reminders = [], appSettings = {}, showCompletionMessage } = useApp();
   const theme = SCREEN_THEMES[screen];
   const BadgeIcon = theme.Icon;
   const currentUser = users.find((user: any) => user.id === (appSettings as any).currentUserId) || users[0];
@@ -98,6 +100,33 @@ export const AppHeader = ({
   const firedReminderCount = reminders.filter((reminder: any) => reminder.fired && !reminder.dismissed).length;
   const notificationCount = dueSoonCount + firedReminderCount;
   const isSortable = !!onSortChange && sortOptions.length > 0;
+
+  // Date presets reuse the exact 'date' chip format TasksView filters on:
+  // formatDate(dueDate, { month: 'short', day: 'numeric' }) === chip id.
+  const datePresetChips = Array.from({ length: 7 }, (_, i) => {
+    const ts = now + i * 86_400_000;
+    return {
+      id: formatDate(ts, { month: 'short', day: 'numeric' }),
+      label: formatDate(ts, { weekday: 'short', day: 'numeric' }),
+    };
+  });
+
+  const renderFilterChip = (type: string, id: string, label: string, color?: string) => {
+    const active = activeChipFilters.some((f: any) => f.type === type && f.id === id);
+    return (
+      <button
+        key={`${type}-${id}`}
+        type="button"
+        onClick={() => toggleChipFilter(type, id, label, color)}
+        className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+          active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
+        }`}
+        style={active ? { backgroundColor: color || 'var(--app-accent)' } : undefined}
+      >
+        {label}
+      </button>
+    );
+  };
 
   const setInputText = (value: string) => {
     if (onInputValueChange) onInputValueChange(value);
@@ -206,6 +235,7 @@ export const AppHeader = ({
                   <div className="p-1">
                     {/* Predefined status filters — only for task screens (not shop/labels) */}
                     {screen !== 'shop' && screen !== 'labels' && (
+                    <>
                     <div className="flex flex-wrap gap-1 p-1.5">
                       {[
                         { id: 'todo', label: t('dashboard.todoSprint'), color: '#16a34a' },
@@ -229,9 +259,54 @@ export const AppHeader = ({
                         );
                       })}
                     </div>
+
+                    {/* Label filters (TasksView chip type: 'label') */}
+                    {labels.length > 0 && (
+                      <div className="border-t border-[var(--app-border-subtle)] p-1.5">
+                        <div className="px-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('tasks.labels')}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {labels.map((label: any) => renderFilterChip('label', label.id, label.name, label.color))}
+                        </div>
+                      </div>
                     )}
 
+                    {/* Assignee filters (TasksView chip type: 'assignee') */}
+                    {users.length > 0 && (
+                      <div className="border-t border-[var(--app-border-subtle)] p-1.5">
+                        <div className="px-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('tasks.assignee')}</div>
+                        <div className="flex flex-wrap gap-1">
+                          {users.map((user: any) => (
+                            <div key={user?.id || 'user-empty'} className="contents">
+                              {user?.id ? renderFilterChip('assignee', user.id, getCompactUserName(user), entityColor(user.id)) : null}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Date-preset filters (TasksView chip type: 'date') */}
+                    <div className="border-t border-[var(--app-border-subtle)] p-1.5">
+                      <div className="px-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('filters.dueDate')}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {datePresetChips.map((preset) => renderFilterChip('date', preset.id, preset.label))}
+                      </div>
                     </div>
+
+                    {/* Repeat filters (TasksView chip type: 'repeat') */}
+                    <div className="border-t border-[var(--app-border-subtle)] p-1.5">
+                      <div className="px-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('repeat.repeat')}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          { id: 'day', label: t('repeat.shortDay') },
+                          { id: 'week', label: t('repeat.shortWeek') },
+                          { id: 'month', label: t('repeat.shortMonth') },
+                          { id: 'year', label: t('repeat.shortYear') },
+                        ].map((rp) => renderFilterChip('repeat', rp.id, rp.label))}
+                      </div>
+                    </div>
+                    </>
+                    )}
+                  </div>
                   <div className="flex gap-2 border-t border-[var(--app-border-subtle)] p-2">
                     <button type="button" onClick={clearChipFilters} className="min-h-9 flex-1 rounded-full border border-[var(--app-border-subtle)] text-xs font-bold text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]">
                       {t('common.clearAllTooltip')}

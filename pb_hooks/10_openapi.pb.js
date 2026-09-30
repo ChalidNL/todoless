@@ -674,14 +674,6 @@ routerAdd('GET', '/api/openapi.json', (c) => {
   function updateNoteSchema() { return { tags: ["Notes"], summary: "Update note", operationId: "updateNote", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Note updated" } } }; }
   function deleteNoteSchema() { return { tags: ["Notes"], summary: "Delete note", operationId: "deleteNote", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" } } }; }
   
-  // ── Paperless ──
-  
-  function paperlessWebhookSchema() { return { tags: ["Paperless"], summary: "Paperless webhook handler", operationId: "paperlessWebhook", description: "Receives Paperless-ngx document creation webhooks. Validates secret via X-Paperless-Webhook-Secret or Authorization header. Creates a task for documents tagged 'todo'.", security: [], responses: { "201": { description: "Task created" }, "401": { description: "Invalid secret" }, "400": { description: "Missing document_id" } } }; }
-  function paperlessPollSchema() { return { tags: ["Paperless"], summary: "Poll Paperless for new docs", operationId: "paperlessPoll", description: "Fetches unprocessed documents from Paperless with the configured todo tag.", security: authRequired(), responses: { "200": { description: "Documents list" } } }; }
-  function paperlessTestSchema() { return { tags: ["Paperless"], summary: "Test Paperless connection", operationId: "paperlessTest", security: authRequired(), responses: { "200": { description: "Connection status" } } }; }
-  function paperlessConfigSchema() { return { tags: ["Paperless"], summary: "Configure Paperless integration", operationId: "paperlessConfig", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: { api_url: st(), api_key: st(), todo_tag: { type: "string", default: "todo" }, enabled: sb() } } } } }, security: authRequired(), responses: { "200": { description: "Updated" }, "201": { description: "Created" } } }; }
-  function paperlessSyncSchema() { return { tags: ["Paperless"], summary: "Manual sync Paperless documents", operationId: "paperlessSync", description: "Triggers a full sync: scans recent Paperless docs with todo tag and creates tasks.", security: authRequired(), responses: { "200": { description: "Sync result" } } }; }
-  
   // ── Projects ──
   
   function listProjectsSchema() { return { tags: ["Projects"], summary: "List projects", operationId: "listProjects", parameters: [{ name: "sort", in: "query", schema: { type: "string", default: "-created" } }, { name: "status", in: "query", schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Projects" } } }; }
@@ -752,14 +744,14 @@ routerAdd('GET', '/api/openapi.json', (c) => {
   
   // ── External References ──
   
-  function listExternalRefsSchema() { return { tags: ["External References"], summary: "List external references", operationId: "listExternalRefs", description: "List external system links (Paperless, Home Assistant, Gmail, custom). Filters: source, sync_status, entity_type.", parameters: [
+  function listExternalRefsSchema() { return { tags: ["External References"], summary: "List external references", operationId: "listExternalRefs", description: "List external system links (Home Assistant, Gmail, custom). Filters: source, sync_status, entity_type.", parameters: [
     { name: "source", in: "query", schema: { type: "string" } },
     { name: "sync_status", in: "query", schema: { type: "string", enum: ["synced", "pending", "error", "orphaned"] } },
     { name: "entity_type", in: "query", schema: { type: "string", enum: ["task", "grocery", "note"] } },
     { name: "sort", in: "query", schema: { type: "string", default: "-created" } },
   ], security: authRequired(), responses: { "200": { description: "List of external references" } } }; }
   function createExternalRefSchema() { return { tags: ["External References"], summary: "Create external reference", operationId: "createExternalRef", description: "Links a todoless entity to an external system entity. Checks for duplicate (source + external_id).", requestBody: { required: true, content: { "application/json": { schema: { type: "object", properties: {
-    source: { type: "string", enum: ["paperless", "home_assistant", "gmail", "custom"] },
+    source: { type: "string", enum: ["home_assistant", "gmail", "custom"] },
     external_id: st(), external_url: sn(),
     entity_type: { type: "string", enum: ["task", "grocery", "note"] },
     entity_id: st(), sync_status: { type: "string", default: "pending" },
@@ -844,7 +836,6 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       { name: "Goals", description: "Goals/rewards points tracking" },
       { name: "Labels", description: "Label/tag management" },
       { name: "Notes", description: "Notes" },
-      { name: "Paperless", description: "Paperless-ngx integration" },
       { name: "Projects", description: "Project management" },
       { name: "Reminders", description: "Reminders" },
       { name: "Rewards", description: "Rewards/awards" },
@@ -854,7 +845,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       { name: "Sprints", description: "Sprint management" },
       { name: "Users", description: "User management" },
       { name: "AI", description: "AI assistant integration" },
-      { name: "External References", description: "External system link management (Paperless, Home Assistant, Gmail, custom)" },
+      { name: "External References", description: "External system link management (Home Assistant, Gmail, custom)" },
       { name: "Agents", description: "Agent API tokens and scoped permissions for external AI agents" },
     ],
     paths: {
@@ -1074,12 +1065,6 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       },
       "/api-tokens/{id}": { delete: { tags: ["Agents"], summary: "Delete a personal API token", operationId: "deleteApiToken", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Deleted" } } } },
       "/api-tokens/{id}/toggle": { patch: { tags: ["Agents"], summary: "Enable/disable a personal API token", operationId: "toggleApiToken", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Toggled" } } } },
-
-      // ── Paperless ──
-      "/integrations/paperless/{action}": {
-        get: { tags: ["Paperless"], summary: "Paperless GET actions (poll, test)", operationId: "paperlessGet", parameters: [{ name: "action", in: "path", required: true, schema: { type: "string", enum: ["poll", "test"] } }], security: authRequired(), responses: { "200": { description: "Result" }, "503": { description: "Not configured/disabled" } } },
-        post: { tags: ["Paperless"], summary: "Paperless POST actions (webhook, config, sync)", operationId: "paperlessPost", parameters: [{ name: "action", in: "path", required: true, schema: { type: "string", enum: ["webhook", "config", "sync"] } }], security: [], responses: { "200": { description: "Result" }, "201": { description: "Created" }, "401": { description: "Invalid webhook secret" }, "503": { description: "Not configured" } } },
-      },
 
       // ── Mail ──
       "/integrations/mail/webhook": {

@@ -65,7 +65,6 @@ SCHEMA = {
     "agent_audit_log": ["id TEXT PRIMARY KEY", "agent_key_id TEXT", "action TEXT", "details TEXT", "user TEXT", "created TEXT"],
     "app_settings": ["id TEXT PRIMARY KEY", "theme TEXT", "language TEXT", "user TEXT"],
     "briefings": ["id TEXT PRIMARY KEY", "user TEXT", "date TEXT", "data TEXT", "generated_at TEXT"],
-    "paperless_sync": ["id TEXT PRIMARY KEY", "user TEXT", "document_id TEXT", "document_title TEXT", "status TEXT", "last_synced_at TEXT"],
     "rewards": ["id TEXT PRIMARY KEY", "user TEXT", "points INTEGER", "reason TEXT", "earned_at TEXT"],
     "sprints": ["id TEXT PRIMARY KEY", "name TEXT", "start_date TEXT", "end_date TEXT", "user TEXT"],
     "goals": ["id TEXT PRIMARY KEY", "goal TEXT", "user TEXT", "status TEXT"],
@@ -134,7 +133,7 @@ def create_synthetic_db(path: str):
     db.execute("INSERT INTO shops (id, name, color, user, created) VALUES ('s_0002','Albert Heijn Rotterdam NL','#654321','u_0002','2026-01-02')")
 
     # integration / credential tables MUST be deleted
-    db.execute("INSERT INTO integrations (id, type, api_url, api_key, config_data, enabled, user) VALUES ('int_0001','paperless','https://paperless.example.com','sk-real-paperless-12345','{\"username\":\"real\"}',1,'u_0001')")
+    db.execute("INSERT INTO integrations (id, type, api_url, api_key, config_data, enabled, user) VALUES ('int_0001','home_assistant','https://home-assistant.example.com','sk-rea...2345','{\"username\":\"real\"}',1,'u_0001')")
     db.execute("INSERT INTO ai_settings (id, provider, api_url, api_key, model, max_tokens, temperature, enabled, user) VALUES ('ai_0001','openai','https://api.openai.com','sk-real-openai-abcdef','gpt-4o',2048,0.7,1,'u_0001')")
     db.execute("INSERT INTO companion_devices (id, device_id, device_name, platform, os_version, app_version, push_token, registration_date, last_seen, user) VALUES ('cd_0001','dev-iphone-123','Marieke iPhone','ios','18.0','1.2.3','ExponentPushToken[real-token-xyz]','2026-01-01','2026-01-05','u_0002')")
     db.execute("INSERT INTO companion_notifications (id, device_id, title, body, type, task_id, path, source, user, created_at) VALUES ('cn_0001','dev-iphone-123','Taak herinnering','Opa naar ziekenhuis om 14:00','reminder','t_0001','/tasks/t_0001','app','u_0002','2026-01-05')")
@@ -149,7 +148,6 @@ def create_synthetic_db(path: str):
     db.execute("INSERT INTO _authOrigins (id, collectionRef, recordRef, fingerprint, created, updated) VALUES ('ao_0001','_pb_users_auth_','u_0001','sha256:device-fingerprint','2026-01-01','2026-01-02')")
     db.execute("INSERT INTO app_settings (id, theme, language, user) VALUES ('as_0001','dark','nl','u_0001')")
     db.execute("INSERT INTO briefings (id, user, date, data, generated_at) VALUES ('b_0001','u_0001','2026-01-05','{\"summary\":\"gevoelig\"}','2026-01-05')")
-    db.execute("INSERT INTO paperless_sync (id, user, document_id, document_title, status, last_synced_at) VALUES ('ps_0001','u_0001','doc-12','belasting-aangifte.pdf','synced','2026-01-04')")
     db.execute("INSERT INTO rewards (id, user, points, reason, earned_at) VALUES ('r_0001','u_0001',50,'schoonmaken','2026-01-03')")
     db.execute("INSERT INTO sprints (id, name, start_date, end_date, user) VALUES ('sp_0001','Sprint Q1','2026-01-01','2026-01-14','u_0001')")
     db.execute("INSERT INTO goals (id, goal, user, status) VALUES ('g_0001','Afvallen voor de vakantie','u_0001','active')")
@@ -234,7 +232,7 @@ def main() -> int:
 
         # cleared tables all empty
         cleared = ["invite_codes", "api_tokens", "agent_keys", "_otps", "_externalAuths", "_mfas",
-                   "agent_audit_log", "app_settings", "briefings", "paperless_sync", "rewards",
+                   "agent_audit_log", "app_settings", "briefings", "rewards",
                    "sprints", "goals", "external_references", "reminders", "integrations",
                    "ai_settings", "companion_devices", "companion_notifications", "saved_filters",
                    "_authOrigins"]

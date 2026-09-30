@@ -49,7 +49,6 @@ const RATE_LIMIT_RULES = [
   { label: '/api/members/',        audience: '@guest', maxRequests: 30, duration: 60 },
   // Secret-gated webhooks: allow provider batching, still bounded.
   { label: '/api/integrations/mail/webhook',      audience: '@guest', maxRequests: 60, duration: 60 },
-  { label: '/api/integrations/paperless/',        audience: '@guest', maxRequests: 60, duration: 60 },
 ];
 
 // PocketBase stock defaults (core/settings_model.go) - used by the guard and

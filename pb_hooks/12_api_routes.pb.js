@@ -46,7 +46,13 @@ routerAdd('POST', '/api/tasks', function(c) {
     rec.set('user', userId);
     rec.set('blocked', body.blocked === true || body.blocked === 'true');
     if (body.description) rec.set('blocked_comment', String(body.description));
-    if (body.assigned_to) rec.set('assigned_to', String(body.assigned_to));
+    // GH#17: assignee must exist and belong to the same family as the caller.
+    function _validAssignee(id){ if(!id)return true; id=String(id); if(id===userId)return true; if(!familyId)return false; try{ var u=$app.findRecordById('users',id); return !!u && String(u.get('family_id')||'')===familyId; }catch(e){ return false; } }
+    if (body.assigned_to) {
+      var assignedTo = String(body.assigned_to).trim();
+      if (assignedTo && !_validAssignee(assignedTo)) return c.json(400, { error: 'Invalid assignee' });
+      rec.set('assigned_to', assignedTo);
+    }
     var labelIds = [];
     if (body.labels && Array.isArray(body.labels)) {
       for (var li = 0; li < body.labels.length; li++) {
@@ -244,6 +250,8 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
 
     var body = info.body || {};
     var changed = false;
+    // GH#17: assignee must exist and belong to the same family as the caller.
+    function _validAssignee(id){ if(!id)return true; id=String(id); if(id===userId)return true; if(!familyId)return false; try{ var u=$app.findRecordById('users',id); return !!u && String(u.get('family_id')||'')===familyId; }catch(e){ return false; } }
     // Capture the pre-update status BEFORE applying the new one so the
     // completion transition can be detected reliably (GH#14).
     var wasDone = String(rec.get('status') || '') === 'done';
@@ -251,7 +259,7 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
     if (body.title !== undefined) { rec.set('title', String(body.title).trim() || rec.get('title')); changed = true; }
     if (body.status !== undefined) { rec.set('status', String(body.status)); changed = true; }
     if (body.description !== undefined) { rec.set('blocked_comment', String(body.description)); changed = true; }
-    if (body.assigned_to !== undefined) { rec.set('assigned_to', String(body.assigned_to)); changed = true; }
+    if (body.assigned_to !== undefined) { var newAssignee = String(body.assigned_to); if (newAssignee && !_validAssignee(newAssignee)) return c.json(400, { error: 'Invalid assignee' }); rec.set('assigned_to', newAssignee); changed = true; }
     if (body.labels !== undefined && Array.isArray(body.labels)) {
       var labelIds = [];
       for (var li = 0; li < body.labels.length; li++) {
@@ -345,13 +353,15 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
 
     var body = info.body || {};
     var changed = false;
+    // GH#17: assignee must exist and belong to the same family as the caller.
+    function _validAssignee(id){ if(!id)return true; id=String(id); if(id===userId)return true; if(!familyId)return false; try{ var u=$app.findRecordById('users',id); return !!u && String(u.get('family_id')||'')===familyId; }catch(e){ return false; } }
     // Capture the pre-update status BEFORE applying the new one so the
     // completion transition can be detected reliably (GH#14).
     var wasDone = String(rec.get('status') || '') === 'done';
 
     if (body.title !== undefined) { rec.set('title', String(body.title).trim() || rec.get('title')); changed = true; }
     if (body.status !== undefined) { rec.set('status', String(body.status)); changed = true; }
-    if (body.assigned_to !== undefined) { rec.set('assigned_to', String(body.assigned_to)); changed = true; }
+    if (body.assigned_to !== undefined) { var newAssignee = String(body.assigned_to); if (newAssignee && !_validAssignee(newAssignee)) return c.json(400, { error: 'Invalid assignee' }); rec.set('assigned_to', newAssignee); changed = true; }
     if (body.due_date !== undefined) { rec.set('due_date', body.due_date ? String(body.due_date) : ''); changed = true; }
 
     if (body.status === 'done' && !wasDone) {

@@ -3,6 +3,7 @@ import { useAuth } from './AuthProvider';
 import { AppLogo } from './shared/AppLogo';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { t, translatePbError } from '../i18n/translations';
+import { pb } from '../lib/pocketbase';
 
 interface LoginProps {
   onLogin: () => void;
@@ -16,6 +17,11 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [isSendingReset, setIsSendingReset] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -44,6 +50,26 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
     }
 
     onLogin();
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      setForgotError(t('auth.emailInvalid'));
+      return;
+    }
+
+    setIsSendingReset(true);
+    setForgotError('');
+    setForgotSuccess(false);
+
+    try {
+      await pb.collection('users').requestPasswordReset(forgotEmail);
+      setForgotSuccess(true);
+    } catch (err) {
+      setForgotError(translatePbError((err as Error)?.message, 'auth.resetFailed'));
+    } finally {
+      setIsSendingReset(false);
+    }
   };
 
   return (
@@ -95,6 +121,61 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
               </button>
             </div>
           </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotPassword(!showForgotPassword);
+                setForgotError('');
+                setForgotSuccess(false);
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              {t('auth.forgotPassword')}
+            </button>
+          </div>
+
+          {showForgotPassword && (
+            <div className="space-y-3 rounded-2xl border border-[var(--app-border-subtle)] bg-[var(--app-surface-2)] p-4">
+              <div>
+                <h2 className="text-sm font-bold text-[var(--app-text)]">{t('auth.forgotPasswordTitle')}</h2>
+                <p className="mt-0.5 text-xs text-neutral-500">{t('auth.forgotPasswordHint')}</p>
+              </div>
+              <div>
+                <label htmlFor="forgot-email" className="mb-1 block text-sm text-neutral-600">{t('auth.email')}</label>
+                <input
+                  id="forgot-email"
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                  className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
+                  placeholder="you@example.com"
+                />
+              </div>
+              {forgotError && (
+                <p className="text-sm text-red-500" role="alert">{forgotError}</p>
+              )}
+              {forgotSuccess && (
+                <p className="text-sm text-green-600" role="status">{t('auth.resetLinkSent')}</p>
+              )}
+              <button
+                onClick={handleForgotPassword}
+                disabled={isSendingReset}
+                className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-xl)] border border-[var(--app-primary)] px-4 py-3 text-sm font-bold text-[var(--app-primary)] transition active:scale-[0.98] disabled:opacity-60"
+              >
+                {isSendingReset ? <Loader2 size={16} className="mx-auto animate-spin" /> : t('auth.sendResetLink')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="mx-auto block text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                {t('auth.backToLogin')}
+              </button>
+            </div>
+          )}
 
           {error && (
             <p className="text-red-500 text-sm" role="alert">{error}</p>

@@ -493,6 +493,7 @@
     "pushSelected": "Ausgewählte verschieben",
     "searchPlaceholder": "Posteingang durchsuchen...",
     "noTasksFound": "Keine Aufgaben gefunden",
+    "noTasks": "Keine Aufgaben gefunden",
     "noResults": "Keine Ergebnisse",
     "markAllDone": "Alle als erledigt markieren",
     "clearAll": "Alle löschen",
@@ -563,7 +564,14 @@
     "appErrorDescription": "Etwas ist schiefgelaufen. Setze alle Daten zurück, um fortzufahren.",
     "resetAllData": "Alle Daten zurücksetzen & neu starten",
     "firstNamePlaceholder": "Max",
-    "lastNamePlaceholder": "Mustermann"
+    "lastNamePlaceholder": "Mustermann",
+    "forgotPassword": "Passwort vergessen?",
+    "forgotPasswordTitle": "Passwort zurücksetzen",
+    "forgotPasswordHint": "Gib deine E-Mail ein und wir senden dir einen Link zum Zurücksetzen.",
+    "sendResetLink": "Reset-Link senden",
+    "resetLinkSent": "Reset-Link gesendet. Prüfe deine E-Mails.",
+    "resetFailed": "Senden des Reset-Links fehlgeschlagen. Bitte versuche es erneut.",
+    "backToLogin": "Zurück zur Anmeldung"
   },
   "repeat": {
     "day": "Jeden Tag",

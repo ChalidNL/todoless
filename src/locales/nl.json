@@ -564,7 +564,14 @@
     "appErrorDescription": "Er is iets misgegaan. Reset alle data om door te gaan.",
     "resetAllData": "Alle data resetten & herstarten",
     "firstNamePlaceholder": "Jan",
-    "lastNamePlaceholder": "Jansen"
+    "lastNamePlaceholder": "Jansen",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "forgotPasswordTitle": "Wachtwoord resetten",
+    "forgotPasswordHint": "Voer je e-mail in en we sturen je een reset-link.",
+    "sendResetLink": "Reset-link versturen",
+    "resetLinkSent": "Reset-link verzonden. Check je e-mail.",
+    "resetFailed": "Reset-link versturen mislukt. Probeer het opnieuw.",
+    "backToLogin": "Terug naar inloggen"
   },
   "repeat": {
     "day": "Elke dag",

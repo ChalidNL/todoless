@@ -493,6 +493,7 @@
     "pushSelected": "Mover seleccionados",
     "searchPlaceholder": "Buscar en la bandeja...",
     "noTasksFound": "No se encontraron tareas",
+    "noTasks": "No se encontraron tareas",
     "noResults": "Sin resultados",
     "markAllDone": "Marcar todo como hecho",
     "clearAll": "Limpiar todo",
@@ -563,7 +564,14 @@
     "appErrorDescription": "Algo salió mal. Restablece todos los datos para continuar.",
     "resetAllData": "Restablecer todos los datos y reiniciar",
     "firstNamePlaceholder": "Juan",
-    "lastNamePlaceholder": "García"
+    "lastNamePlaceholder": "García",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "forgotPasswordTitle": "Restablecer tu contraseña",
+    "forgotPasswordHint": "Introduce tu correo y te enviaremos un enlace para restablecerla.",
+    "sendResetLink": "Enviar enlace de restablecimiento",
+    "resetLinkSent": "Enlace enviado. Revisa tu correo.",
+    "resetFailed": "No se pudo enviar el enlace. Inténtalo de nuevo.",
+    "backToLogin": "Volver al inicio de sesión"
   },
   "repeat": {
     "day": "Cada día",

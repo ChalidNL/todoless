@@ -493,6 +493,7 @@
     "pushSelected": "Pousser la sélection",
     "searchPlaceholder": "Rechercher dans la boîte de réception...",
     "noTasksFound": "Aucune tâche trouvée",
+    "noTasks": "Aucune tâche trouvée",
     "noResults": "Aucun résultat",
     "markAllDone": "Tout marquer comme fait",
     "clearAll": "Tout effacer",
@@ -563,7 +564,14 @@
     "appErrorDescription": "Une erreur est survenue. Réinitialisez toutes les données pour continuer.",
     "resetAllData": "Réinitialiser toutes les données et redémarrer",
     "firstNamePlaceholder": "Jean",
-    "lastNamePlaceholder": "Dupont"
+    "lastNamePlaceholder": "Dupont",
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotPasswordTitle": "Réinitialiser votre mot de passe",
+    "forgotPasswordHint": "Saisissez votre e-mail et nous vous enverrons un lien de réinitialisation.",
+    "sendResetLink": "Envoyer le lien de réinitialisation",
+    "resetLinkSent": "Lien de réinitialisation envoyé. Vérifiez votre e-mail.",
+    "resetFailed": "Échec de l'envoi du lien. Veuillez réessayer.",
+    "backToLogin": "Retour à la connexion"
   },
   "repeat": {
     "day": "Chaque jour",

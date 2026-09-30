@@ -16,7 +16,7 @@ migrate(
         updateRule: 'user = @request.auth.id',
         deleteRule: 'user = @request.auth.id',
         fields: [
-          { name: 'type', type: 'select', required: true, values: ['paperless', 'home_assistant', 'actual_budget', 'custom'], maxSelect: 1 },
+          { name: 'type', type: 'select', required: true, values: ['home_assistant', 'actual_budget', 'custom'], maxSelect: 1 },
           { name: 'api_url', type: 'url', required: true },
           { name: 'api_key', type: 'text', required: false },
           { name: 'config_data', type: 'json' },

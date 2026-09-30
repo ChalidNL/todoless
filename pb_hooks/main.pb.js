@@ -414,10 +414,24 @@ try {
       return true;
     }
     var q = info.query || {};
-    var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+    // GH#28: scope the DB query to the auth user's family (or to the user
+    // themself when the account has no family — same pattern as 14_ics.pb.js)
+    // instead of fetching every record and filtering in JS. The privacy
+    // checks above stay as a second layer. GH#102: optional updated_since.
+    var entriesFid = String(auth.get('family_id') || '');
+    var entriesFilter = entriesFid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+    var entriesParams = entriesFid ? { familyId: entriesFid } : { userId: auth.id };
+    var sinceRaw = String(q.updated_since || '').trim();
+    if (sinceRaw) {
+      var sinceDate = new Date(sinceRaw);
+      if (isNaN(sinceDate.getTime())) return c.json(400, { error: 'Invalid updated_since' });
+      entriesFilter += ' && updated >= {:since}';
+      entriesParams.since = sinceDate.toISOString();
+    }
+    var tasks = $app.findRecordsByFilter('tasks', entriesFilter, '-created', 10000, 0, entriesParams).filter(_canAccessTask).map(function(r) {
       return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
-    var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canRead).map(function(r) {
+    var items = $app.findRecordsByFilter('items', entriesFilter, '-created', 10000, 0, entriesParams).filter(_canRead).map(function(r) {
       return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
     });
     var all = tasks.concat(items);
@@ -495,12 +509,37 @@ try {
     function _freshAuth(){ if(!auth||!auth.id)return null; try { return $app.findRecordById('users', auth.id); } catch(e) { return null; } }
     function _isFamilyAdmin(user){ var r=String(user&&user.get('role')||''); return r==='admin'||r==='owner'; }
 
+    // GH#17: an assignee must be an existing users record whose family_id
+    // matches the auth user's family (or the auth user themself). Empty id
+    // means "unassign" and is always valid.
+    function _validAssignee(id){
+      if(!id)return true;
+      id=String(id);
+      var authId=String(auth&&auth.id||'');
+      if(id===authId)return true;
+      var af=String(auth&&auth.get('family_id')||'');
+      if(!af)return false;
+      try{var u=$app.findRecordById('users',id);return !!u&&String(u.get('family_id')||'')===af;}catch(e){return false;}
+    }
+
     if (action === 'list') {
     var q = info.query || {};
-      var tasks = $app.findRecordsByFilter('tasks', '', '-created', 10000, 0).filter(_canAccessTask).map(function(r) {
+      // GH#28: same DB-level family scope as GET /api/entries (privacy JS
+      // checks above stay as a second layer). GH#102: optional updated_since.
+      var listFid = String(auth.get('family_id') || '');
+      var listFilter = listFid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
+      var listParams = listFid ? { familyId: listFid } : { userId: auth.id };
+      var sinceRawList = String(q.updated_since || '').trim();
+      if (sinceRawList) {
+        var sinceDateList = new Date(sinceRawList);
+        if (isNaN(sinceDateList.getTime())) return c.json(400, { error: 'Invalid updated_since' });
+        listFilter += ' && updated >= {:since}';
+        listParams.since = sinceDateList.toISOString();
+      }
+      var tasks = $app.findRecordsByFilter('tasks', listFilter, '-created', 10000, 0, listParams).filter(_canAccessTask).map(function(r) {
         return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
-      var items = $app.findRecordsByFilter('items', '', '-created', 10000, 0).filter(_canAccess).map(function(r) {
+      var items = $app.findRecordsByFilter('items', listFilter, '-created', 10000, 0, listParams).filter(_canAccess).map(function(r) {
         return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
       });
       var all = tasks.concat(items);
@@ -528,6 +567,7 @@ try {
         var desc = String(gv(d,'description','')).trim();
         if (desc) rec.set('blocked_comment', desc);
         var assign = String(gv(d,'assignee_id','')).trim();
+        if (assign && !_validAssignee(assign)) return c.json(400, {error:'Invalid assignee'});
         if (assign) rec.set('assigned_to', assign);
         var labs = d.labels;
         var canonicalLabels = Array.isArray(labs) ? labs : [];
@@ -596,7 +636,9 @@ try {
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
-      rec.set('assigned_to',String(gv(d,'assignee_id','')));
+      var assigneeVal = String(gv(d,'assignee_id',''));
+      if (assigneeVal && !_validAssignee(assigneeVal)) return c.json(400,{error:'Invalid assignee'});
+      rec.set('assigned_to',assigneeVal);
       $app.save(rec);return c.json(200,{assigned:true});
     }
 
@@ -614,7 +656,7 @@ try {
       if (d.status !== undefined && type === 'task') { rec.set('status', String(d.status)); changed.push('status'); }
       if (d.due_date !== undefined && type === 'task') { rec.set('due_date', (d.due_date === '' || d.due_date === null) ? null : String(d.due_date)); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
-      if (d.assignee_id !== undefined) { rec.set('assigned_to', d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id)); changed.push('assignee_id'); }
+      if (d.assignee_id !== undefined) { var assigneeUpd = d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id); if (assigneeUpd && !_validAssignee(assigneeUpd)) return c.json(400,{error:'Invalid assignee'}); rec.set('assigned_to', assigneeUpd); changed.push('assignee_id'); }
       if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
       if (type === 'grocery' && d.quantity !== undefined) { var qty = parseInt(d.quantity, 10); if (isNaN(qty) || qty < 1) qty = 1; rec.set('quantity', qty); changed.push('quantity'); }
       $app.save(rec);
