@@ -3,7 +3,7 @@ name: todoless
 services:
   todoless:
     # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-frontend@sha256:441a05e77a8506380337efa20b02e970fc795c2d9d634fef9c9db57b8058ec4f
+    image: ghcr.io/chalidnl/todoless-frontend@sha256:10ef952c5a3018a00658fff061814c1078a723b624d65ee3c3ad038cb8744a6c
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -45,7 +45,7 @@ services:
 
   pocketbase:
     # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:a78e0acf65952e364194d6733f85b678a34161a53458856861f8bf3476573582
+    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:d06bb42c247bfcd25a0fe3e9a6c661bcabd487fdf6d14ca6e7645d2bb9f8b8df
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
