@@ -3,7 +3,7 @@ name: todoless
 services:
   todoless:
     # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-frontend@sha256:e8066f302e921dd7907a7f2b3daa1b82726be14c07f5e9ef98664290aca5e373
+    image: ghcr.io/chalidnl/todoless-frontend@sha256:6565358be4bc945ffc94364950c9bec222b245b953f5410d1c61b64798c586be
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -16,7 +16,7 @@ services:
       - /var/run
       - /tmp
     environment:
-      TZ: Europe/Amsterdam
+      TZ: ${TZ:-Europe/Amsterdam}
       DEPLOY_ENV: production
     ports:
       - target: 8080
@@ -45,7 +45,7 @@ services:
 
   pocketbase:
     # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:84f3563f015a7903cfb2966c7032e5fa92528a11bdf21c5fed6ce426f3a065ae
+    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:c305b6f6b3c6fb604321cfa9e1a9f0a05a24cae773d3c89524a9d845a313a624
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
@@ -59,7 +59,7 @@ services:
     entrypoint: ["/entrypoint.sh"]
     command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
     environment:
-      TZ: Europe/Amsterdam
+      TZ: ${TZ:-Europe/Amsterdam}
       DEPLOY_ENV: production
       # branch/commit are baked into the image at build time (GH#33); a runtime
       # -e COMMIT_SHA/TODOLESS_BRANCH override (as in todoless-deploy-prod.sh)

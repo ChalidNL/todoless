@@ -2,9 +2,11 @@ name: Quality Gate
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -48,12 +50,16 @@ jobs:
         run: bash scripts/check-pb-hooks-loadable.sh
 
       - name: Check migration immutability (no undeclared renames)
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_call'
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            bash scripts/check-migration-immutability.sh HEAD~1
-          else
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             bash scripts/check-migration-immutability.sh origin/main
+          else
+            BASE="${{ github.event.before }}"
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              BASE="HEAD~1"
+            fi
+            bash scripts/check-migration-immutability.sh "$BASE"
           fi
 
       - name: Audit hardcoded visible strings (i18n gate)
@@ -109,8 +115,12 @@ jobs:
 
       - name: App-managed manifest currency lint (GH#35)
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            bash scripts/check-app-manifest.sh HEAD~1
-          else
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             bash scripts/check-app-manifest.sh origin/main
+          else
+            BASE="${{ github.event.before }}"
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+              BASE="HEAD~1"
+            fi
+            bash scripts/check-app-manifest.sh "$BASE"
           fi

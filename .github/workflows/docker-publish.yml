@@ -5,92 +5,24 @@ on:
     branches: [main]
     # Publish semver image tags (:X.Y.Z / :X.Y) when a release tag (v*) is pushed.
     tags: ['v*']
+    # Docs-only commits must not trigger a multi-arch build (CI-3).
+    paths-ignore: ['**/*.md', 'docs/**', 'LICENSE']
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   REGISTRY: ghcr.io
   OWNER: chalidnl
 
 jobs:
-  quality-gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository (full history)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Run knip
-        run: npm run knip
-
-      - name: Typecheck full React source
-        run: npm run typecheck
-
-      - name: Run unit tests
-        run: npm test
-
-      - name: Run PocketBase contract tests
-        run: node --test tests/*.test.mjs
-
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Scan repository for secrets
-        run: npm run security:secrets
-
-      - name: Run production build
-        env:
-          VITE_POCKETBASE_URL: http://pocketbase:8090
-        run: npm run build
-
-      - name: Boot PocketBase with the repo's hooks/migrations and run the integration smoke suite (GH#98)
-        run: bash scripts/pb-smoke.sh
-
-  migrations-gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout repository (full history)
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Migration idempotency regression (GH#34)
-        run: bash scripts/test-migrations-idempotent.sh
-
-      - name: Migration rename sync regression (GH#34)
-        run: bash scripts/test-migration-sync.sh
-
-      - name: Stale bundled hook/migration pruning regression (GH#35)
-        run: bash scripts/test-stale-cleanup.sh
-
-      - name: App-managed manifest currency lint (GH#35)
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            bash scripts/check-app-manifest.sh HEAD~1
-          else
-            bash scripts/check-app-manifest.sh origin/main
-          fi
+  gate:
+    uses: ./.github/workflows/quality-gate.yml
 
   build-and-push:
-    needs: [quality-gate, migrations-gate]
+    needs: [gate]
     runs-on: ubuntu-latest
     permissions:
       contents: read

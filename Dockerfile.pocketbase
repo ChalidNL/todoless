@@ -42,3 +42,7 @@ RUN mkdir -p /pb_data /pb_migrations /pb_hooks \
 USER 1000:1000
 
 ENTRYPOINT ["/entrypoint.sh"]
+# Provide the default serve invocation so bare `docker run` (without compose
+# passing args) still starts PocketBase with the production paths. The
+# entrypoint honours CLI args and forwards "$@" to the binary.
+CMD ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]

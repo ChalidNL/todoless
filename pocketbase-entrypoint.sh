@@ -220,7 +220,8 @@ migrate_renames() {
 
 migrate_renames
 
-# PB 0.35 compat: No sed patches needed — main.pb.js is already 0.35-compatible.
+# The image ships PocketBase 0.40.4 (see Dockerfile.pocketbase); no legacy
+# 0.35 sed patches are needed — main.pb.js already targets 0.40.x.
 # The hooks use $app directly, onRecordEnrich, and c.requestInfo() properly.
 
 # ── Logging (GH#56) ──────────────────────────────────────────────────────────
