@@ -101,6 +101,11 @@ export const AppHeader = ({
   const notificationCount = dueSoonCount + firedReminderCount;
   const isSortable = !!onSortChange && sortOptions.length > 0;
 
+  // Only render the action row (search card) when at least one action is
+  // actually enabled — otherwise screens like Settings render a full-height,
+  // empty grey card that pushes the badge row down (GH header-height bug).
+  const hasActionRow = showFilters || showSearch || showAdd || (showInputActions && (!!onSubmitInput || !!onCancelInput));
+
   // Date presets reuse the exact 'date' chip format TasksView filters on:
   // formatDate(dueDate, { month: 'short', day: 'numeric' }) === chip id.
   const datePresetChips = Array.from({ length: 7 }, (_, i) => {
@@ -204,7 +209,8 @@ export const AppHeader = ({
           </a>
         </div>
 
-        <div className="app-search-card flex items-center gap-2 bg-transparent p-0 shadow-none">
+        {hasActionRow && (
+        <div className="app-search-card flex items-center gap-2 border-0 bg-transparent p-0 shadow-none">
           {showFilters && (
             <div className="relative">
               <button
@@ -359,13 +365,12 @@ export const AppHeader = ({
 
           {showAdd && <AddButton onClick={handleAdd} color={theme.color} />}
         </div>
-
-        {/* Active filter chips now inline in screen-specific filter bars — removed from global header */}
+        )}
 
         <div className="mt-3 flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
-            <span className="text-sm font-black tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
+            <span className="text-sm font-bold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
             {count !== undefined && (
               <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
             )}
@@ -383,6 +388,33 @@ export const AppHeader = ({
             </select>
           )}
         </div>
+
+        {/* Active filter chips — compact removable chips under the badge row, above content */}
+        {activeChipFilters.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 px-1" data-testid="active-filter-chips">
+            {activeChipFilters.map((filter) => {
+              const chipColor = filter.color || theme.color;
+              return (
+                <span
+                  key={`${filter.type}-${filter.id}`}
+                  className="inline-flex min-h-7 max-w-full items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs font-bold text-white shadow-sm"
+                  style={{ backgroundColor: chipColor }}
+                >
+                  <span className="truncate">{filter.label || filter.id}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleChipFilter(filter.type, filter.id)}
+                    className="grid h-5 w-5 flex-shrink-0 place-items-center rounded-full transition-colors hover:bg-white/25 active:scale-95"
+                    aria-label={t('common.remove')}
+                    title={t('common.remove')}
+                  >
+                    <X className="h-3 w-3" strokeWidth={3} />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -32,6 +32,37 @@ describe('AppHeader', () => {
     expect(screen.getByRole('button', { name: 'Add' })).toHaveClass('app-fab');
   });
 
+  it('does not render the action card when search, filters, add and input actions are all disabled', () => {
+    const { container } = render(<AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />);
+
+    // No empty grey action row — the badge row sits right below the avatar row.
+    expect(container.querySelector('.app-search-card')).not.toBeInTheDocument();
+    expect(screen.getByText('SETTINGS')).toBeInTheDocument();
+  });
+
+  it('removes the default search-card border in the header action row', () => {
+    const { container } = render(<AppHeader />);
+
+    const card = container.querySelector('.app-search-card');
+    expect(card).toBeInTheDocument();
+    expect(card?.className).toContain('border-0');
+  });
+
+  it('renders removable active filter chips under the badge row and removes them on tap', () => {
+    const toggleChipFilter = vi.fn();
+    useAppMock.mockReturnValue({
+      ...baseAppValue,
+      toggleChipFilter,
+      activeChipFilters: [{ type: 'label', id: 'lbl-1', label: 'School', color: '#eab308' }],
+    });
+
+    render(<AppHeader />);
+
+    expect(screen.getByText('School')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(toggleChipFilter).toHaveBeenCalledWith('label', 'lbl-1');
+  });
+
   it('uses the same AddButton component for empty calendar add action', () => {
     const onAddEmpty = vi.fn();
 

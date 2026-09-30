@@ -16,6 +16,14 @@ export const InboxBacklog = () => {
   // Helper: filter out subtask-linked tasks (they appear under their parent)
   const isNotSubtask = (t: any) => !(t.linkedType === 'task' && t.linkedTo);
 
+  // Mirrors TasksView: focus = explicit flag OR (due within 24h AND high priority)
+  const isDueWithin24h = (dueDate?: number): boolean => {
+    if (!dueDate) return false;
+    const now = Date.now();
+    const diff = dueDate - now;
+    return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+  };
+
   // Derive counts — exclude subtasks from all stat counts
   const backlogTasks = tasks
     .filter((t) => t.status === 'backlog')
@@ -100,6 +108,14 @@ export const InboxBacklog = () => {
     if (activeStatusFilter === 'blocked') {
       return filtered.filter((t) => t.blocked && !t.archived && t.status !== 'done' && t.status !== 'backlog');
     }
+    // Status chips from the shared header dropdown (TasksView semantics):
+    // 'done' must not fall through to the backlog default (fallthrough bug).
+    if (activeStatusFilter === 'done') {
+      return filtered.filter((t) => t.status === 'done' && !t.archived);
+    }
+    if (activeStatusFilter === 'focus') {
+      return filtered.filter((t) => (!!t.focus || (isDueWithin24h(t.dueDate) && t.priority === 'high')) && !t.archived);
+    }
 
     return filtered.filter((t) => t.status === 'backlog' && !t.archived);
   };
@@ -156,7 +172,6 @@ export const InboxBacklog = () => {
           onAdd={handleAddTaskWithValue}
           onSearch={setSearchQuery}
           searchPlaceholder={t('inbox.searchPlaceholder')}
-          showFilters={false}
           count={displayedTasks.length}
         />
       </div>
