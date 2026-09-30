@@ -110,6 +110,35 @@ describe('AppHeader', () => {
     expect(onAdd).toHaveBeenCalledWith('PlusTaken');
     expect(input).toHaveValue('');
   });
+
+  it('renders the badge/title row ABOVE the search action row when both are present', () => {
+    const { container } = render(<AppHeader screen="instellingen" />);
+
+    const badge = screen.getByText('SETTINGS');
+    const card = container.querySelector('.app-search-card');
+    expect(card).toBeInTheDocument();
+    // Badge row must precede the action card in DOM order (title stays at a
+    // fixed vertical position; the action row hangs below it).
+    expect(badge.compareDocumentPosition(card as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('hides the date-preset and repeat sections in the filter dropdown when hideDateRepeatSections is set', () => {
+    render(<AppHeader screen="agenda" hideDateRepeatSections searchPlaceholder="Search calendar…" />);
+
+    fireEvent.click(screen.getByTitle('Filters'));
+    expect(screen.queryByText('Due date')).not.toBeInTheDocument();
+    expect(screen.queryByText('Repeat')).not.toBeInTheDocument();
+    // Status sections still apply to the calendar model.
+    expect(screen.getByRole('button', { name: 'Focus' })).toBeInTheDocument();
+  });
+
+  it('shows the date-preset and repeat sections in the filter dropdown by default', () => {
+    render(<AppHeader screen="taken" />);
+
+    fireEvent.click(screen.getByTitle('Filters'));
+    expect(screen.getByText('Due date')).toBeInTheDocument();
+    expect(screen.getByText('Repeat')).toBeInTheDocument();
+  });
 });
 
 describe('AddButton', () => {

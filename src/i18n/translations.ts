@@ -2491,6 +2491,8 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibility": "Visibility",
       "sortAlpha": "A-Z",
       "sortAlphaReverse": "Z-A",
+      "sortNewest": "Newest first",
+      "sortOldest": "Oldest first",
       "sortColor": "Color",
       "sortVisibility": "Visibility"
     }
@@ -2578,6 +2580,8 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibility": "Zichtbaarheid",
       "sortAlpha": "A-Z",
       "sortAlphaReverse": "Z-A",
+      "sortNewest": "Nieuwste eerst",
+      "sortOldest": "Oudste eerst",
       "sortColor": "Kleur",
       "sortVisibility": "Zichtbaarheid"
     }
@@ -2661,6 +2665,8 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibility": "Visibilité",
       "sortAlpha": "A-Z",
       "sortAlphaReverse": "Z-A",
+      "sortNewest": "Plus récents d'abord",
+      "sortOldest": "Plus anciens d'abord",
       "sortColor": "Couleur",
       "sortVisibility": "Visibilité"
     }
@@ -2711,6 +2717,8 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibility": "Sichtbarkeit",
       "sortAlpha": "A-Z",
       "sortAlphaReverse": "Z-A",
+      "sortNewest": "Neueste zuerst",
+      "sortOldest": "Älteste zuerst",
       "sortColor": "Farbe",
       "sortVisibility": "Sichtbarkeit"
     }
@@ -2761,6 +2769,8 @@ const overlayTranslations: Record<SupportedUiLanguage, Record<string, unknown>> 
       "visibility": "Visibilidad",
       "sortAlpha": "A-Z",
       "sortAlphaReverse": "Z-A",
+      "sortNewest": "Más recientes primero",
+      "sortOldest": "Más antiguas primero",
       "sortColor": "Color",
       "sortVisibility": "Visibilidad"
     }

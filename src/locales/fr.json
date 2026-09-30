@@ -404,7 +404,11 @@
     "shopNamePlaceholder": "Nom du magasin",
     "firstDayOfWeek": "Premier jour de la semaine",
     "preferences": "Préférences",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "sortNewest": "Plus récents d'abord",
+    "sortOldest": "Plus anciens d'abord",
+    "sortAlpha": "A-Z",
+    "sortAlphaReverse": "Z-A"
   },
   "projects": {
     "title": "Projets",

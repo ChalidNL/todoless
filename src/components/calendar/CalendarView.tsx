@@ -3,7 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../AuthProvider';
 import { useLanguage } from '../../context/LanguageContext';
-import { t, type Language } from '../../i18n/translations';
+import { t, formatDate, type Language } from '../../i18n/translations';
 import { AppHeader } from '../shared/NewGlobalHeader';
 
 import { TaskCard } from '../shared/TaskCard';
@@ -26,8 +26,16 @@ import {
   type CalendarView as CalendarViewMode,
 } from '../../lib/calendar-utils';
 
+/** Focus semantics shared with TasksView: explicit flag OR (due <24h AND high priority). */
+const isDueWithin24h = (dueDate?: number): boolean => {
+  if (!dueDate) return false;
+  const now = Date.now();
+  const diff = dueDate - now;
+  return diff > 0 && diff <= 24 * 60 * 60 * 1000;
+};
+
 export function CalendarView() {
-  const { tasks, addTask, appSettings, showCompletionMessage } = useApp();
+  const { tasks, addTask, appSettings, activeChipFilters, showCompletionMessage } = useApp();
   const { user } = useAuth();
   const { language } = useLanguage();
   const [anchor, setAnchor] = useState(() => startOfLocalDay(Date.now()));
@@ -62,11 +70,43 @@ export function CalendarView() {
   }, [anchor, firstDayOfWeek, mode]);
 
   const allItems = useMemo(() => buildCalendarItems({ tasks, rangeStart: range.start, rangeEnd: range.end }), [tasks, range]);
+  // Chip filters share Tasks semantics (filter = visible set). Status 'done'
+  // yields no items because buildCalendarItems already excludes done tasks.
   const items = useMemo(() => {
+    let result = allItems;
+    for (const f of activeChipFilters) {
+      switch (f.type) {
+        case 'status':
+          if (f.id === 'focus') result = result.filter((item) => !!item.source.focus || (isDueWithin24h(item.source.dueDate) && item.source.priority === 'high'));
+          if (f.id === 'blocked') result = result.filter((item) => !!item.source.blocked);
+          if (f.id === 'todo') result = result.filter((item) => item.source.status === 'todo' && !item.source.blocked);
+          if (f.id === 'done') result = result.filter((item) => item.source.status === 'done');
+          break;
+        case 'label':
+          result = result.filter((item) => item.source.labels.includes(f.id));
+          break;
+        case 'assignee':
+          result = result.filter((item) => item.source.assignedTo === f.id);
+          break;
+        case 'priority':
+          result = result.filter((item) => item.source.priority === f.id);
+          break;
+        case 'date':
+          result = result.filter((item) => {
+            if (!item.source.dueDate) return false;
+            const ds = formatDate(item.source.dueDate, { month: 'short', day: 'numeric' });
+            return ds === f.id;
+          });
+          break;
+        case 'repeat':
+          result = result.filter((item) => item.source.repeatInterval === f.id);
+          break;
+      }
+    }
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return allItems;
-    return allItems.filter((item) => item.title.toLowerCase().includes(query));
-  }, [allItems, searchQuery]);
+    if (query) result = result.filter((item) => item.title.toLowerCase().includes(query));
+    return result;
+  }, [allItems, searchQuery, activeChipFilters]);
   const selectedDayItems = useMemo(() => items.filter((item) => calendarItemCoversDay(item, selectedDay)), [items, selectedDay]);
   const views: CalendarViewMode[] = ['schedule', 'day', '3days', 'week', 'workweek', 'month'];
 
@@ -120,7 +160,7 @@ export function CalendarView() {
           onAddEmpty={(value) => value ? openCreate(undefined, undefined, value) : openCreate(selectedDay)}
           showInputActions={false}
           showAdd={true}
-          showFilters={false}
+          hideDateRepeatSections
           searchPlaceholder={t('calendar.searchPlaceholder', language)}
           type="calendar"
           count={items.length}
@@ -159,7 +199,7 @@ function DateNavigator({ periodTitle, isTodayAnchor, language, onToday, onPrevio
       <div className="app-surface flex items-center gap-1.5 rounded-full px-2 py-1.5">
         <button type="button" onClick={onToday} aria-label={t('calendar.today', language)} className={`app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full ${isTodayAnchor ? 'bg-[var(--app-primary)] text-white shadow-sm' : 'bg-[var(--app-surface-2)]'}`}><CalendarDays className="w-3.5 h-3.5" /></button>
         <button type="button" aria-label={t('calendar.previous', language)} onClick={onPrevious} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronLeft className="w-3.5 h-3.5" /></button>
-        <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-extrabold text-[var(--app-text)]">{periodTitle}</p>
+        <p data-testid="calendar-period-title" className="min-w-0 flex-1 truncate text-center text-xs font-semibold text-[var(--app-text)]">{periodTitle}</p>
         <button type="button" aria-label={t('calendar.next', language)} onClick={onNext} className="app-icon-button h-[var(--app-touch-target)] w-[var(--app-touch-target)] rounded-full bg-[var(--app-surface-2)]"><ChevronRight className="w-3.5 h-3.5" /></button>
       </div>
     </header>

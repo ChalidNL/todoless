@@ -29,6 +29,13 @@ interface AppHeaderProps {
   onSortChange?: (value: string) => void;
   sortOptions?: Array<{ value: string; label: string }>;
   sortAriaLabel?: string;
+  /**
+   * Hide the date-preset and repeat chip sections inside the filter dropdown.
+   * Used by screens whose items are not keyed by a single due-date/repeat
+   * field (calendar), so the dropdown only offers sections that actually
+   * match the model — no separate calendar filter implementation.
+   */
+  hideDateRepeatSections?: boolean;
 }
 
 const SCREEN_THEMES = {
@@ -77,7 +84,8 @@ export const AppHeader = ({
   sortValue,
   onSortChange,
   sortOptions = [],
-  sortAriaLabel = t('common.sort')
+  sortAriaLabel = t('common.sort'),
+  hideDateRepeatSections = false,
 }: AppHeaderProps) => {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [internalInputValue, setInternalInputValue] = useState('');
@@ -209,8 +217,35 @@ export const AppHeader = ({
           </a>
         </div>
 
+        {/* Title band (badge row) — always directly under the logo row so the
+            page title sits at the same vertical position on every screen,
+            whether or not an action row is rendered below it. A uniform
+            min-height keeps the title baseline identical with/without the
+            sort select (no per-screen offsets). */}
+        <div className="mt-3 flex min-h-[var(--app-touch-target)] items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
+            <span className="text-sm font-bold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
+            {count !== undefined && (
+              <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
+            )}
+          </div>
+          {isSortable && (
+            <select
+              value={sortValue}
+              onChange={(event) => onSortChange?.(event.target.value)}
+              className="min-h-11 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
+              aria-label={sortAriaLabel}
+              data-component="shared-select"
+            >
+              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          )}
+        </div>
+
         {hasActionRow && (
-        <div className="app-search-card flex items-center gap-2 border-0 bg-transparent p-0 shadow-none">
+        <div className="app-search-card mt-3 flex items-center gap-2 border-0 bg-transparent p-0 shadow-none">
           {showFilters && (
             <div className="relative">
               <button
@@ -290,6 +325,11 @@ export const AppHeader = ({
                       </div>
                     )}
 
+                    {/* Date-preset + repeat filters — hidden on screens where
+                        items are not keyed by a single due-date/repeat field
+                        (calendar): the presets would not match the model. */}
+                    {!hideDateRepeatSections && (
+                    <>
                     {/* Date-preset filters (TasksView chip type: 'date') */}
                     <div className="border-t border-[var(--app-border-subtle)] p-1.5">
                       <div className="px-1.5 pb-1 text-[11px] font-bold uppercase tracking-wide text-[var(--app-text-soft)]">{t('filters.dueDate')}</div>
@@ -310,6 +350,8 @@ export const AppHeader = ({
                         ].map((rp) => renderFilterChip('repeat', rp.id, rp.label))}
                       </div>
                     </div>
+                    </>
+                    )}
                     </>
                     )}
                   </div>
@@ -367,29 +409,7 @@ export const AppHeader = ({
         </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
-            <span className="text-sm font-bold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
-            {count !== undefined && (
-              <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
-            )}
-          </div>
-          {isSortable && (
-            <select
-              value={sortValue}
-              onChange={(event) => onSortChange?.(event.target.value)}
-              className="min-h-11 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
-              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem' }}
-              aria-label={sortAriaLabel}
-              data-component="shared-select"
-            >
-              {sortOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          )}
-        </div>
-
-        {/* Active filter chips — compact removable chips under the badge row, above content */}
+        {/* Active filter chips — compact removable chips under the action row, above content */}
         {activeChipFilters.length > 0 && (
           <div className="mt-2 flex flex-wrap items-center gap-1.5 px-1" data-testid="active-filter-chips">
             {activeChipFilters.map((filter) => {

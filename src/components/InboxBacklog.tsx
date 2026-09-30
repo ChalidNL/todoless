@@ -12,6 +12,41 @@ export const InboxBacklog = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sortMode, setSortMode] = useState<InboxSortMode>('alpha');
+
+  // Sort modes reuse the shared AppHeader sort pattern (same as Tasks/Groceries):
+  // filter = which items are visible (chips/search), sort = their order only.
+  type InboxSortMode = 'alpha' | 'alphaDesc' | 'newest' | 'oldest' | 'priority';
+  const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+
+  // Sort is applied AFTER search + chip filters (filter = visible set, sort = order).
+  const sortInboxTasks = (list: any[], mode: InboxSortMode) => {
+    const sorted = [...list];
+    switch (mode) {
+      case 'alphaDesc':
+        sorted.sort((a, b) => b.title.toLowerCase().localeCompare(a.title.toLowerCase()));
+        break;
+      case 'newest':
+        sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0) || a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+        break;
+      case 'oldest':
+        sorted.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0) || a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+        break;
+      case 'priority':
+        sorted.sort((a, b) => {
+          const pa = PRIORITY_ORDER[a.priority || ''] ?? 99;
+          const pb = PRIORITY_ORDER[b.priority || ''] ?? 99;
+          if (pa !== pb) return pa - pb;
+          return a.title.toLowerCase().localeCompare(b.title.toLowerCase());
+        });
+        break;
+      case 'alpha':
+      default:
+        sorted.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+        break;
+    }
+    return sorted;
+  };
 
   // Helper: filter out subtask-linked tasks (they appear under their parent)
   const isNotSubtask = (t: any) => !(t.linkedType === 'task' && t.linkedTo);
@@ -120,7 +155,7 @@ export const InboxBacklog = () => {
     return filtered.filter((t) => t.status === 'backlog' && !t.archived);
   };
 
-  const displayedTasks = getFilteredTasks();
+  const displayedTasks = sortInboxTasks(getFilteredTasks(), sortMode);
   const statusSections = [
     { key: 'backlog', label: t('dashboard.inbox'), value: backlogCount, icon: Inbox, tone: 'inbox' as const },
     { key: 'todo', label: t('dashboard.todoSprint'), value: todoCount, icon: Rows2, tone: 'todo' as const },
@@ -173,6 +208,15 @@ export const InboxBacklog = () => {
           onSearch={setSearchQuery}
           searchPlaceholder={t('inbox.searchPlaceholder')}
           count={displayedTasks.length}
+          sortValue={sortMode}
+          onSortChange={(value) => setSortMode(value as InboxSortMode)}
+          sortOptions={[
+            { value: 'alpha', label: t('settings.sortAlpha') },
+            { value: 'alphaDesc', label: t('settings.sortAlphaReverse') },
+            { value: 'newest', label: t('settings.sortNewest') },
+            { value: 'oldest', label: t('settings.sortOldest') },
+            { value: 'priority', label: t('filters.priority') },
+          ]}
         />
       </div>
 

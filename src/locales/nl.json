@@ -404,7 +404,11 @@
     "shopNamePlaceholder": "Winkelnaam",
     "firstDayOfWeek": "Eerste dag van de week",
     "preferences": "Voorkeuren",
-    "documentation": "Documentatie"
+    "documentation": "Documentatie",
+    "sortNewest": "Nieuwste eerst",
+    "sortOldest": "Oudste eerst",
+    "sortAlpha": "A-Z",
+    "sortAlphaReverse": "Z-A"
   },
   "projects": {
     "title": "Projecten",
