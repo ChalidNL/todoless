@@ -1,4 +1,5 @@
 import { Home, Lock, Tag, Users, X, ChevronDown, ChevronUp, Check, Trash2 } from 'lucide-react';
+import { useConfirmDialog } from './shared/ConfirmDialog';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
@@ -27,6 +28,7 @@ function visibilityLabel(visibility: 'family' | 'private' | 'shared'): string {
 
 export function LabelsView() {
   const { labels, users, appSettings, addLabel, updateLabel, deleteLabel } = useApp();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
@@ -130,6 +132,7 @@ export function LabelsView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-6">
+      {confirmDialog}
       <SettingsDetailHeader
         mode="list"
         screen="labels"
@@ -202,10 +205,10 @@ export function LabelsView() {
                       variant="destructive"
                       onClick={() => {
                         if (!canManageLabel(label)) return;
-                        if (window.confirm(t('common.confirmDeleteTitle'))) {
+                        confirm(t('common.confirmDeleteTitle'), () => {
                           deleteLabel(label.id);
                           collapseAll();
-                        }
+                        });
                       }}
                     />
                   </div>

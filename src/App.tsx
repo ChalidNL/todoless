@@ -67,23 +67,34 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+        <div className="min-h-dvh bg-neutral-50 flex items-center justify-center p-4" role="alert">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-8 h-8 text-red-600" />
             </div>
             <h1 className="text-xl font-bold mb-2">{t('auth.appError')}</h1>
             <p className="text-neutral-600 mb-6 text-sm">
-              {t('auth.appErrorDescription')}
+              {t('errors.unknown')}
             </p>
+            {/* Reload first: a render crash rarely needs local state wiped. The
+                reset (sign out + clear this device's settings; server data is
+                untouched) stays available as the escape hatch. */}
             <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="min-h-[var(--app-touch-target)] w-full rounded-lg bg-[var(--app-primary)] px-4 py-3 font-medium text-white transition-colors"
+            >
+              {t('errors.reload')}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 localStorage.clear();
                 window.location.reload();
               }}
-              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              className="mt-2 min-h-[var(--app-touch-target)] w-full rounded-lg px-4 py-2 text-sm font-medium text-red-600"
             >
-              {t('auth.resetAllData')}
+              {t('errors.resetLocal')}
             </button>
           </div>
         </div>
@@ -246,7 +257,7 @@ function AppContent() {
 
   if (dataLoadState === 'loading') {
     return (
-      <main className="app-shell-bg grid min-h-screen place-items-center p-6" role="status" aria-live="polite">
+      <main className="app-shell-bg grid min-h-dvh place-items-center p-6" role="status" aria-live="polite">
         <div className="app-surface flex items-center gap-3 rounded-[var(--app-radius-xl)] px-5 py-4 text-[var(--app-text-muted)]">
           <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
           <span>{t('common.loading', language)}</span>
@@ -257,10 +268,10 @@ function AppContent() {
 
   if (dataLoadState === 'error') {
     return (
-      <main className="app-shell-bg grid min-h-screen place-items-center p-6">
+      <main className="app-shell-bg grid min-h-dvh place-items-center p-6">
         <section className="app-surface w-full max-w-md rounded-[var(--app-radius-xl)] p-6 text-center" role="alert">
           <h1 className="text-xl font-bold text-[var(--app-text)]">{t('common.error', language)}</h1>
-          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('auth.appErrorDescription', language)}</p>
+          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('errors.unknown', language)}</p>
           <button
             type="button"
             onClick={() => void retryLoad()}

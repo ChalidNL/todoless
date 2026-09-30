@@ -76,8 +76,9 @@ describe('Inbox stat cards', () => {
   it('batch-push sends clear-completion payload so PocketBase nulls completed_at (GH#80)', () => {
     render(<InboxBacklog />);
 
+    fireEvent.click(screen.getByText('Select'));
     fireEvent.click(screen.getByText('Select All'));
-    fireEvent.click(screen.getByText('Select All'));
+    expect(screen.getByText(/\d+ selected/)).toBeInTheDocument();
     fireEvent.click(screen.getByText(/Push Selected/));
 
     for (const call of updateTaskMock.mock.calls) {

@@ -264,10 +264,11 @@ export const InboxBacklog = () => {
                   <div className="flex items-center gap-1">
                     {displayedTasks.length > 0 && !isSelecting && (
                       <button
+                        type="button"
                         onClick={enterSelectMode}
-                        className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                        className="min-h-[var(--app-touch-target)] rounded-lg px-3 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                       >
-                        {t('inbox.selectAll')}
+                        {t('inbox.select')}
                       </button>
                     )}
                     {isSelecting && (
@@ -280,13 +281,13 @@ export const InboxBacklog = () => {
                               setSelectedIds(new Set(displayedTasks.map(t => t.id)));
                             }
                           }}
-                          className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                          className="min-h-[var(--app-touch-target)] rounded-lg px-3 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                         >
                           {selectedIds.size === displayedTasks.length ? t('inbox.deselectAll') : t('inbox.selectAll')}
                         </button>
                         <button
                           onClick={exitSelectMode}
-                          className="text-xs font-medium text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded hover:bg-neutral-100 transition-colors"
+                          className="min-h-[var(--app-touch-target)] rounded-lg px-3 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
                         >
                           {t('common.cancel')}
                         </button>
@@ -302,13 +303,16 @@ export const InboxBacklog = () => {
                       <div key={task.id} className="flex items-center gap-2">
                         {isSelecting && (
                           <button
+                            type="button"
+                            role="checkbox"
+                            aria-checked={selectedIds.has(task.id)}
                             onClick={() => toggleSelect(task.id)}
                             className={`app-checkbox flex flex-shrink-0 items-center justify-center transition-colors ${
                               selectedIds.has(task.id)
                                 ? 'app-checkbox-checked'
                                 : ''
                             }`}
-                            aria-label={selectedIds.has(task.id) ? t('inbox.deselectAll') : t('inbox.selectAll')}
+                            aria-label={task.title}
                           >
                             {selectedIds.has(task.id) && <Check className="w-3 h-3" />}
                           </button>
@@ -330,11 +334,12 @@ export const InboxBacklog = () => {
         <div className="fixed bottom-0 left-0 right-0 z-50 app-bottom-nav pb-[env(safe-area-inset-bottom,0px)]">
           <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
             <span className="text-sm font-medium text-neutral-600">
-              {selectedIds.size} {t('inbox.selectAll').toLowerCase()}
+              {t('inbox.selectedCount').replace('{n}', String(selectedIds.size))}
             </span>
             <button
+              type="button"
               onClick={pushSelected}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors active:scale-95"
+              className="inline-flex min-h-[var(--app-touch-target)] items-center gap-1.5 px-4 py-2 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors active:scale-95"
             >
               <ArrowRight className="w-4 h-4" />
               {t('inbox.pushSelected')}

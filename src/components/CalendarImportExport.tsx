@@ -32,7 +32,7 @@ export function CalendarImportExport() {
   return (
     <div className="mt-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-3">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-neutral-900">{t('ics.exportTitle')}</h3>
+        <h3 className="text-sm font-semibold text-neutral-900">{t('ics.sectionTitle')}</h3>
         <p className="text-xs text-neutral-500">{t('ics.importDescription')}</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

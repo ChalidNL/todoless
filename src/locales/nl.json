@@ -146,7 +146,9 @@
     "lastNamePlaceholder": "Jansen",
     "emailPlaceholder": "jij@voorbeeld.nl",
     "passwordPlaceholder": "Minimaal 8 tekens",
-    "confirmPasswordPlaceholder": "Herhaal je wachtwoord"
+    "confirmPasswordPlaceholder": "Herhaal je wachtwoord",
+    "showPassword": "Wachtwoord tonen",
+    "hidePassword": "Wachtwoord verbergen"
   },
   "tasks": {
     "title": "Taken",
@@ -413,7 +415,19 @@
     "sortNewest": "Nieuwste eerst",
     "sortOldest": "Oudste eerst",
     "sortAlpha": "A-Z",
-    "sortAlphaReverse": "Z-A"
+    "sortAlphaReverse": "Z-A",
+    "membersCount": {
+      "one": "{n} lid",
+      "other": "{n} leden"
+    },
+    "labelsCount": {
+      "one": "{n} label",
+      "other": "{n} labels"
+    },
+    "shopsCount": {
+      "one": "{n} winkel",
+      "other": "{n} winkels"
+    }
   },
   "projects": {
     "title": "Projecten",
@@ -506,7 +520,9 @@
     "noResults": "Geen resultaten",
     "markAllDone": "Alles als gedaan markeren",
     "clearAll": "Alles wissen",
-    "empty": "Leeg"
+    "empty": "Leeg",
+    "select": "Selecteren",
+    "selectedCount": "{n} geselecteerd"
   },
   "members": {
     "title": "Familie",
@@ -609,5 +625,16 @@
     "doneSprint": "Afgeronde sprint",
     "blocked": "Geblokkeerd",
     "doneToday": "Vandaag gedaan"
+  },
+  "ics": {
+    "sectionTitle": "Agenda importeren & exporteren"
+  },
+  "errors": {
+    "offline": "Je bent offline of de server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
+    "server": "De server kon je gegevens niet laden. Probeer het zo opnieuw.",
+    "forbidden": "Je account heeft nu geen toegang tot deze gegevens. Vraag de beheerder van je gezin.",
+    "unknown": "Er ging iets mis bij het laden van je gegevens.",
+    "reload": "App herladen",
+    "resetLocal": "Uitloggen en dit apparaat resetten"
   }
 }

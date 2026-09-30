@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirmDialog } from './shared/ConfirmDialog';
 import { useApp } from '../context/AppContext';
 import { ChevronDown, ChevronUp, Trash2, CheckSquare, Target, Lock } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
@@ -21,6 +22,7 @@ const isDueWithin24h = (dueDate?: number): boolean => {
 
 export const TasksView = () => {
   const { tasks, activeChipFilters, addTask, deleteTasks, showCompletionMessage } = useApp();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [showBlocked, setShowBlocked] = useState(true);
@@ -104,9 +106,16 @@ export const TasksView = () => {
   // Blocked: blocked tasks
   const blockedTasks = activeTasks.filter(task => task.blocked && !focusTasks.includes(task));
 
+  // Overdue: remaining active tasks whose due date has passed. Focus and
+  // blocked keep precedence so each task is shown in exactly one section.
+  const now = Date.now();
+  const overdueTasks = activeTasks
+    .filter(task => !focusTasks.includes(task) && !blockedTasks.includes(task) && !!task.dueDate && task.dueDate < now)
+    .sort((a, b) => (a.dueDate ?? 0) - (b.dueDate ?? 0));
+
   // Regular tasks: remaining active tasks
   const regularTasks = activeTasks.filter(task =>
-    !focusTasks.includes(task) && !blockedTasks.includes(task)
+    !focusTasks.includes(task) && !blockedTasks.includes(task) && !overdueTasks.includes(task)
   );
 
   // Sort helper
@@ -143,10 +152,11 @@ export const TasksView = () => {
   const sortedRegularTasks = sortTasks(regularTasks);
   const sortedCompletedTasks = sortTasks(completedTasks);
 
-  const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
+  const isEmpty = focusTasks.length === 0 && blockedTasks.length === 0 && overdueTasks.length === 0 && regularTasks.length === 0 && completedTasks.length === 0;
 
   return (
     <>
+      {confirmDialog}
       <div className="sticky top-0 z-40">
         <AppHeader
           screen="taken"
@@ -170,7 +180,7 @@ export const TasksView = () => {
         ) : (
           <>
             {/* OVERDUE section — always below sort header */}
-            <DueDateNotifications />
+            <DueDateNotifications tasks={overdueTasks} />
 
             {/* FOCUS section */}
             {sortedFocusTasks.length > 0 && (
@@ -267,12 +277,12 @@ export const TasksView = () => {
                   </button>
 
                   <button
-                    onClick={() => {
-                      if (!window.confirm(t('tasks.confirmDeleteCompleted'))) return;
+                    type="button"
+                    onClick={() => confirm(t('tasks.confirmDeleteCompleted'), () => {
                       const doneIds = sortedCompletedTasks.map(t => t.id);
                       deleteTasks(doneIds);
                       showCompletionMessage(t('tasks.deletedCount').replace('{n}', String(doneIds.length)));
-                    }}
+                    })}
                     className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
                     title={t('common.delete')}
                   >

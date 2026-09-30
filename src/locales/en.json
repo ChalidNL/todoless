@@ -146,7 +146,9 @@
     "lastNamePlaceholder": "Doe",
     "emailPlaceholder": "you@example.com",
     "passwordPlaceholder": "At least 8 characters",
-    "confirmPasswordPlaceholder": "Repeat your password"
+    "confirmPasswordPlaceholder": "Repeat your password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "tasks": {
     "title": "Tasks",
@@ -413,7 +415,19 @@
     "sortNewest": "Newest first",
     "sortOldest": "Oldest first",
     "sortAlpha": "A-Z",
-    "sortAlphaReverse": "Z-A"
+    "sortAlphaReverse": "Z-A",
+    "membersCount": {
+      "one": "{n} member",
+      "other": "{n} members"
+    },
+    "labelsCount": {
+      "one": "{n} label",
+      "other": "{n} labels"
+    },
+    "shopsCount": {
+      "one": "{n} shop",
+      "other": "{n} shops"
+    }
   },
   "projects": {
     "title": "Projects",
@@ -506,7 +520,9 @@
     "noResults": "No results",
     "markAllDone": "Mark All Done",
     "clearAll": "Clear All",
-    "empty": "Empty"
+    "empty": "Empty",
+    "select": "Select",
+    "selectedCount": "{n} selected"
   },
   "members": {
     "title": "Family",
@@ -609,5 +625,16 @@
     "doneSprint": "Done Sprint",
     "blocked": "Blocked",
     "doneToday": "Done Today"
+  },
+  "ics": {
+    "sectionTitle": "Calendar import & export"
+  },
+  "errors": {
+    "offline": "You're offline or the server can't be reached. Check your connection and try again.",
+    "server": "The server had a problem loading your data. Please try again in a moment.",
+    "forbidden": "Your account can't access this data right now. Ask your family admin.",
+    "unknown": "Something went wrong while loading your data.",
+    "reload": "Reload app",
+    "resetLocal": "Sign out and reset this device"
   }
 }

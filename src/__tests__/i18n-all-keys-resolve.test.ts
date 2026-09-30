@@ -22,11 +22,21 @@ function collectSourceFiles(dir: string): string[] {
 
 function collectKeys(): Map<string, string> {
   const keys = new Map<string, string>();
-  const pattern = /\bt\(\s*['"]([a-zA-Z0-9_]+\.[a-zA-Z0-9_.]+)['"]/g;
+  const key = `['"]([a-zA-Z0-9_]+\\.[a-zA-Z0-9_.]+)['"]`;
+  const patterns = [
+    // t('ns.key')
+    new RegExp(`\\bt\\(\\s*${key}`, 'g'),
+    // t(cond ? 'ns.a' : 'ns.b')
+    new RegExp(`\\bt\\(\\s*[^'"()]+\\?\\s*${key}\\s*:\\s*${key}`, 'g'),
+  ];
   for (const file of collectSourceFiles(SRC_DIR)) {
     const source = readFileSync(file, 'utf8');
-    for (const match of source.matchAll(pattern)) {
-      if (!keys.has(match[1])) keys.set(match[1], path.relative(SRC_DIR, file));
+    for (const pattern of patterns) {
+      for (const match of source.matchAll(pattern)) {
+        for (const found of match.slice(1).filter(Boolean)) {
+          if (!keys.has(found)) keys.set(found, path.relative(SRC_DIR, file));
+        }
+      }
     }
   }
   return keys;

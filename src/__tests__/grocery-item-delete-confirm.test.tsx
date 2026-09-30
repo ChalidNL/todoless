@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { UnifiedCard } from '../components/shared/UnifiedCard';
 import type { Item } from '../types';
 
@@ -60,7 +60,7 @@ describe('UnifiedCard grocery item delete confirmation', () => {
 
     expect(screen.getByText('Delete this item?')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }));
 
     expect(deleteItem).not.toHaveBeenCalled();
     expect(screen.queryByText('Delete this item?')).not.toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('UnifiedCard grocery item delete confirmation', () => {
 
     expect(deleteItem).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
 
     expect(deleteItem).toHaveBeenCalledWith('item-1');
   });

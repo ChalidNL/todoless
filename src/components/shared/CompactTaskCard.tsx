@@ -12,6 +12,7 @@ import { entityColor } from '../../lib/entity-colors';
 import { PRIORITY_COLORS, PRIORITY_LABEL_KEYS, PRIORITY_ORDER } from '../../lib/priority';
 import { TaskMetaRow } from './TaskMetaRow';
 import { TaskActionBar } from './TaskActionBar';
+import { ConfirmDialog } from './ConfirmDialog';
 import { RepeatNextPreview } from './RepeatNextPreview';
 
 // Local subtask icon (still used by inline editor)
@@ -36,49 +37,6 @@ interface CompactTaskCardProps {
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
 
-const DeleteConfirm = ({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-    <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
-      <p className="text-sm font-medium text-neutral-900 mb-4">{t('common.confirmDeleteTitle')}</p>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
-        >
-          {t('common.no')}
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
-        >
-          {t('common.confirm')}
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: string; confirmLabel?: string; onConfirm: () => void; onCancel: () => void }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-    <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full">
-      <p className="text-sm font-medium text-neutral-900 mb-4">{title}</p>
-      <div className="flex gap-2 justify-end">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
-        >
-          {t('common.cancel')}
-        </button>
-        <button
-          onClick={onConfirm}
-          className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
-        >
-          {confirmLabel || t('common.confirm')}
-        </button>
-      </div>
-    </div>
-  </div>
-);
 
 export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, tasks, addLabel, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
@@ -672,7 +630,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         }
                       }}
                       placeholder={t('tasks.labelInputPlaceholder')}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      className="min-w-0 flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.labelInputAria')}
                     />
                     <button
@@ -728,7 +686,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         if (e.key === 'Escape') setActiveEditor(null);
                       }}
                       placeholder={t('tasks.searchAssigneePlaceholder')}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      className="min-w-0 flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.searchAssigneeAria')}
                     />
                     {hasAssignee && (
@@ -769,7 +727,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                         const nextDueDate = combineLocalDateAndTime(e.target.value, timeValue || '00:00') ?? parseLocalDateInputValue(e.target.value);
                         updateTask(task.id, { dueDate: nextDueDate });
                       }}
-                      className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                      className="min-w-0 flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                       aria-label={t('tasks.dueDateAria')}
                     />
                     <input
@@ -837,7 +795,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                             onBlur={commitSubtaskEdit}
                             onKeyDown={(e) => { if (e.key === 'Enter') commitSubtaskEdit(); if (e.key === 'Escape') { setEditingSubtaskId(null); setEditingSubtaskTitle(''); } }}
                             autoFocus
-                            className="flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
+                            className="min-w-0 flex-1 text-xs px-2 py-1 border border-neutral-200 rounded bg-white"
                             aria-label={t('tasks.subtaskTitleEditAria')}
                           />
                         ) : (
@@ -861,7 +819,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                       onFocus={() => setActiveEditor('subtasks')}
                       onKeyDown={async (e) => { if (e.key === 'Enter') { await commitSubtask(); } }}
                       placeholder={t('tasks.newSubtaskTitle')}
-                      className="flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
+                      className="min-w-0 flex-1 text-xs px-0 py-0 bg-transparent border-0 focus:outline-none placeholder:text-neutral-400"
                       aria-label={t('tasks.newSubtaskTitle')}
                     />
                     {subtaskTitle.trim() && (
@@ -957,7 +915,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
       </div>
 
       {showDeleteConfirm && (
-        <DeleteConfirm
+        <ConfirmDialog
+          title={t('common.confirmDeleteTitle')}
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
         />

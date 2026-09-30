@@ -22,7 +22,7 @@ describe('redesign login accessibility', () => {
     expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
     const passwordInput = screen.getByLabelText('Password', { selector: 'input' });
     expect(passwordInput).toHaveAttribute('type', 'password');
-    const visibility = screen.getByRole('button', { name: 'Password' });
+    const visibility = screen.getByRole('button', { name: 'Show password' });
     expect(visibility).toHaveClass('h-11', 'w-11');
     expect(visibility).toHaveAttribute('aria-pressed', 'false');
 

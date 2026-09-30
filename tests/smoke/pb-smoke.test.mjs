@@ -182,7 +182,7 @@ test('second user registers with the invite code', async () => {
   const r = await api('POST', '/api/register', {
     body: {
       email: 'member@smoke.test', password: 'password123', passwordConfirm: 'password123',
-      name: 'Smoke Member', invite_code: inviteCode, user_type: 'family_member', language: 'en',
+      name: 'Smoke Member', firstName: 'Smoke', lastName: 'Member', invite_code: inviteCode, user_type: 'family_member', language: 'en',
     },
   })
   assert.equal(r.status, 201)
@@ -195,6 +195,9 @@ test('second user registers with the invite code', async () => {
 test('member can authenticate', async () => {
   const a = await auth('member@smoke.test', 'password123')
   assert.ok(a.token, 'expected token')
+  // Structured name from the register form is persisted (profile edits it).
+  assert.equal(a.record?.first_name, 'Smoke')
+  assert.equal(a.record?.last_name, 'Member')
   memberToken = a.token
 })
 

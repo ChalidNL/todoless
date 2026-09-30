@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { userDisplayName } from '../types';
-import { t } from '../i18n/translations';
+import { getActiveLanguage, t } from '../i18n/translations';
 import { Link } from 'react-router-dom';
 import { ChevronRight, LogOut, Copy, RefreshCw, ExternalLink, Camera, Users, UserCircle2, Tag, SlidersHorizontal, Bell, Store, BookOpen } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
@@ -91,7 +91,7 @@ export const Settings = () => {
 
   if (!currentUser) {
     return (
-      <div className="app-shell-bg min-h-screen flex items-center justify-center">
+      <div className="app-shell-bg min-h-full flex items-center justify-center">
         <p className="text-neutral-600">{t('common.noData')}</p>
       </div>
     );
@@ -100,11 +100,17 @@ export const Settings = () => {
   const displayName = userDisplayName(currentUser);
   const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
   const docsUrl = resolveDocsUrl(import.meta.env.VITE_DOCS_URL);
+  // "1 member" / "3 members" in the active language (keys: <base>.one / <base>.other).
+  const countLabel = (base: string, n: number) => {
+    let form = 'other';
+    try { form = new Intl.PluralRules(getActiveLanguage()).select(n) === 'one' ? 'one' : 'other'; } catch { /* default */ }
+    return t(`${base}.${form}`).replace('{n}', String(n));
+  };
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
-    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
-    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} ${t('settings.labels')}` },
-    { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: `${shops.length} ${t('settings.shops')}` },
+    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: countLabel('settings.membersCount', users.length) },
+    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: countLabel('settings.labelsCount', labels.length) },
+    { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: countLabel('settings.shopsCount', shops.length) },
     { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
     { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: t('settings.notifications'), sub: null },
     { href: docsUrl, icon: BookOpen, color: '#0ea5e9', label: t('settings.documentation'), sub: t('settings.apiDocumentation'), external: true },

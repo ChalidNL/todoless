@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useConfirmDialog } from './shared/ConfirmDialog';
 import { Mail, Shield, CheckCircle2, Clock3, ChevronDown, ChevronUp, Trash2, UserCog } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
@@ -10,6 +11,7 @@ import { InviteManager } from './InviteManager';
 
 export function MembersView() {
   const { users, appSettings, updateUser, deleteUser, showCompletionMessage } = useApp();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [search, setSearch] = useState('');
   const [inviteTrigger, setInviteTrigger] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export function MembersView() {
 
   return (
     <div className="app-shell-bg min-h-full pb-6">
+      {confirmDialog}
       <SettingsDetailHeader
         mode="list"
         screen="leden"
@@ -56,10 +59,13 @@ export function MembersView() {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-extrabold text-[var(--app-text)]">{name}</h2>
-                  <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-[var(--app-text-muted)]">
-                    <Mail className="h-3 w-3" />
-                    {member.email}
-                  </p>
+                  {/* Emails of other members are private (emailVisibility) — no empty envelope row. */}
+                  {member.email && (
+                    <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs font-medium text-[var(--app-text-muted)]">
+                      <Mail className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">{member.email}</span>
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className="app-chip inline-flex min-h-7 items-center gap-1 bg-violet-50 px-2.5 text-[11px] font-black capitalize text-violet-700">
                       <Shield className="h-3 w-3" />
@@ -113,11 +119,7 @@ export function MembersView() {
                   <button
                     type="button"
                     className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--app-radius-md)] bg-rose-50 px-3 text-sm font-bold text-rose-700"
-                    onClick={async () => {
-                      if (window.confirm(t('settings.deleteMemberConfirm'))) {
-                        await deleteUser(member.id);
-                      }
-                    }}
+                    onClick={() => confirm(t('settings.deleteMemberConfirm'), () => { void deleteUser(member.id); })}
                   >
                     <Trash2 className="h-4 w-4" />
                     {t('settings.deleteMember')}

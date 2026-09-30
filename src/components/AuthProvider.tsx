@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../lib/pocketbase-client';
+import type { RecordModel } from 'pocketbase';
 import { pb } from '../lib/pocketbase';
+import { classifyLoadError } from '../lib/load-error';
 import type { User } from '../types';
 
 interface AuthContextType {
@@ -21,6 +23,24 @@ export const useAuth = () => {
   return context;
 };
 
+function recordToUser(record: RecordModel): User {
+  return {
+    id: record.id,
+    email: record.email,
+    name: record.name,
+    firstName: record.first_name,
+    lastName: record.last_name,
+    displayName: record.display_name,
+    role: record.role,
+    avatarUrl: record.avatar,
+    member_type: record.member_type || 'human',
+    member_status: record.member_status,
+    language: record.language || 'en',
+    family_id: record.family_id,
+    active: record.member_status ? record.member_status === 'active' : true,
+  };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,26 +52,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           // Refresh auth state from PocketBase
           await pb.collection('users').authRefresh();
-          const record = pb.authStore.record;
-          setUser({
-            id: record.id,
-            email: record.email,
-            name: record.name,
-            firstName: record.first_name,
-            lastName: record.last_name,
-            displayName: record.display_name,
-            role: record.role,
-            avatarUrl: record.avatar,
-            member_type: record.member_type || 'human',
-            member_status: record.member_status,
-            language: record.language || 'en',
-            family_id: record.family_id,
-            active: record.member_status ? record.member_status === 'active' : true,
-          });
-        } catch {
-          // Token expired or invalid
-          pb.authStore.clear();
+        } catch (error) {
+          // Only a rejected token ends the session. Offline launches and
+          // server hiccups keep the cached session so the app can show an
+          // honest offline/server error (and recover) instead of logging out.
+          if (classifyLoadError(error) === 'auth' || classifyLoadError(error) === 'forbidden') {
+            pb.authStore.clear();
+          }
         }
+        const record = pb.authStore.isValid ? pb.authStore.record : null;
+        if (record) setUser(recordToUser(record));
       }
       setLoading(false);
     };
@@ -61,21 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen to auth store changes
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (record) {
-        setUser({
-          id: record.id,
-          email: record.email,
-          name: record.name,
-          firstName: record.first_name,
-          lastName: record.last_name,
-          displayName: record.display_name,
-          role: record.role,
-          avatarUrl: record.avatar,
-          member_type: record.member_type || 'human',
-          member_status: record.member_status,
-          language: record.language || 'en',
-          family_id: record.family_id,
-          active: record.member_status ? record.member_status === 'active' : true,
-        });
+        setUser(recordToUser(record));
       } else {
         setUser(null);
       }

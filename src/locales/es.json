@@ -146,7 +146,9 @@
     "lastNamePlaceholder": "García",
     "emailPlaceholder": "tu@ejemplo.es",
     "passwordPlaceholder": "Al menos 8 caracteres",
-    "confirmPasswordPlaceholder": "Repite tu contraseña"
+    "confirmPasswordPlaceholder": "Repite tu contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña"
   },
   "tasks": {
     "title": "Tareas",
@@ -413,7 +415,19 @@
     "sortNewest": "Más recientes primero",
     "sortOldest": "Más antiguas primero",
     "sortAlpha": "A-Z",
-    "sortAlphaReverse": "Z-A"
+    "sortAlphaReverse": "Z-A",
+    "membersCount": {
+      "one": "{n} miembro",
+      "other": "{n} miembros"
+    },
+    "labelsCount": {
+      "one": "{n} etiqueta",
+      "other": "{n} etiquetas"
+    },
+    "shopsCount": {
+      "one": "{n} tienda",
+      "other": "{n} tiendas"
+    }
   },
   "projects": {
     "title": "Proyectos",
@@ -506,7 +520,9 @@
     "noResults": "Sin resultados",
     "markAllDone": "Marcar todo como hecho",
     "clearAll": "Limpiar todo",
-    "empty": "Vacío"
+    "empty": "Vacío",
+    "select": "Seleccionar",
+    "selectedCount": "{n} seleccionado(s)"
   },
   "members": {
     "title": "Familia",
@@ -609,5 +625,16 @@
     "doneSprint": "Sprint hecho",
     "blocked": "Bloqueado",
     "doneToday": "Hecho hoy"
+  },
+  "ics": {
+    "sectionTitle": "Importar y exportar calendario"
+  },
+  "errors": {
+    "offline": "Estás sin conexión o no se puede contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
+    "server": "El servidor no pudo cargar tus datos. Inténtalo de nuevo en un momento.",
+    "forbidden": "Tu cuenta no puede acceder a estos datos ahora mismo. Pregunta al administrador de tu familia.",
+    "unknown": "Algo salió mal al cargar tus datos.",
+    "reload": "Recargar la app",
+    "resetLocal": "Cerrar sesión y restablecer este dispositivo"
   }
 }

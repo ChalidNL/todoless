@@ -73,7 +73,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
   };
 
   return (
-    <div className="app-shell-bg flex min-h-screen items-center justify-center p-4">
+    <div className="app-shell-bg flex min-h-dvh items-center justify-center p-4">
       <div className="app-surface w-full max-w-md rounded-[28px] p-6 sm:p-8">
         <div className="flex items-center justify-center mb-8">
           <AppLogo size="lg" showText={true} variant="dark" />
@@ -84,15 +84,29 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           {t('auth.signInSubtitle')}
         </p>
 
-        <div className="space-y-4">
+        {/* A real <form>: the mobile keyboard's Go/Enter submits and password
+            managers recognise the username/current-password pair. */}
+        <form
+          className="space-y-4"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            void handleLogin();
+          }}
+        >
           <div>
             <label htmlFor="login-email" className="block text-sm text-neutral-600 mb-1">{t('auth.email')}</label>
             <input
               id="login-email"
+              name="email"
               type="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
               className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
               placeholder="you@example.com"
             />
@@ -103,10 +117,11 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
             <div className="relative">
               <input
                 id="login-password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 pr-14 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
                 placeholder="••••••••"
               />
@@ -114,7 +129,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
                 type="button"
                 className="absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full text-neutral-500 hover:bg-[var(--app-surface-2)]"
                 onClick={() => setShowPassword(!showPassword)}
-                aria-label={t('auth.password')}
+                aria-label={t('onboarding.showPassword')}
                 aria-pressed={showPassword}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -130,7 +145,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
                 setForgotError('');
                 setForgotSuccess(false);
               }}
-              className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              className="-my-2 min-h-[var(--app-touch-target)] px-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
             >
               {t('auth.forgotPassword')}
             </button>
@@ -149,7 +164,15 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
                   type="email"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter') return;
+                    // Keep Enter inside the reset panel from submitting the login form.
+                    e.preventDefault();
+                    void handleForgotPassword();
+                  }}
                   className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] bg-white px-4 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
                   placeholder="you@example.com"
                 />
@@ -161,6 +184,7 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
                 <p className="text-sm text-green-600" role="status">{t('auth.resetLinkSent')}</p>
               )}
               <button
+                type="button"
                 onClick={handleForgotPassword}
                 disabled={isSendingReset}
                 className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-xl)] border border-[var(--app-primary)] px-4 py-3 text-sm font-bold text-[var(--app-primary)] transition active:scale-[0.98] disabled:opacity-60"
@@ -182,7 +206,9 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
           )}
 
           <button
-            onClick={handleLogin}
+            type="submit"
+            disabled={isLoading}
+            aria-busy={isLoading}
             className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-xl)] bg-[linear-gradient(135deg,#6366f1,#8b5cf6)] px-4 py-3 font-bold text-white shadow-[0_6px_20px_rgba(99,102,241,0.32)] transition active:scale-[0.98]"
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : t('auth.logIn')}
@@ -194,14 +220,15 @@ export const Login = ({ onLogin, onSwitchToRegister }: LoginProps) => {
             </p>
             {onSwitchToRegister && (
               <button
+                type="button"
                 onClick={onSwitchToRegister}
-                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                className="min-h-[var(--app-touch-target)] px-2 text-xs text-blue-600 hover:text-blue-800 hover:underline"
               >
                 {t('auth.iHaveInviteCode')}
               </button>
             )}
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

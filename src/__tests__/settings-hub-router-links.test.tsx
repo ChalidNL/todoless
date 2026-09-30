@@ -93,7 +93,7 @@ describe('settings hub navigation (GH#74)', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('link', { name: /1 Family/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Family.*1 member/ }));
     expect(screen.getByText('MEMBERS_ROUTE')).toBeInTheDocument();
   });
 

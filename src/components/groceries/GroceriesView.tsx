@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useConfirmDialog } from '../shared/ConfirmDialog';
 import { useApp } from '../../context/AppContext';
 import { UnifiedCard } from '../shared/UnifiedCard';
 import { AppHeader } from '../shared/NewGlobalHeader';
@@ -10,6 +11,7 @@ import { SectionHeader } from '../shared/SectionHeader';
 
 export const GroceriesView = () => {
   const { items, addItem, uncheckAllDoneItems, showCompletionMessage, activeChipFilters } = useApp();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [searchQuery, setSearchQuery] = useState('');
   const [showBought, setShowBought] = useState(false);
   const [sortMode, setSortMode] = useState<GrocerySortMode>('alpha');
@@ -58,13 +60,15 @@ export const GroceriesView = () => {
   };
 
   const handleRestockCompletedItems = () => {
-    if (!window.confirm(t('items.confirmRestock'))) return;
-    uncheckAllDoneItems();
-    showCompletionMessage(t('items.restocked'));
+    confirm(t('items.confirmRestock'), () => {
+      uncheckAllDoneItems();
+      showCompletionMessage(t('items.restocked'));
+    }, t('common.restock'));
   };
 
   return (
     <>
+      {confirmDialog}
       <div className="sticky top-0 z-40">
         <AppHeader
           screen="shop"

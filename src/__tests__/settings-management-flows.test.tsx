@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MembersView } from '../components/MembersView';
 import { LabelsView } from '../components/LabelsView';
@@ -61,7 +61,6 @@ describe('redesign settings management parity', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAppMock.mockReturnValue({ ...baseApp });
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   it('lets an admin manage member role, active state and deletion from Members', async () => {
@@ -74,6 +73,7 @@ describe('redesign settings management parity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Make admin' }));
     fireEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete Member' }));
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
 
     expect(updateUser).toHaveBeenCalledWith('member-1', { role: 'admin' });
     expect(updateUser).toHaveBeenCalledWith('member-1', {
@@ -152,7 +152,8 @@ describe('redesign settings management parity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit label: Family' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    expect(deleteLabel).not.toHaveBeenCalled();
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }));
     expect(deleteLabel).toHaveBeenCalledWith('label-1');
   });
 
@@ -164,7 +165,10 @@ describe('redesign settings management parity', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit Market' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    // In-app confirmation (no native window.confirm in the installed PWA).
+    const dialog = screen.getByRole('alertdialog');
+    expect(deleteShop).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     expect(deleteShop).toHaveBeenCalledWith('shop-1');
   });
 });

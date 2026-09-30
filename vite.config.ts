@@ -156,9 +156,11 @@ export default defineConfig({
     },
     server: {
       port: 7071,
+      // Also used by `vite preview` (preview.proxy defaults to server.proxy);
+      // scripts/e2e.sh points it at the throwaway PocketBase it boots.
       proxy: {
         '/api/': {
-          target: 'http://localhost:8091',
+          target: process.env.TODOLESS_API_PROXY || 'http://localhost:8091',
           changeOrigin: true,
         },
       },

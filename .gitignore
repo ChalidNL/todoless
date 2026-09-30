@@ -32,6 +32,7 @@ id_ed25519
 /devdata/
 /pb_data/
 /test-results/
+/playwright-report/
 /gitleaks-report.sarif
 
 # Node / build artifacts
