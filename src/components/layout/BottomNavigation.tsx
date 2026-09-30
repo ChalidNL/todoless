@@ -39,7 +39,7 @@ export function BottomNavigation({ items }: BottomNavigationProps) {
                   >
                     {item.icon}
                   </div>
-                  <span className="block w-full truncate whitespace-nowrap text-center text-[10px] leading-none" style={{ color: isActive ? activeColor : inactiveColor, fontWeight: isActive ? 700 : 500 }}>
+                  <span className="block w-full truncate whitespace-nowrap text-center text-[10px] leading-none" style={{ color: isActive ? activeColor : inactiveColor, fontWeight: isActive ? 650 : 500 }}>
                     {item.label}
                   </span>
                   <span className="mt-px h-1 w-1 rounded-full" style={{ background: isActive ? activeColor : 'transparent' }} />

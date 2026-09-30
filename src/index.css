@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/*
+ * Type-scale calibration (GH#73 variable-font era): Inter Variable renders
+ * heavier than the system-ui fallback the app used before self-hosting, so the
+ * standard Tailwind 600-900 steps read too thick on small screens. The whole
+ * scale sits one notch lighter — hierarchy preserved (550 > 500, 650 > 550 …),
+ * fully reversible (delete this block).
+ */
+@theme {
+  --font-weight-semibold: 550;
+  --font-weight-bold: 650;
+  --font-weight-extrabold: 750;
+  --font-weight-black: 850;
+}
+
 :root {
   --font-size: 16px;
   --background: #fff;

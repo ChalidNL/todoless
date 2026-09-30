@@ -39,7 +39,7 @@ export function StatCard({ label, value, icon, tone = 'inbox', active, onClick, 
           </span>
           <p className="flex-shrink-0 text-2xl font-black leading-none tracking-[-0.05em] text-white drop-shadow-sm">{value}</p>
         </div>
-        <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-[0.04em] text-white/90">{label}</span>
+        <span className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-white/90">{label}</span>
       </div>
     </Component>
   );

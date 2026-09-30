@@ -225,7 +225,7 @@ export const AppHeader = ({
         <div className="mt-3 flex min-h-[var(--app-touch-target)] items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <BadgeIcon className="h-[18px] w-[18px]" style={{ color: theme.color }} strokeWidth={2.2} />
-            <span className="text-sm font-bold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
+            <span className="text-sm font-semibold tracking-[0.06em]" style={{ color: theme.color }}>{t(theme.badgeKey).toUpperCase()}</span>
             {count !== undefined && (
               <span className="rounded-[var(--app-radius-pill)] px-2 py-0.5 text-sm font-black" style={{ color: theme.color, background: `${theme.color}15` }}>{count}</span>
             )}

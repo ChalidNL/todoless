@@ -5,9 +5,9 @@
   --font-sans-app: var(--font-family-app);
   --font-weight-normal: 400;
   --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
-  --font-weight-black: 900;
+  --font-weight-semibold: 550;
+  --font-weight-bold: 650;
+  --font-weight-black: 850;
 
   /* App surfaces */
   --app-bg: #F8F7FF;
