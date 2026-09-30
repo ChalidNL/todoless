@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -8,15 +8,10 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
-import { CalendarView } from './components/calendar/CalendarView';
+
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
-import { MembersView } from './components/MembersView';
-import { LabelsView } from './components/LabelsView';
-import { ShopsView } from './components/ShopsView';
-import { ProfileView } from './components/ProfileView';
-import { SettingsPreferences } from './components/SettingsPreferences';
-import { NotificationsView } from './components/NotificationsView';
+
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, CheckSquare } from 'lucide-react';
@@ -26,6 +21,16 @@ import { fetchSetupStatus } from './lib/bootstrap-status';
 import { t } from './i18n/translations';
 import { AppShell } from './components/layout/AppShell';
 import { BottomNavigation, type BottomNavItem } from './components/layout/BottomNavigation';
+
+// Screens not needed at launch are split out of the startup bundle (the
+// service worker precaches every chunk, so they still open offline).
+const CalendarView = lazy(() => import('./components/calendar/CalendarView').then((m) => ({ default: m.CalendarView })));
+const MembersView = lazy(() => import('./components/MembersView').then((m) => ({ default: m.MembersView })));
+const LabelsView = lazy(() => import('./components/LabelsView').then((m) => ({ default: m.LabelsView })));
+const ShopsView = lazy(() => import('./components/ShopsView').then((m) => ({ default: m.ShopsView })));
+const ProfileView = lazy(() => import('./components/ProfileView').then((m) => ({ default: m.ProfileView })));
+const SettingsPreferences = lazy(() => import('./components/SettingsPreferences').then((m) => ({ default: m.SettingsPreferences })));
+const NotificationsView = lazy(() => import('./components/NotificationsView').then((m) => ({ default: m.NotificationsView })));
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -302,6 +307,7 @@ function AppContent() {
 
   return (
     <AppShell toast={toast} bottomNav={<BottomNavigation items={navItems} />}>
+        <Suspense fallback={<div className="grid min-h-full place-items-center p-6 text-[var(--app-text-muted)]" role="status" aria-live="polite"><RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" /></div>}>
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
@@ -317,6 +323,7 @@ function AppContent() {
           <Route path="/settings/notifications" element={<NotificationsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
     </AppShell>
   );
 }
