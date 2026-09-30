@@ -106,3 +106,4 @@ z067_settings_bootstrap_env.js
 z068_enforce_member_status_read_rules.js
 z069_add_autodate_fields_api_tokens_audit.js
 z069_enable_rate_limits.js
+z070_scope_audit_log_and_family_reads.js

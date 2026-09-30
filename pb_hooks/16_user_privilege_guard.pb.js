@@ -14,7 +14,7 @@ function handleUsersPrivilegeCreateRequest(e) {
   var body = {};
   if (info) body = info.data || info.body || {};
 
-  var blocked = ['role', 'member_status', 'family_id'];
+  var blocked = ['role', 'member_status', 'family_id', 'member_type'];
   for (var i = 0; i < blocked.length; i++) {
     var field = blocked[i];
     if (body && Object.prototype.hasOwnProperty.call(body, field)) {
@@ -40,7 +40,7 @@ function handleUsersPrivilegeUpdateRequest(e) {
   var body = {};
   if (info) body = info.data || info.body || {};
 
-  var blocked = ['role', 'member_status', 'family_id'];
+  var blocked = ['role', 'member_status', 'family_id', 'member_type'];
   for (var i = 0; i < blocked.length; i++) {
     var field = blocked[i];
     if (body && Object.prototype.hasOwnProperty.call(body, field)) {
