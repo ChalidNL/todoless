@@ -277,7 +277,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
         <div className="border-r border-neutral-100 bg-neutral-50">
           {HOURS.map((hour) => <div key={hour} className="h-14 pr-1 text-right text-[10px] font-medium text-neutral-400">{String(hour).padStart(2, '0')}:00</div>)}
         </div>
-        {days.map((day, dayIndex) => {
+        {days.map((day) => {
           const dayTimedItems = layoutOverlappingItems(timedItems.filter((item) => calendarItemCoversDay(item, day)));
           return (
             <div key={day} className={`relative border-r border-neutral-100 ${sameLocalDay(day, now) ? 'bg-violet-50/30' : ''}`}>
@@ -315,7 +315,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
                   />
                 );
               })}
-              {dayTimedItems.map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} day={day} language={language} align={dayIndex >= Math.ceil(days.length / 2) ? 'right' : 'left'} />)}
+              {dayTimedItems.map((item) => <CalendarTaskSlot key={item.kind + item.id} item={item} day={day} language={language} />)}
             </div>
           );
         })}
@@ -329,7 +329,7 @@ function TimeGrid({ mode, start, items, onCreate, language }: { mode: 'week' | '
   );
 }
 
-function CalendarTaskSlot({ item, day, language, align }: { item: TimedLayout; day: number; language: Language; align: 'left' | 'right' }) {
+function CalendarTaskSlot({ item, day, language }: { item: TimedLayout; day: number; language: Language }) {
   const dayStart = startOfLocalDay(day);
   const dayEnd = endOfLocalDay(day);
   // Clip the block to the current day so a multi-day timed entry renders a
