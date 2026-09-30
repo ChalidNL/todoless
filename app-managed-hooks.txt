@@ -34,6 +34,7 @@
 14_ics.pb.js
 15_member_status_gate.pb.js
 16_bootstrap.pb.js
+16_user_privilege_guard.pb.js
 17_recurring.pb.js
 __tests__/validate-security-hooks.mjs
 _tmp_create.pb.js
@@ -43,6 +44,7 @@ cron/recurring-tasks.js
 cron/recurring-tasks.test.mjs
 fix_schema.pb.js
 lib/auth.js
+lib/companion.js
 lib/dates.js
 lib/errors.js
 lib/recurrence.js
