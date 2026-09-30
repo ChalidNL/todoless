@@ -4,9 +4,12 @@ on:
   pull_request:
   workflow_call:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+# NOTE: no top-level concurrency here on purpose. This workflow is reusable
+# (workflow_call) and a callee concurrency group on the same ref deadlocks
+# with the caller's group ("deadlock detected ... between a top level
+# workflow and 'gate'"). The caller (docker-publish.yml) owns concurrency;
+# its runs — and therefore the reused jobs — are cancelled when a newer
+# push on the same ref arrives.
 
 permissions:
   contents: read
