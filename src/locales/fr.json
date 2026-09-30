@@ -141,7 +141,12 @@
         "title": "Calendrier",
         "tagline": "Consultez les plans familiaux en un coup d’œil."
       }
-    }
+    },
+    "firstNamePlaceholder": "Jean",
+    "lastNamePlaceholder": "Dupont",
+    "emailPlaceholder": "vous@exemple.fr",
+    "passwordPlaceholder": "Au moins 8 caractères",
+    "confirmPasswordPlaceholder": "Répétez votre mot de passe"
   },
   "tasks": {
     "title": "Tâches",

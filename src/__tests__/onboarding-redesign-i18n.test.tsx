@@ -77,6 +77,21 @@ describe('red onboarding visual and localization contract', () => {
     expect(document.documentElement.lang).toBe('nl');
   });
 
+  it('never lets a first-run admin skip past account creation', async () => {
+    const onComplete = vi.fn();
+    render(
+      <LanguageProvider>
+        <Onboarding mode="admin" onComplete={onComplete} />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+
+    expect(await screen.findByRole('heading', { name: t('onboarding.step3Title', 'en') })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Skip' })).not.toBeInTheDocument();
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
   it('defines guaranteed red onboarding CSS and responsive contracts without generated utilities', () => {
     const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
     const onboarding = readFileSync(resolve(__dirname, '../components/Onboarding.tsx'), 'utf8');

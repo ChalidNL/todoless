@@ -30,7 +30,7 @@ export function ShopsView() {
   const visibleShops = shops.filter((shop) => !search.trim() || shop.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
-    <div className="app-shell-bg min-h-full pb-24">
+    <div className="app-shell-bg min-h-full pb-6">
       <SettingsDetailHeader
         mode="list"
         screen="shop"

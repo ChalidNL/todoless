@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
@@ -32,7 +32,6 @@ interface CompactTaskCardProps {
   calendarTimeLabel?: string;
   hideDateChip?: boolean;
   calendarBlock?: boolean;
-  calendarPopoverAlign?: 'left' | 'right';
 }
 
 type TaskEditor = 'labels' | 'assignee' | 'schedule' | 'priority' | 'subtasks' | 'comment' | 'others' | null;
@@ -81,7 +80,7 @@ const ConfirmDialog = ({ title, confirmLabel, onConfirm, onCancel }: { title: st
   </div>
 );
 
-export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false, calendarPopoverAlign = 'left' }: CompactTaskCardProps) => {
+export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, startExpanded = false, compact = false, className = '', calendarTimeLabel, hideDateChip = false, calendarBlock = false }: CompactTaskCardProps) => {
   const { updateTask, deleteTask, labels, users, tasks, addLabel, swapEntity, toggleChipFilter, isChipFilterActive, refreshEntries, showCompletionMessage, moveTaskToStatus } = useApp();
   const [showMenu, setShowMenu] = useState(startExpanded);
   const [activeEditor, setActiveEditor] = useState<TaskEditor>(null);
@@ -108,6 +107,31 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   useEffect(() => {
     showMenuRef.current = showMenu;
   }, [showMenu]);
+
+  // An expanded calendar block becomes an absolutely positioned popover. Its
+  // width and horizontal offset are clamped to the calendar surface
+  // ([data-calendar-bounds], falling back to the viewport) so expanding an
+  // entry in a right-hand day column never pushes content past the screen edge.
+  const [calendarPopover, setCalendarPopover] = useState<{ left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!calendarBlock || !showMenu) {
+      setCalendarPopover(null);
+      return;
+    }
+    const card = cardRef.current;
+    const anchor = card?.offsetParent;
+    if (!card || !(anchor instanceof HTMLElement)) return;
+    const boundsEl = card.closest('[data-calendar-bounds]');
+    const bounds = boundsEl
+      ? boundsEl.getBoundingClientRect()
+      : { left: 0, right: document.documentElement.clientWidth };
+    const gutter = 8;
+    const width = Math.max(0, Math.min(430, bounds.right - bounds.left - gutter * 2));
+    const anchorLeft = anchor.getBoundingClientRect().left;
+    const minLeft = bounds.left + gutter - anchorLeft;
+    const maxLeft = bounds.right - gutter - width - anchorLeft;
+    setCalendarPopover({ width, left: Math.max(minLeft, Math.min(0, maxLeft)) });
+  }, [calendarBlock, showMenu]);
 
   const scheduleInactivityClose = useCallback(() => {
     if (inactivityTimerRef.current !== null) {
@@ -378,7 +402,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
         data-testid={`compact-task-card-${task.id}`}
         data-component="CompactTaskCard"
         onClick={expandFromCardClick}
-        style={calendarBlock ? (calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : undefined) : Object.assign({ borderRadius: '20px', boxShadow: '0 2px 8px rgba(99,102,241,0.07), 0 1px 3px rgba(0,0,0,0.04)', border: '1px solid rgba(99,102,241,0.08)', transition: 'transform 150ms ease, box-shadow 150ms ease', WebkitTapHighlightColor: 'transparent' }, calendarBlock && showMenu ? { width: 'calc(100vw - 24px)', maxWidth: '430px' } : {})}
+        style={calendarBlock ? (showMenu ? { width: calendarPopover ? `${calendarPopover.width}px` : 'min(430px, calc(100% - 16px))', left: calendarPopover ? `${calendarPopover.left}px` : 0 } : undefined) : { borderRadius: '20px', boxShadow: '0 2px 8px rgba(99,102,241,0.07), 0 1px 3px rgba(0,0,0,0.04)', border: '1px solid rgba(99,102,241,0.08)', transition: 'transform 150ms ease, box-shadow 150ms ease', WebkitTapHighlightColor: 'transparent' }}
         className={`${calendarBlock ? 'rounded-sm' : 'rounded-lg'} border transition-colors ${
           isDone
             ? 'border-neutral-200 opacity-75'
@@ -395,7 +419,7 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                 : isFocusTask
                   ? '!bg-violet-100/80'
                   : 'bg-white'
-        } ${showMenu ? 'shadow-[0_0_20px_rgba(34,197,94,0.12),0_0_0_1px_rgba(34,197,94,0.15)] !bg-white' : ''} ${calendarBlock ? (showMenu ? `absolute top-0 ${calendarPopoverAlign === 'right' ? 'right-0' : 'left-0'} z-50 max-w-none !rounded-sm !bg-white shadow-2xl` : 'h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
+        } ${showMenu ? 'shadow-[0_0_20px_rgba(34,197,94,0.12),0_0_0_1px_rgba(34,197,94,0.15)] !bg-white' : ''} ${calendarBlock ? (showMenu ? 'absolute top-0 z-50 max-w-none !rounded-sm !bg-white shadow-2xl' : 'relative h-full overflow-hidden !rounded-sm !border-violet-300 !bg-violet-100') : ''} ${className}`}>
         <div className={cardPaddingClass}>
           {/* Line 1: checkbox + title + hamburger */}
           <div className="flex items-center gap-2">
@@ -463,7 +487,12 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
                   resetParentPicker();
                 }
               }}
-              className="p-1 hover:bg-neutral-100 rounded transition-colors flex-shrink-0"
+              // Collapsed calendar blocks are often narrower than title + chevron:
+              // the expander then covers the whole block (invisible, still a
+              // labelled button) so the title keeps the full width.
+              className={calendarBlock && !showMenu
+                ? 'absolute inset-0 z-10 rounded-sm opacity-0 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-violet-400'
+                : '-m-1.5 flex-shrink-0 rounded-lg p-2.5 transition-colors hover:bg-neutral-100'}
               aria-label={showMenu ? t('common.closeEditor') : t('common.openEditor')}
             >
               {showMenu 

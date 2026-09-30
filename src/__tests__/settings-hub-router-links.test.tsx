@@ -103,7 +103,9 @@ describe('settings hub navigation (GH#74)', () => {
     // GH#80: Integrations (swagger) row was intentionally removed from the hub;
     // the settings.documentation row is now the external entry.
     const external = screen.getByRole('link', { name: /Documentation/ });
-    expect(external.getAttribute('href')).toMatch(/^https?:\/\//);
+    // Same-origin Swagger UI by default (never a hardcoded LAN address);
+    // VITE_DOCS_URL can point it at public docs instead (see lib/docs-url.ts).
+    expect(external.getAttribute('href')).toBe('/api/docs');
     expect(external).toHaveAttribute('target', '_blank');
     expect(external).toHaveAttribute('rel', 'noopener noreferrer');
   });

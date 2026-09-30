@@ -141,7 +141,12 @@
         "title": "Calendario",
         "tagline": "Consulta los planes familiares de un vistazo."
       }
-    }
+    },
+    "firstNamePlaceholder": "Juan",
+    "lastNamePlaceholder": "García",
+    "emailPlaceholder": "tu@ejemplo.es",
+    "passwordPlaceholder": "Al menos 8 caracteres",
+    "confirmPasswordPlaceholder": "Repite tu contraseña"
   },
   "tasks": {
     "title": "Tareas",

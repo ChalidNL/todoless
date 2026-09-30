@@ -57,7 +57,7 @@ function betaIconTransform(): PluginOption {
     transformIndexHtml(html) {
       return html
         .replace(/\/icons\//g, '/icons-beta/')
-        .replace(/\/favicon\.svg/g, '/icons-beta/favicon.svg')
+        .replace(/"\/favicon\.ico"/g, '"/icons-beta/favicon.ico"')
         .replace(/apple-mobile-web-app-title" content="todoless"/, 'apple-mobile-web-app-title" content="todoless β"')
         .replace(/<title>todoless<\/title>/, '<title>todoless β</title>');
     },
@@ -77,11 +77,14 @@ export default defineConfig({
     betaIconTransform(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Generated from docs/assets/logo.png by scripts/generate-icons.js.
+      // icons/logo-mark.png is the in-app mark (both builds) and must be
+      // precached so the app shell renders its logo offline.
       includeAssets: [
-        `${ICON_DIR}/icon-192.svg`, `${ICON_DIR}/icon-512.svg`,
-        `${ICON_DIR}/icon-192.png`, `${ICON_DIR}/icon-512.png`,
-        `${ICON_DIR}/icon-512-maskable.png`,
-        IS_BETA ? 'logo-rainbow-beta.png' : 'logo-rainbow.png',
+        'favicon.ico',
+        'icons/logo-mark.png',
+        `${ICON_DIR.slice(1)}/apple-touch-icon.png`,
+        `${ICON_DIR.slice(1)}/favicon.ico`,
       ],
       manifest: buildPwaManifest({
         isBeta: IS_BETA,
@@ -94,6 +97,12 @@ export default defineConfig({
         // Vendored Swagger UI assets (GH#64) are served same-origin from /docs/
         // by nginx; do not precache them into every PWA install (1.9 MB).
         globIgnores: ['docs/**'],
+        // The SPA navigation fallback must never answer server-owned routes:
+        // without this denylist the service worker served index.html for
+        // /api/docs (Settings -> API documentation) and the installed PWA
+        // bounced the user back to the app home instead of the docs.
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/_\//, /^\/docs\//],
       }
     })
   ],

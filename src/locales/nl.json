@@ -141,7 +141,12 @@
         "title": "Agenda",
         "tagline": "Zie gezinsplannen in één oogopslag."
       }
-    }
+    },
+    "firstNamePlaceholder": "Jan",
+    "lastNamePlaceholder": "Jansen",
+    "emailPlaceholder": "jij@voorbeeld.nl",
+    "passwordPlaceholder": "Minimaal 8 tekens",
+    "confirmPasswordPlaceholder": "Herhaal je wachtwoord"
   },
   "tasks": {
     "title": "Taken",

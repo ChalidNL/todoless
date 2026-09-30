@@ -141,7 +141,12 @@
         "title": "Calendar",
         "tagline": "See family plans at a glance."
       }
-    }
+    },
+    "firstNamePlaceholder": "John",
+    "lastNamePlaceholder": "Doe",
+    "emailPlaceholder": "you@example.com",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordPlaceholder": "Repeat your password"
   },
   "tasks": {
     "title": "Tasks",

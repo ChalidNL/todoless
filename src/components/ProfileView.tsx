@@ -83,7 +83,7 @@ export function ProfileView() {
   };
 
   return (
-    <div className="app-shell-bg min-h-full pb-24">
+    <div className="app-shell-bg min-h-full pb-6">
       <div className="relative">
         <SettingsDetailHeader
           mode="detail"

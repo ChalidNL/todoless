@@ -8,13 +8,9 @@ import './styles/tokens.css';
 import './styles/animations.css';
 import './styles/globals.css';
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
-      console.error('Service worker registration failed:', error);
-    });
-  });
-}
+// The service worker is registered by vite-plugin-pwa's injected
+// /registerSW.js (production builds only), so there is exactly one
+// registration path and dev builds do not request a non-existent /sw.js.
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

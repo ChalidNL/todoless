@@ -217,7 +217,18 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
   };
 
   const finish = completeOnboarding;
-  const skip = completeOnboarding;
+  // First-run admin setup cannot be skipped past account creation: completing
+  // onboarding without an admin would leave a fresh install at a login screen
+  // with no account to log in with. Skip jumps to the workspace step instead.
+  const mustCreateAdmin = isAdmin && !adminRegistrationComplete;
+  const skip = () => {
+    if (mustCreateAdmin) {
+      setError('');
+      moveTo(steps.indexOf('workspace'));
+      return;
+    }
+    void completeOnboarding();
+  };
 
   const renderLanguage = () => (
     <div className="onboarding-centered">
@@ -369,9 +380,11 @@ export function Onboarding({ mode, onComplete }: OnboardingProps) {
 
   return (
     <main className={`onboarding-shell onboarding-theme-${stepId}`}>
-      <button type="button" className="onboarding-skip" disabled={isCompleting} onClick={() => void skip()}>
-        {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
-      </button>
+      {!(mustCreateAdmin && ['workspace', 'account'].includes(stepId)) && (
+        <button type="button" className="onboarding-skip" disabled={isCompleting} onClick={skip}>
+          {isInfo ? t('onboarding.goToLogin') : t('onboarding.skip')}
+        </button>
+      )}
       {currentStep > 0 && !['workspace', 'account', 'done'].includes(stepId) && (
         <button type="button" className="onboarding-back" onClick={goPrev}><ChevronLeft />{t('common.back')}</button>
       )}

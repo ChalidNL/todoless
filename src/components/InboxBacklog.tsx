@@ -220,7 +220,7 @@ export const InboxBacklog = () => {
         />
       </div>
 
-        <div className="max-w-lg mx-auto px-4 pt-3 space-y-4 pb-20">
+        <div className={`max-w-lg mx-auto px-4 pt-3 space-y-4 ${isSelecting && selectedIds.size > 0 ? 'pb-24' : 'pb-6'}`}>
           {/* Stat boxes — clickable as filters */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '8px 16px 16px' }} className="-mx-4">
             {statusSections.map((stat) => (

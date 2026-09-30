@@ -11,6 +11,7 @@ import { Button } from './ui/AppButton';
 
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { copyTextToClipboard } from '../lib/clipboard';
+import { resolveDocsUrl } from '../lib/docs-url';
 
 // Version polling: check on mount and on focus/visibility only, throttled to at most
 // once per VERSION_CHECK_MIN_INTERVAL_MS instead of a fixed 60s background poll (GH#78).
@@ -98,7 +99,7 @@ export const Settings = () => {
 
   const displayName = userDisplayName(currentUser);
   const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
-  const docsUrl = import.meta.env.VITE_DOCS_URL || 'http://192.168.2.100:8090/docs/';
+  const docsUrl = resolveDocsUrl(import.meta.env.VITE_DOCS_URL);
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
     { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
@@ -113,7 +114,7 @@ export const Settings = () => {
     <>
       <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
 
-      <div className="mx-auto max-w-2xl pb-24 pt-3">
+      <div className="mx-auto max-w-2xl pb-6 pt-3">
         <Link to="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
           <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
           <span className="relative grid h-[84px] w-[84px] place-items-center rounded-full border-[3px] border-white/60 bg-white/25 text-[32px] font-black text-white shadow-lg">

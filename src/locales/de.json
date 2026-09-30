@@ -141,7 +141,12 @@
         "title": "Kalender",
         "tagline": "Familienpläne auf einen Blick."
       }
-    }
+    },
+    "firstNamePlaceholder": "Max",
+    "lastNamePlaceholder": "Müller",
+    "emailPlaceholder": "du@beispiel.de",
+    "passwordPlaceholder": "Mindestens 8 Zeichen",
+    "confirmPasswordPlaceholder": "Passwort wiederholen"
   },
   "tasks": {
     "title": "Aufgaben",

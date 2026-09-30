@@ -40,7 +40,7 @@ export function AppShell({ children, bottomNav, toast }: AppShellProps) {
 
   return (
     <div className="app-shell-bg fixed inset-0 flex flex-col overflow-hidden">
-      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto overscroll-none pb-2">
+      <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto overscroll-none">
         {children}
       </main>
       {toast}

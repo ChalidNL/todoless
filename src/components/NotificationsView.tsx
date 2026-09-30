@@ -53,7 +53,7 @@ export function NotificationsView() {
   };
 
   return (
-    <div className="app-shell-bg min-h-full pb-24">
+    <div className="app-shell-bg min-h-full pb-6">
       <SettingsDetailHeader
         mode="detail"
         themeColor="#22c55e"

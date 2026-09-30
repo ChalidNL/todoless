@@ -366,7 +366,7 @@ export const AppHeader = ({
           )}
 
           {showSearch && (
-            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
               <input
                 ref={inputRef}
