@@ -164,12 +164,18 @@ describe('AppHeader', () => {
       />,
     );
 
-    // The shared sort control must be visually identical on every screen —
-    // fixed width, not auto-sized to each screen's option labels.
+    // The shared sort control must be visually identical on every screen and
+    // stay compact: content-sized (min 4.5rem) but hard-capped at 8rem so a
+    // long selected label ('Newest first', 'Workweek') cannot blow out the
+    // title band (GH: header sort select too big for mobile).
     const inboxSelect = inbox.querySelector('select[data-component="shared-select"]') as HTMLSelectElement;
     const takenSelect = taken.querySelector('select[data-component="shared-select"]') as HTMLSelectElement;
-    expect(inboxSelect).toHaveStyle({ width: '11.5rem' });
-    expect(takenSelect).toHaveStyle({ width: '11.5rem' });
+    expect(inboxSelect).toHaveStyle({ minWidth: '4.5rem', maxWidth: '8rem' });
+    expect(takenSelect).toHaveStyle({ minWidth: '4.5rem', maxWidth: '8rem' });
+    // No fixed pixel width anymore — the control shrinks when the selected
+    // option is short (e.g. 'A-Z').
+    expect(inboxSelect.style.width).toBe('');
+    expect(takenSelect.style.width).toBe('');
   });
 });
 

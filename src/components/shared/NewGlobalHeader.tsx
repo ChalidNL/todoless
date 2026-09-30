@@ -234,8 +234,8 @@ export const AppHeader = ({
             <select
               value={sortValue}
               onChange={(event) => onSortChange?.(event.target.value)}
-              className="min-h-11 flex-shrink-0 rounded-[var(--app-radius-pill)] px-3.5 text-sm font-semibold outline-none"
-              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, width: '11.5rem' }}
+              className="min-h-11 flex-shrink-0 rounded-[var(--app-radius-pill)] px-2 text-sm font-semibold outline-none"
+              style={{ border: `1px solid ${theme.color}25`, background: `${theme.color}08`, color: theme.color, minWidth: '4.5rem', maxWidth: '8rem', overflow: 'hidden', textOverflow: 'ellipsis' }}
               aria-label={sortAriaLabel}
               data-component="shared-select"
             >
