@@ -1,4 +1,3 @@
-import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SUPPORTED_UI_LANGUAGES, setActiveLanguage, t } from '../i18n/translations';
@@ -10,7 +9,7 @@ vi.mock('../context/AppContext', () => ({
 }));
 
 import { AppHeader } from '../components/shared/NewGlobalHeader';
-import { CompactItemCard } from '../components/shared/CompactItemCard';
+import { UnifiedCard } from '../components/shared/UnifiedCard';
 
 const baseAppValue = {
   filters: [],
@@ -86,7 +85,7 @@ describe('localized aria-labels and stat labels (GH#80 / CERT2-L10N-001/002/003)
 
   it('labels grocery quantity steppers with translated text (en)', () => {
     setActiveLanguage('en');
-    render(<CompactItemCard item={item} />);
+    render(<UnifiedCard entity={item} type="item" />);
 
     expect(screen.queryByLabelText('items.decreaseQuantity')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('items.increaseQuantity')).not.toBeInTheDocument();
@@ -96,7 +95,7 @@ describe('localized aria-labels and stat labels (GH#80 / CERT2-L10N-001/002/003)
 
   it('labels grocery quantity steppers with translated text (nl)', () => {
     setActiveLanguage('nl');
-    render(<CompactItemCard item={item} />);
+    render(<UnifiedCard entity={item} type="item" />);
 
     expect(screen.queryByLabelText('items.decreaseQuantity')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('items.increaseQuantity')).not.toBeInTheDocument();
