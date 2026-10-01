@@ -1102,6 +1102,30 @@ test('ICS export includes the due-date task as a VEVENT (GH#12, fixed)', async (
   assert.ok(text.includes('VEVENT'), 'expected at least one VEVENT')
 })
 
+// --- 8d. #231: a label created without `family` gets the caller's family --
+test('label created via the collection API without family defaults to the caller\'s family, and its tasks stay editable (#231)', async () => {
+  assert.ok(memberToken && member?.id, 'expected member session')
+  const label = await api('POST', '/api/collections/labels/records', {
+    token: memberToken,
+    body: { name: 'Smoke no-family label', color: '#0ea5e9', user: member.id, owner: member.id, visibility: 'family' },
+  })
+  assert.equal(label.status, 200, JSON.stringify(label.data))
+  assert.equal(label.data.family, member.family_id, 'family must be filled from the caller')
+
+  const task = await api('POST', '/api/collections/tasks/records', {
+    token: memberToken,
+    body: { title: 'Smoke task with no-family label', status: 'todo', is_private: false, user: member.id, label: [label.data.id], labels: [label.data.id] },
+  })
+  assert.equal(task.status, 200, 'creating a task with the label must pass the label.family rule')
+  const edited = await api('PATCH', `/api/collections/tasks/records/${task.data.id}`, { token: memberToken, body: { title: 'Smoke task with no-family label (edited)' } })
+  assert.equal(edited.status, 200, 'the owner must still be able to edit the task')
+
+  // blanking the family on update is refilled as well
+  const blanked = await api('PATCH', `/api/collections/labels/records/${label.data.id}`, { token: memberToken, body: { family: '' } })
+  assert.equal(blanked.status, 200)
+  assert.equal(blanked.data.family, member.family_id)
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {
