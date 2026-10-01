@@ -555,6 +555,7 @@
   "auth": {
     "appError": "App-Fehler",
     "welcomeBack": "Willkommen zurück",
+    "rateLimited": "Zu viele Versuche. Bitte in einem Moment erneut versuchen.",
     "signInSubtitle": "Melde dich bei deinem todoless-Konto an",
     "email": "E-Mail",
     "password": "Passwort",
