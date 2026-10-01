@@ -311,6 +311,9 @@ routerAdd('GET', '/api/openapi.json', (c) => {
             shop_id: st(),
             quantity: si(),
             complete: sb(),
+            updated_since: { type: "string", format: "date-time", description: "list: only entries updated at or after this time" },
+            page: { type: "integer", minimum: 1, description: "list: 1-based page (switches to a paginated response)" },
+            perPage: { type: "integer", minimum: 1, maximum: 500, description: "list: page size (default 100)" },
           },
         } } },
       },
@@ -331,7 +334,10 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       operationId: "listEntries",
       parameters: filterParams(),
       security: authRequired(),
-      responses: { "200": { description: "List of entries", content: { "application/json": { schema: { type: "array", items: { "$ref": "#/components/schemas/Entry" } } } } } },
+      responses: { "200": { description: "List of entries: a bare array, or { page, perPage, totalItems, totalPages, items } when page/perPage is given.", content: { "application/json": { schema: { oneOf: [
+        { type: "array", items: { "$ref": "#/components/schemas/Entry" } },
+        { type: "object", properties: { page: si(), perPage: si(), totalItems: si(), totalPages: si(), items: { type: "array", items: { "$ref": "#/components/schemas/Entry" } } } },
+      ] } } } }, "400": { description: "Invalid updated_since, page or perPage" } },
     };
   }
   
@@ -342,6 +348,9 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       { name: "assignee_id", in: "query", schema: { type: "string" } },
       { name: "label", in: "query", schema: { type: "string" } },
       { name: "shop_id", in: "query", schema: { type: "string" } },
+      { name: "updated_since", in: "query", description: "ISO 8601 timestamp; only entries updated at or after it (incremental sync).", schema: { type: "string", format: "date-time" } },
+      { name: "page", in: "query", description: "1-based page. Supplying page or perPage switches the response to a paginated object.", schema: { type: "integer", minimum: 1 } },
+      { name: "perPage", in: "query", description: "Page size (default 100, max 500).", schema: { type: "integer", minimum: 1, maximum: 500 } },
     ];
   }
 
@@ -1083,7 +1092,20 @@ routerAdd('GET', '/api/openapi.json', (c) => {
 
       // ── ICS calendar import/export ──
       "/ics-import": { post: { tags: ["Calendar"], summary: "Import parsed .ics VEVENTs as tasks", operationId: "icsImport", security: authRequired(), responses: { "200": { description: "Import result" }, "400": { description: "Bad request" } } } },
-      "/ics-export": { get: { tags: ["Calendar"], summary: "Export tasks with due dates as an .ics feed", operationId: "icsExport", security: authRequired(), responses: { "200": { description: ".ics file", content: { "text/calendar": { schema: { type: "string" } } } } } } },
+      "/ics-export": { get: { tags: ["Calendar"], summary: "Export tasks with due dates (JSON-wrapped .ics for the app)", operationId: "icsExport", security: authRequired(), responses: { "200": { description: "{ ics, count }", content: { "application/json": { schema: { type: "object", properties: { ics: st(), count: si() } } } } } } } },
+      "/calendar.ics": { get: {
+        tags: ["Calendar"],
+        summary: "Subscribable calendar feed (text/calendar)",
+        description: "Family calendar for calendar apps. Pass an API token limited to calendar:read as ?token= (calendar apps cannot send headers), or use a session / Bearer token with calendar:read. Supports ETag/If-None-Match (304) and Last-Modified. Contains the same privacy-checked events as the app: own tasks plus non-private family tasks.",
+        operationId: "calendarFeed",
+        parameters: [{ name: "token", in: "query", description: "API token whose only permission is calendar:read", schema: { type: "string" } }],
+        responses: {
+          "200": { description: "iCalendar feed", content: { "text/calendar": { schema: { type: "string" } } } },
+          "304": { description: "Not modified (If-None-Match matched)" },
+          "401": { description: "Missing, invalid or expired token" },
+          "403": { description: "Token not limited to calendar:read (URL tokens) or lacks calendar:read" },
+        },
+      } },
 
       // ── PocketBase collection records (primary data CRUD surface) ──
       // Tasks, groceries, labels, notes, projects, sprints, reminders, rewards, shops,

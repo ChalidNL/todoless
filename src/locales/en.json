@@ -596,7 +596,14 @@
     "sendResetLink": "Send reset link",
     "resetLinkSent": "Reset link sent. Check your email.",
     "resetFailed": "Failed to send reset link. Please try again.",
-    "backToLogin": "Back to login"
+    "backToLogin": "Back to login",
+    "resetTitle": "Choose a new password",
+    "resetSubtitle": "Enter a new password for your todoless account.",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "resetSubmit": "Save new password",
+    "resetDone": "Your password has been changed. You can now log in with your new password.",
+    "resetInvalidLink": "This reset link is invalid or has expired. Request a new one from the login screen."
   },
   "repeat": {
     "day": "Every day",
@@ -627,7 +634,16 @@
     "doneToday": "Done Today"
   },
   "ics": {
-    "sectionTitle": "Calendar import & export"
+    "sectionTitle": "Calendar import & export",
+    "subscribeTitle": "Subscribe in your calendar app",
+    "subscribeHint": "Show todoless dates in Apple, Google or Outlook calendar. Anyone with the link can see your family calendar, so only share it with apps you trust.",
+    "createLink": "Create subscription link",
+    "linkReady": "Copy this link into your calendar app (“add calendar from URL”). It is shown only once.",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "revokeLinks": "Revoke subscription links",
+    "revokedLinks": "Subscription links revoked: {n}",
+    "subscribeFailed": "Could not create the subscription link."
   },
   "errors": {
     "offline": "You're offline or the server can't be reached. Check your connection and try again.",

@@ -25,6 +25,7 @@ describe('invite registration layout', () => {
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/register?invite=AAAAAAAAAAAA');
     signUp.mockResolvedValue({ error: null });
+    vi.mocked(api.validateInviteCode).mockResolvedValue({ id: 'invite-1', code: 'AAAAAAAAAAAA', status: 'valid', message: '' });
   });
 
   it('uses a responsive, content-driven form layout with readable wrapped messages', async () => {
@@ -91,5 +92,13 @@ describe('invite registration layout', () => {
 
     expect(await screen.findByRole('heading', { name: 'Create Your Account' })).toBeInTheDocument();
     expect(api.validateInviteCode).toHaveBeenCalledWith('ABC123XYZ789');
+  });
+
+  it('validates an invite link on arrival and never shows the form for an expired code', async () => {
+    vi.mocked(api.validateInviteCode).mockRejectedValue(new Error('Invite code is expired'));
+    render(<Register onRegister={vi.fn()} />);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByLabelText('First Name')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Invite Code' })).toHaveValue('AAAAAAAAAAAA');
   });
 });

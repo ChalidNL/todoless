@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { api } from '../lib/api-client';
 import { ImportDialog } from './ImportDialog';
+import { CalendarSubscription } from './CalendarSubscription';
 
 export function CalendarImportExport() {
   const { showCompletionMessage, refreshEntries } = useApp();
@@ -56,6 +57,7 @@ export function CalendarImportExport() {
           {t('ics.exportButton')}
         </button>
       </div>
+      <CalendarSubscription />
       <ImportDialog
         open={showImport}
         onClose={() => setShowImport(false)}

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './components/AuthProvider';
 import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ResetPassword } from './components/ResetPassword';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 
@@ -36,6 +37,13 @@ const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
 const getOnboardingSeenValueForUser = (userId?: string | null) =>
   userId ? `user:${userId}` : 'anon';
+
+/** Remember that this device has a signed-in user (invite registration and plain login included). */
+const markDeviceOnboarded = () => {
+  try {
+    localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser(pb.authStore.record?.id ?? null));
+  } catch { /* storage unavailable: worst case the intro is shown again */ }
+};
 
 // Known top-level app routes (mirrors the <Routes> tree below). Used so the
 // first-run/onboarding check can recognize an unmapped path and defer to the
@@ -111,7 +119,7 @@ class ErrorBoundary extends React.Component<
 }
 
 function AppContent() {
-  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
+  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'reset' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
   const { completionMessage, dataLoadState, loadError, retryLoad } = useApp();
@@ -121,6 +129,12 @@ function AppContent() {
   useEffect(() => {
     const checkFirstRun = async () => {
       if (loading) return;
+
+      // Password reset link from the email (#68) always wins.
+      if (window.location.pathname.toLowerCase() === '/reset-password') {
+        setAppScreen('reset');
+        return;
+      }
 
       // INVITE FLOW: if URL has invite code, go directly to register
       const urlParams = new URLSearchParams(window.location.search);
@@ -147,9 +161,11 @@ function AppContent() {
 
       const onboardingSeenValue = localStorage.getItem(ONBOARDING_SEEN_KEY);
       const expectedOnboardingSeenValue = getOnboardingSeenValueForUser((user as any)?.id ?? null);
+      // Signed out on a device where someone already used the app (any stored
+      // value): go straight to login, never back to the intro slides.
       const hasCompletedOnboarding =
         onboardingSeenValue === expectedOnboardingSeenValue ||
-        (onboardingSeenValue === 'true' && !user);
+        (!!onboardingSeenValue && !user);
 
       // Fast path: if localStorage says onboarding already done, skip all APi checks
       if (hasCompletedOnboarding) {
@@ -158,6 +174,15 @@ function AppContent() {
           setAppScreen('register');
         } else if (!pb.authStore.isValid || !user) {
           setAppScreen('login');
+          // A server that was reset has no accounts: first-run setup, not a
+          // login nobody can pass. Checked in the background (fast path).
+          void fetchSetupStatus().then(({ hasUsers }) => {
+            if (hasUsers === false) {
+              localStorage.removeItem(ONBOARDING_SEEN_KEY);
+              setOnboardingMode('admin');
+              setAppScreen('onboarding');
+            }
+          }).catch(() => { /* offline: stay on login */ });
         } else {
           setAppScreen('app');
         }
@@ -248,16 +273,21 @@ function AppContent() {
     );
   }
 
+  if (appScreen === 'reset') {
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    return <ResetPassword token={token} onDone={() => setAppScreen(pb.authStore.isValid ? 'app' : 'login')} />;
+  }
+
   if (appScreen === 'register') {
-    return <Register onRegister={() => { setAppScreen('app'); }} />;
+    return <Register onRegister={() => { markDeviceOnboarded(); setAppScreen('app'); }} />;
   }
 
   if (appScreen === 'login') {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { markDeviceOnboarded(); setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
   if (!pb.authStore.isValid) {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { markDeviceOnboarded(); setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
   if (dataLoadState === 'loading') {

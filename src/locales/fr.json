@@ -596,7 +596,14 @@
     "sendResetLink": "Envoyer le lien de réinitialisation",
     "resetLinkSent": "Lien de réinitialisation envoyé. Vérifiez votre e-mail.",
     "resetFailed": "Échec de l'envoi du lien. Veuillez réessayer.",
-    "backToLogin": "Retour à la connexion"
+    "backToLogin": "Retour à la connexion",
+    "resetTitle": "Choisissez un nouveau mot de passe",
+    "resetSubtitle": "Saisissez un nouveau mot de passe pour votre compte todoless.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmez le nouveau mot de passe",
+    "resetSubmit": "Enregistrer le mot de passe",
+    "resetDone": "Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "resetInvalidLink": "Ce lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’écran de connexion."
   },
   "repeat": {
     "day": "Chaque jour",
@@ -627,7 +634,16 @@
     "doneToday": "Fait aujourd'hui"
   },
   "ics": {
-    "sectionTitle": "Import et export d'agenda"
+    "sectionTitle": "Import et export d'agenda",
+    "subscribeTitle": "S’abonner dans votre application d’agenda",
+    "subscribeHint": "Affichez les dates todoless dans Apple, Google ou Outlook. Toute personne disposant du lien peut voir l’agenda familial : ne le partagez qu’avec des applications de confiance.",
+    "createLink": "Créer un lien d’abonnement",
+    "linkReady": "Copiez ce lien dans votre application d’agenda (« ajouter un agenda depuis une URL »). Il n’est affiché qu’une fois.",
+    "copyLink": "Copier le lien",
+    "linkCopied": "Lien copié",
+    "revokeLinks": "Révoquer les liens d’abonnement",
+    "revokedLinks": "Liens d’abonnement révoqués : {n}",
+    "subscribeFailed": "Impossible de créer le lien d’abonnement."
   },
   "errors": {
     "offline": "Vous êtes hors ligne ou le serveur est injoignable. Vérifiez votre connexion et réessayez.",

@@ -22,6 +22,11 @@
 //   node --test tests/recurrence.test.mjs).
 
 onRecordAfterUpdateSuccess((e) => {
+  // Continue the hook chain FIRST: PocketBase's realtime broadcast runs as a
+  // later handler in this chain, so a handler that never calls e.next()
+  // silently suppresses every realtime "update" event (#77).
+  e.next();
+
   // The hook must NEVER break the completion request: every unexpected error
   // is logged and swallowed so the user's action always succeeds.
   try {
@@ -97,4 +102,4 @@ onRecordAfterUpdateSuccess((e) => {
       $app.logger().error('recurrence: failed to create next occurrence: ' + String((err && err.message) || err));
     } catch (_logErr) { /* no logger */ }
   }
-});
+}, 'tasks');

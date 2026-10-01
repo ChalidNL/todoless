@@ -78,7 +78,7 @@ const normalizeUser = (record: any): User => ({
   active: record.member_status ? record.member_status === 'active' : (typeof record.active === 'boolean' ? record.active : true),
 });
 
-const normalizeTask = (record: any): Task => ({
+export const normalizeTask = (record: any): Task => ({
   id: record.id,
   title: record.title,
   status: record.status || 'todo',
@@ -113,7 +113,7 @@ const normalizeTask = (record: any): Task => ({
   createdBy: record.user,
 });
 
-const normalizeItem = (record: any): Item => ({
+export const normalizeItem = (record: any): Item => ({
   id: record.id,
   title: record.title,
   completed: !!record.completed,
@@ -1275,7 +1275,9 @@ class PocketBaseClient {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
     const familyId = (pb.authStore.record as any)?.family_id;
-    const filter = familyId ? `is_private = false && user.family_id = "${familyId}"` : `is_private = false && user.id = "${userId}"`;
+    // Own private records stay visible to their owner (matches /api/bootstrap
+    // and the collection rules); other members' private records never are.
+    const filter = familyId ? `(is_private = false || user = "${userId}") && user.family_id = "${familyId}"` : `user.id = "${userId}"`;
     const list = await pb.collection('tasks').getFullList({ filter, sort: '-created' });
     return list.map(normalizeTask);
   }
@@ -1284,7 +1286,9 @@ class PocketBaseClient {
     if (!pb.authStore.isValid) return [];
     const userId = pb.authStore.record?.id;
     const familyId = (pb.authStore.record as any)?.family_id;
-    const filter = familyId ? `is_private = false && user.family_id = "${familyId}"` : `is_private = false && user.id = "${userId}"`;
+    // Own private records stay visible to their owner (matches /api/bootstrap
+    // and the collection rules); other members' private records never are.
+    const filter = familyId ? `(is_private = false || user = "${userId}") && user.family_id = "${familyId}"` : `user.id = "${userId}"`;
     const list = await pb.collection('items').getFullList({ filter, sort: '-created' });
     return list.map(normalizeItem);
   }

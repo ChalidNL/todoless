@@ -202,7 +202,8 @@ test('all loaded agent task routes enforce the same label privacy contract', () 
 })
 
 test('ICS import and export cannot bypass privacy and keep canonical labels synchronized', () => {
-  const source = read('pb_hooks/14_ics.pb.js')
+  // Export generation lives in lib/ics-feed.js (shared with /api/calendar.ics).
+  const source = read('pb_hooks/14_ics.pb.js') + read('pb_hooks/lib/ics-feed.js')
 
   assert.match(source, /function canAccessTaskForUser\(/)
   assert.match(source, /existingList\s*=\s*existingList\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)
@@ -252,21 +253,10 @@ test('invite flow keeps generated, entered, validated, and registered codes on o
   assert.doesNotMatch(client, /data\.invite\.(id|code)/)
 })
 
-test('invite registration remains a mandatory end-to-end beta baseline', () => {
-  const baseline = read('tests/invite-flow-baseline.md')
-
-  for (const id of [
-    'BT-P0-001', 'BT-P0-002', 'BT-P0-003', 'BT-P0-004', 'BT-P0-005',
-    'BT-P0-006', 'BT-P0-007', 'BT-P0-008', 'BT-P0-009', 'BT-P0-010',
-    'BT-P0-011', 'BT-P0-012', 'BT-P0-013', 'BT-P0-014', 'BT-P0-015', 'BT-P0-016',
-  ]) {
-    assert.match(baseline, new RegExp(`\\b${id}\\b`))
-  }
-  assert.match(baseline, /separate browser context/i)
-  assert.match(baseline, /accepted member is visible/i)
-  assert.match(baseline, /invalid, expired, and reused/i)
-  assert.match(baseline, /desktop, tablet, and mobile/i)
-})
+// GH#99: the invite/family baseline (tests/invite-flow-baseline.md,
+// BT-P0-001…016) is executed for real by tests/e2e/05-invite-family.spec.ts
+// (two browser contexts, invalid/expired/reused invites, desktop/tablet/mobile)
+// instead of checking that the IDs occur in the Markdown file.
 
 test('all active token and agent management routes use PB 0.35 APIs and bound filters', () => {
   const main = read('pb_hooks/main.pb.js')

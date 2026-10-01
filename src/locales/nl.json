@@ -596,7 +596,14 @@
     "sendResetLink": "Reset-link versturen",
     "resetLinkSent": "Reset-link verzonden. Check je e-mail.",
     "resetFailed": "Reset-link versturen mislukt. Probeer het opnieuw.",
-    "backToLogin": "Terug naar inloggen"
+    "backToLogin": "Terug naar inloggen",
+    "resetTitle": "Kies een nieuw wachtwoord",
+    "resetSubtitle": "Voer een nieuw wachtwoord in voor je todoless-account.",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmNewPassword": "Bevestig nieuw wachtwoord",
+    "resetSubmit": "Nieuw wachtwoord opslaan",
+    "resetDone": "Je wachtwoord is gewijzigd. Je kunt nu inloggen met je nieuwe wachtwoord.",
+    "resetInvalidLink": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan via het inlogscherm."
   },
   "repeat": {
     "day": "Elke dag",
@@ -627,7 +634,16 @@
     "doneToday": "Vandaag gedaan"
   },
   "ics": {
-    "sectionTitle": "Agenda importeren & exporteren"
+    "sectionTitle": "Agenda importeren & exporteren",
+    "subscribeTitle": "Abonneren in je agenda-app",
+    "subscribeHint": "Toon todoless-datums in Apple, Google of Outlook Agenda. Iedereen met de link kan je gezinsagenda zien, deel hem dus alleen met apps die je vertrouwt.",
+    "createLink": "Abonnementslink maken",
+    "linkReady": "Kopieer deze link in je agenda-app (“agenda toevoegen via URL”). Hij wordt maar één keer getoond.",
+    "copyLink": "Link kopiëren",
+    "linkCopied": "Link gekopieerd",
+    "revokeLinks": "Abonnementslinks intrekken",
+    "revokedLinks": "Abonnementslinks ingetrokken: {n}",
+    "subscribeFailed": "Kon de abonnementslink niet maken."
   },
   "errors": {
     "offline": "Je bent offline of de server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",

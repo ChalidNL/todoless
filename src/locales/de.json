@@ -596,7 +596,14 @@
     "sendResetLink": "Reset-Link senden",
     "resetLinkSent": "Reset-Link gesendet. Prüfe deine E-Mails.",
     "resetFailed": "Senden des Reset-Links fehlgeschlagen. Bitte versuche es erneut.",
-    "backToLogin": "Zurück zur Anmeldung"
+    "backToLogin": "Zurück zur Anmeldung",
+    "resetTitle": "Neues Passwort wählen",
+    "resetSubtitle": "Gib ein neues Passwort für dein todoless-Konto ein.",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "resetSubmit": "Neues Passwort speichern",
+    "resetDone": "Dein Passwort wurde geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.",
+    "resetInvalidLink": "Dieser Link ist ungültig oder abgelaufen. Fordere auf dem Anmeldebildschirm einen neuen an."
   },
   "repeat": {
     "day": "Jeden Tag",
@@ -627,7 +634,16 @@
     "doneToday": "Heute erledigt"
   },
   "ics": {
-    "sectionTitle": "Kalender importieren & exportieren"
+    "sectionTitle": "Kalender importieren & exportieren",
+    "subscribeTitle": "In deiner Kalender-App abonnieren",
+    "subscribeHint": "Zeige todoless-Termine in Apple, Google oder Outlook. Jeder mit dem Link sieht euren Familienkalender – teile ihn nur mit vertrauenswürdigen Apps.",
+    "createLink": "Abo-Link erstellen",
+    "linkReady": "Kopiere diesen Link in deine Kalender-App („Kalender per URL hinzufügen“). Er wird nur einmal angezeigt.",
+    "copyLink": "Link kopieren",
+    "linkCopied": "Link kopiert",
+    "revokeLinks": "Abo-Links widerrufen",
+    "revokedLinks": "Abo-Links widerrufen: {n}",
+    "subscribeFailed": "Der Abo-Link konnte nicht erstellt werden."
   },
   "errors": {
     "offline": "Du bist offline oder der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",

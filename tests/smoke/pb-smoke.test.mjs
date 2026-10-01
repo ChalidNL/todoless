@@ -11,7 +11,7 @@
 // KNOWN-BROKEN flows are marked `{ todo: '<ticket ref>' }`: the assertion still
 // runs and shows as todo-failure in output, but does not fail the run. Flip them
 // to active tests when the referenced fix tickets land:
-//   - ICS VEVENT for tasks -> GH#12 (t_gh246847d0)
+//   (ICS VEVENT for tasks, GH#12, is fixed and active.)
 // (companion register t_gh41a39209 was flipped to an active test by GH#8;
 //  block enforcement t_318f2396 was flipped to an active test — see below.)
 //
@@ -281,6 +281,117 @@ test('member sees shared but not private tasks (v1 list + native API)', async ()
   const nativeTitles = (native.data?.items || []).map((i) => i.title)
   assert.ok(nativeTitles.includes('Smoke shared task'), 'shared task should be visible natively')
   assert.ok(!nativeTitles.includes('Smoke private task'), 'private task must be hidden natively')
+})
+
+// --- 5c. #77: realtime update events are broadcast ----------------------------
+// A record hook that did not call e.next() (17_recurring) silently suppressed
+// every realtime "update" event, so other devices never saw edits live.
+test('realtime delivers create, update and delete events to family members', async () => {
+  const res = await fetch(BASE + '/api/realtime')
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  const events = []
+  let buffer = ''
+  let clientId = null
+  const pump = (async () => {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value)
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const chunk = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const event = /event:(.*)/.exec(chunk)?.[1]?.trim()
+        const data = /data:(.*)/.exec(chunk)?.[1]
+        if (event === 'PB_CONNECT') clientId = JSON.parse(data).clientId
+        else if (event) events.push(JSON.parse(data).action)
+      }
+    }
+  })()
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  for (let i = 0; i < 50 && !clientId; i++) await wait(50)
+  assert.ok(clientId, 'realtime connection established')
+  const sub = await fetch(BASE + '/api/realtime', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ clientId, subscriptions: ['tasks/*'] }),
+  })
+  assert.equal(sub.status, 204)
+
+  const created = await api('POST', '/api/collections/tasks/records', { token: memberToken, body: { title: 'Realtime probe', status: 'todo', user: member.id } })
+  assert.equal(created.status, 200)
+  await wait(300)
+  const updated = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: memberToken, body: { title: 'Realtime probe 2' } })
+  assert.equal(updated.status, 200)
+  await wait(300)
+  await api('DELETE', `/api/collections/tasks/records/${created.data.id}`, { token: memberToken })
+  for (let i = 0; i < 40 && events.length < 3; i++) await wait(50)
+  await reader.cancel()
+  await pump.catch(() => {})
+  assert.deepEqual(events, ['create', 'update', 'delete'])
+})
+
+// --- 5d. #100: subscribable calendar feed --------------------------------------
+test('calendar feed: text/calendar with a calendar-only URL token, ETag/304, privacy kept', async () => {
+  const dated = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke feed event', status: 'todo', is_private: false, user: admin.id, due_date: '2026-11-05 09:00:00.000Z' },
+  })
+  assert.equal(dated.status, 200)
+  const hidden = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke feed private', status: 'todo', is_private: true, user: admin.id, due_date: '2026-11-05 10:00:00.000Z' },
+  })
+  assert.equal(hidden.status, 200)
+
+  const mint = async (permissions) => (await api('POST', '/api/api-tokens', { token: memberToken, body: { name: 'feed', permissions } })).data.token
+  const calendarToken = await mint(['calendar:read'])
+  const wideToken = await mint(['calendar:read', 'tasks:write'])
+
+  const res = await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(calendarToken)}`)
+  assert.equal(res.status, 200)
+  assert.match(res.headers.get('content-type') || '', /^text\/calendar/)
+  const body = await res.text()
+  assert.match(body, /^BEGIN:VCALENDAR\r\n/)
+  assert.match(body, /SUMMARY:Smoke feed event/)
+  assert.doesNotMatch(body, /Smoke feed private/, "another member's private task never appears")
+  const etag = res.headers.get('etag')
+  assert.ok(etag)
+
+  const again = await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(calendarToken)}`, { headers: { 'If-None-Match': etag } })
+  assert.equal(again.status, 304)
+
+  assert.equal((await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(wideToken)}`)).status, 403, 'URL tokens must be calendar-only')
+  assert.equal((await fetch(`${BASE}/api/calendar.ics?token=tl_invalid`)).status, 401)
+  assert.equal((await fetch(`${BASE}/api/calendar.ics`)).status, 401)
+})
+
+// --- 5a. GH#28/#102: paginated, family-scoped entry listing ------------------
+test('entries and v1 list paginate on request and keep privacy', async () => {
+  const legacy = await api('GET', '/api/entries', { token: memberToken })
+  assert.equal(legacy.status, 200)
+  assert.ok(Array.isArray(legacy.data), 'no page/perPage -> legacy array')
+  const visible = legacy.data.length
+  assert.ok(visible >= 1)
+  assert.ok(!legacy.data.some((e) => e.title === 'Smoke private task'), 'private task never listed')
+
+  const seen = []
+  for (let page = 1; page <= visible; page++) {
+    const r = await api('GET', `/api/entries?page=${page}&perPage=1`, { token: memberToken })
+    assert.equal(r.status, 200)
+    assert.equal(r.data.totalItems, visible)
+    assert.equal(r.data.totalPages, visible)
+    seen.push(...r.data.items.map((e) => e.id))
+  }
+  assert.deepEqual(seen.sort(), legacy.data.map((e) => e.id).sort())
+
+  const v1 = await api('POST', '/api/v1', { token: memberToken, body: { action: 'list', page: 1, perPage: 500 } })
+  assert.equal(v1.status, 200)
+  assert.equal(v1.data.totalItems, visible)
+
+  const bad = await api('GET', '/api/entries?perPage=5000', { token: memberToken })
+  assert.equal(bad.status, 400)
 })
 
 // --- 5b. GH#75: single-call boot payload --------------------------------
@@ -651,7 +762,7 @@ test('ICS export returns a valid VCALENDAR envelope', async () => {
   assert.ok(text.includes('VERSION:2.0'), 'expected ICAL version')
 })
 
-test('ICS export includes the due-date task as a VEVENT', { todo: 'ICS export drops due tasks — GH#12 (t_gh246847d0)' }, async () => {
+test('ICS export includes the due-date task as a VEVENT (GH#12, fixed)', async () => {
   const r = await api('GET', '/api/ics-export', { token: adminToken })
   const text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data)
   assert.ok(text.includes('VEVENT'), 'expected at least one VEVENT')

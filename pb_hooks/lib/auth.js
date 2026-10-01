@@ -316,6 +316,9 @@ function canAccessTaskForUser(record, user) {
 
 module.exports = {
   hashToken: hashToken,
+  findApiTokenByRaw: findApiTokenByRaw,
+  isEnabled: isEnabled,
+  expiryMs: expiryMs,
   generateToken: generateToken,
   generateAgentKey: generateAgentKey,
   getKeyPrefix: getKeyPrefix,

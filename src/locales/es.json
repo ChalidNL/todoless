@@ -596,7 +596,14 @@
     "sendResetLink": "Enviar enlace de restablecimiento",
     "resetLinkSent": "Enlace enviado. Revisa tu correo.",
     "resetFailed": "No se pudo enviar el enlace. Inténtalo de nuevo.",
-    "backToLogin": "Volver al inicio de sesión"
+    "backToLogin": "Volver al inicio de sesión",
+    "resetTitle": "Elige una contraseña nueva",
+    "resetSubtitle": "Introduce una contraseña nueva para tu cuenta de todoless.",
+    "newPassword": "Contraseña nueva",
+    "confirmNewPassword": "Confirma la contraseña nueva",
+    "resetSubmit": "Guardar contraseña nueva",
+    "resetDone": "Tu contraseña se ha cambiado. Ya puedes iniciar sesión con la nueva contraseña.",
+    "resetInvalidLink": "Este enlace no es válido o ha caducado. Solicita uno nuevo desde la pantalla de inicio de sesión."
   },
   "repeat": {
     "day": "Cada día",
@@ -627,7 +634,16 @@
     "doneToday": "Hecho hoy"
   },
   "ics": {
-    "sectionTitle": "Importar y exportar calendario"
+    "sectionTitle": "Importar y exportar calendario",
+    "subscribeTitle": "Suscribirse en tu app de calendario",
+    "subscribeHint": "Muestra las fechas de todoless en Apple, Google u Outlook. Cualquiera con el enlace puede ver el calendario familiar, compártelo solo con apps de confianza.",
+    "createLink": "Crear enlace de suscripción",
+    "linkReady": "Copia este enlace en tu app de calendario («añadir calendario desde URL»). Solo se muestra una vez.",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "Enlace copiado",
+    "revokeLinks": "Revocar enlaces de suscripción",
+    "revokedLinks": "Enlaces de suscripción revocados: {n}",
+    "subscribeFailed": "No se pudo crear el enlace de suscripción."
   },
   "errors": {
     "offline": "Estás sin conexión o no se puede contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",
