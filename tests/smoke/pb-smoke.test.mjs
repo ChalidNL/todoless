@@ -283,6 +283,33 @@ test('member sees shared but not private tasks (v1 list + native API)', async ()
   assert.ok(!nativeTitles.includes('Smoke private task'), 'private task must be hidden natively')
 })
 
+// --- 5a. GH#28/#102: paginated, family-scoped entry listing ------------------
+test('entries and v1 list paginate on request and keep privacy', async () => {
+  const legacy = await api('GET', '/api/entries', { token: memberToken })
+  assert.equal(legacy.status, 200)
+  assert.ok(Array.isArray(legacy.data), 'no page/perPage -> legacy array')
+  const visible = legacy.data.length
+  assert.ok(visible >= 1)
+  assert.ok(!legacy.data.some((e) => e.title === 'Smoke private task'), 'private task never listed')
+
+  const seen = []
+  for (let page = 1; page <= visible; page++) {
+    const r = await api('GET', `/api/entries?page=${page}&perPage=1`, { token: memberToken })
+    assert.equal(r.status, 200)
+    assert.equal(r.data.totalItems, visible)
+    assert.equal(r.data.totalPages, visible)
+    seen.push(...r.data.items.map((e) => e.id))
+  }
+  assert.deepEqual(seen.sort(), legacy.data.map((e) => e.id).sort())
+
+  const v1 = await api('POST', '/api/v1', { token: memberToken, body: { action: 'list', page: 1, perPage: 500 } })
+  assert.equal(v1.status, 200)
+  assert.equal(v1.data.totalItems, visible)
+
+  const bad = await api('GET', '/api/entries?perPage=5000', { token: memberToken })
+  assert.equal(bad.status, 400)
+})
+
 // --- 5b. GH#75: single-call boot payload --------------------------------
 // GET /api/bootstrap must return exactly the 9 UI collections in one
 // family-scoped call, apply the same privacy rules as the SDK listRules

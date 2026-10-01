@@ -311,6 +311,9 @@ routerAdd('GET', '/api/openapi.json', (c) => {
             shop_id: st(),
             quantity: si(),
             complete: sb(),
+            updated_since: { type: "string", format: "date-time", description: "list: only entries updated at or after this time" },
+            page: { type: "integer", minimum: 1, description: "list: 1-based page (switches to a paginated response)" },
+            perPage: { type: "integer", minimum: 1, maximum: 500, description: "list: page size (default 100)" },
           },
         } } },
       },
@@ -331,7 +334,10 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       operationId: "listEntries",
       parameters: filterParams(),
       security: authRequired(),
-      responses: { "200": { description: "List of entries", content: { "application/json": { schema: { type: "array", items: { "$ref": "#/components/schemas/Entry" } } } } } },
+      responses: { "200": { description: "List of entries: a bare array, or { page, perPage, totalItems, totalPages, items } when page/perPage is given.", content: { "application/json": { schema: { oneOf: [
+        { type: "array", items: { "$ref": "#/components/schemas/Entry" } },
+        { type: "object", properties: { page: si(), perPage: si(), totalItems: si(), totalPages: si(), items: { type: "array", items: { "$ref": "#/components/schemas/Entry" } } } },
+      ] } } } }, "400": { description: "Invalid updated_since, page or perPage" } },
     };
   }
   
@@ -342,6 +348,9 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       { name: "assignee_id", in: "query", schema: { type: "string" } },
       { name: "label", in: "query", schema: { type: "string" } },
       { name: "shop_id", in: "query", schema: { type: "string" } },
+      { name: "updated_since", in: "query", description: "ISO 8601 timestamp; only entries updated at or after it (incremental sync).", schema: { type: "string", format: "date-time" } },
+      { name: "page", in: "query", description: "1-based page. Supplying page or perPage switches the response to a paginated object.", schema: { type: "integer", minimum: 1 } },
+      { name: "perPage", in: "query", description: "Page size (default 100, max 500).", schema: { type: "integer", minimum: 1, maximum: 500 } },
     ];
   }
 

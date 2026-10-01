@@ -48,10 +48,13 @@ function mkStore() {
   }
   const colls = { tasks, items, users }
   const calls = [] // every findRecordsByFilter invocation
+  const lookups = [] // every $app.findRecordById invocation
   const saved = []
   let recCounter = 0
   return {
     calls,
+    lookups,
+    colls,
     saved,
     findRecordById: (name, id) => {
       if (colls[name] && colls[name][id]) return colls[name][id]
@@ -59,11 +62,14 @@ function mkStore() {
     },
     $app: {
       findRecordsByFilter(collection, filter, sort, limit, offset, params) {
-        calls.push({ collection, filter, sort, params })
+        calls.push({ collection, filter, sort, params, limit, offset })
         const src = colls[collection]
-        return src ? Object.values(src) : []
+        return src ? Object.values(src).slice(offset || 0, (offset || 0) + (limit || Infinity)) : []
       },
-      findRecordById: (name, id) => (colls[name] && colls[name][id]) || (() => { throw new Error('missing ' + name + '/' + id) })(),
+      findRecordById: (name, id) => {
+        lookups.push(name + '/' + id)
+        return (colls[name] && colls[name][id]) || (() => { throw new Error('missing ' + name + '/' + id) })()
+      },
       save(rec) { saved.push(rec) },
       delete() {},
       logger: () => ({ error: () => {}, info: () => {} }),
@@ -82,6 +88,7 @@ function mkStore() {
 // the auth-lib/dates requires as pass-through stubs.
 function loadHooks(file, extra = {}) {
   const routes = []
+  let entriesLib = null
   const sandbox = {
     console,
     __hooks: '',
@@ -93,6 +100,16 @@ function loadHooks(file, extra = {}) {
       if (String(p).includes('lib/auth.js')) return { bearerAuthMiddleware: () => null }
       if (String(p).includes('lib/dates.js')) return { dateOrNull: (v) => v || null }
       if (String(p).includes('task-date-sync.js')) return {}
+      if (String(p).includes('lib/entries.js')) {
+        // The real shared listing library, run against the sandbox $app.
+        if (!entriesLib) {
+          const mod = { module: { exports: {} }, $app: sandbox.$app, console }
+          vm.createContext(mod)
+          vm.runInContext(read('pb_hooks/lib/entries.js'), mod)
+          entriesLib = mod.module.exports
+        }
+        return entriesLib
+      }
       throw new Error('unexpected require in sandbox: ' + p)
     },
     ...extra,
@@ -289,3 +306,57 @@ test('#102 POST /api/v1 action=list mirrors updated_since and its validation', (
   assert.equal(store.calls[0].filter, 'user.family_id = {:familyId} && updated >= {:since}')
   assert.equal(store.calls[0].params.since, '2026-01-02T00:00:00.000Z')
 })
+// ── GH#28/#102: pagination, no silent cap, memoised lookups ────────────────
+test('#102 pagination is opt-in: bare array by default, page object with totals on request', () => {
+  const store = mkStore()
+  const routes = loadHooks('pb_hooks/main.pb.js', store)
+  const entries = routes.find((r) => r.method === 'GET' && r.path === '/api/entries').handler
+
+  assert.ok(Array.isArray(entries(makeC({ auth: authFamily })).data), 'legacy shape unchanged without page/perPage')
+
+  const page1 = entries(makeC({ auth: authFamily, query: { page: '1', perPage: '2' } }))
+  assert.equal(page1.status, 200)
+  assert.equal(page1.data.totalItems, 3)
+  assert.equal(page1.data.totalPages, 2)
+  assert.equal(page1.data.items.length, 2)
+  const page2 = entries(makeC({ auth: authFamily, query: { page: '2', perPage: '2' } }))
+  assert.equal(page2.data.items.length, 1)
+  const ids = [...page1.data.items, ...page2.data.items].map((e) => e.id).sort().join(',')
+  assert.equal(ids, 'item-1,task-1,task-own', 'pages cover every visible entry exactly once')
+
+  for (const bad of [{ page: '0' }, { perPage: '501' }, { page: 'x' }, { perPage: '-1' }]) {
+    assert.equal(entries(makeC({ auth: authFamily, query: bad })).status, 400, JSON.stringify(bad))
+  }
+
+  const v1 = routes.find((r) => r.method === 'POST' && r.path === '/api/v1').handler
+  const viaBody = v1(makeC({ auth: authFamily, body: { action: 'list', page: 1, perPage: 1 } }))
+  assert.equal(viaBody.data.totalItems, 3)
+  assert.equal(viaBody.data.items.length, 1)
+})
+
+test('#102 listing reads past 10 000 records in batches (no silent cap)', () => {
+  const store = mkStore()
+  for (let i = 0; i < 10_050; i++) {
+    const id = 'bulk-' + i
+    store.colls.items[id] = Object.assign(fakeRecordFor(id), {})
+  }
+  const routes = loadHooks('pb_hooks/main.pb.js', store)
+  const entries = routes.find((r) => r.method === 'GET' && r.path === '/api/entries').handler
+  const res = entries(makeC({ auth: authFamily, query: { type: 'grocery', perPage: '1' } }))
+  assert.equal(res.data.totalItems, 10_051) // item-1 + 10 050 bulk items
+  assert.ok(store.calls.every((call) => call.limit <= 500), 'reads in bounded batches')
+})
+
+test('#28 users/labels are looked up once per id per request, not once per record', () => {
+  const store = mkStore()
+  for (let i = 0; i < 50; i++) store.colls.items['many-' + i] = fakeRecordFor('many-' + i)
+  const routes = loadHooks('pb_hooks/main.pb.js', store)
+  const entries = routes.find((r) => r.method === 'GET' && r.path === '/api/entries').handler
+  entries(makeC({ auth: authFamily }))
+  const userLookups = store.lookups.filter((l) => l === 'users/user-family')
+  assert.equal(userLookups.length, 1)
+})
+
+function fakeRecordFor(id) {
+  return fakeRecord({ id, user: 'user-family', title: id, completed: false, labels: [], shop_id: '', quantity: 1, created: '2026-01-01T00:00:00.000Z', updated: '2026-01-02T00:00:00.000Z' })
+}

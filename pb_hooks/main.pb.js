@@ -397,60 +397,10 @@ try {
     var tokInfo = c.get('apiTokenInfo');
     function _hasPerm(req){ if(!tokInfo)return true; var ps=tokInfo.permissions||[]; for(var pi=0;pi<ps.length;pi++){var p=String(ps[pi]||''); if(p===req||p==='*')return true; var a=p.split(':'), b=req.split(':'); if(a.length===2&&b.length===2&&a[0]===b[0]&&a[1]==='*')return true;} return false; }
     if (!_hasPerm('entries:read') && !_hasPerm('tasks:read') && !_hasPerm('groceries:read')) return c.json(403, { error: 'Missing read permission' });
-    function _canRead(r){ var uid=String(r.get('user')||''); if(uid===auth.id)return true; var af=String(auth.get('family_id')||''); if(!af||!uid)return false; try{var u=$app.findRecordById('users',uid); return String(u.get('family_id')||'')===af;}catch(e){return false;} }
-    function _canAccessTask(r){
-      if(!r)return false;
-      var taskOwner=String(r.get('user')||'');
-      if(taskOwner===auth.id)return true;
-      if(r.get('is_private')===true||r.get('is_private')===1||r.get('is_private')==='true')return false;
-      var af=String(auth.get('family_id')||'');
-      if(!af||!_canRead(r))return false;
-      var ids=r.get('label')||r.get('labels')||[];
-      if(!Array.isArray(ids))ids=ids?[String(ids)]:[];
-      if(ids.length > 1){for(var mi=0;mi<ids.length;mi++){var mixedLabel=null;try{mixedLabel=$app.findRecordById('labels',String(ids[mi]||''));}catch(e){return false;}var mixedVis=String(mixedLabel.get('visibility')||(mixedLabel.get('is_private')?'private':'family'));if(mixedVis !== 'family')return false;}}
-      for(var li=0;li<ids.length;li++){
-        var labelId=String(ids[li]||''); if(!labelId)continue;
-        var label=null; try{label=$app.findRecordById('labels',labelId);}catch(e){return false;}
-        var vis=String(label.get('visibility')||(label.get('is_private')?'private':'family'));
-        var owner=String(label.get('owner')||label.get('user')||'');
-        var lf=String(label.get('family')||'');
-        if(!lf&&owner){try{lf=String($app.findRecordById('users',owner).get('family_id')||'');}catch(e){return false;}}
-        if(vis==='private'){if(owner!==auth.id)return false;}
-        else if(vis==='shared'){var sw=label.get('shared_with')||[];if(!Array.isArray(sw))sw=sw?[String(sw)]:[];if(owner!==auth.id&&sw.indexOf(auth.id)===-1)return false;}
-        else if(lf!==af)return false;
-      }
-      return true;
-    }
-    var q = info.query || {};
-    // GH#28: scope the DB query to the auth user's family (or to the user
-    // themself when the account has no family — same pattern as 14_ics.pb.js)
-    // instead of fetching every record and filtering in JS. The privacy
-    // checks above stay as a second layer. GH#102: optional updated_since.
-    var entriesFid = String(auth.get('family_id') || '');
-    var entriesFilter = entriesFid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
-    var entriesParams = entriesFid ? { familyId: entriesFid } : { userId: auth.id };
-    var sinceRaw = String(q.updated_since || '').trim();
-    if (sinceRaw) {
-      var sinceDate = new Date(sinceRaw);
-      if (isNaN(sinceDate.getTime())) return c.json(400, { error: 'Invalid updated_since' });
-      entriesFilter += ' && updated >= {:since}';
-      entriesParams.since = sinceDate.toISOString();
-    }
-    var tasks = $app.findRecordsByFilter('tasks', entriesFilter, '-created', 10000, 0, entriesParams).filter(_canAccessTask).map(function(r) {
-      return { id:r.id, type:'task', title: (r.get('title')||''), description: (r.get('blocked_comment')||''), status: (r.get('status')||'todo'), priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
-    });
-    var items = $app.findRecordsByFilter('items', entriesFilter, '-created', 10000, 0, entriesParams).filter(_canRead).map(function(r) {
-      return { id:r.id, type:'grocery', title: (r.get('title')||''), description:'', status: r.get('completed')?'done':'todo', priority: (r.get('priority')||'medium'), assignee_id: (r.get('assigned_to')||''), labels: (r.get('labels')||[]), shop_id: (r.get('shop_id')||''), quantity: (r.get('quantity')||1), created_by: (r.get('user')||''), completed_by:'', created_at: r.get("created"), updated_at: r.get("updated") };
-    });
-    var all = tasks.concat(items);
-    var t = (q.type||'').trim(), s = (q.status||'').trim(), a = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
-    var res = [];
-    for (var i=0;i<all.length;i++) { var e=all[i];
-      if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a && e.assignee_id!==a) continue;
-      if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
-      res.push(e);
-    }
-    return c.json(200, res);
+    // GH#28/#102: shared, batched, family-scoped listing with optional
+    // pagination (pb_hooks/lib/entries.js).
+    var listed = require(__hooks + '/lib/entries.js').listEntries(auth, info.query || {});
+    return c.json(listed.status, listed.body);
   } catch(e) { return respondError(c, e, 500); }
 });
 
@@ -531,34 +481,16 @@ try {
     }
 
     if (action === 'list') {
-    var q = info.query || {};
-      // GH#28: same DB-level family scope as GET /api/entries (privacy JS
-      // checks above stay as a second layer). GH#102: optional updated_since.
-      var listFid = String(auth.get('family_id') || '');
-      var listFilter = listFid ? 'user.family_id = {:familyId}' : 'user = {:userId}';
-      var listParams = listFid ? { familyId: listFid } : { userId: auth.id };
-      var sinceRawList = String(q.updated_since || '').trim();
-      if (sinceRawList) {
-        var sinceDateList = new Date(sinceRawList);
-        if (isNaN(sinceDateList.getTime())) return c.json(400, { error: 'Invalid updated_since' });
-        listFilter += ' && updated >= {:since}';
-        listParams.since = sinceDateList.toISOString();
-      }
-      var tasks = $app.findRecordsByFilter('tasks', listFilter, '-created', 10000, 0, listParams).filter(_canAccessTask).map(function(r) {
-        return { id:r.id, type:'task', title:(r.get('title')||''), description:(r.get('blocked_comment')||''), status:(r.get('status')||'todo'), assignee_id:(r.get('assigned_to')||''), labels:(r.get('label')||r.get('labels')||[]), shop_id:'', quantity:null, created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
+      // GH#28/#102: same implementation as GET /api/entries. Filters and
+      // pagination may come from the query string or the JSON body.
+      var listQuery = {};
+      var rawQuery = info.query || {};
+      for (var qk in rawQuery) listQuery[qk] = rawQuery[qk];
+      ['type', 'status', 'assignee_id', 'label', 'shop_id', 'updated_since', 'page', 'perPage'].forEach(function (k) {
+        if (d && d[k] !== undefined && d[k] !== null) listQuery[k] = String(d[k]);
       });
-      var items = $app.findRecordsByFilter('items', listFilter, '-created', 10000, 0, listParams).filter(_canAccess).map(function(r) {
-        return { id:r.id, type:'grocery', title:(r.get('title')||''), description:'', status:r.get('completed')?'done':'todo', assignee_id:(r.get('assigned_to')||''), labels:(r.get('labels')||[]), shop_id:(r.get('shop_id')||''), quantity:(r.get('quantity')||1), created_by:(r.get('user')||''), completed_by:'', created_at:r.get("created"), updated_at:r.get("updated") };
-      });
-      var all = tasks.concat(items);
-      var t = (q.type||'').trim(), s = (q.status||'').trim(), a2 = (q.assignee_id||'').trim(), l = (q.label||'').trim(), sh = (q.shop_id||'').trim();
-      var res = [];
-      for (var i=0;i<all.length;i++) { var e=all[i];
-        if (t && e.type!==t) continue; if (s && e.status!==s) continue; if (a2 && e.assignee_id!==a2) continue;
-        if (l && (!Array.isArray(e.labels) || e.labels.indexOf(l)===-1)) continue; if (sh && e.shop_id!==sh) continue;
-        res.push(e);
-      }
-      return c.json(200, res);
+      var listedV1 = require(__hooks + '/lib/entries.js').listEntries(auth, listQuery);
+      return c.json(listedV1.status, listedV1.body);
     }
 
     if (action === 'create') {
