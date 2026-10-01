@@ -42,7 +42,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
     }
 
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/register?invite=${invite.code}`;
+    const inviteUrl = `${baseUrl}/register#invite=${invite.code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(invite.code);
     setShowShareModal(true);
@@ -51,7 +51,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
 
   const handleShareInvite = (code: string) => {
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/register?invite=${code}`;
+    const inviteUrl = `${baseUrl}/register#invite=${code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(code);
     setShowShareModal(true);

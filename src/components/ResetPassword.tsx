@@ -12,7 +12,7 @@ interface ResetPasswordProps {
 
 /**
  * Completes the forgot-password flow (#68). The reset email links here
- * ({APP_URL}/reset-password?token=…, migration z071) instead of PocketBase's
+ * ({APP_URL}/reset-password#token=…, migrations z071/z074) instead of PocketBase's
  * admin UI under /_/, which nginx only exposes to private networks.
  */
 export function ResetPassword({ token, onDone }: ResetPasswordProps) {

@@ -7,6 +7,7 @@ import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ResetPassword } from './components/ResetPassword';
+import { getLinkInviteCode, getResetToken } from './lib/url-secrets';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 
@@ -150,15 +151,12 @@ function AppContent() {
       }
 
       // INVITE FLOW: if URL has invite code, go directly to register
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has('invite') || urlParams.has('code')) {
-        const inviteCode = urlParams.get('invite') || urlParams.get('code') || '';
-        if (inviteCode.trim()) {
-          // Set invite code in localStorage so Register component can pick it up
-          localStorage.setItem('pending_invite_code', inviteCode.trim());
-          setAppScreen('register');
-          return;
-        }
+      const inviteCode = getLinkInviteCode();
+      if (inviteCode) {
+        // Set invite code in localStorage so Register component can pick it up
+        localStorage.setItem('pending_invite_code', inviteCode);
+        setAppScreen('register');
+        return;
       }
 
       // DEF-ROUTE-001 fix: an authenticated user hitting an unrecognized deep
@@ -287,7 +285,7 @@ function AppContent() {
   }
 
   if (appScreen === 'reset') {
-    const token = new URLSearchParams(window.location.search).get('token') || '';
+    const token = getResetToken();
     return <ResetPassword token={token} onDone={() => setAppScreen(pb.authStore.isValid ? 'app' : 'login')} />;
   }
 
