@@ -442,6 +442,37 @@ test('entries and v1 list paginate on request and keep privacy', async () => {
 // family-scoped call, apply the same privacy rules as the SDK listRules
 // (tasks privacy + label visibility), and omit the collections the UI never
 // renders at boot (sprints/rewards/goals/projects).
+// GH#17 covered the task routes; the grocery routes kept accepting any
+// assignee/shop id (stored dangling), and POST /api/tasks paired subtask ids
+// with the wrong titles when an entry had an empty title.
+test('grocery routes validate assignee and shop; /api/tasks reports the subtasks it created', async () => {
+  const unknownUser = 'nosuchuser00000'
+  const badAssignee = await api('POST', '/api/groceries', { token: adminToken, body: { title: 'Smoke grocery', assigned_to: unknownUser } })
+  assert.equal(badAssignee.status, 400, JSON.stringify(badAssignee.data))
+  const badShop = await api('POST', '/api/groceries', { token: adminToken, body: { title: 'Smoke grocery', shop_id: 'nosuchshop00000' } })
+  assert.equal(badShop.status, 400, JSON.stringify(badShop.data))
+
+  const shop = await api('POST', '/api/collections/shops/records', { token: adminToken, body: { name: 'Smoke shop', color: '#123456', user: admin.id } })
+  assert.equal(shop.status, 200, JSON.stringify(shop.data))
+  const ok = await api('POST', '/api/groceries', { token: adminToken, body: { title: 'Smoke grocery', assigned_to: member.id, shop_id: shop.data.id } })
+  assert.equal(ok.status, 201, JSON.stringify(ok.data))
+  const patchBad = await api('PATCH', `/api/groceries/${ok.data.id}`, { token: adminToken, body: { assigned_to: unknownUser } })
+  assert.equal(patchBad.status, 400)
+  const patchOk = await api('PATCH', `/api/groceries/${ok.data.id}`, { token: adminToken, body: { assigned_to: '', shop_id: '' } })
+  assert.equal(patchOk.status, 200)
+
+  const withSubtasks = await api('POST', '/api/tasks', {
+    token: adminToken,
+    body: { title: 'Smoke parent with subtasks', subtasks: [{ title: '' }, { title: 'Second' }, { title: 'Third' }] },
+  })
+  assert.equal(withSubtasks.status, 201, JSON.stringify(withSubtasks.data))
+  assert.deepEqual(withSubtasks.data.subtasks.map((st) => st.title), ['Second', 'Third'])
+  assert.deepEqual(withSubtasks.data.subtasks.map((st) => st.id), withSubtasks.data.subtaskIds)
+
+  const tokUnknown = await api('GET', `/api/members/${unknownUser}/token`, { token: adminToken })
+  assert.equal(tokUnknown.status, 404)
+})
+
 test('bootstrap loads all UI collections in one family-scoped call', async () => {
   const noAuth = await api('GET', '/api/bootstrap')
   assert.equal(noAuth.status, 401, 'unauthenticated bootstrap must be rejected')

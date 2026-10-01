@@ -72,10 +72,11 @@ routerAdd('POST', '/api/tasks', function(c) {
 
     // Step 5: Create subtasks if provided
     var subtaskIds = [];
+    var createdSubtasks = [];
     if (body.subtasks && Array.isArray(body.subtasks)) {
       for (var si = 0; si < body.subtasks.length; si++) {
         var st = body.subtasks[si];
-        var stTitle = String(st.title || '').trim();
+        var stTitle = String(st && st.title || '').trim();
         if (!stTitle) continue;
         var childRec = new Record(coll);
         childRec.set('title', stTitle);
@@ -86,6 +87,10 @@ routerAdd('POST', '/api/tasks', function(c) {
         childRec.set('linked_type', 'task');
         $app.save(childRec);
         subtaskIds.push(childRec.id);
+        // Built from what was actually created: entries with an empty title are
+        // skipped above, so an index-based map over body.subtasks would pair
+        // the wrong titles with the created ids.
+        createdSubtasks.push({ id: childRec.id, title: stTitle, status: 'todo', createdBy: userId, createdByType: isAgent ? 'agent' : 'user' });
       }
       if (subtaskIds.length > 0) {
         rec.set('subtask_ids', subtaskIds);
@@ -104,15 +109,7 @@ routerAdd('POST', '/api/tasks', function(c) {
       workspaceId: familyId,
       createdAt: now,
       subtaskIds: subtaskIds,
-      subtasks: body.subtasks ? body.subtasks.map(function(s, i) {
-        return subtaskIds[i] ? {
-          id: subtaskIds[i],
-          title: String(s.title || ''),
-          status: 'todo',
-          createdBy: userId,
-          createdByType: isAgent ? 'agent' : 'user'
-        } : null;
-      }).filter(function(x) { return x !== null; }) : [],
+      subtasks: createdSubtasks,
       visibleToMembers: true
     };
     if (body.description) response.description = body.description;
@@ -403,15 +400,23 @@ routerAdd('POST', '/api/groceries', function(c) {
     if (!title) return c.json(400, { error: 'title is required' });
 
     if (tokInfo) { var ps=tokInfo.permissions||[]; var ok=false; for(var pi=0;pi<ps.length;pi++){var pp=String(ps[pi]||''); if(pp==='*'||pp==='groceries:write'||pp==='groceries:*') ok=true;} if(!ok) return c.json(403, { error: 'Missing permission: groceries:write' }); }
+    // GH#17 for groceries: assignee and shop must belong to the caller's family.
+    function _validAssignee(id){ if(!id)return true; id=String(id); if(id===userId)return true; if(!familyId)return false; try{ var u=$app.findRecordById('users',id); return !!u && String(u.get('family_id')||'')===familyId; }catch(e){ return false; } }
+    function _validShop(id){ if(!id)return true; var sh=null; try{ sh=$app.findRecordById('shops',String(id)); }catch(e){ return false; } var owner=String(sh.get('user')||''); if(owner===userId)return true; if(!familyId||!owner)return false; try{ return String($app.findRecordById('users',owner).get('family_id')||'')===familyId; }catch(e){ return false; } }
+    var shopId = body.shop_id ? String(body.shop_id).trim() : '';
+    if (shopId && !_validShop(shopId)) return c.json(400, { error: 'Invalid shop' });
+    var assignedTo = body.assigned_to ? String(body.assigned_to).trim() : '';
+    if (assignedTo && !_validAssignee(assignedTo)) return c.json(400, { error: 'Invalid assignee' });
+
     var coll = $app.findCollectionByNameOrId('items');
     var rec = new Record(coll);
     rec.set('title', title);
     rec.set('completed', false);
     rec.set('quantity', body.quantity !== undefined ? parseInt(String(body.quantity), 10) || 1 : 1);
     rec.set('user', userId);
-    if (body.shop_id) rec.set('shop_id', String(body.shop_id));
+    if (shopId) rec.set('shop_id', shopId);
     if (body.labels && Array.isArray(body.labels)) rec.set('labels', body.labels);
-    if (body.assigned_to) rec.set('assigned_to', String(body.assigned_to));
+    if (assignedTo) rec.set('assigned_to', assignedTo);
     if (body.due_date) rec.set('due_date', String(body.due_date));
     if (body.priority) rec.set('priority', String(body.priority));
     $app.save(rec);
@@ -471,8 +476,11 @@ routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
     if (body.title !== undefined) { rec.set('title', String(body.title).trim() || rec.get('title')); changed = true; }
     if (body.completed !== undefined) { rec.set('completed', body.completed === true || body.completed === 'true'); changed = true; }
     if (body.quantity !== undefined) { rec.set('quantity', parseInt(String(body.quantity), 10) || 1); changed = true; }
-    if (body.shop_id !== undefined) { rec.set('shop_id', body.shop_id ? String(body.shop_id) : ''); changed = true; }
-    if (body.assigned_to !== undefined) { rec.set('assigned_to', String(body.assigned_to)); changed = true; }
+    // GH#17 for groceries: assignee and shop must belong to the caller's family.
+    function _validAssignee(id){ if(!id)return true; id=String(id); if(id===userId)return true; if(!familyId)return false; try{ var u=$app.findRecordById('users',id); return !!u && String(u.get('family_id')||'')===familyId; }catch(e){ return false; } }
+    function _validShop(id){ if(!id)return true; var sh=null; try{ sh=$app.findRecordById('shops',String(id)); }catch(e){ return false; } var owner=String(sh.get('user')||''); if(owner===userId)return true; if(!familyId||!owner)return false; try{ return String($app.findRecordById('users',owner).get('family_id')||'')===familyId; }catch(e){ return false; } }
+    if (body.shop_id !== undefined) { var newShop = body.shop_id ? String(body.shop_id).trim() : ''; if (newShop && !_validShop(newShop)) return c.json(400, { error: 'Invalid shop' }); rec.set('shop_id', newShop); changed = true; }
+    if (body.assigned_to !== undefined) { var newAssignee = body.assigned_to ? String(body.assigned_to).trim() : ''; if (newAssignee && !_validAssignee(newAssignee)) return c.json(400, { error: 'Invalid assignee' }); rec.set('assigned_to', newAssignee); changed = true; }
     if (body.due_date !== undefined) { rec.set('due_date', body.due_date ? String(body.due_date) : ''); changed = true; }
     if (body.priority !== undefined) { rec.set('priority', String(body.priority)); changed = true; }
     if (body.labels !== undefined && Array.isArray(body.labels)) { rec.set('labels', body.labels); changed = true; }
@@ -533,6 +541,8 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
     var memberUser = null;
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
+    // A member outside the caller's family — including one without any family —
+    // is off limits.
     var memberFamilyId = String(memberUser.get('family_id') || '');
     if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied — member belongs to another family' });
@@ -602,6 +612,8 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
     var memberUser = null;
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
+    // A member outside the caller's family — including one without any family —
+    // is off limits.
     var memberFamilyId = String(memberUser.get('family_id') || '');
     if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
@@ -689,6 +701,8 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
     var memberUser = null;
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
+    // A member outside the caller's family — including one without any family —
+    // is off limits.
     var memberFamilyId = String(memberUser.get('family_id') || '');
     if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
