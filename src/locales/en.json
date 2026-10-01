@@ -471,6 +471,8 @@
     "inviteCode": "Invite Code",
     "inviteLink": "Invite Link",
     "minutesRemaining": "{n} minutes remaining",
+    "hoursRemaining": "{n} hours remaining",
+    "daysRemaining": "{n} days remaining",
     "saveTokenWarning": "Save this token now — it will not be shown again. The agent will be pending until you approve it.",
     "share": "Share",
     "shareFailed": "Share failed",
