@@ -367,6 +367,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Bulk mutations: run the per-record requests with bounded concurrency and
+  // refresh ONCE at the end. Firing N updates each followed by a full
+  // refreshEntries() meant 3N requests in one burst (the nginx api_general
+  // zone allows 120) and N racing refetches. Failures are logged and reported
+  // once; the final refresh brings the UI back in line with the server.
+  const BULK_CONCURRENCY = 4;
+  const runBulk = async (label: string, jobs: Array<() => Promise<unknown>>) => {
+    let failed = 0;
+    let next = 0;
+    const worker = async () => {
+      while (next < jobs.length) {
+        const job = jobs[next++];
+        try {
+          await job();
+        } catch (error) {
+          failed++;
+          console.error(`${label}: one update failed`, error);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(BULK_CONCURRENCY, jobs.length) }, worker));
+    await refreshEntries();
+    if (failed > 0) showCompletionMessage(t('common.someChangesNotSaved'));
+  };
+
   const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
     void (async () => {
       await persistNewEntry(entry);
@@ -865,9 +890,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const sprint = sprintId ? sprints.find((s) => s.id === sprintId) : currentSprint;
     if (!sprint) return;
 
-    effectiveTasks
-      .filter((task) => task.status === 'done' && task.sprintId === sprint.id)
-      .forEach((task) => updateTask(task.id, { archived: true, archivedAt: now, deleteAfter }));
+    const done = effectiveTasks.filter((task) => task.status === 'done' && task.sprintId === sprint.id);
+    void runBulk('archiveCompletedSprintTasks', done.map((task) => () => api.updateTask(task.id, { archived: true, archivedAt: now, deleteAfter })));
   };
 
   const archiveAllDoneTasks = () => {
@@ -875,9 +899,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const retention = appSettings.archiveRetention || 0;
     const deleteAfter = retention > 0 ? now + retention * 24 * 60 * 60 * 1000 : undefined;
 
-    effectiveTasks.filter((task) => task.status === 'done' && !task.archived).forEach((task) => {
-      updateTask(task.id, { archived: true, archivedAt: now, deleteAfter });
-    });
+    const done = effectiveTasks.filter((task) => task.status === 'done' && !task.archived);
+    void runBulk('archiveAllDoneTasks', done.map((task) => () => api.updateTask(task.id, { archived: true, archivedAt: now, deleteAfter })));
   };
 
   const deleteArchivedTasks = () => {
@@ -1039,13 +1062,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const uncheckAllDoneTasks = () => {
-    effectiveTasks.filter((task) => task.status === 'done').forEach((task) => {
-      updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
-    });
+    const done = effectiveTasks.filter((task) => task.status === 'done');
+    void runBulk('uncheckAllDoneTasks', done.map((task) => () => api.updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined })));
   };
 
   const uncheckAllDoneItems = () => {
-    effectiveItems.filter((item) => item.completed).forEach((item) => updateItem(item.id, { completed: false, quantity: 1 }));
+    const done = effectiveItems.filter((item) => item.completed);
+    void runBulk('uncheckAllDoneItems', done.map((item) => () => api.updateItem(item.id, { completed: false, quantity: 1 })));
   };
 
   const addReward = (reward: Omit<Reward, 'id'>) => {

@@ -61,6 +61,7 @@ interface TranslationStructure {
     edit: string;
     editTitle: string;
     error: string;
+    someChangesNotSaved: string;
     export: string;
     filter: string;
     filters: string;
@@ -464,6 +465,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Edit',
       editTitle: 'Edit Title',
       error: 'Error',
+      someChangesNotSaved: 'Some changes could not be saved',
       export: 'Export',
       filter: 'Filter',
       filters: 'Filters',
@@ -897,6 +899,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Modifier',
       editTitle: 'Modifier le titre',
       error: 'Erreur',
+      someChangesNotSaved: 'Certaines modifications n’ont pas pu être enregistrées',
       export: 'Exporter',
       filter: 'Filtrer',
       filters: 'Filtres',
@@ -1328,6 +1331,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Bewerken',
       editTitle: 'Titel bewerken',
       error: 'Fout',
+      someChangesNotSaved: 'Sommige wijzigingen konden niet worden opgeslagen',
       export: 'Exporteren',
       filter: 'Filteren',
       filters: 'Filters',
@@ -1761,6 +1765,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Bearbeiten',
       editTitle: 'Titel bearbeiten',
       error: 'Fehler',
+      someChangesNotSaved: 'Einige Änderungen konnten nicht gespeichert werden',
       export: 'Exportieren',
       filter: 'Filtern',
       filters: 'Filter',
@@ -2192,6 +2197,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Editar',
       editTitle: 'Editar título',
       error: 'Error',
+      someChangesNotSaved: 'Algunos cambios no se han podido guardar',
       export: 'Exportar',
       filter: 'Filtrar',
       filters: 'Filtros',
