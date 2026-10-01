@@ -112,3 +112,4 @@ z072_backfill_task_note_fields.js
 z073_repair_label_privacy_flip.js
 z075_backfill_label_family.js
 z074_reset_link_fragment.js
+z076_owner_bound_settings_goals_rewards.js

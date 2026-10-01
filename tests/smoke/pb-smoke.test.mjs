@@ -1420,6 +1420,31 @@ test('a blocked member with a valid session is refused on custom routes too (S1)
   assert.equal((await api('GET', '/api/setup-status', { token: blocked.token })).status, 200)
 })
 
+// --- 8k. Review S4: goals / rewards / app_settings are owner-bound ----------
+test('another member cannot change or delete my goals and rewards, nor list my settings (S4)', async () => {
+  const other = await registerDisposableMember('s4-other@smoke.test', 'S4 Other')
+  for (const [coll, body] of [
+    ['goals', { title: 'S4 goal', goal: 'S4 goal', points_required: 5, user: member.id, status: 'active' }],
+    ['rewards', { title: 'S4 reward', user: member.id, points: 1, reason: 'smoke' }],
+  ]) {
+    const rec = await api('POST', `/api/collections/${coll}/records`, { token: memberToken, body })
+    assert.equal(rec.status, 200, `${coll}: ${JSON.stringify(rec.data)}`)
+    const upd = await api('PATCH', `/api/collections/${coll}/records/${rec.data.id}`, { token: other.token, body: { title: 'hijacked' } })
+    assert.ok(upd.status === 403 || upd.status === 404, `${coll} update by another member -> ${upd.status}`)
+    const del = await api('DELETE', `/api/collections/${coll}/records/${rec.data.id}`, { token: other.token })
+    assert.ok(del.status === 403 || del.status === 404, `${coll} delete by another member -> ${del.status}`)
+    const own = await api('PATCH', `/api/collections/${coll}/records/${rec.data.id}`, { token: memberToken, body: { title: 'S4 edited by owner' } })
+    assert.equal(own.status, 200, `${coll} owner update`)
+  }
+  // make sure the member has a settings row (the unique index may say it exists already)
+  await api('POST', '/api/collections/app_settings/records', { token: memberToken, body: { user: member.id, language: 'en' } })
+  const mine = await api('GET', '/api/collections/app_settings/records?perPage=200', { token: memberToken })
+  assert.ok((mine.data.items || []).some((r) => r.user === member.id), 'the member has a settings row to leak')
+  const list = await api('GET', '/api/collections/app_settings/records?perPage=200', { token: other.token })
+  assert.equal(list.status, 200)
+  assert.deepEqual((list.data.items || []).filter((r) => r.user !== other.user.id), [], 'only own settings are listed')
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {
