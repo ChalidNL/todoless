@@ -63,9 +63,17 @@ routerUse(function (e) {
   try {
     path = String(e.request.url.path || '?');
   } catch (r) {}
+  // e.realIP() honours the trustedProxy settings (X-Forwarded-For, rightmost —
+  // z069), so behind the bundled nginx this is the client, not the proxy.
+  // e.request.remoteAddr would be the nginx container for every request.
   try {
-    ip = String(e.request.remoteAddr || '-').split(':')[0] || '-';
+    ip = String(e.realIP() || '').trim() || '-';
   } catch (r) {}
+  if (ip === '-') {
+    try {
+      ip = String(e.request.remoteAddr || '-').split(':')[0] || '-';
+    } catch (r) {}
+  }
   try {
     if (e.auth && e.auth.id) authId = String(e.auth.id);
   } catch (r) {}
