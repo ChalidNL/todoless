@@ -544,8 +544,9 @@ try {
         var assign = String(gv(d,'assignee_id','')).trim();
         if (assign && !_validAssignee(assign)) return c.json(400, {error:'Invalid assignee'});
         if (assign) rec.set('assigned_to', assign);
-        var labs = d.labels;
-        var canonicalLabels = Array.isArray(labs) ? labs : [];
+        var labelCheck = authLib.validateLabelIdsForUser(d.labels, _freshAuth() || auth);
+        if (!labelCheck.ok) return c.json(labelCheck.status, {error: labelCheck.error});
+        var canonicalLabels = labelCheck.ids;
         rec.set('labels', canonicalLabels);
         rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
@@ -656,7 +657,8 @@ try {
       if (d.due_date !== undefined) { var dueUpd = _parseDue(d.due_date); if (!dueUpd.ok) return c.json(400,{error:'Invalid due_date'}); rec.set('due_date', dueUpd.value); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
       if (d.assignee_id !== undefined) { var assigneeUpd = d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id); if (assigneeUpd && !_validAssignee(assigneeUpd)) return c.json(400,{error:'Invalid assignee'}); rec.set('assigned_to', assigneeUpd); changed.push('assignee_id'); }
-      if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
+      if (d.labels !== undefined && type === 'task') { var labelUpd = authLib.validateLabelIdsForUser(d.labels, _freshAuth() || auth); if (!labelUpd.ok) return c.json(labelUpd.status, {error: labelUpd.error}); rec.set('labels', labelUpd.ids); rec.set('label', labelUpd.ids); changed.push('labels'); }
+      if (d.labels !== undefined && type !== 'task') { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); changed.push('labels'); }
       if (type === 'grocery' && d.quantity !== undefined) { var qty = parseInt(d.quantity, 10); if (isNaN(qty) || qty < 1) qty = 1; rec.set('quantity', qty); changed.push('quantity'); }
       $app.save(rec);
       return c.json(200, { updated: true, id: rec.id, type: type, changed: changed });

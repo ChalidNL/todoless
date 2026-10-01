@@ -178,6 +178,12 @@ routerAdd('POST','/api/ics-import',function(c){
     var options=gv(body,'options')||{};
     var bulkAssignee=gv(options,'assignee');
     var bulkLabels=gv(options,'labels')||[];
+    // #230: the bulk options apply to every event, so an invalid value is a
+    // request error; per-event values are checked in the loop below.
+    var authLib=require(__hooks + '/lib/auth.js');
+    if(!authLib.isValidAssigneeForUser(bulkAssignee,auth))return c.json(400,{error:'Invalid assignee'});
+    var bulkLabelCheck=authLib.validateLabelIdsForUser(bulkLabels,auth);
+    if(!bulkLabelCheck.ok)return c.json(bulkLabelCheck.status,{error:bulkLabelCheck.error});
 
     var results={created:0,updated:0,skipped:0,errors:[],items:[]};
     var tasksColl=$app.findCollectionByNameOrId('tasks');
@@ -236,6 +242,18 @@ routerAdd('POST','/api/ics-import',function(c){
       }
 
       var assignee=bulkAssignee||gv(ev,'assigned_to')||ev.assignedTo||auth.id;
+      // #230: per-event assignee and labels get the same checks as /api/tasks
+      if(!authLib.isValidAssigneeForUser(assignee,auth)){
+        results.errors.push({uid:uid,title:title,error:'Invalid assignee'});
+        continue;
+      }
+      var labelCheck=authLib.validateLabelIdsForUser(uniqueLabels,auth);
+      if(!labelCheck.ok){
+        results.errors.push({uid:uid,title:title,error:labelCheck.error});
+        continue;
+      }
+      uniqueLabels=labelCheck.ids;
+      var labelsGiven=labels.length>0;
 
       try{
         if(existing){
@@ -255,8 +273,12 @@ routerAdd('POST','/api/ics-import',function(c){
           if(assignee&&assignee!==existing.get('assigned_to')){
             existing.set('assigned_to',assignee);
           }
-          existing.set('labels',uniqueLabels);
-          existing.set('label',uniqueLabels);
+          // #230: a re-import without labels keeps the labels the user put on
+          // the task in the app; it used to wipe them.
+          if(labelsGiven){
+            existing.set('labels',uniqueLabels);
+            existing.set('label',uniqueLabels);
+          }
           $app.save(existing);
           results.updated++;
           results.items.push({uid:uid,title:title,action:'updated',id:existing.id});

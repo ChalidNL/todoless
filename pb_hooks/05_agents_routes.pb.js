@@ -389,8 +389,11 @@ try {
         if (st === 'in_progress') st = 'todo';
         rec.set('status', st);
         rec.set('blocked_comment', String(gv(d, 'description', '') || ''));
+        if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
         rec.set('assigned_to', gv(d, 'assignee_id', ''));
-        setCanonicalTaskLabels(rec, gv(d, 'labels', []));
+        var createLabels = authLib.validateLabelIdsForUser(gv(d, 'labels', []), ownerUser);
+        if (!createLabels.ok) return c.json(createLabels.status, { error: createLabels.error });
+        setCanonicalTaskLabels(rec, createLabels.ids);
         rec.set('due_date', gv(d, 'due_date', ''));
         rec.set('is_private', false);
         rec.set('completed_at', st === 'done' ? new Date().toISOString() : null);
@@ -416,6 +419,7 @@ try {
       itemRec.set('user', actingUserId);
       itemRec.set('title', title);
       itemRec.set('completed', String(gv(d, 'status', 'todo')) === 'done');
+      if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       itemRec.set('assigned_to', gv(d, 'assignee_id', ''));
       itemRec.set('labels', gv(d, 'labels', []));
       itemRec.set('shop_id', gv(d, 'shop_id', ''));
@@ -451,9 +455,16 @@ try {
       if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
-      if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) rec.set('assigned_to', gv(d, 'assignee_id', ''));
+      if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) {
+        if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
+        rec.set('assigned_to', gv(d, 'assignee_id', ''));
+      }
       if (Object.prototype.hasOwnProperty.call(d, 'labels')) {
-        if (type === 'task') setCanonicalTaskLabels(rec, gv(d, 'labels', []));
+        if (type === 'task') {
+          var updateLabels = authLib.validateLabelIdsForUser(gv(d, 'labels', []), ownerUser);
+          if (!updateLabels.ok) return c.json(updateLabels.status, { error: updateLabels.error });
+          setCanonicalTaskLabels(rec, updateLabels.ids);
+        }
         else rec.set('labels', gv(d, 'labels', []));
       }
       if (Object.prototype.hasOwnProperty.call(d, 'due_date')) rec.set('due_date', gv(d, 'due_date', ''));
@@ -537,6 +548,7 @@ try {
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
       if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
+      if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
       $app.save(rec);
       auditLog(agentKey, 'assign', type, rec.id, { assignee_id: gv(d, 'assignee_id', '') }, c);
@@ -558,8 +570,11 @@ try {
       if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
 
       var newLabels = gv(d, 'labels', []);
-      if (type === 'task') setCanonicalTaskLabels(rec, newLabels);
-      else rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
+      if (type === 'task') {
+        var setLabels = authLib.validateLabelIdsForUser(newLabels, ownerUser);
+        if (!setLabels.ok) return c.json(setLabels.status, { error: setLabels.error });
+        setCanonicalTaskLabels(rec, setLabels.ids);
+      } else rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
       $app.save(rec);
       auditLog(agentKey, 'set_labels', type, rec.id, { labels: rec.get('labels') }, c);
       return c.json(200, { labels: rec.get('labels') || [] });
