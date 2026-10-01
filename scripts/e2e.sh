@@ -61,8 +61,11 @@ TODOLESS_API_PROXY="http://127.0.0.1:${PB_PORT}" npx vite preview --host 127.0.0
 PIDS+=("$!")
 
 for i in $(seq 1 60); do
+  # Ready = PocketBase healthy, the app served, AND the /api proxy between
+  # them answering (a fresh build's first request can otherwise race it).
   if curl -fsS "http://127.0.0.1:${PB_PORT}/api/hook-health" >/dev/null 2>&1 \
-    && curl -fsS "http://127.0.0.1:${WEB_PORT}/" >/dev/null 2>&1; then
+    && curl -fsS "http://127.0.0.1:${WEB_PORT}/" >/dev/null 2>&1 \
+    && curl -fsS "http://127.0.0.1:${WEB_PORT}/api/setup-status" >/dev/null 2>&1; then
     break
   fi
   if [[ "$i" == "60" ]]; then
