@@ -126,6 +126,19 @@ function AppContent() {
   const { user, loading } = useAuth();
   const { language } = useLanguage();
 
+  // A signed-in user on this device means onboarding is done — regardless of
+  // which path authenticated them (plain login, invite registration). The
+  // marker must be written at the auth boundary, not only in the callbacks of
+  // each screen: the post-auth FIRST-run check can win the race against those
+  // callbacks and leave the device without the marker, so the next cold load
+  // (e.g. after logout) wrongly shows the intro slides. The admin/user
+  // onboarding screens are exempt: they must finish their own final step
+  // ("Open todoless") before the device is considered onboarded, otherwise the
+  // fast path would skip that step.
+  useEffect(() => {
+    if (user && pb.authStore.isValid && appScreen !== 'onboarding') markDeviceOnboarded();
+  }, [user, appScreen]);
+
   useEffect(() => {
     const checkFirstRun = async () => {
       if (loading) return;
