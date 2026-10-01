@@ -101,8 +101,9 @@ function registerDevice(auth, body) {
 
   var userId = String(auth.id || '');
   var now = nowIso();
-  var filter = 'user = "' + escapeFilter(userId) + '" && device_id = "' + escapeFilter(deviceId) + '"';
-  var existing = $app.findRecordsByFilter('companion_devices', filter, '', 1, 0);
+  // Bound parameters instead of string concatenation (the rest of pb_hooks
+  // uses {:param} binding; escapeFilter stays exported for existing callers).
+  var existing = $app.findRecordsByFilter('companion_devices', 'user = {:user} && device_id = {:device}', '', 1, 0, { user: userId, device: deviceId });
   var coll = $app.findCollectionByNameOrId('companion_devices');
   var record = existing.length > 0 ? existing[0] : new Record(coll);
   var created = existing.length === 0;
