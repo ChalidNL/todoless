@@ -592,6 +592,95 @@ test('v1 update action updates title/status/due_date on a task', async () => {
   assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
 })
 
+// --- 7b. GH#88: /api/v1 add_subtask links both sides atomically ------------
+// The transactional branch used the pre-0.23 txApp.dao()/saveRecord() API,
+// which does not exist in PocketBase 0.40 — every call failed with a generic
+// 400. Unknown ids must surface as 404, and re-linking must stay idempotent.
+test('v1 add_subtask links child to parent atomically and idempotently (GH#88)', async () => {
+  const parent = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke subtask parent' },
+  })
+  const child = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke subtask child' },
+  })
+  assert.equal(parent.status, 201)
+  assert.equal(child.status, 201)
+
+  const link = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: child.data.id },
+  })
+  assert.equal(link.status, 200, JSON.stringify(link.data))
+  assert.equal(link.data?.success, true)
+
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  const c = await api('GET', `/api/collections/tasks/records/${child.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [child.data.id])
+  assert.equal(c.data?.linked_to, parent.data.id)
+  assert.equal(c.data?.linked_type, 'task')
+
+  // Linking the same pair again must not duplicate the id on the parent.
+  const again = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: child.data.id },
+  })
+  assert.equal(again.status, 200)
+  const p2 = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p2.data?.subtask_ids, [child.data.id])
+
+  // Unknown parent / child ids are 404s, not a generic "Something went wrong".
+  const noParent = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: 'doesnotexist000', subtask_id: child.data.id },
+  })
+  assert.equal(noParent.status, 404)
+  const noChild = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: 'doesnotexist000' },
+  })
+  assert.equal(noChild.status, 404)
+
+  // A task cannot be made its own subtask.
+  const self = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: parent.data.id },
+  })
+  assert.equal(self.status, 400)
+})
+
+// The same JSON-field pitfall broke the two other server-side subtask paths:
+// POST /api/tasks/{id}/subtasks returned 500 after creating an orphan child,
+// and /api/v1 create with linked_to returned a generic 400 after creating the
+// child — in both cases the parent's subtask_ids stayed empty.
+test('POST /api/tasks/{taskId}/subtasks creates the child and appends it to the parent', async () => {
+  const parent = await api('POST', '/api/tasks', { token: adminToken, body: { title: 'Smoke route parent' } })
+  assert.equal(parent.status, 201, JSON.stringify(parent.data))
+  const first = await api('POST', `/api/tasks/${parent.data.id}/subtasks`, { token: adminToken, body: { title: 'Smoke route child 1' } })
+  assert.equal(first.status, 201, JSON.stringify(first.data))
+  const second = await api('POST', `/api/tasks/${parent.data.id}/subtasks`, { token: adminToken, body: { title: 'Smoke route child 2' } })
+  assert.equal(second.status, 201, JSON.stringify(second.data))
+
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [first.data.id, second.data.id])
+  const c = await api('GET', `/api/collections/tasks/records/${first.data.id}`, { token: adminToken })
+  assert.equal(c.data?.linked_to, parent.data.id)
+  assert.equal(c.data?.linked_type, 'task')
+})
+
+test('v1 create with linked_to appends the new task to the parent subtask_ids', async () => {
+  const parent = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke v1 parent' } })
+  assert.equal(parent.status, 201)
+  const child = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke v1 child', linked_to: parent.data.id, linked_type: 'task' },
+  })
+  assert.equal(child.status, 201, JSON.stringify(child.data))
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [child.data.id])
+
+  // Batch-deleting the child must remove it from the parent's list again
+  // (the cleanup used to filter over raw bytes and never matched).
+  const del = await api('POST', '/api/v1/tasks/batch-delete', { token: adminToken, body: { ids: [child.data.id] } })
+  assert.equal(del.status, 200, JSON.stringify(del.data))
+  const p2 = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p2.data?.subtask_ids, [])
+})
+
 // --- 7c. GH#14: PATCH /api/tasks/{taskId} stamps completed_at --------------
 // The fast-path update used to apply status BEFORE comparing the old status,
 // so a todo→done transition never detected the change and completed_at stayed

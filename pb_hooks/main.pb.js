@@ -588,12 +588,16 @@ try {
         rec.set('flag',false);
         $app.save(rec);
 
-        // If this is a subtask (has linked_to), update parent's subtask_ids
+        // If this is a subtask (has linked_to), update parent's subtask_ids.
+        // subtask_ids is a JSON field — read it via lib/json-field.js, never
+        // record.get() (raw bytes in the JSVM). An unknown parent id must not
+        // turn the already-created task into a 500.
         if (linkedTo) {
-          var parent = $app.findRecordById('tasks', linkedTo);
+          var parent = null;
+          try { parent = $app.findRecordById('tasks', linkedTo); } catch(e) {}
           if (parent) {
-            var existing = parent.get('subtask_ids') || [];
-            if (Array.isArray(existing) && existing.indexOf(rec.id) === -1) {
+            var existing = require(__hooks + '/lib/json-field.js').readIdArray(parent, 'subtask_ids');
+            if (existing.indexOf(rec.id) === -1) {
               existing.push(rec.id);
               parent.set('subtask_ids', existing);
               $app.save(parent);
@@ -688,7 +692,11 @@ try {
       var taskId = String(gv(d, 'task_id', '')).trim();
       var subtaskId = String(gv(d, 'subtask_id', '')).trim();
       if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
-      var parent = $app.findRecordById('tasks', taskId);
+      if (taskId === subtaskId) return c.json(400, { error: 'A task cannot be its own subtask' });
+      // findRecordById throws on an unknown id — map that to 404 instead of a
+      // generic 500 so clients can tell "gone" from "broken".
+      var parent = null;
+      try { parent = $app.findRecordById('tasks', taskId); } catch(e) {}
       if (!parent) return c.json(404, { error: 'Parent task not found' });
       if (!_canAccessTask(parent)) return c.json(404, { error: 'Parent task not found' });
       var child = null;
@@ -697,21 +705,24 @@ try {
       if (!_canAccessTask(child)) return c.json(404, { error: 'Subtask not found' });
       // GH#88: write both sides in one transaction so the child's linked_to and
       // the parent's subtask_ids can never disagree on a partial failure.
+      // PocketBase >= 0.23 exposes the transactional app directly (txApp.save /
+      // txApp.findRecordById); the pre-0.23 dao()/saveRecord() API no longer exists.
+      // subtask_ids is a JSON field: record.get() yields raw bytes in the JSVM,
+      // so it must be read through lib/json-field.js (getString + JSON.parse).
+      var jsonField = require(__hooks + '/lib/json-field.js');
       $app.runInTransaction(function(txApp) {
-        var tdao = txApp.dao();
-        var txParent = tdao.findRecordById('tasks', taskId);
-        var txChild = tdao.findRecordById('tasks', subtaskId);
+        var txParent = txApp.findRecordById('tasks', taskId);
+        var txChild = txApp.findRecordById('tasks', subtaskId);
         if (String(txChild.get('linked_to') || '') !== String(taskId)) {
           txChild.set('linked_to', taskId);
           txChild.set('linked_type', 'task');
-          tdao.saveRecord(txChild);
+          txApp.save(txChild);
         }
-        var existing = txParent.get('subtask_ids') || [];
-        if (!Array.isArray(existing)) existing = [];
+        var existing = jsonField.readIdArray(txParent, 'subtask_ids');
         if (existing.indexOf(subtaskId) === -1) {
           existing.push(subtaskId);
           txParent.set('subtask_ids', existing);
-          tdao.saveRecord(txParent);
+          txApp.save(txParent);
         }
       });
       return c.json(200, { success: true });
