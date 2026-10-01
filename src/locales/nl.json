@@ -471,6 +471,8 @@
     "inviteCode": "Uitnodigingscode",
     "inviteLink": "Uitnodigingslink",
     "minutesRemaining": "Nog {n} minuten geldig",
+    "hoursRemaining": "Nog {n} uur geldig",
+    "daysRemaining": "Nog {n} dagen geldig",
     "saveTokenWarning": "Bewaar dit token nu — het wordt niet meer getoond. De agent blijft in afwachting totdat u goedkeurt.",
     "share": "Delen",
     "shareFailed": "Delen mislukt",

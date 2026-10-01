@@ -471,6 +471,8 @@
     "inviteCode": "Einladungscode",
     "inviteLink": "Einladungslink",
     "minutesRemaining": "Noch {n} Minuten gültig",
+    "hoursRemaining": "Noch {n} Stunden gültig",
+    "daysRemaining": "Noch {n} Tage gültig",
     "saveTokenWarning": "Speichere dieses Token jetzt — es wird nicht mehr angezeigt. Der Agent bleibt ausstehend, bis du ihn genehmigst.",
     "share": "Teilen",
     "shareFailed": "Teilen fehlgeschlagen",
