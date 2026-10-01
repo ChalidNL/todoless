@@ -119,6 +119,9 @@ jobs:
       - name: Entrypoint environment contract (.env.example <-> compose <-> entrypoint)
         run: bash scripts/test-entrypoint-env.sh
 
+      - name: ENCRYPTION_KEY lifecycle against the real PocketBase binary
+        run: bash scripts/test-encryption-key.sh
+
       - name: Setup Node.js (upgrade check)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
