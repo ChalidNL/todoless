@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getISOWeek } from '../utils/dateUtils';
-import { api, isInvalidOldPasswordError, normalizeLabel } from '../lib/pocketbase-client';
+import { api, isInvalidOldPasswordError, normalizeItem, normalizeLabel, normalizeTask } from '../lib/pocketbase-client';
+import { applyRealtimeEvent, isVisibleToMe } from '../lib/realtime-reducer';
 import { t } from '../i18n/translations';
 import { classifyLoadError } from '../lib/load-error';
 import { pb } from '../lib/pocketbase';
@@ -525,24 +526,61 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [users.length]);
 
+  // #77: realtime events are applied to local state instead of refetching
+  // everything on every event (one grocery tick used to reload every list on
+  // every device). Small collections are refetched, debounced, so a bulk
+  // action produces one request instead of N. A full resync on focus/visibility
+  // and every few minutes covers events PocketBase does not deliver (records
+  // that stopped being readable).
   useEffect(() => {
     if (!pb.authStore.isValid) return;
+    const myId = pb.authStore.record?.id;
+    const timers: Record<string, number> = {};
+    const debounced = (key: string, fn: () => Promise<unknown>, delay = 300) => {
+      window.clearTimeout(timers[key]);
+      timers[key] = window.setTimeout(() => { void fn().catch(() => undefined); }, delay);
+    };
+
+    const onTask = (e: { action: string; record: unknown }) => {
+      const task = normalizeTask(e.record);
+      const visible = isVisibleToMe(task, myId);
+      setTasks((prev) => applyRealtimeEvent(prev, e.action, task, visible));
+      const [entry] = buildEntries([task], []);
+      setEntries((prev) => applyRealtimeEvent(prev, e.action, entry, visible));
+    };
+    const onItem = (e: { action: string; record: unknown }) => {
+      const item = normalizeItem(e.record);
+      const visible = isVisibleToMe(item, myId);
+      setItems((prev) => applyRealtimeEvent(prev, e.action, item, visible));
+      const [entry] = buildEntries([], [item]);
+      setEntries((prev) => applyRealtimeEvent(prev, e.action, entry, visible));
+    };
 
     const subscribeAll = async () => {
       await Promise.all([
-        pb.collection('tasks').subscribe('*', () => void refreshEntries()),
-        pb.collection('items').subscribe('*', () => void refreshEntries()),
-        pb.collection('users').subscribe('*', () => void refreshUsers()),
-        pb.collection('labels').subscribe('*', () => void refreshLabels()),
-        pb.collection('shops').subscribe('*', () => void refreshShops()),
-        pb.collection('invite_codes').subscribe('*', () => void refreshInvites()),
-        pb.collection('app_settings').subscribe('*', () => void refreshSettings()),
+        pb.collection('tasks').subscribe('*', onTask),
+        pb.collection('items').subscribe('*', onItem),
+        pb.collection('users').subscribe('*', () => debounced('users', refreshUsers)),
+        pb.collection('labels').subscribe('*', () => debounced('labels', refreshLabels)),
+        pb.collection('shops').subscribe('*', () => debounced('shops', refreshShops)),
+        pb.collection('invite_codes').subscribe('*', () => debounced('invites', refreshInvites)),
+        pb.collection('app_settings').subscribe('*', () => debounced('settings', refreshSettings)),
       ]);
     };
 
     void subscribeAll();
 
+    const resync = () => debounced('resync', () => refreshEntries(), 1000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') resync(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', resync);
+    const interval = window.setInterval(resync, 5 * 60 * 1000);
+
     return () => {
+      Object.values(timers).forEach((id) => window.clearTimeout(id));
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', resync);
+      window.clearInterval(interval);
       pb.collection('tasks').unsubscribe();
       pb.collection('items').unsubscribe();
       pb.collection('users').unsubscribe();

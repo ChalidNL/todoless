@@ -283,6 +283,55 @@ test('member sees shared but not private tasks (v1 list + native API)', async ()
   assert.ok(!nativeTitles.includes('Smoke private task'), 'private task must be hidden natively')
 })
 
+// --- 5c. #77: realtime update events are broadcast ----------------------------
+// A record hook that did not call e.next() (17_recurring) silently suppressed
+// every realtime "update" event, so other devices never saw edits live.
+test('realtime delivers create, update and delete events to family members', async () => {
+  const res = await fetch(BASE + '/api/realtime')
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  const events = []
+  let buffer = ''
+  let clientId = null
+  const pump = (async () => {
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value)
+      let idx
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const chunk = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        const event = /event:(.*)/.exec(chunk)?.[1]?.trim()
+        const data = /data:(.*)/.exec(chunk)?.[1]
+        if (event === 'PB_CONNECT') clientId = JSON.parse(data).clientId
+        else if (event) events.push(JSON.parse(data).action)
+      }
+    }
+  })()
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms))
+  for (let i = 0; i < 50 && !clientId; i++) await wait(50)
+  assert.ok(clientId, 'realtime connection established')
+  const sub = await fetch(BASE + '/api/realtime', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: JSON.stringify({ clientId, subscriptions: ['tasks/*'] }),
+  })
+  assert.equal(sub.status, 204)
+
+  const created = await api('POST', '/api/collections/tasks/records', { token: memberToken, body: { title: 'Realtime probe', status: 'todo', user: member.id } })
+  assert.equal(created.status, 200)
+  await wait(300)
+  const updated = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: memberToken, body: { title: 'Realtime probe 2' } })
+  assert.equal(updated.status, 200)
+  await wait(300)
+  await api('DELETE', `/api/collections/tasks/records/${created.data.id}`, { token: memberToken })
+  for (let i = 0; i < 40 && events.length < 3; i++) await wait(50)
+  await reader.cancel()
+  await pump.catch(() => {})
+  assert.deepEqual(events, ['create', 'update', 'delete'])
+})
+
 // --- 5a. GH#28/#102: paginated, family-scoped entry listing ------------------
 test('entries and v1 list paginate on request and keep privacy', async () => {
   const legacy = await api('GET', '/api/entries', { token: memberToken })
