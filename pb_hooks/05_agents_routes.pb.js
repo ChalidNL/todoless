@@ -246,6 +246,16 @@ try {
         : { filter: 'user = {:actingUserId}', params: { actingUserId: actingUserId } };
     }
 
+    // Unknown ids answer 404 instead of throwing out of the handler.
+    function findEntryRecord(collection, entryId) {
+      try { return $app.findRecordById(collection, entryId); } catch (_e) { return null; }
+    }
+    // Groceries follow the same rule as everywhere else (authLib): the agent
+    // acts as its owner user and never sees more than that user.
+    function canAccessEntry(rec, entryType) {
+      return entryType === 'task' ? canAccessTaskForUser(rec, ownerUser) : authLib.canAccessItemForUser(rec, ownerUser);
+    }
+
     function recordInFamily(rec, fid, uid) {
       var ownerId = String(rec.get('user') || '');
       if (!fid) return ownerId === uid;
@@ -265,7 +275,7 @@ try {
       var collectionName = type === 'grocery' ? 'items' : 'tasks';
 
       if (id) {
-        var rec = $app.findRecordById(collectionName, id);
+        var rec = findEntryRecord(collectionName, id);
         if (!rec) return c.json(404, { error: 'Entry not found' });
 
         // Ensure family-scoped access
@@ -282,7 +292,7 @@ try {
             return c.json(403, { error: 'Access denied' });
           }
         }
-        if (collectionName === 'tasks' && !canAccessTaskForUser(rec, ownerUser)) {
+        if (!canAccessEntry(rec, collectionName === 'tasks' ? 'task' : 'grocery')) {
           return c.json(403, { error: 'Access denied' });
         }
 
@@ -343,6 +353,7 @@ try {
         var items = $app.findRecordsByFilter('items', itemFilter, '-created', 10000, 0, itemQueryParams);
         for (var ii = 0; ii < items.length; ii++) {
           var ir = items[ii];
+          if (!authLib.canAccessItemForUser(ir, ownerUser)) continue;
           results.push({
             id: ir.id, type: 'grocery',
             title: String(ir.get('title') || ''),
@@ -447,10 +458,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
       if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) {
@@ -495,10 +506,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       var title = String(rec.get('title') || '');
       $app.delete(rec);
@@ -516,10 +527,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (type === 'task') {
         rec.set('status', complete ? 'done' : 'todo');
@@ -541,10 +552,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
@@ -562,10 +573,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       var newLabels = gv(d, 'labels', []);
       if (type === 'task') {
@@ -582,7 +593,7 @@ try {
       var id = String(gv(d, 'id', '')).trim();
       if (!id) return c.json(400, { error: 'id required' });
 
-      var rec = $app.findRecordById('tasks', id);
+      var rec = findEntryRecord('tasks', id);
       if (!rec) return c.json(404, { error: 'Task not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
       if (!canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
@@ -678,6 +689,7 @@ try {
       var items = $app.findRecordsByFilter('items', f, '-created', limit, 0, itemQueryParams);
       for (var ii = 0; ii < items.length; ii++) {
         var ir = items[ii];
+        if (!require(__hooks + '/lib/auth.js').canAccessItemForUser(ir, ownerUser)) continue;
         results.push({
           id: ir.id, type: 'grocery',
           title: String(ir.get('title') || ''),

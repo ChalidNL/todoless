@@ -56,6 +56,14 @@ function createAccess(auth, lookup) {
     return String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
   }
 
+  // Same rule as authLib.canAccessItemForUser, with the memoised lookups.
+  function canReadItem(r) {
+    if (!r) return false;
+    if (String(r.get('user') || '') === auth.id) return true;
+    if (isPrivate(r)) return false;
+    return canRead(r);
+  }
+
   function canAccessTask(r) {
     if (!r) return false;
     if (String(r.get('user') || '') === auth.id) return true;
@@ -90,7 +98,7 @@ function createAccess(auth, lookup) {
     return true;
   }
 
-  return { canRead: canRead, canAccessTask: canAccessTask };
+  return { canRead: canRead, canReadItem: canReadItem, canAccessTask: canAccessTask };
 }
 
 function readAll(collection, filter, params) {
@@ -107,7 +115,7 @@ function toEntry(r, type) {
   if (type === 'task') {
     return { id: r.id, type: 'task', title: r.get('title') || '', description: r.get('blocked_comment') || '', status: r.get('status') || 'todo', priority: r.get('priority') || 'medium', assignee_id: r.get('assigned_to') || '', labels: r.get('label') || r.get('labels') || [], shop_id: '', quantity: null, created_by: r.get('user') || '', completed_by: '', created_at: r.get('created'), updated_at: r.get('updated') };
   }
-  return { id: r.id, type: 'grocery', title: r.get('title') || '', description: '', status: r.get('completed') ? 'done' : 'todo', priority: r.get('priority') || 'medium', assignee_id: r.get('assigned_to') || '', labels: r.get('labels') || [], shop_id: r.get('shop_id') || '', quantity: r.get('quantity') || 1, created_by: r.get('user') || '', completed_by: '', created_at: r.get('created'), updated_at: r.get('updated') };
+  return { id: r.id, type: 'grocery', title: r.get('title') || '', description: '', status: r.get('completed') ? 'done' : 'todo', priority: r.get('priority') || 'medium', assignee_id: r.get('assigned_to') || '', labels: require(__hooks + '/lib/json-field.js').readIdArray(r, 'labels'), shop_id: r.get('shop_id') || '', quantity: r.get('quantity') || 1, created_by: r.get('user') || '', completed_by: '', created_at: r.get('created'), updated_at: r.get('updated') };
 }
 
 function parsePositiveInt(raw) {
@@ -161,7 +169,7 @@ function listEntries(auth, query) {
   }
   if (!type || type === 'grocery') {
     var items = readAll('items', filter, params);
-    for (var ii = 0; ii < items.length; ii++) if (access.canRead(items[ii])) all.push(toEntry(items[ii], 'grocery'));
+    for (var ii = 0; ii < items.length; ii++) if (access.canReadItem(items[ii])) all.push(toEntry(items[ii], 'grocery'));
   }
 
   var res = [];

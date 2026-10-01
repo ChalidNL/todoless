@@ -121,7 +121,17 @@ function loadHooks(file, extra = {}) {
       if (String(p).includes('lib/entries.js')) {
         // The real shared listing library, run against the sandbox $app.
         if (!entriesLib) {
-          const mod = { module: { exports: {} }, $app: sandbox.$app, console }
+          // entries.js requires the real JSON-field reader (grocery labels).
+          const jsonField = { module: { exports: {} } }
+          vm.createContext(jsonField)
+          vm.runInContext(read('pb_hooks/lib/json-field.js'), jsonField)
+          const mod = {
+            module: { exports: {} }, $app: sandbox.$app, console, __hooks: '',
+            require: (q) => {
+              if (String(q).endsWith('lib/json-field.js')) return jsonField.module.exports
+              throw new Error('unexpected require in entries.js sandbox: ' + q)
+            },
+          }
           vm.createContext(mod)
           vm.runInContext(read('pb_hooks/lib/entries.js'), mod)
           entriesLib = mod.module.exports

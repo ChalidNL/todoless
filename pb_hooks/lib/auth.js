@@ -332,6 +332,21 @@ function isValidAssigneeForUser(id, user) {
   }
 }
 
+// The one access rule for groceries (items) on every custom route: the owner
+// always has access; anyone else only to a non-private item of their own
+// family. Family role (admin/owner) does not widen it, and an agent passes
+// its owner user, so it can never see more than that user.
+function canAccessItemForUser(record, user) {
+  if (!record || !user) return false;
+  var ownerId = String(record.get('user') || '');
+  if (ownerId && ownerId === user.id) return true;
+  var priv = record.get('is_private');
+  if (priv === true || priv === 1 || priv === 'true') return false;
+  var familyId = String(user.get('family_id') || '');
+  if (!familyId || !ownerId) return false;
+  try { return String($app.findRecordById('users', ownerId).get('family_id') || '') === familyId; } catch (_e) { return false; }
+}
+
 function canAccessTaskForUser(record, user) {
   if (!record || !user) return false;
   var userId = user.id;
@@ -393,4 +408,5 @@ module.exports = {
   validateLabelIdsForUser: validateLabelIdsForUser,
   isValidAssigneeForUser: isValidAssigneeForUser,
   canAccessTaskForUser: canAccessTaskForUser,
+  canAccessItemForUser: canAccessItemForUser,
 };

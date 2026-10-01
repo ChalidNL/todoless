@@ -25,6 +25,7 @@
 // Env: PB_URL (default http://127.0.0.1:8090)
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -1221,6 +1222,129 @@ test('labels and assignees are validated on ICS import, v1 and the agent dispatc
   assert.equal(v1Create.status, 403, JSON.stringify(v1Create.data))
   const v1Ghost = await api('POST', '/api/v1', { token: memberToken, body: { action: 'create', type: 'task', title: 'v1 ghost label', labels: ['nolabel00000000'] } })
   assert.equal(v1Ghost.status, 400, JSON.stringify(v1Ghost.data))
+})
+
+// --- 8f. Private-item access matrix (tasks AND groceries) -----------------
+// A member's private task and private grocery must be reachable by that
+// member only. Everyone else -- another family member, the family admin, the
+// admin's agent key and a user from an unrelated family -- is refused on the
+// native collection API and on every custom route, by known id, not merely
+// hidden in the UI.
+test('private tasks and groceries: only the owner can list, read, change or delete them', async () => {
+  assert.ok(memberToken && adminToken, 'expected member and admin sessions')
+  // The owner's private records.
+  const ptask = await api('POST', '/api/collections/tasks/records', {
+    token: memberToken, body: { title: 'Matrix private task', status: 'todo', is_private: true, user: member.id },
+  })
+  assert.equal(ptask.status, 200, JSON.stringify(ptask.data))
+  const pitem = await api('POST', '/api/collections/items/records', {
+    token: memberToken, body: { title: 'Matrix private grocery', quantity: 1, is_private: true, user: member.id },
+  })
+  assert.equal(pitem.status, 200, JSON.stringify(pitem.data))
+  const ids = new Set([ptask.data.id, pitem.data.id])
+
+  // Identities that must NOT get in.
+  const member2 = await registerDisposableMember('matrix-member2@smoke.test', 'Matrix Member Two')
+  // An unrelated family. No API can create one once setup is done (the
+  // privilege guard blocks family_id/role/member_status even for a
+  // superuser), so it is seeded into this disposable test database, reusing
+  // the password hash of member2 ('password123').
+  assert.ok(process.env.SMOKE_DB, 'SMOKE_DB from scripts/pb-smoke.sh')
+  execFileSync('python3', ['-c', `
+import secrets, sqlite3, sys
+db = sqlite3.connect(sys.argv[1]); rid = lambda: secrets.token_hex(8)[:15]
+pw = db.execute("SELECT password FROM users WHERE email = 'matrix-member2@smoke.test'").fetchone()[0]
+uid, fid, ts = rid(), rid(), '2026-01-01 00:00:00.000Z'
+db.execute("INSERT INTO users (id, email, emailVisibility, verified, name, password, tokenKey, created, updated, role, family_id, member_type, member_status, language) VALUES (?, 'matrix-other@smoke.test', 0, 1, 'Matrix Other', ?, ?, ?, ?, 'admin', ?, 'human', 'active', 'en')", (uid, pw, secrets.token_hex(25), ts, ts, fid))
+db.execute("INSERT INTO families (id, name, created_by) VALUES (?, 'Matrix other family', ?)", (fid, uid))
+db.commit()
+`, process.env.SMOKE_DB])
+  const other = await auth('matrix-other@smoke.test', 'password123')
+  const key = await api('POST', '/api/agent/keys', { token: adminToken, body: { name: 'smoke-matrix', scopes: ['entries:read', 'entries:write'] } })
+  assert.equal(key.status, 201, JSON.stringify(key.data))
+  const agentKey = key.data.key
+
+  const outsiders = [['family admin', adminToken], ['family member', member2.token], ['other family', other.token]]
+  const ok = (r) => r.status >= 200 && r.status < 300
+  const listed = (body) => {
+    const arr = Array.isArray(body) ? body : (body?.items || [])
+    return arr.filter((e) => ids.has(e.id)).map((e) => e.id)
+  }
+
+  for (const [who, token] of outsiders) {
+    for (const [collection, id] of [['tasks', ptask.data.id], ['items', pitem.data.id]]) {
+      assert.ok(!ok(await api('GET', `/api/collections/${collection}/records/${id}`, { token })), `${who}: native view ${collection}`)
+      assert.ok(!ok(await api('PATCH', `/api/collections/${collection}/records/${id}`, { token, body: { title: 'hijacked' } })), `${who}: native update ${collection}`)
+      assert.ok(!ok(await api('DELETE', `/api/collections/${collection}/records/${id}`, { token })), `${who}: native delete ${collection}`)
+      const list = await api('GET', `/api/collections/${collection}/records?perPage=500`, { token })
+      assert.deepEqual(listed(list.data), [], `${who}: native list ${collection}`)
+    }
+    assert.deepEqual(listed((await api('GET', '/api/entries', { token })).data), [], `${who}: /api/entries`)
+    const boot = (await api('GET', '/api/bootstrap', { token })).data || {}
+    assert.deepEqual([...(boot.tasks || []), ...(boot.items || [])].filter((r) => ids.has(r.id)), [], `${who}: /api/bootstrap`)
+    assert.deepEqual(listed((await api('POST', '/api/v1', { token, body: { action: 'list', perPage: 500 } })).data), [], `${who}: /api/v1 list`)
+    for (const [type, id] of [['task', ptask.data.id], ['grocery', pitem.data.id]]) {
+      for (const action of ['complete', 'assign', 'update', 'delete']) {
+        const r = await api('POST', '/api/v1', { token, body: { action, type, id, title: 'hijacked', assignee_id: member.id } })
+        assert.equal(r.status, 404, `${who}: /api/v1 ${action} ${type} -> ${r.status} ${JSON.stringify(r.data)}`)
+      }
+    }
+    const ics = await api('GET', '/api/ics-export', { token })
+    assert.ok(!String(typeof ics.data === 'string' ? ics.data : JSON.stringify(ics.data)).includes('Matrix private task'), `${who}: ICS export`)
+  }
+
+  // The admin's agent key acts as the admin: refused exactly like the admin.
+  for (const [type, id] of [['task', ptask.data.id], ['grocery', pitem.data.id]]) {
+    for (const body of [
+      { action: 'read', type, id },
+      { action: 'update', type, id, title: 'hijacked' },
+      { action: 'complete', type, id },
+      { action: 'assign', type, id, assignee_id: member.id },
+      { action: 'set_labels', type, id, labels: [] },
+      { action: 'delete', type, id },
+    ]) {
+      const r = await api('POST', '/api/agent/dispatch', { token: agentKey, body })
+      assert.ok(r.status === 403 || r.status === 404, `agent: ${body.action} ${type} -> ${r.status} ${JSON.stringify(r.data)}`)
+    }
+  }
+  const agentDue = await api('POST', '/api/agent/dispatch', { token: agentKey, body: { action: 'set_due_date', id: ptask.data.id, due_date: '2030-01-01' } })
+  assert.ok(agentDue.status === 403 || agentDue.status === 404, `agent: set_due_date -> ${agentDue.status}`)
+  assert.deepEqual(listed((await api('POST', '/api/agent/dispatch', { token: agentKey, body: { action: 'read' } })).data), [], 'agent: POST dispatch list')
+  assert.deepEqual(listed((await api('GET', '/api/agent/dispatch', { token: agentKey })).data), [], 'agent: GET dispatch list')
+  // Unknown ids answer 404, not a server error.
+  for (const action of ['read', 'update', 'complete', 'assign', 'delete']) {
+    const r = await api('POST', '/api/agent/dispatch', { token: agentKey, body: { action, type: 'grocery', id: 'doesnotexist123', title: 'x', assignee_id: member.id } })
+    assert.equal(r.status, 404, `agent: unknown id ${action} -> ${r.status} ${JSON.stringify(r.data)}`)
+  }
+
+  // The owner still has full access, and nothing was changed by the attempts.
+  for (const [collection, id, title] of [['tasks', ptask.data.id, 'Matrix private task'], ['items', pitem.data.id, 'Matrix private grocery']]) {
+    const r = await api('GET', `/api/collections/${collection}/records/${id}`, { token: memberToken })
+    assert.equal(r.status, 200, `owner: view ${collection}`)
+    assert.equal(r.data.title, title, `owner: ${collection} unchanged`)
+    assert.ok(!r.data.completed && r.data.status !== 'done', `owner: ${collection} not completed by an outsider`)
+  }
+  assert.deepEqual(listed((await api('GET', '/api/entries', { token: memberToken })).data).sort(), [...ids].sort(), 'owner: /api/entries lists both')
+  const ownerUpdate = await api('POST', '/api/v1', { token: memberToken, body: { action: 'update', type: 'grocery', id: pitem.data.id, title: 'Matrix private grocery (owner edit)' } })
+  assert.equal(ownerUpdate.status, 200, 'owner: /api/v1 update grocery')
+  await api('POST', `/api/agent/keys/${key.data.id}/revoke`, { token: adminToken })
+})
+
+// Grocery labels are a JSON field: the listing filter must read them as data
+// (getString + JSON.parse), not as the raw bytes record.get() returns.
+test('/api/entries label filter matches groceries by label id', async () => {
+  const label = await api('POST', '/api/collections/labels/records', {
+    token: memberToken, body: { name: 'Matrix grocery label', color: '#f59e0b', user: member.id, owner: member.id, family: member.family_id, visibility: 'family' },
+  })
+  assert.equal(label.status, 200, JSON.stringify(label.data))
+  const item = await api('POST', '/api/collections/items/records', {
+    token: memberToken, body: { title: 'Matrix labelled grocery', quantity: 1, user: member.id, labels: [label.data.id] },
+  })
+  assert.equal(item.status, 200, JSON.stringify(item.data))
+  const r = await api('GET', `/api/entries?type=grocery&label=${label.data.id}`, { token: memberToken })
+  assert.equal(r.status, 200)
+  assert.deepEqual(r.data.map((e) => e.id), [item.data.id])
+  assert.deepEqual(r.data[0].labels, [label.data.id])
 })
 
 // --- 9. Password change ------------------------------------------------

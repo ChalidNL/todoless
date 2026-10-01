@@ -622,7 +622,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
@@ -635,7 +635,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       var assigneeVal = String(gv(d,'assignee_id',''));
       if (assigneeVal && !_validAssignee(assigneeVal)) return c.json(400,{error:'Invalid assignee'});
       rec.set('assigned_to',assigneeVal);
@@ -650,7 +650,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       var changed = [];
       if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
       if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); rec.set('status', stUpd); changed.push('status'); }
@@ -673,7 +673,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
