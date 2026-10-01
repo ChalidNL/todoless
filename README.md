@@ -141,7 +141,7 @@ All settings are optional. Put them in a `.env` file next to `docker-compose.yml
 | `TZ` | Timezone for both containers (default `Europe/Amsterdam`) |
 | `APP_URL` | Public address of your install, used in e-mail links (for example `https://todo.example.org`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_AUTH_METHOD` | Your SMTP server, used for password-reset e-mails. E-mail is enabled when `SMTP_HOST` is set. |
-| `TRUSTED_PROXY_HEADERS`, `TRUSTED_PROXY_USE_LEFTMOST_IP` | Client-IP detection behind a reverse proxy (for example `X-Forwarded-For`) |
+| `TRUSTED_PROXY_HEADERS`, `TRUSTED_PROXY_USE_LEFTMOST_IP` | Advanced; normally leave empty. A fresh install already trusts only the rightmost `X-Forwarded-For` address, which the bundled nginx adds itself. Never set `TRUSTED_PROXY_USE_LEFTMOST_IP=true`: clients can forge the leftmost address. |
 | `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` | Create or update the PocketBase dashboard login on every start |
 | `LOG_LEVEL` | Backend log verbosity: `info` (default), `warn`, `error` or `debug` |
 | `MAIL_WEBHOOK_SECRET` | Shared secret for the optional inbound-mail webhook |
@@ -183,7 +183,22 @@ docker compose up -d
 ```
 New database migrations are applied automatically when PocketBase restarts. Read the [release notes](https://github.com/ChalidNL/todoless/releases) before updating.
 
-`docker-compose.yml` pins each image by digest, so an install only changes when you pull a new version of this repository. To follow a specific release instead, replace the `image:` lines with `ghcr.io/chalidnl/todoless-frontend:1.0.0` and `ghcr.io/chalidnl/todoless-pocketbase:1.0.0` (or `:1.0` for the latest 1.0.x).
+`docker-compose.yml` uses the images of the release you checked out (`:1.0.0`). For a fully immutable install, replace the tag with the image digest shown on the [release page](https://github.com/ChalidNL/todoless/releases).
+
+<details>
+<summary><b>Upgrading to v1.0.0 from an earlier install</b></summary>
+
+What happens automatically when PocketBase restarts:
+- **Task visibility repair.** On installs that already existed in August 2026, a migration from then could mark family members' existing tasks as private by mistake. The owner still saw them, but the rest of the family didn't. Migration `z073` restores visibility for exactly those tasks: tasks that were private, were changed by that migration run and have not been touched since. Tasks that carry a label which no longer exists stay private. Tasks whose privacy you changed yourself afterwards are left alone. The log line `[z073] label privacy repair: reverted N task(s)` shows what was done.
+- **Password-reset and invite links** now carry their secret after `#` (`/reset-password#token=…`, `/register#invite=…`). Links in e-mails sent before the upgrade keep working.
+- **Schema changes in the dashboard** no longer write migration files (`--automigrate=false`). If `pb_migrations/` contains files whose names start with a 10-digit timestamp, created by older versions, review them and remove the ones you don't need.
+
+Things that behave differently:
+- The PocketBase dashboard (`/_/`) no longer answers through a reverse proxy. Use it directly on the LAN, via Tailscale or through an SSH tunnel (see [Running securely](#running-securely)).
+- Admins can no longer create API tokens for other human family members.
+
+Optional: set `ENCRYPTION_KEY` to encrypt the PocketBase settings. Keep the key with your backups (see [Settings encryption](#settings-encryption)).
+</details>
 
 <details>
 <summary><b>Upgrading an install from before the non-root images (September 2026)</b></summary>
@@ -217,7 +232,7 @@ docker compose start pocketbase
 todoless is meant to live on your own network. The container serves plain HTTP on port 7070, so **never expose that port directly to the internet**.
 
 - **Private network (recommended for families):** install [Tailscale](https://tailscale.com) or WireGuard on the server and your devices, and open `http://your-server:7070` from anywhere. Nothing is exposed publicly.
-- **Public domain:** put a reverse proxy with HTTPS in front, for example Caddy (`todo.example.org { reverse_proxy localhost:7070 }`), Traefik or nginx with Let's Encrypt. Set `APP_URL` to the public address, and set `TRUSTED_PROXY_HEADERS` so rate limiting sees real client IPs.
+- **Public domain:** put a reverse proxy with HTTPS in front, for example Caddy (`todo.example.org { reverse_proxy localhost:7070 }`), Traefik or nginx with Let's Encrypt. Set `APP_URL` to the public address. Behind a reverse proxy, todoless sees every visitor as coming from the proxy's address, so they share one login rate limit (5 attempts per minute with a small burst) and the dashboard is not reachable through the proxy. Leave `TRUSTED_PROXY_HEADERS` empty: PocketBase already trusts only the address that the bundled nginx adds itself.
 
 Built-in hardening:
 - Both containers run as non-root, with all Linux capabilities dropped; the web container's filesystem is read-only.
