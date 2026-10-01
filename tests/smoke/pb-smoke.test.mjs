@@ -1402,6 +1402,24 @@ test('an admin cannot create an API token for a human member (it would bypass th
   assert.equal(byMember.status, 403, 'members cannot mint tokens for others')
 })
 
+// --- 8j. Review S1: a blocked member is refused on every /api/ route --------
+test('a blocked member with a valid session is refused on custom routes too (S1)', async () => {
+  const blocked = await registerDisposableMember('s1-blocked@smoke.test', 'S1 Blocked')
+  const st = await api('POST', '/api/v1', { token: adminToken, body: { action: 'set_user_block', user_id: blocked.user.id, blocked: true } })
+  assert.equal(st.status, 200, JSON.stringify(st.data))
+  for (const [method, path, body] of [
+    ['GET', '/api/bootstrap'], ['GET', '/api/entries'], ['POST', '/api/tasks', { title: 'blocked creates' }],
+    ['GET', '/api/ics-export'], ['GET', '/api/api-tokens'], ['POST', '/api/api-tokens', { name: 'x', permissions: ['tasks:read'] }],
+    ['POST', '/api/v1', { action: 'list' }], ['GET', '/api/collections/tasks/records'], ['POST', '/api/agent/keys', { name: 'k', scopes: ['entries:read'] }],
+  ]) {
+    const r = await api(method, path, { token: blocked.token, body })
+    assert.equal(r.status, 403, `${method} ${path} -> ${r.status} ${JSON.stringify(r.data)}`)
+  }
+  // the routes that must stay reachable
+  assert.equal((await api('GET', '/api/health', { token: blocked.token })).status, 200)
+  assert.equal((await api('GET', '/api/setup-status', { token: blocked.token })).status, 200)
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {
