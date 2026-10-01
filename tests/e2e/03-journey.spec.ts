@@ -112,9 +112,15 @@ test('inbox -> tasks: push selected, label, filter, complete and reopen', async 
 test('calendar: create an all-day entry and browse periods', async ({ page }) => {
   await login(page);
   await page.getByRole('link', { name: 'Calendar' }).click();
+  // Navigation swaps in the calendar screen; while it settles (initial
+  // data/loading swap) the header quick-add input may be remounted and its
+  // value reset, so the Add click would create 'New event…' instead of the
+  // typed title. Wait for the calendar UI to be ready before typing.
+  const period = page.getByTestId('calendar-period-title');
+  await expect(period).toBeVisible();
+  await expect(page.getByPlaceholder('Search calendar…')).toBeVisible();
   await quickAdd(page, 'E2E calendar entry');
   await expect(page.getByText('E2E calendar entry').first()).toBeVisible();
-  const period = page.getByTestId('calendar-period-title');
   const before = await period.textContent();
   await page.getByRole('button', { name: 'Next' }).click();
   await expect(period).not.toHaveText(before ?? '');
@@ -127,6 +133,10 @@ test('groceries and shops: add, change quantity, check off, delete', async ({ pa
   await login(page);
   await page.getByRole('link', { name: 'Settings' }).click();
   await page.getByRole('link', { name: /Shops/ }).click();
+  // Same post-navigation settle race as the calendar screen: wait for the
+  // shops screen to render before quick-adding.
+  await expect(page.getByPlaceholder('Search shops...')).toBeVisible();
+  await expect(page.getByText('Neighbourhood organic farmers market')).toBeVisible();
   // Typed text pre-fills the add-shop dialog; Enter saves.
   await quickAdd(page, SHOP);
   const dialog = page.getByRole('dialog');
@@ -136,6 +146,10 @@ test('groceries and shops: add, change quantity, check off, delete', async ({ pa
   await expect(page.getByText(SHOP)).toBeVisible();
 
   await page.getByRole('link', { name: 'Groceries' }).click();
+  // Same post-navigation settle race as the calendar screen: wait for grocery
+  // items data to render (Bread is seeded by 02-mobile-layout's beforeAll).
+  await expect(page.getByPlaceholder('Search items…')).toBeVisible();
+  await expect(page.getByText('Bread', { exact: true })).toBeVisible();
   await quickAdd(page, GROCERY);
   const row = page.locator('[data-component="UnifiedCard"], article, li, div').filter({ hasText: GROCERY }).last();
   await expect(page.getByText(GROCERY)).toBeVisible();
