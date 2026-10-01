@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { AppLogo } from './shared/AppLogo';
 import { pb } from '../lib/pocketbase';
 import { PASSWORD_MIN_LENGTH } from '../lib/password';
+import { captureUrlSecrets, getResetToken } from '../lib/url-secrets';
 import { t } from '../i18n/translations';
 
 interface ResetPasswordProps {
@@ -15,12 +16,31 @@ interface ResetPasswordProps {
  * ({APP_URL}/reset-password#token=…, migrations z071/z074) instead of PocketBase's
  * admin UI under /_/, which nginx only exposes to private networks.
  */
-export function ResetPassword({ token, onDone }: ResetPasswordProps) {
+export function ResetPassword({ token: initialToken, onDone }: ResetPasswordProps) {
+  const [token, setToken] = useState(initialToken);
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
-  const [error, setError] = useState(token ? '' : t('auth.resetInvalidLink'));
+  const [error, setError] = useState(initialToken ? '' : t('auth.resetInvalidLink'));
   const [isSaving, setIsSaving] = useState(false);
   const [done, setDone] = useState(false);
+
+  // A reset link opened while this page is already shown only changes the
+  // fragment (no reload): take the new token, clean the address bar again
+  // and start over.
+  useEffect(() => {
+    const onHashChange = () => {
+      captureUrlSecrets();
+      const next = getResetToken();
+      if (!next) return;
+      setToken(next);
+      setPassword('');
+      setPasswordConfirm('');
+      setError('');
+      setDone(false);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const submit = async () => {
     if (!token) return;

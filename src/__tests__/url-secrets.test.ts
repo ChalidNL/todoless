@@ -43,3 +43,16 @@ describe('captureUrlSecrets (#68 reset tokens, #258 invite codes)', () => {
     expect(window.location.search).toBe('?view=week');
   });
 });
+
+describe('ResetPassword picks up a new reset link opened on the same page', () => {
+  it('a fragment navigation replaces the token and cleans the address bar', async () => {
+    window.history.replaceState({}, '', '/reset-password#token=first');
+    const m = await load();
+    m.captureUrlSecrets();
+    expect(m.getResetToken()).toBe('first');
+    window.history.replaceState({}, '', '/reset-password#token=second');
+    m.captureUrlSecrets();
+    expect(m.getResetToken()).toBe('second');
+    expect(window.location.hash).toBe('');
+  });
+});
