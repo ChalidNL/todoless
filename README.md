@@ -145,10 +145,16 @@ All settings are optional. Put them in a `.env` file next to `docker-compose.yml
 | `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` | Create or update the PocketBase dashboard login on every start |
 | `LOG_LEVEL` | Backend log verbosity: `info` (default), `warn`, `error` or `debug` |
 | `MAIL_WEBHOOK_SECRET` | Shared secret for the optional inbound-mail webhook |
+| `ENCRYPTION_KEY` | Optional, exactly 32 characters: encrypts the PocketBase settings (SMTP password, S3 and backup keys) inside the database. See [Settings encryption](#settings-encryption). |
 
 `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are applied to PocketBase **once**, on the first start. After that, change them in the PocketBase dashboard under **Settings**.
 
 **Never commit your `.env` file**: it contains passwords.
+
+### Settings encryption
+PocketBase stores its settings, including the SMTP password and S3 keys, in `data.db`. These are stored in plain text unless you set `ENCRYPTION_KEY` to a random 32-character value, for example the output of `openssl rand -hex 16`. When the key is set, the next time settings are saved they are stored encrypted. A key of the wrong length is ignored with a warning in the log, and PocketBase then starts without encryption.
+
+> ⚠️ **Keep the key with your backups.** Once settings have been saved encrypted, PocketBase will not start without the same key (`invalid settings db data or missing encryption key`). A backup of `pb_data` without the key cannot be fully restored, and if the key is lost, the encrypted settings cannot be recovered.
 
 ### Volumes
 
