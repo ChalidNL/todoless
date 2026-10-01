@@ -1166,6 +1166,63 @@ test('label created via the collection API without family defaults to the caller
   assert.equal(blanked.data.family, member.family_id)
 })
 
+// --- 8e. #230: label/assignee validation on every write path -------------
+let adminPrivateLabelId = null
+test('labels and assignees are validated on ICS import, v1 and the agent dispatch, and a re-import keeps labels (#230)', async () => {
+  // a private label of the admin: the member must not be able to attach it
+  const priv = await api('POST', '/api/collections/labels/records', {
+    token: adminToken,
+    body: { name: 'Smoke admin private', color: '#111111', user: admin.id, owner: admin.id, family: admin.family_id, visibility: 'private' },
+  })
+  assert.equal(priv.status, 200, JSON.stringify(priv.data))
+  adminPrivateLabelId = priv.data.id
+  const fam = await api('POST', '/api/collections/labels/records', {
+    token: memberToken,
+    body: { name: 'Smoke member family label', color: '#222222', user: member.id, owner: member.id, family: member.family_id, visibility: 'family' },
+  })
+  assert.equal(fam.status, 200, JSON.stringify(fam.data))
+
+  // ICS import: bulk options are request errors
+  const badBulkLabel = await api('POST', '/api/ics-import', { token: memberToken, body: { events: [{ uid: 'smoke-230-a', title: 'A', start_time: '2026-11-10T09:00:00.000Z' }], options: { labels: [adminPrivateLabelId] } } })
+  assert.equal(badBulkLabel.status, 403, JSON.stringify(badBulkLabel.data))
+  const badBulkAssignee = await api('POST', '/api/ics-import', { token: memberToken, body: { events: [{ uid: 'smoke-230-a', title: 'A', start_time: '2026-11-10T09:00:00.000Z' }], options: { assignee: 'nobody000000000' } } })
+  assert.equal(badBulkAssignee.status, 400, JSON.stringify(badBulkAssignee.data))
+
+  // per-event problems are reported per event, the rest imports
+  const mixed = await api('POST', '/api/ics-import', { token: memberToken, body: { events: [
+    { uid: 'smoke-230-ok', title: 'Import ok', start_time: '2026-11-10T09:00:00.000Z', labels: [fam.data.id] },
+    { uid: 'smoke-230-privlabel', title: 'Import private label', start_time: '2026-11-10T10:00:00.000Z', labels: [adminPrivateLabelId] },
+    { uid: 'smoke-230-ghost', title: 'Import ghost assignee', start_time: '2026-11-10T11:00:00.000Z', assigned_to: 'nobody000000000' },
+  ] } })
+  assert.equal(mixed.status, 200, JSON.stringify(mixed.data))
+  assert.equal(mixed.data.created, 1)
+  assert.equal(mixed.data.errors.length, 2)
+  assert.ok(mixed.data.errors.some((e) => e.uid === 'smoke-230-privlabel' && /label/i.test(e.error)))
+  assert.ok(mixed.data.errors.some((e) => e.uid === 'smoke-230-ghost' && /assignee/i.test(e.error)))
+  const byUid = await api('GET', `/api/collections/tasks/records?filter=${encodeURIComponent('uid = "smoke-230-ok"')}`, { token: memberToken })
+  assert.equal(byUid.status, 200)
+  assert.equal(byUid.data.items.length, 1)
+  const importedId = byUid.data.items[0].id
+  let imported = await getRecord('tasks', importedId, memberToken)
+  assert.deepEqual(imported.data.labels, [fam.data.id])
+
+  // re-import of the same uid without labels keeps the labels
+  const again = await api('POST', '/api/ics-import', { token: memberToken, body: { events: [{ uid: 'smoke-230-ok', title: 'Import ok (edited)', start_time: '2026-11-10T09:30:00.000Z' }] } })
+  assert.equal(again.status, 200)
+  assert.equal(again.data.updated, 1)
+  imported = await getRecord('tasks', importedId, memberToken)
+  assert.deepEqual(imported.data.labels, [fam.data.id], 'a re-import without labels must not wipe the labels')
+  assert.equal(imported.data.title, 'Import ok (edited)')
+
+  // v1 update and create apply the same rule
+  const v1Update = await api('POST', '/api/v1', { token: memberToken, body: { action: 'update', type: 'task', id: importedId, labels: [adminPrivateLabelId] } })
+  assert.equal(v1Update.status, 403, JSON.stringify(v1Update.data))
+  const v1Create = await api('POST', '/api/v1', { token: memberToken, body: { action: 'create', type: 'task', title: 'v1 with private label', labels: [adminPrivateLabelId] } })
+  assert.equal(v1Create.status, 403, JSON.stringify(v1Create.data))
+  const v1Ghost = await api('POST', '/api/v1', { token: memberToken, body: { action: 'create', type: 'task', title: 'v1 ghost label', labels: ['nolabel00000000'] } })
+  assert.equal(v1Ghost.status, 400, JSON.stringify(v1Ghost.data))
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {
