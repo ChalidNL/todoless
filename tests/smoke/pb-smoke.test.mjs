@@ -867,6 +867,20 @@ test('v1 update action updates title/status/due_date on a task', async () => {
   assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
 })
 
+// --- 7b2. GH#20: API token permission validation (live endpoint) ----------
+test('api token create rejects unknown permissions and admin-only wildcards for members (GH#20)', async () => {
+  for (const perm of ['admin:*', 'users:*', 'api_tokens:*', 'agents:*', 'families:*', 'xxx:*']) {
+    const r = await api('POST', '/api/api-tokens', { token: adminToken, body: { name: 'smoke-perm', permissions: [perm] } })
+    assert.equal(r.status, 400, `${perm}: ${JSON.stringify(r.data)}`)
+  }
+  for (const perm of ['tasks:*', '*']) {
+    const r = await api('POST', '/api/api-tokens', { token: memberToken, body: { name: 'smoke-perm', permissions: [perm] } })
+    assert.equal(r.status, 403, `member ${perm}: ${JSON.stringify(r.data)}`)
+  }
+  const ok = await api('POST', '/api/api-tokens', { token: memberToken, body: { name: 'smoke-perm', permissions: ['tasks:read'] } })
+  assert.ok(ok.status === 200 || ok.status === 201, JSON.stringify(ok.data))
+})
+
 // --- 7c. #225: /api/v1 validation and create fields ------------------------
 test('v1 create accepts priority/due_date and rejects invalid input (#225)', async () => {
   const created = await api('POST', '/api/v1', {

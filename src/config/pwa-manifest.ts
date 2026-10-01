@@ -37,7 +37,7 @@ export function buildPwaManifest(opts: PwaManifestOptions): PwaManifest {
     name: opts.appName,
     short_name: opts.appShort,
     // i18n-ignore: PWA install-tip metadata is intentionally English product copy (not UI chrome)
-    description: opts.isBeta ? 'Self-hosted productivity app (beta)' : 'Self-hosted multi-user task manager',
+    description: opts.isBeta ? 'Self-hosted productivity app (beta)' : 'The self-hosted family organizer for tasks, calendar and groceries',
     start_url: '/',
     scope: '/',
     display: 'standalone',

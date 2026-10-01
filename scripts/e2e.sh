@@ -47,7 +47,8 @@ fi
 # Throwaway superuser for this disposable database only: lets specs set up
 # states the public API deliberately cannot create (e.g. an expired invite).
 export E2E_SU_EMAIL="e2e-root@example.com"
-E2E_SU_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
+# Prefixed so the random part can never start with '-' (parsed as a CLI flag).
+E2E_SU_PASSWORD="E2e-$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
 export E2E_SU_PASSWORD
 "$PB" superuser upsert "$E2E_SU_EMAIL" "$E2E_SU_PASSWORD" --dir="$DATA_DIR/pb_data" >/dev/null
 
