@@ -533,6 +533,9 @@ try {
       if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (type === 'task') {
+        // #240: the agent completes on behalf of its owner user.
+        if (complete && String(rec.get('status')) !== 'done') rec.set('completed_by', ownerUser.id);
+        if (!complete) rec.set('completed_by', '');
         rec.set('status', complete ? 'done' : 'todo');
         rec.set('completed_at', complete ? new Date().toISOString() : null);
       } else {

@@ -1373,6 +1373,24 @@ test('the server refuses self-links and cyclic or nested parent links (#241)', a
   assert.equal(ok.status, 200, JSON.stringify(ok.data))
 })
 
+// --- 8h. #240: completed_by is the person who completed it ----------------
+test('completed_by records who completed the task on /api/v1 and the agent dispatch (#240)', async () => {
+  const t = await api('POST', '/api/collections/tasks/records', { token: adminToken, body: { title: 'Completed-by task', status: 'todo', user: admin.id, assigned_to: admin.id, is_private: false } })
+  assert.equal(t.status, 200, JSON.stringify(t.data))
+  // assigned to the admin, completed by the member
+  const done = await api('POST', '/api/v1', { token: memberToken, body: { action: 'complete', type: 'task', id: t.data.id } })
+  assert.equal(done.status, 200, JSON.stringify(done.data))
+  assert.equal((await getRecord('tasks', t.data.id)).data.completed_by, member.id)
+  const reopened = await api('POST', '/api/v1', { token: memberToken, body: { action: 'update', type: 'task', id: t.data.id, status: 'todo' } })
+  assert.equal(reopened.status, 200)
+  assert.equal((await getRecord('tasks', t.data.id)).data.completed_by, '')
+  const key = await api('POST', '/api/agent/keys', { token: adminToken, body: { name: 'smoke-completed-by', scopes: ['entries:read', 'entries:write'] } })
+  const viaAgent = await api('POST', '/api/agent/dispatch', { token: key.data.key, body: { action: 'complete', type: 'task', id: t.data.id } })
+  assert.equal(viaAgent.status, 200, JSON.stringify(viaAgent.data))
+  assert.equal((await getRecord('tasks', t.data.id)).data.completed_by, admin.id, 'agent completes on behalf of its owner')
+  await api('POST', `/api/agent/keys/${key.data.id}/revoke`, { token: adminToken })
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {

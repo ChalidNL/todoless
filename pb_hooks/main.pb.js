@@ -637,7 +637,8 @@ try {
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
-      if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
+      // #240: completed_by is whoever completes it, never the assignee.
+      if(type==='task'){ if (String(rec.get('status')) !== 'done') rec.set('completed_by', auth.id); rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
 
@@ -667,7 +668,7 @@ try {
       if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       var changed = [];
       if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
-      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); rec.set('status', stUpd); changed.push('status'); }
+      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); if (stUpd === 'done' && String(rec.get('status')) !== 'done') rec.set('completed_by', auth.id); else if (stUpd !== 'done') rec.set('completed_by', ''); rec.set('status', stUpd); changed.push('status'); }
       if (d.priority !== undefined) { var prUpd = d.priority === null ? '' : String(d.priority); if (prUpd && _PRIORITIES.indexOf(prUpd) === -1) return c.json(400,{error:'Invalid priority'}); rec.set('priority', prUpd); changed.push('priority'); }
       if (d.due_date !== undefined) { var dueUpd = _parseDue(d.due_date); if (!dueUpd.ok) return c.json(400,{error:'Invalid due_date'}); rec.set('due_date', dueUpd.value); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
