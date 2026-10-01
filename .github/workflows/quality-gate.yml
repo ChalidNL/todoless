@@ -126,6 +126,9 @@ jobs:
           git fetch --force --tags origin
           bash scripts/test-migration-upgrade.sh
 
+      - name: Label privacy upgrade regression (z062 flip + z073 repair)
+        run: bash scripts/test-label-privacy-upgrade.sh
+
       - name: App-managed manifest currency lint (GH#35)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then

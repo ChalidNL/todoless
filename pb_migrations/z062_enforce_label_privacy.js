@@ -6,6 +6,23 @@ const LABEL_FAMILY_RULE = '(family = @request.auth.family_id || user.family_id =
 const LABEL_VISIBILITY_RULE = 'owner = @request.auth.id || user = @request.auth.id || (' + LABEL_FAMILY_RULE + ' && (visibility = "family" || (visibility = "shared" && shared_with.id ?= @request.auth.id) || (visibility = "private" && owner = @request.auth.id)))';
 const PAGE_SIZE = 500;
 
+// Reading the legacy `labels` JSON field inside the JSVM: record.get() hands
+// back the raw JSON bytes (types.JSONRaw), which Goja exposes as an array of
+// char codes -- Array.isArray() is true, but the elements are numbers, so no
+// element ever resolves to a label id. The JSON text comes from getString().
+// (Same pitfall as pb_hooks/lib/json-field.js; kept inline because migrations
+// cannot require hook libraries.)
+function readLegacyLabels(record) {
+  let raw = '';
+  try { raw = record.getString('labels'); } catch (_) { raw = ''; }
+  raw = String(raw === null || raw === undefined ? '' : raw).trim();
+  if (!raw || raw === 'null') return [];
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (_) { return []; }
+  if (Array.isArray(parsed)) return parsed;
+  return parsed === null || parsed === '' ? [] : [parsed];
+}
+
 migrate(
   (app) => {
     const labels = app.findCollectionByNameOrId('labels');
@@ -34,8 +51,7 @@ migrate(
       for (const task of batch) {
         const current = task.get('label');
         const currentLabels = Array.isArray(current) ? current.filter(Boolean) : (current ? [String(current)] : []);
-        const legacy = task.get('labels') || [];
-        const legacyLabels = Array.isArray(legacy) ? legacy : (legacy ? [legacy] : []);
+        const legacyLabels = readLegacyLabels(task);
         const canonicalLabels = currentLabels.slice();
         let unresolved = false;
 
