@@ -11,7 +11,7 @@
 // KNOWN-BROKEN flows are marked `{ todo: '<ticket ref>' }`: the assertion still
 // runs and shows as todo-failure in output, but does not fail the run. Flip them
 // to active tests when the referenced fix tickets land:
-//   - ICS VEVENT for tasks -> GH#12 (t_gh246847d0)
+//   (ICS VEVENT for tasks, GH#12, is fixed and active.)
 // (companion register t_gh41a39209 was flipped to an active test by GH#8;
 //  block enforcement t_318f2396 was flipped to an active test — see below.)
 //
@@ -330,6 +330,41 @@ test('realtime delivers create, update and delete events to family members', asy
   await reader.cancel()
   await pump.catch(() => {})
   assert.deepEqual(events, ['create', 'update', 'delete'])
+})
+
+// --- 5d. #100: subscribable calendar feed --------------------------------------
+test('calendar feed: text/calendar with a calendar-only URL token, ETag/304, privacy kept', async () => {
+  const dated = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke feed event', status: 'todo', is_private: false, user: admin.id, due_date: '2026-11-05 09:00:00.000Z' },
+  })
+  assert.equal(dated.status, 200)
+  const hidden = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke feed private', status: 'todo', is_private: true, user: admin.id, due_date: '2026-11-05 10:00:00.000Z' },
+  })
+  assert.equal(hidden.status, 200)
+
+  const mint = async (permissions) => (await api('POST', '/api/api-tokens', { token: memberToken, body: { name: 'feed', permissions } })).data.token
+  const calendarToken = await mint(['calendar:read'])
+  const wideToken = await mint(['calendar:read', 'tasks:write'])
+
+  const res = await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(calendarToken)}`)
+  assert.equal(res.status, 200)
+  assert.match(res.headers.get('content-type') || '', /^text\/calendar/)
+  const body = await res.text()
+  assert.match(body, /^BEGIN:VCALENDAR\r\n/)
+  assert.match(body, /SUMMARY:Smoke feed event/)
+  assert.doesNotMatch(body, /Smoke feed private/, "another member's private task never appears")
+  const etag = res.headers.get('etag')
+  assert.ok(etag)
+
+  const again = await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(calendarToken)}`, { headers: { 'If-None-Match': etag } })
+  assert.equal(again.status, 304)
+
+  assert.equal((await fetch(`${BASE}/api/calendar.ics?token=${encodeURIComponent(wideToken)}`)).status, 403, 'URL tokens must be calendar-only')
+  assert.equal((await fetch(`${BASE}/api/calendar.ics?token=tl_invalid`)).status, 401)
+  assert.equal((await fetch(`${BASE}/api/calendar.ics`)).status, 401)
 })
 
 // --- 5a. GH#28/#102: paginated, family-scoped entry listing ------------------
@@ -727,7 +762,7 @@ test('ICS export returns a valid VCALENDAR envelope', async () => {
   assert.ok(text.includes('VERSION:2.0'), 'expected ICAL version')
 })
 
-test('ICS export includes the due-date task as a VEVENT', { todo: 'ICS export drops due tasks — GH#12 (t_gh246847d0)' }, async () => {
+test('ICS export includes the due-date task as a VEVENT (GH#12, fixed)', async () => {
   const r = await api('GET', '/api/ics-export', { token: adminToken })
   const text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data)
   assert.ok(text.includes('VEVENT'), 'expected at least one VEVENT')

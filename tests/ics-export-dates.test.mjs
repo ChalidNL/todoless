@@ -44,7 +44,17 @@ const base = {
 function runExport(taskRecords) {
   const routerCalls = []
   const sandbox = {
+    __hooks: '',
     routerAdd: (method, path, handler) => routerCalls.push({ method, path, handler }),
+    // Route handlers require the shared generator (pb_hooks/lib/ics-feed.js);
+    // load the real file against this sandbox's $app.
+    require: (p) => {
+      if (!String(p).endsWith('/lib/ics-feed.js')) throw new Error('unexpected require: ' + p)
+      const mod = { module: { exports: {} }, $app: sandbox.$app }
+      vm.createContext(mod)
+      vm.runInContext(read('pb_hooks/lib/ics-feed.js'), mod)
+      return mod.module.exports
+    },
     $app: {
       findRecordsByFilter: () => taskRecords,
       findRecordById: (name, id) => {
@@ -208,11 +218,21 @@ test('mixed batch never emits an empty or zero-length DTEND and VEVENTs match ta
 })
 
 test('export code never falls back on raw truthiness and guards DTEND emission', () => {
-  const source = read('pb_hooks/14_ics.pb.js')
+  const source = read('pb_hooks/lib/ics-feed.js')
   assert.match(source, /function hasDate\(/)
   // The old bug was the unguarded `var sd=t.get('start_time')||t.get('due_date')`;
   // comments may mention the pattern, so scope the negative assertion to code.
   assert.doesNotMatch(source, /var\s+sd\s*=\s*t\.get\('start_time'\)\s*\|\|/)
   assert.doesNotMatch(source, /var\s+st\s*=\s*t\.get\('start_time'\)\s*;/)
   assert.match(source, /if\(dtEnd\)ics\+=/)
+})
+test('export never contains another member\'s private task (behaviour, shared with the calendar feed)', () => {
+  const body = runExport([
+    fakeRecord({ ...base, id: 'mine-private', user: 'user-1', title: 'Mine private', is_private: true, due_date: '2026-09-28 12:00:00.000Z', start_time: emptyDateTime(), end_time: emptyDateTime() }),
+    fakeRecord({ ...base, id: 'theirs-private', user: 'user-2', title: 'Theirs private', is_private: true, due_date: '2026-09-28 12:00:00.000Z', start_time: emptyDateTime(), end_time: emptyDateTime() }),
+    fakeRecord({ ...base, id: 'theirs-shared', user: 'user-2', title: 'Theirs shared', due_date: '2026-09-28 12:00:00.000Z', start_time: emptyDateTime(), end_time: emptyDateTime() }),
+  ])
+  assert.match(body.ics, /SUMMARY:Mine private/)
+  assert.match(body.ics, /SUMMARY:Theirs shared/)
+  assert.doesNotMatch(body.ics, /Theirs private/)
 })

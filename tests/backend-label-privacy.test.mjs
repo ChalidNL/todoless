@@ -202,7 +202,8 @@ test('all loaded agent task routes enforce the same label privacy contract', () 
 })
 
 test('ICS import and export cannot bypass privacy and keep canonical labels synchronized', () => {
-  const source = read('pb_hooks/14_ics.pb.js')
+  // Export generation lives in lib/ics-feed.js (shared with /api/calendar.ics).
+  const source = read('pb_hooks/14_ics.pb.js') + read('pb_hooks/lib/ics-feed.js')
 
   assert.match(source, /function canAccessTaskForUser\(/)
   assert.match(source, /existingList\s*=\s*existingList\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)

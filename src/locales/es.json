@@ -634,7 +634,16 @@
     "doneToday": "Hecho hoy"
   },
   "ics": {
-    "sectionTitle": "Importar y exportar calendario"
+    "sectionTitle": "Importar y exportar calendario",
+    "subscribeTitle": "Suscribirse en tu app de calendario",
+    "subscribeHint": "Muestra las fechas de todoless en Apple, Google u Outlook. Cualquiera con el enlace puede ver el calendario familiar, compártelo solo con apps de confianza.",
+    "createLink": "Crear enlace de suscripción",
+    "linkReady": "Copia este enlace en tu app de calendario («añadir calendario desde URL»). Solo se muestra una vez.",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "Enlace copiado",
+    "revokeLinks": "Revocar enlaces de suscripción",
+    "revokedLinks": "Enlaces de suscripción revocados: {n}",
+    "subscribeFailed": "No se pudo crear el enlace de suscripción."
   },
   "errors": {
     "offline": "Estás sin conexión o no se puede contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",

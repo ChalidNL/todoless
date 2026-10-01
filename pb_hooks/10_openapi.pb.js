@@ -1092,7 +1092,20 @@ routerAdd('GET', '/api/openapi.json', (c) => {
 
       // ── ICS calendar import/export ──
       "/ics-import": { post: { tags: ["Calendar"], summary: "Import parsed .ics VEVENTs as tasks", operationId: "icsImport", security: authRequired(), responses: { "200": { description: "Import result" }, "400": { description: "Bad request" } } } },
-      "/ics-export": { get: { tags: ["Calendar"], summary: "Export tasks with due dates as an .ics feed", operationId: "icsExport", security: authRequired(), responses: { "200": { description: ".ics file", content: { "text/calendar": { schema: { type: "string" } } } } } } },
+      "/ics-export": { get: { tags: ["Calendar"], summary: "Export tasks with due dates (JSON-wrapped .ics for the app)", operationId: "icsExport", security: authRequired(), responses: { "200": { description: "{ ics, count }", content: { "application/json": { schema: { type: "object", properties: { ics: st(), count: si() } } } } } } } },
+      "/calendar.ics": { get: {
+        tags: ["Calendar"],
+        summary: "Subscribable calendar feed (text/calendar)",
+        description: "Family calendar for calendar apps. Pass an API token limited to calendar:read as ?token= (calendar apps cannot send headers), or use a session / Bearer token with calendar:read. Supports ETag/If-None-Match (304) and Last-Modified. Contains the same privacy-checked events as the app: own tasks plus non-private family tasks.",
+        operationId: "calendarFeed",
+        parameters: [{ name: "token", in: "query", description: "API token whose only permission is calendar:read", schema: { type: "string" } }],
+        responses: {
+          "200": { description: "iCalendar feed", content: { "text/calendar": { schema: { type: "string" } } } },
+          "304": { description: "Not modified (If-None-Match matched)" },
+          "401": { description: "Missing, invalid or expired token" },
+          "403": { description: "Token not limited to calendar:read (URL tokens) or lacks calendar:read" },
+        },
+      } },
 
       // ── PocketBase collection records (primary data CRUD surface) ──
       // Tasks, groceries, labels, notes, projects, sprints, reminders, rewards, shops,

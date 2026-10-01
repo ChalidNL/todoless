@@ -49,6 +49,7 @@ lib/companion.js
 lib/dates.js
 lib/entries.js
 lib/errors.js
+lib/ics-feed.js
 lib/recurrence.js
 lib/task-date-sync.js
 main.pb.js
