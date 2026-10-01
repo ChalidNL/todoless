@@ -1102,6 +1102,32 @@ test('ICS export includes the due-date task as a VEVENT (GH#12, fixed)', async (
   assert.ok(text.includes('VEVENT'), 'expected at least one VEVENT')
 })
 
+// --- 8c. #232: one status vocabulary on the token/agent routes ----------
+test('GET /api/agent/tasks accepts the real statuses (+ in_progress alias) and rejects the rest (#232)', async () => {
+  const token = (await api('POST', '/api/api-tokens', { token: adminToken, body: { name: 'status-vocab', permissions: ['tasks:read', 'tasks:write'] } })).data?.token
+  assert.ok(token, 'expected a member API token')
+  // a backlog task assigned to the admin so the filter has something to find
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke backlog task', status: 'backlog', is_private: false, user: admin.id, assigned_to: admin.id },
+  })
+  assert.equal(created.status, 200)
+
+  const backlog = await api('GET', '/api/agent/tasks?status=backlog', { token })
+  assert.equal(backlog.status, 200, 'backlog is a real status and must not be rejected')
+  assert.ok(backlog.data.tasks.some((t) => t.id === created.data.id), 'the backlog filter finds the backlog task')
+
+  const alias = await api('GET', '/api/agent/tasks?status=in_progress', { token })
+  const todo = await api('GET', '/api/agent/tasks?status=todo', { token })
+  assert.equal(alias.status, 200)
+  assert.deepEqual(alias.data.tasks.map((t) => t.id).sort(), todo.data.tasks.map((t) => t.id).sort(), 'in_progress is an alias of todo')
+
+  for (const bogus of ['cancelled', 'doing']) {
+    const r = await api('GET', `/api/agent/tasks?status=${bogus}`, { token })
+    assert.equal(r.status, 400, `${bogus} is not a task status`)
+  }
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {

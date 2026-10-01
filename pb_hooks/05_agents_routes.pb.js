@@ -197,6 +197,7 @@ try {
 
 routerAdd('POST', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var taskStatus = require(__hooks + '/lib/task-status.js');
   var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
@@ -309,9 +310,8 @@ try {
       var queryParams = family.params;
       var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
       var t = String(gv(q, 'type', '')).trim();
-      var status = String(gv(q, 'status', '')).trim();
-      var validReadStatuses = ['', 'backlog', 'todo', 'done'];
-      if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
+      var status = taskStatus.normalizeTaskStatus(gv(q, 'status', ''));
+      if (status && !taskStatus.isTaskStatus(status)) return c.json(400, { error: 'Invalid status' });
 
       var results = [];
 
@@ -383,10 +383,8 @@ try {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('user', actingUserId);
         rec.set('title', title);
-        var rawStatus = String(gv(d, 'status', 'todo'));
-        var validStatuses = ['backlog', 'todo', 'in_progress', 'done'];
-        var st = validStatuses.indexOf(rawStatus) >= 0 ? rawStatus : 'todo';
-        if (st === 'in_progress') st = 'todo';
+        var st = taskStatus.normalizeTaskStatus(gv(d, 'status', 'todo')) || 'todo';
+        if (!taskStatus.isTaskStatus(st)) return c.json(400, { error: 'Invalid status' });
         rec.set('status', st);
         rec.set('blocked_comment', String(gv(d, 'description', '') || ''));
         rec.set('assigned_to', gv(d, 'assignee_id', ''));
@@ -461,8 +459,8 @@ try {
       if (type === 'task') {
         if (Object.prototype.hasOwnProperty.call(d, 'description')) rec.set('blocked_comment', gv(d, 'description', ''));
         if (Object.prototype.hasOwnProperty.call(d, 'status')) {
-          var sr = String(gv(d, 'status', 'todo'));
-          if (sr === 'in_progress') sr = 'todo';
+          var sr = taskStatus.normalizeTaskStatus(gv(d, 'status', 'todo'));
+          if (!taskStatus.isTaskStatus(sr)) return c.json(400, { error: 'Invalid status' });
           rec.set('status', sr);
           rec.set('completed_at', sr === 'done' ? new Date().toISOString() : null);
         }
@@ -589,6 +587,7 @@ try {
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
 routerAdd('GET', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var taskStatus = require(__hooks + '/lib/task-status.js');
   var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
@@ -633,9 +632,8 @@ try {
     var info = c.requestInfo();
     var q = info.query || {};
     var t = String(gv(q, 'type', '')).trim();
-    var status = String(gv(q, 'status', '')).trim();
-    var validReadStatuses = ['', 'backlog', 'todo', 'done'];
-    if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
+    var status = taskStatus.normalizeTaskStatus(gv(q, 'status', ''));
+    if (status && !taskStatus.isTaskStatus(status)) return c.json(400, { error: 'Invalid status' });
     var limit = parseInt(gv(q, 'limit', '100'), 10);
     if (limit < 1) limit = 100;
 

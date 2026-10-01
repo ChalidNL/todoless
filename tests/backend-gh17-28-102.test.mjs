@@ -100,6 +100,13 @@ function loadHooks(file, extra = {}) {
       if (String(p).includes('lib/auth.js')) return { bearerAuthMiddleware: () => null }
       if (String(p).includes('lib/dates.js')) return { dateOrNull: (v) => v || null }
       if (String(p).includes('task-date-sync.js')) return {}
+      if (String(p).includes('lib/task-status.js')) {
+        // The real status vocabulary (#232), run in its own context.
+        const mod = { module: { exports: {} } }
+        vm.createContext(mod)
+        vm.runInContext(read('pb_hooks/lib/task-status.js'), mod)
+        return mod.module.exports
+      }
       if (String(p).includes('lib/entries.js')) {
         // The real shared listing library, run against the sandbox $app.
         if (!entriesLib) {
