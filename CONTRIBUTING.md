@@ -49,6 +49,8 @@ PocketBase applies `pb_migrations/*.js` in lexical file-name order and records a
 
 So: append new migrations with the next free number, and leave existing files alone. If a rename is truly unavoidable, append an `old_name|current_name` entry to `MIGRATION_RENAMES` in `pocketbase-entrypoint.sh` (append-only, keep the existing order) — the entrypoint renames the `_migrations` rows and removes the stale file before PocketBase starts.
 
+`tests/migration-prefixes.test.mjs` (part of `node --test tests/*.test.mjs` in the quality gate) fails on a new duplicate prefix. The seven duplicates that already shipped (`032`, `039`, `049`, `050`, `z066`, `z067`, `z069`) are frozen in that test because renaming them would re-run them on existing installs; don't add to that list. Note that `z0xx` files sort after every numeric prefix, so on a fresh install `073_…` runs before `z061_…` even though it was written later — keep new migrations independent of that ordering.
+
 ## Quality checks
 
 Before submitting a PR, run:

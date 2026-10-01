@@ -22,20 +22,19 @@
 // remote IP and authenticated user id — never passwords/tokens/invite codes.
 
 // ─── Shared error responder (GH#9) ───────────────────────────────────────────
-// Compatibility shim: the implementation lives in pb_hooks/lib/errors.js.
-// Binding `respondError` as a global lets every custom route handler answer
-// unexpected exceptions with a generic message while logging the real error
-// server-side (PRD NFR-SEC-002 — no stack traces / internal details to clients).
-
-function _errorsLib() {
-  return require(__hooks + '/lib/errors.js');
-}
-
-function respondError(c, e, status, message, extra) {
-  return _errorsLib().respondError(c, e, status, message, extra);
-}
-
-globalThis.respondError = respondError;
+// The implementation lives in pb_hooks/lib/errors.js. Route handlers must load
+// it INSIDE the handler:
+//
+//   } catch (e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
+//
+// Do NOT bind it (or any helper) on globalThis here: PocketBase evaluates hook
+// files in a loader VM but runs every routerAdd/onRecord* callback in a
+// separate executor VM that only sees the built-in globals ($app, require,
+// __hooks, ...). A `globalThis.respondError = ...` in this file is invisible to
+// the handlers, so every `catch (e) { return respondError(...) }` threw
+// "ReferenceError: respondError is not defined" instead — the client got
+// PocketBase's generic 400 and the real error never reached the logs.
+// tests/gh9-error-leak.test.mjs and scripts/pb-smoke.sh guard against this.
 
 routerUse(function (e) {
   var startMs = Date.now();
@@ -63,9 +62,17 @@ routerUse(function (e) {
   try {
     path = String(e.request.url.path || '?');
   } catch (r) {}
+  // e.realIP() honours the trustedProxy settings (X-Forwarded-For, rightmost —
+  // z069), so behind the bundled nginx this is the client, not the proxy.
+  // e.request.remoteAddr would be the nginx container for every request.
   try {
-    ip = String(e.request.remoteAddr || '-').split(':')[0] || '-';
+    ip = String(e.realIP() || '').trim() || '-';
   } catch (r) {}
+  if (ip === '-') {
+    try {
+      ip = String(e.request.remoteAddr || '-').split(':')[0] || '-';
+    } catch (r) {}
+  }
   try {
     if (e.auth && e.auth.id) authId = String(e.auth.id);
   } catch (r) {}

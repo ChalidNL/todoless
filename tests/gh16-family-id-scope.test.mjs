@@ -20,13 +20,16 @@ const read = (rel) => fs.readFileSync(new URL(rel, import.meta.url), 'utf8')
 
 test('onRecordCreate tasks/items never write or read family_id (GH#16)', () => {
   const main = read('../pb_hooks/main.pb.js')
-  const startTasks = main.indexOf("onRecordCreate('tasks'")
-  const startItems = main.indexOf("onRecordCreate('items'")
-  const endTasksHook = main.indexOf("onRecordUpdate('tasks'", startItems)
-  assert.ok(startTasks >= 0 && startItems > startTasks && endTasksHook > startItems, 'hook boundaries found')
-
-  const tasksHook = main.slice(startTasks, startItems)
-  const itemsHook = main.slice(startItems, endTasksHook)
+  // PB >= 0.23 signature: onRecordCreate(handler, 'tasks') — the collection tag
+  // closes the registration, so slice from one `onRecordCreate((e) => {` to the
+  // next and identify the hook by its closing tag.
+  const starts = [...main.matchAll(/onRecordCreate\(\(e\) => \{/g)].map((m) => m.index)
+  const updateStart = main.indexOf('onRecordUpdate((e) => {')
+  assert.ok(starts.length >= 2 && updateStart > starts[starts.length - 1], 'hook boundaries found')
+  const bodies = starts.map((s, i) => main.slice(s, i + 1 < starts.length ? starts[i + 1] : updateStart))
+  const tasksHook = bodies.find((b) => /\}, 'tasks'\);\s*$/.test(b))
+  const itemsHook = bodies.find((b) => /\}, 'items'\);\s*$/.test(b))
+  assert.ok(tasksHook && itemsHook, 'tasks and items create hooks found by their collection tags')
 
   assert.ok(!tasksHook.includes('family_id'), 'tasks create hook must not reference family_id')
   assert.ok(!itemsHook.includes('family_id'), 'items create hook must not reference family_id')

@@ -193,9 +193,9 @@ routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
     rec.set('linked_type', 'task');
     $app.save(rec);
 
-    // Update parent's subtask_ids
-    var existingIds = parentTask.get('subtask_ids');
-    if (!Array.isArray(existingIds)) existingIds = [];
+    // Update parent's subtask_ids (JSON field: read via lib/json-field.js,
+    // record.get() returns raw bytes in the JSVM)
+    var existingIds = require(__hooks + '/lib/json-field.js').readIdArray(parentTask, 'subtask_ids');
     existingIds.push(rec.id);
     parentTask.set('subtask_ids', existingIds);
     $app.save(parentTask);
@@ -783,8 +783,7 @@ routerAdd('POST', '/api/v1/tasks/batch-delete', function(c) {
       if (linkedTo && linkedType === 'task' && !deletedSet[linkedTo]) {
         try {
           var parent = $app.findRecordById('tasks', linkedTo);
-          var subIds = parent.get('subtask_ids') || [];
-          if (!Array.isArray(subIds)) subIds = [];
+          var subIds = require(__hooks + '/lib/json-field.js').readIdArray(parent, 'subtask_ids');
           var filtered = subIds.filter(function(sid) { return sid !== rec.id; });
           if (filtered.length !== subIds.length) {
             parent.set('subtask_ids', filtered);

@@ -47,7 +47,7 @@ async function seed() {
   }
   const label = await create('labels', { name: 'Upgrade label', color: '#8b5cf6', visibility: 'family', owner: admin.record.id, user: admin.record.id, family: admin.record.family_id })
   await create('shops', { name: 'Upgrade shop', color: '#ec4899', user: admin.record.id })
-  await create('tasks', { title: 'Upgrade shared', status: 'todo', is_private: false, user: admin.record.id, due_date: '2026-11-01 09:00:00.000Z' })
+  await create('tasks', { title: 'Upgrade shared', status: 'todo', is_private: false, user: admin.record.id, due_date: '2026-11-01 09:00:00.000Z', blocked_comment: 'Upgrade note' })
   await create('tasks', { title: 'Upgrade private', status: 'todo', is_private: true, user: admin.record.id })
   await create('tasks', { title: 'Upgrade labelled', status: 'todo', is_private: false, user: admin.record.id, label: [label.id], labels: [label.id] })
   await create('tasks', { title: 'Upgrade recurring', status: 'todo', is_private: false, user: admin.record.id, repeat_interval: 'week', due_date: '2026-11-02 09:00:00.000Z' })
@@ -71,6 +71,10 @@ async function verify() {
   assert.deepEqual(titles(adminTasks.data), ['Upgrade labelled', 'Upgrade private', 'Upgrade recurring', 'Upgrade shared'])
   const labelled = adminTasks.data.items.find((t) => t.title === 'Upgrade labelled')
   assert.ok((labelled.label || []).includes(state.labelId), 'canonical label relation preserved')
+  // #224 (z072): the app note was copied into the calendar description field.
+  const shared = adminTasks.data.items.find((t) => t.title === 'Upgrade shared')
+  assert.equal(shared.blocked_comment, 'Upgrade note')
+  assert.equal(shared.description, 'Upgrade note', 'z072 backfilled description from blocked_comment')
 
   const memberTasks = await api('GET', '/api/collections/tasks/records?perPage=200', { token: member.token })
   assert.deepEqual(titles(memberTasks.data), state.memberTasks, "member's visible tasks unchanged by the upgrade")

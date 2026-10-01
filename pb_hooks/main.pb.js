@@ -10,11 +10,24 @@
 
 
 // ── Canonical Record Hooks: single creation path for ALL sources (UI, API, agent) ──
+//
+// PocketBase >= 0.23 record hooks take (handler, ...collectionTags) and the
+// handler MUST call e.next() for the save to go ahead. The previous
+// (collectionName, handler) order silently registered nothing — none of the
+// defaults below applied and the GH#79 date sync never ran (the function
+// source became the "tag", so the hook never matched a collection).
+//
+// These are MODEL-level hooks on purpose: they fire for every persist path
+// ($app.save() from /api/v1, /api/tasks, agent routes, other hooks) as well as
+// the native collection API. That also means there is NO request context here
+// (e.requestInfo does not exist on model events) — "what changed" comes from
+// e.record.original(), the pre-update snapshot.
 
-    onRecordCreate('tasks', (e) => {
+onRecordCreate((e) => {
   var rec = e.record;
   var dateSync = require(__hooks + '/lib/task-date-sync.js');
-  // Canonical defaults - ALWAYS set, no outer try/catch
+  // Canonical defaults — always applied, no outer try/catch: a failure here
+  // must fail the save rather than persist a half-initialised task.
   if (!rec.get('status')) rec.set('status', 'todo');
   if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
@@ -24,80 +37,70 @@
   // empty PB date fields are truthy DateTime zero objects, so the old
   // `!rec.get('start_time')` truthiness check was dead code (GH#11).
   dateSync.ensureStartOnCreate(rec);
-  var createLabels = rec.get('label') || rec.get('labels') || [];
+  // `label` (relation) is canonical; mirror it into the legacy `labels` JSON
+  // field so older readers keep seeing the same ids.
+  var createLabels = rec.get('label');
   if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
   rec.set('labels', createLabels);
   rec.set('label', createLabels);
+  // #224: one note, two fields (blocked_comment for the app/API, description
+  // for ICS) — keep them identical.
+  try { require(__hooks + '/lib/task-note.js').syncNoteOnCreate(rec); } catch (_errNote) { /* never block the save */ }
+  e.next();
+}, 'tasks');
 
-  // Request info - call ONCE, store reference
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
-
-  // Auto-set user from auth context if not provided
-  if (!rec.get('user')) {
-    var auth = info && info.auth ? info.auth : null;
-    if (auth) rec.set('user', auth.id);
-  }
-  // Subtask_ids from request data
-  if (info) {
-    try {
-      var data = info.data || {};
-      if (data && data.subtask_ids !== undefined) {
-        rec.set('subtask_ids', data.subtask_ids);
-      }
-    } catch(ex) { /* no data */ }
-  }
-});
-
-onRecordCreate('items', (e) => {
+onRecordCreate((e) => {
   var rec = e.record;
-  // Canonical defaults - ALWAYS set, no outer try/catch
+  // Canonical defaults — always applied, no outer try/catch
   if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
   if (!rec.get('quantity')) rec.set('quantity', 1);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+  e.next();
+}, 'items');
 
-  // Request info - call ONCE, store reference
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
-
-  // Auto-set user from auth context if not provided
-  if (!rec.get('user')) {
-    var auth = info && info.auth ? info.auth : null;
-    if (auth) rec.set('user', auth.id);
-  }
-});
-
-onRecordUpdate('tasks', (e) => {
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) {}
-  if (info) {
+onRecordUpdate((e) => {
+  var rec = e.record;
+  var orig = null;
+  try { if (typeof rec.original === 'function') orig = rec.original(); } catch (_errOriginal) { orig = null; }
+  if (orig) {
+    // Neither mirroring nor the date sync may ever block a save.
     try {
-      var data = info.body || info.data || {};
-      if (data && data.subtask_ids !== undefined) {
-        e.record.set('subtask_ids', data.subtask_ids);
+      var dateSync = require(__hooks + '/lib/task-date-sync.js');
+      var idList = function (v) {
+        if (Array.isArray(v)) return v.map(function (x) { return String(x); });
+        return v ? [String(v)] : [];
+      };
+      // Legacy `labels` is a JSON field: record.get() yields raw bytes in the
+      // JSVM, so read it through getString() + JSON.parse.
+      var legacyLabels = function (r) {
+        try { var parsed = JSON.parse(r.getString('labels') || 'null'); return Array.isArray(parsed) ? parsed.map(String) : []; } catch (_e) { return []; }
+      };
+      var newLabel = idList(rec.get('label')), oldLabel = idList(orig.get('label'));
+      var newLabels = legacyLabels(rec), oldLabels = legacyLabels(orig);
+      if (JSON.stringify(newLabel) !== JSON.stringify(oldLabel)) {
+        rec.set('labels', newLabel);                       // canonical relation changed → mirror
+      } else if (JSON.stringify(newLabels) !== JSON.stringify(oldLabels)) {
+        rec.set('label', newLabels);                       // legacy client wrote `labels` only
       }
-      if (data && (data.labels !== undefined || data.label !== undefined)) {
-        var updateLabels = data.label !== undefined ? data.label : data.labels;
-        if (!Array.isArray(updateLabels)) updateLabels = updateLabels ? [String(updateLabels)] : [];
-        e.record.set('labels', updateLabels);
-        e.record.set('label', updateLabels);
-      }
+
       // GH#79: keep start_time/end_time in agreement with due_date changes
-      // from the task list (which only ever sends due_date) or API clients.
-      if (data && Object.prototype.hasOwnProperty.call(data, 'due_date')) {
-        var syncOriginal = null;
-        try {
-          if (typeof e.record.original === 'function') syncOriginal = e.record.original();
-          else if (typeof e.record.originalCopy === 'function') syncOriginal = e.record.originalCopy();
-        } catch(_e) { syncOriginal = null; }
-        if (!syncOriginal) {
-          try { syncOriginal = $app.findRecordById('tasks', e.record.id); } catch(_e) { syncOriginal = null; }
-        }
-        require(__hooks + '/lib/task-date-sync.js').syncOnDueDateChange(e.record, data, syncOriginal);
-      }
-    } catch(err) { /* ignore */ }
+      // (task list and API clients only ever send due_date). The sync lib
+      // expects the request-body view ("which keys were sent"); rebuild it
+      // from the diff against the original so it works for every persist path.
+      var msOrNull = function (v) { var m = dateSync.toMs(v); return isNaN(m) ? null : m; };
+      var changed = {};
+      var newDueMs = msOrNull(rec.get('due_date'));
+      if (newDueMs !== msOrNull(orig.get('due_date'))) changed.due_date = newDueMs === null ? null : new Date(newDueMs).toISOString();
+      if (msOrNull(rec.get('start_time')) !== msOrNull(orig.get('start_time'))) changed.start_time = rec.get('start_time');
+      if (msOrNull(rec.get('end_time')) !== msOrNull(orig.get('end_time'))) changed.end_time = rec.get('end_time');
+      if (Object.prototype.hasOwnProperty.call(changed, 'due_date')) dateSync.syncOnDueDateChange(rec, changed, orig);
+
+      // #224: keep blocked_comment and description identical.
+      require(__hooks + '/lib/task-note.js').syncNoteOnUpdate(rec, orig);
+    } catch (_errSync) { /* never block the save */ }
   }
-});
+  e.next();
+}, 'tasks');
 
 // ─── Public API endpoints ────────────────────────────────────────────────
 
@@ -109,7 +112,7 @@ routerAdd('GET', '/api/hook-health', (c) => {
     $app.findRecordsByFilter('users', 'id != ""', '', 1, 0);
     return c.json(200, { ok: true });
   } catch (err) {
-    return respondError(c, err, 500, 'Internal server error', { ok: false });
+    return require(__hooks + '/lib/errors.js').respondError(c, err, 500, 'Internal server error', { ok: false });
   }
 });
 
@@ -192,7 +195,7 @@ routerAdd('POST', '/api/invites/create', (c) => {
       type: type,
     });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -239,7 +242,7 @@ routerAdd('GET', '/api/validate-invite', (c) => {
       family_name: familyName,
       invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
     });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ── User registration (no auth required) ──
@@ -401,7 +404,7 @@ try {
     // pagination (pb_hooks/lib/entries.js).
     var listed = require(__hooks + '/lib/entries.js').listEntries(auth, info.query || {});
     return c.json(listed.status, listed.body);
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ── API v2: POST /api/v1 (unified action dispatcher) ──
@@ -470,6 +473,28 @@ try {
     // GH#17: an assignee must be an existing users record whose family_id
     // matches the auth user's family (or the auth user themself). Empty id
     // means "unassign" and is always valid.
+    // #225: unknown ids are a 404, not a generic error from an unguarded
+    // findRecordById.
+    function _findEntry(type, id){ try { return $app.findRecordById(type==='task'?'tasks':'items', id); } catch(e) { return null; } }
+    // #225: validated scalar fields accepted by create and update.
+    var _PRIORITIES = ['low','medium','high'];
+    var _TASK_STATUSES = ['backlog','todo','done'];
+    // 'in_progress' is accepted as an alias of 'todo' (same as the agents API).
+    function _normStatus(v){ var st = String(v); return st === 'in_progress' ? 'todo' : st; }
+    function _parseDue(v){
+      if (v === null || v === '') return { ok: true, value: null };
+      var dd = new Date(String(v));
+      if (isNaN(dd.getTime())) return { ok: false };
+      return { ok: true, value: dd.toISOString() };
+    }
+    function _validShop(id){
+      if(!id)return true;
+      var shopRec=null; try{ shopRec=$app.findRecordById('shops',String(id)); }catch(e){ return false; }
+      var owner=String(shopRec.get('user')||''); if(owner===auth.id)return true;
+      var af=String(auth.get('family_id')||''); if(!af||!owner)return false;
+      try{ return String($app.findRecordById('users',owner).get('family_id')||'')===af; }catch(e){ return false; }
+    }
+
     function _validAssignee(id){
       if(!id)return true;
       id=String(id);
@@ -502,8 +527,18 @@ try {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('title', title);
         rec.set('user', auth.id);
-        var s2 = String(gv(d,'status','todo')).trim();
+        var s2 = _normStatus(String(gv(d,'status','todo')).trim());
+        if (s2 && _TASK_STATUSES.indexOf(s2) === -1) return c.json(400, {error:'Invalid status'});
         if (s2) rec.set('status', s2);
+        if (d.priority !== undefined && d.priority !== null && d.priority !== '') {
+          if (_PRIORITIES.indexOf(String(d.priority)) === -1) return c.json(400, {error:'Invalid priority'});
+          rec.set('priority', String(d.priority));
+        }
+        if (d.due_date !== undefined) {
+          var dueCreate = _parseDue(d.due_date);
+          if (!dueCreate.ok) return c.json(400, {error:'Invalid due_date'});
+          if (dueCreate.value) rec.set('due_date', dueCreate.value);
+        }
         var desc = String(gv(d,'description','')).trim();
         if (desc) rec.set('blocked_comment', desc);
         var assign = String(gv(d,'assignee_id','')).trim();
@@ -514,18 +549,30 @@ try {
         rec.set('labels', canonicalLabels);
         rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
-        if (linkedTo) rec.set('linked_to', linkedTo);
+        // Only link under a parent the caller may access: the parent's
+        // subtask_ids is written below (it used to accept any task id, even
+        // one from another family).
+        if (linkedTo) {
+          var linkParent = null;
+          try { linkParent = $app.findRecordById('tasks', linkedTo); } catch(e) {}
+          if (!linkParent || !_canAccessTask(linkParent)) return c.json(404, {error:'Parent task not found'});
+          rec.set('linked_to', linkedTo);
+        }
         var linkedType = String(gv(d,'linked_type','')).trim();
         if (linkedType) rec.set('linked_type', linkedType);
         rec.set('flag',false);
         $app.save(rec);
 
-        // If this is a subtask (has linked_to), update parent's subtask_ids
+        // If this is a subtask (has linked_to), update parent's subtask_ids.
+        // subtask_ids is a JSON field — read it via lib/json-field.js, never
+        // record.get() (raw bytes in the JSVM). An unknown parent id must not
+        // turn the already-created task into a 500.
         if (linkedTo) {
-          var parent = $app.findRecordById('tasks', linkedTo);
+          var parent = null;
+          try { parent = $app.findRecordById('tasks', linkedTo); } catch(e) {}
           if (parent) {
-            var existing = parent.get('subtask_ids') || [];
-            if (Array.isArray(existing) && existing.indexOf(rec.id) === -1) {
+            var existing = require(__hooks + '/lib/json-field.js').readIdArray(parent, 'subtask_ids');
+            if (existing.indexOf(rec.id) === -1) {
               existing.push(rec.id);
               parent.set('subtask_ids', existing);
               $app.save(parent);
@@ -533,7 +580,7 @@ try {
           }
         }
 
-        return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+        return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),priority:rec.get('priority')||'',due_date:rec.get('due_date')?String(rec.get('due_date')):'',status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
       }
 
       if (type === 'grocery') {
@@ -543,9 +590,20 @@ try {
         var qty = Number(gv(d,'quantity','1'));
         if (!isNaN(qty) && qty > 0) rec.set('quantity', qty);
         var shop = String(gv(d,'shop_id','')).trim();
+        if (shop && !_validShop(shop)) return c.json(400, {error:'Invalid shop'});
         if (shop) rec.set('shop_id', shop);
         var assign2 = String(gv(d,'assignee_id','')).trim();
+        if (assign2 && !_validAssignee(assign2)) return c.json(400, {error:'Invalid assignee'});
         if (assign2) rec.set('assigned_to', assign2);
+        if (d.priority !== undefined && d.priority !== null && d.priority !== '') {
+          if (_PRIORITIES.indexOf(String(d.priority)) === -1) return c.json(400, {error:'Invalid priority'});
+          rec.set('priority', String(d.priority));
+        }
+        if (d.due_date !== undefined) {
+          var dueItem = _parseDue(d.due_date);
+          if (!dueItem.ok) return c.json(400, {error:'Invalid due_date'});
+          if (dueItem.value) rec.set('due_date', dueItem.value);
+        }
         rec.set('completed', false);
         $app.save(rec);
         return c.json(201, {id:rec.id,type:'grocery',title:rec.get('title'),description:'',status:rec.get('completed')?'done':'todo',assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:rec.get('shop_id'),quantity:rec.get('quantity'),created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
@@ -559,7 +617,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
@@ -572,7 +630,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
@@ -587,14 +645,15 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       var changed = [];
       if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
-      if (d.status !== undefined && type === 'task') { rec.set('status', String(d.status)); changed.push('status'); }
-      if (d.due_date !== undefined && type === 'task') { rec.set('due_date', (d.due_date === '' || d.due_date === null) ? null : String(d.due_date)); changed.push('due_date'); }
+      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); rec.set('status', stUpd); changed.push('status'); }
+      if (d.priority !== undefined) { var prUpd = d.priority === null ? '' : String(d.priority); if (prUpd && _PRIORITIES.indexOf(prUpd) === -1) return c.json(400,{error:'Invalid priority'}); rec.set('priority', prUpd); changed.push('priority'); }
+      if (d.due_date !== undefined) { var dueUpd = _parseDue(d.due_date); if (!dueUpd.ok) return c.json(400,{error:'Invalid due_date'}); rec.set('due_date', dueUpd.value); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
       if (d.assignee_id !== undefined) { var assigneeUpd = d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id); if (assigneeUpd && !_validAssignee(assigneeUpd)) return c.json(400,{error:'Invalid assignee'}); rec.set('assigned_to', assigneeUpd); changed.push('assignee_id'); }
       if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
@@ -608,7 +667,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
@@ -620,7 +679,11 @@ try {
       var taskId = String(gv(d, 'task_id', '')).trim();
       var subtaskId = String(gv(d, 'subtask_id', '')).trim();
       if (!taskId || !subtaskId) return c.json(400, { error: 'task_id and subtask_id required' });
-      var parent = $app.findRecordById('tasks', taskId);
+      if (taskId === subtaskId) return c.json(400, { error: 'A task cannot be its own subtask' });
+      // findRecordById throws on an unknown id — map that to 404 instead of a
+      // generic 500 so clients can tell "gone" from "broken".
+      var parent = null;
+      try { parent = $app.findRecordById('tasks', taskId); } catch(e) {}
       if (!parent) return c.json(404, { error: 'Parent task not found' });
       if (!_canAccessTask(parent)) return c.json(404, { error: 'Parent task not found' });
       var child = null;
@@ -629,21 +692,24 @@ try {
       if (!_canAccessTask(child)) return c.json(404, { error: 'Subtask not found' });
       // GH#88: write both sides in one transaction so the child's linked_to and
       // the parent's subtask_ids can never disagree on a partial failure.
+      // PocketBase >= 0.23 exposes the transactional app directly (txApp.save /
+      // txApp.findRecordById); the pre-0.23 dao()/saveRecord() API no longer exists.
+      // subtask_ids is a JSON field: record.get() yields raw bytes in the JSVM,
+      // so it must be read through lib/json-field.js (getString + JSON.parse).
+      var jsonField = require(__hooks + '/lib/json-field.js');
       $app.runInTransaction(function(txApp) {
-        var tdao = txApp.dao();
-        var txParent = tdao.findRecordById('tasks', taskId);
-        var txChild = tdao.findRecordById('tasks', subtaskId);
+        var txParent = txApp.findRecordById('tasks', taskId);
+        var txChild = txApp.findRecordById('tasks', subtaskId);
         if (String(txChild.get('linked_to') || '') !== String(taskId)) {
           txChild.set('linked_to', taskId);
           txChild.set('linked_type', 'task');
-          tdao.saveRecord(txChild);
+          txApp.save(txChild);
         }
-        var existing = txParent.get('subtask_ids') || [];
-        if (!Array.isArray(existing)) existing = [];
+        var existing = jsonField.readIdArray(txParent, 'subtask_ids');
         if (existing.indexOf(subtaskId) === -1) {
           existing.push(subtaskId);
           txParent.set('subtask_ids', existing);
-          tdao.saveRecord(txParent);
+          txApp.save(txParent);
         }
       });
       return c.json(200, { success: true });
@@ -855,7 +921,7 @@ try {
 
 
     return c.json(400, { error: 'Unknown action: ' + action });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ── Load additional route files ──────────────────────────────────────
@@ -882,7 +948,7 @@ routerAdd('GET', '/api/agent/counts', (c) => {
       if (isEnabled) approved++; else pending++;
     }
     return c.json(200, { pending: pending, approved: approved });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // GET /api/agent/pending — returns tokens where enabled=false
@@ -908,7 +974,7 @@ routerAdd('GET', '/api/agent/pending', (c) => {
       });
     }
     return c.json(200, { agents: agents });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // POST /api/agent/approve — enables a token
@@ -945,7 +1011,7 @@ routerAdd('POST', '/api/agent/approve', (c) => {
       status: 'approved',
       message: 'Agent approved. Token is now active.',
     });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // POST /api/agent/reject — deletes a pending token
@@ -973,7 +1039,7 @@ routerAdd('POST', '/api/agent/reject', (c) => {
 
     $app.delete(token);
     return c.json(200, { deleted: true });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // GET /api/agent/list — returns all tokens with status
@@ -1002,7 +1068,7 @@ routerAdd('GET', '/api/agent/list', (c) => {
       });
     }
     return c.json(200, { agents: agents });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // DELETE /api/agent/:id — revoke token
@@ -1022,5 +1088,5 @@ routerAdd('DELETE', '/api/agent/{id}', (c) => {
     if (!tokenUser || String(tokenUser.get('family_id') || '') !== String(auth.get('family_id') || '')) return c.json(403, { error: 'Token is outside your family.' });
     $app.delete(token);
     return c.json(200, { deleted: true });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });

@@ -119,6 +119,6 @@ try {
     });
   } catch (e) {
     // GH#9: log the real error server-side, return a generic body (no String(e)).
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });

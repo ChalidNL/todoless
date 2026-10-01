@@ -69,7 +69,7 @@ try {
       expires_at: expiresAt || null,
     });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -134,7 +134,7 @@ try {
 
     return c.json(200, result);
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -186,7 +186,7 @@ try {
 
     return c.json(200, { id: rec.id, active: false });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -582,7 +582,7 @@ try {
 
     return c.json(400, { error: 'Unknown action: ' + action + '. Valid actions: create, read, update, delete, complete, assign, set_labels, set_due_date' });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -681,7 +681,7 @@ try {
 
     return c.json(200, results);
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -711,7 +711,7 @@ try {
       active: !!agentKey.get('active'),
     });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -765,6 +765,6 @@ try {
 
     return c.json(200, result);
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });

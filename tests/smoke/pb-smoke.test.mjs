@@ -85,6 +85,16 @@ test('request logger records 4xx statuses (unauthenticated + bad input)', async 
   assert.equal(badInput.data?.message, 'code required')
 })
 
+// --- 0b. GH#43: the stdout request log shows the client IP behind a proxy ----
+// z069 configures trustedProxy (X-Forwarded-For, rightmost). The request
+// logger must resolve the IP the same way PocketBase does (e.realIP()), not
+// log the proxy's remoteAddr. scripts/pb-smoke.sh asserts the resulting
+// serve.log line (ip=203.0.113.9 for this request).
+test('request logger resolves the client IP from X-Forwarded-For (GH#43)', async () => {
+  const res = await fetch(BASE + '/api/validate-invite', { headers: { 'X-Forwarded-For': '203.0.113.9' } })
+  assert.equal(res.status, 400) // "code required" — any logged status is fine
+})
+
 // --- 0c. GH#36: direct user creation stays closed after all migrations ------
 // users.createRule must be null (locked) when the full migration chain has
 // applied: an anonymous POST to the native users API must be forbidden. If a
@@ -155,6 +165,27 @@ test('admin can authenticate', async () => {
   const a = await auth('admin@smoke.test', 'password123')
   assert.ok(a.token, 'expected token')
   adminToken = a.token
+})
+
+// --- GH#9: unexpected exceptions go through lib/errors.js -------------------
+// A malformed JSON body makes c.requestInfo() throw inside the handler. The
+// catch block must answer with the generic respondError() body (500, no
+// exception text) — not PocketBase's fallback "Something went wrong" 400,
+// which is what clients got while respondError was only bound on the loader
+// VM's globalThis and threw ReferenceError in every executor VM.
+// scripts/pb-smoke.sh additionally asserts that the real error reached
+// serve.log via a [respondError] line and that no "is not defined" occurred.
+test('a handler exception yields the generic respondError body, not a PB fallback (GH#9)', async () => {
+  const res = await fetch(BASE + '/api/invites/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: '{"type": ',
+  })
+  const text = await res.text()
+  let data = null
+  try { data = JSON.parse(text) } catch { data = text }
+  assert.equal(res.status, 500, text)
+  assert.deepEqual(data, { error: 'Internal server error' })
 })
 
 // --- 3. Invite --------------------------------------------------------
@@ -677,6 +708,139 @@ test('editing a done recurring task does not create a duplicate occurrence (GH#7
   assert.equal(open[0].blocked_comment ?? '', '', 'the next occurrence must not inherit the edit')
 })
 
+test('next occurrence carries description, location and a shifted time block', async () => {
+  const rec = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: {
+      title: 'Smoke recurring block', repeat_interval: 'week', status: 'todo', user: admin.id,
+      description: 'bring the forms', location: 'town hall',
+      due_date: '2026-11-02T09:00:00.000Z', start_time: '2026-11-02T09:00:00.000Z', end_time: '2026-11-02T10:30:00.000Z',
+    },
+  })
+  assert.equal(rec.status, 200, JSON.stringify(rec.data))
+
+  const done = await api('PATCH', `/api/collections/tasks/records/${rec.data.id}`, { token: adminToken, body: { status: 'done' } })
+  assert.equal(done.status, 200)
+
+  const all = await recurringOccurrences('Smoke recurring block')
+  const next = all.filter((t) => t.status !== 'done')
+  assert.equal(next.length, 1, JSON.stringify(all.map((t) => ({ id: t.id, status: t.status, due_date: t.due_date }))))
+  assert.equal(next[0].description, 'bring the forms')
+  assert.equal(next[0].location, 'town hall')
+  assert.equal(new Date(next[0].due_date).toISOString(), '2026-11-09T09:00:00.000Z')
+  assert.equal(new Date(next[0].start_time).toISOString(), '2026-11-09T09:00:00.000Z')
+  assert.equal(new Date(next[0].end_time).toISOString(), '2026-11-09T10:30:00.000Z')
+})
+
+test('reopening and completing a recurring task again does not duplicate the next occurrence', async () => {
+  const all = await recurringOccurrences('Smoke recurring block')
+  const doneOne = all.find((t) => t.status === 'done')
+  assert.ok(doneOne)
+
+  const reopen = await api('PATCH', `/api/collections/tasks/records/${doneOne.id}`, { token: adminToken, body: { status: 'todo' } })
+  assert.equal(reopen.status, 200)
+  const again = await api('PATCH', `/api/collections/tasks/records/${doneOne.id}`, { token: adminToken, body: { status: 'done' } })
+  assert.equal(again.status, 200)
+
+  const after = await recurringOccurrences('Smoke recurring block')
+  const open = after.filter((t) => t.status !== 'done')
+  assert.equal(open.length, 1, `reopen + complete must reuse the existing occurrence (open: ${open.length})`)
+  assert.equal(after.length, 2, `expected the done task and one next occurrence, got ${after.length}`)
+})
+
+// --- 7a. Canonical record hooks (main.pb.js) -------------------------------
+// The create/update hooks were registered as onRecordCreate('tasks', fn) —
+// the pre-0.23 argument order — which registers nothing on PocketBase 0.23+.
+// None of the defaults applied (a native create without status failed with
+// "Cannot be blank"), start_time was never canonicalized and the GH#79 date
+// sync never ran. These tests pin the model-level behaviour for both the
+// native collection API and a custom route ($app.save path).
+test('native task create applies canonical defaults and start_time := due_date', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke canonical defaults', user: admin.id, due_date: '2026-11-02T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.equal(created.data?.status, 'todo')
+  assert.equal(created.data?.is_private, false)
+  assert.equal(created.data?.flag, false)
+  assert.equal(created.data?.all_day, false)
+  assert.equal(new Date(created.data?.start_time).toISOString(), '2026-11-02T09:00:00.000Z')
+})
+
+test('native due_date change moves start_time/end_time; clearing due_date clears both (GH#79)', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: {
+      title: 'Smoke date sync', user: admin.id, status: 'todo',
+      due_date: '2026-11-02T09:00:00.000Z', start_time: '2026-11-02T08:00:00.000Z', end_time: '2026-11-02T09:30:00.000Z',
+    },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+
+  const moved = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { due_date: '2026-11-03T09:00:00.000Z' } })
+  assert.equal(moved.status, 200)
+  assert.equal(new Date(moved.data?.start_time).toISOString(), '2026-11-03T08:00:00.000Z')
+  assert.equal(new Date(moved.data?.end_time).toISOString(), '2026-11-03T09:30:00.000Z')
+
+  const renamed = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { title: 'Smoke date sync renamed' } })
+  assert.equal(renamed.status, 200)
+  assert.equal(new Date(renamed.data?.start_time).toISOString(), '2026-11-03T08:00:00.000Z', 'unrelated edits must not touch the block')
+
+  const explicit = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, {
+    token: adminToken, body: { due_date: '2026-11-04T09:00:00.000Z', start_time: '2026-11-04T12:00:00.000Z' },
+  })
+  assert.equal(explicit.status, 200)
+  assert.equal(new Date(explicit.data?.start_time).toISOString(), '2026-11-04T12:00:00.000Z', 'an explicit start_time wins over the sync')
+
+  const cleared = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { due_date: null } })
+  assert.equal(cleared.status, 200)
+  assert.equal(cleared.data?.due_date, '')
+  assert.equal(cleared.data?.start_time, '')
+  assert.equal(cleared.data?.end_time, '')
+})
+
+test('v1 update of due_date moves start_time too (custom route goes through the same model hook)', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke v1 date sync', user: admin.id, status: 'todo', due_date: '2026-11-02T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 200)
+  assert.equal(new Date(created.data?.start_time).toISOString(), '2026-11-02T09:00:00.000Z')
+
+  const upd = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'update', type: 'task', id: created.data.id, due_date: '2026-11-05T09:00:00.000Z' },
+  })
+  assert.equal(upd.status, 200, JSON.stringify(upd.data))
+  const after = await api('GET', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken })
+  assert.equal(new Date(after.data?.start_time).toISOString(), '2026-11-05T09:00:00.000Z')
+})
+
+test('label relation changes are mirrored into the legacy labels field', async () => {
+  const label = await api('POST', '/api/collections/labels/records', {
+    token: adminToken,
+    body: { name: 'Smoke mirror label', color: '#336699', user: admin.id, owner: admin.id, family: admin.family_id, visibility: 'family' },
+  })
+  assert.equal(label.status, 200, JSON.stringify(label.data))
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken, body: { title: 'Smoke label mirror', user: admin.id, status: 'todo', label: [label.data.id] },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.deepEqual(created.data?.labels, [label.data.id])
+
+  const removed = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { label: [] } })
+  assert.equal(removed.status, 200)
+  assert.deepEqual(removed.data?.labels, [])
+})
+
+test('native item create defaults quantity to 1 and completed to false', async () => {
+  const created = await api('POST', '/api/collections/items/records', { token: adminToken, body: { title: 'Smoke item defaults', user: admin.id } })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.equal(created.data?.quantity, 1)
+  assert.equal(created.data?.completed, false)
+  assert.equal(created.data?.is_private, false)
+})
+
 // --- 7b. /api/v1 update action -----------------------------------------
 test('v1 update action updates title/status/due_date on a task', async () => {
   const created = await api('POST', '/api/v1', {
@@ -701,6 +865,176 @@ test('v1 update action updates title/status/due_date on a task', async () => {
   assert.equal(after.data?.title, 'Smoke updated title')
   assert.equal(after.data?.status, 'backlog')
   assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
+})
+
+// --- 7c. #225: /api/v1 validation and create fields ------------------------
+test('v1 create accepts priority/due_date and rejects invalid input (#225)', async () => {
+  const created = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke v1 fields', priority: 'high', due_date: '2026-11-05T08:00:00.000Z', status: 'in_progress' },
+  })
+  assert.equal(created.status, 201, JSON.stringify(created.data))
+  const rec = await getRecord('tasks', created.data.id)
+  assert.equal(rec.data?.priority, 'high')
+  assert.equal(rec.data?.status, 'todo', 'in_progress is an alias of todo')
+  assert.equal(new Date(rec.data?.due_date).toISOString(), '2026-11-05T08:00:00.000Z')
+
+  for (const [body, error] of [
+    [{ status: 'doing' }, 'Invalid status'],
+    [{ priority: 'urgent' }, 'Invalid priority'],
+    [{ due_date: 'not a date' }, 'Invalid due_date'],
+  ]) {
+    const bad = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke bad', ...body } })
+    assert.equal(bad.status, 400, JSON.stringify(body))
+    assert.equal(bad.data?.error, error)
+    const badUpd = await api('POST', '/api/v1', { token: adminToken, body: { action: 'update', type: 'task', id: created.data.id, ...body } })
+    assert.equal(badUpd.status, 400, `update ${JSON.stringify(body)}`)
+  }
+})
+
+test('v1 grocery create validates shop and assignee (#225)', async () => {
+  for (const body of [{ shop_id: 'doesnotexist123' }, { assignee_id: 'doesnotexist123' }]) {
+    const bad = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'grocery', title: 'Smoke bad grocery', ...body } })
+    assert.equal(bad.status, 400, JSON.stringify(bad.data))
+  }
+})
+
+test('v1 unknown ids are 404 for update/complete/assign/delete (#225)', async () => {
+  for (const action of ['update', 'complete', 'assign', 'delete']) {
+    const r = await api('POST', '/api/v1', { token: adminToken, body: { action, type: 'task', id: 'doesnotexist123', title: 'x' } })
+    assert.equal(r.status, 404, `${action}: ${JSON.stringify(r.data)}`)
+  }
+})
+
+test('v1 create cannot link under a task the caller cannot see (#225)', async () => {
+  const hidden = await api('POST', '/api/collections/tasks/records', {
+    token: memberToken, body: { title: 'Smoke member private parent', status: 'todo', is_private: true, user: member.id },
+  })
+  assert.equal(hidden.status, 200, JSON.stringify(hidden.data))
+  const linked = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke sneaky child', linked_to: hidden.data.id },
+  })
+  assert.equal(linked.status, 404)
+})
+
+// --- 7d. #224: one task note across the app, /api/v1 and the calendar -------
+test('v1 description reaches the ICS export and ICS descriptions reach the app note (#224)', async () => {
+  const created = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke note sync', description: 'Bring the forms', due_date: '2026-11-06T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 201)
+  let rec = await getRecord('tasks', created.data.id)
+  assert.equal(rec.data?.blocked_comment, 'Bring the forms')
+  assert.equal(rec.data?.description, 'Bring the forms')
+  const ics = await api('GET', '/api/ics-export', { token: adminToken })
+  const text = typeof ics.data === 'string' ? ics.data : JSON.stringify(ics.data)
+  assert.ok(text.includes('DESCRIPTION:Bring the forms'), 'v1 description exported to the calendar')
+
+  // Editing the note in the app (blocked_comment) updates the calendar field.
+  const edited = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { blocked_comment: 'Bring the signed forms' } })
+  assert.equal(edited.status, 200)
+  assert.equal(edited.data?.description, 'Bring the signed forms')
+
+  // An ICS-only description shows up as the app note.
+  const viaIcsField = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken, body: { title: 'Smoke ics note', status: 'todo', user: admin.id, description: 'Room 3' },
+  })
+  assert.equal(viaIcsField.status, 200)
+  assert.equal(viaIcsField.data?.blocked_comment, 'Room 3')
+  const list = await api('POST', '/api/v1', { token: adminToken, body: { action: 'list', type: 'task', perPage: 500 } })
+  const listed = (list.data?.items || []).find((e) => e.id === viaIcsField.data.id)
+  assert.ok(listed, 'task listed by /api/v1')
+  assert.equal(listed.description, 'Room 3')
+})
+
+// --- 7b. GH#88: /api/v1 add_subtask links both sides atomically ------------
+// The transactional branch used the pre-0.23 txApp.dao()/saveRecord() API,
+// which does not exist in PocketBase 0.40 — every call failed with a generic
+// 400. Unknown ids must surface as 404, and re-linking must stay idempotent.
+test('v1 add_subtask links child to parent atomically and idempotently (GH#88)', async () => {
+  const parent = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke subtask parent' },
+  })
+  const child = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke subtask child' },
+  })
+  assert.equal(parent.status, 201)
+  assert.equal(child.status, 201)
+
+  const link = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: child.data.id },
+  })
+  assert.equal(link.status, 200, JSON.stringify(link.data))
+  assert.equal(link.data?.success, true)
+
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  const c = await api('GET', `/api/collections/tasks/records/${child.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [child.data.id])
+  assert.equal(c.data?.linked_to, parent.data.id)
+  assert.equal(c.data?.linked_type, 'task')
+
+  // Linking the same pair again must not duplicate the id on the parent.
+  const again = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: child.data.id },
+  })
+  assert.equal(again.status, 200)
+  const p2 = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p2.data?.subtask_ids, [child.data.id])
+
+  // Unknown parent / child ids are 404s, not a generic "Something went wrong".
+  const noParent = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: 'doesnotexist000', subtask_id: child.data.id },
+  })
+  assert.equal(noParent.status, 404)
+  const noChild = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: 'doesnotexist000' },
+  })
+  assert.equal(noChild.status, 404)
+
+  // A task cannot be made its own subtask.
+  const self = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'add_subtask', task_id: parent.data.id, subtask_id: parent.data.id },
+  })
+  assert.equal(self.status, 400)
+})
+
+// The same JSON-field pitfall broke the two other server-side subtask paths:
+// POST /api/tasks/{id}/subtasks returned 500 after creating an orphan child,
+// and /api/v1 create with linked_to returned a generic 400 after creating the
+// child — in both cases the parent's subtask_ids stayed empty.
+test('POST /api/tasks/{taskId}/subtasks creates the child and appends it to the parent', async () => {
+  const parent = await api('POST', '/api/tasks', { token: adminToken, body: { title: 'Smoke route parent' } })
+  assert.equal(parent.status, 201, JSON.stringify(parent.data))
+  const first = await api('POST', `/api/tasks/${parent.data.id}/subtasks`, { token: adminToken, body: { title: 'Smoke route child 1' } })
+  assert.equal(first.status, 201, JSON.stringify(first.data))
+  const second = await api('POST', `/api/tasks/${parent.data.id}/subtasks`, { token: adminToken, body: { title: 'Smoke route child 2' } })
+  assert.equal(second.status, 201, JSON.stringify(second.data))
+
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [first.data.id, second.data.id])
+  const c = await api('GET', `/api/collections/tasks/records/${first.data.id}`, { token: adminToken })
+  assert.equal(c.data?.linked_to, parent.data.id)
+  assert.equal(c.data?.linked_type, 'task')
+})
+
+test('v1 create with linked_to appends the new task to the parent subtask_ids', async () => {
+  const parent = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke v1 parent' } })
+  assert.equal(parent.status, 201)
+  const child = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke v1 child', linked_to: parent.data.id, linked_type: 'task' },
+  })
+  assert.equal(child.status, 201, JSON.stringify(child.data))
+  const p = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p.data?.subtask_ids, [child.data.id])
+
+  // Batch-deleting the child must remove it from the parent's list again
+  // (the cleanup used to filter over raw bytes and never matched).
+  const del = await api('POST', '/api/v1/tasks/batch-delete', { token: adminToken, body: { ids: [child.data.id] } })
+  assert.equal(del.status, 200, JSON.stringify(del.data))
+  const p2 = await api('GET', `/api/collections/tasks/records/${parent.data.id}`, { token: adminToken })
+  assert.deepEqual(p2.data?.subtask_ids, [])
 })
 
 // --- 7c. GH#14: PATCH /api/tasks/{taskId} stamps completed_at --------------

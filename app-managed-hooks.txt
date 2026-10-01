@@ -50,6 +50,7 @@ lib/dates.js
 lib/entries.js
 lib/errors.js
 lib/ics-feed.js
+lib/json-field.js
 lib/recurrence.js
 lib/task-date-sync.js
 main.pb.js
@@ -89,3 +90,4 @@ routes/task-actions.js
 routes/tasks.js
 routes/users.js
 test.js
+lib/task-note.js

@@ -16,22 +16,32 @@
 // (e.g. BadRequestError-driven 400s) should keep doing so and must never pass
 // raw exception text as `message`.
 //
-// Usage (matches pb_hooks/lib/auth.js convention):
-//   var errorsLib = require(__hooks + '/lib/errors.js');
-//   ...
-//   } catch (e) { return errorsLib.respondError(c, e, 500); }
+// Usage (matches pb_hooks/lib/auth.js convention) — require it INSIDE the
+// handler, never rely on a global:
+//   } catch (e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 //
-// The global `respondError(c, e, status, message, extra)` bound by
-// pb_hooks/04_request_logger.pb.js delegates to this implementation, so live
-// routes may also call it bare.
+// Route callbacks run in PocketBase executor VMs that do not see globals
+// defined by hook files (loader VM), so a bare `respondError(...)` throws
+// ReferenceError there — see pb_hooks/04_request_logger.pb.js.
 
 function respondError(c, e, status, message, extra) {
   var route = '';
   var userId = '';
+  // Prefer the raw request (method + URL path): it is available even when the
+  // exception came from c.requestInfo() itself (e.g. malformed JSON body).
   try {
-    var info = c.requestInfo();
-    route = String(info.method || '') + ' ' + String(info.path || info.url || '');
-  } catch (_err) { /* request context may be unavailable */ }
+    if (c.request) {
+      var m = String(c.request.method || '');
+      var pth = c.request.url ? String(c.request.url.path || '') : '';
+      if (m || pth) route = m + ' ' + pth;
+    }
+  } catch (_err) { /* fall through to requestInfo */ }
+  if (!route.trim()) {
+    try {
+      var info = c.requestInfo();
+      route = String(info.method || '') + ' ' + String(info.path || info.url || '');
+    } catch (_err) { /* request context may be unavailable */ }
+  }
   try {
     var auth = c.get('authRecord');
     if (auth) userId = String(auth.id || '');

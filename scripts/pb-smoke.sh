@@ -102,7 +102,31 @@ if ! grep -Eq "\[pb-request\].*status=(400|401|403|404|429|5[0-9][0-9])" "$DATA_
   echo "[pb-smoke] ERROR: missing 4xx/5xx [pb-request] line" >&2
   exit 1
 fi
+if ! grep -q "\[pb-request\].*path=/api/validate-invite.*ip=203.0.113.9" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: request logger did not resolve the client IP from X-Forwarded-For (GH#43)" >&2
+  grep "path=/api/validate-invite" "$DATA_DIR/serve.log" | tail -3 >&2
+  exit 1
+fi
 echo "[pb-smoke] stdout request logging OK"
+
+# --- 5b. GH#9: handler exceptions must be logged by lib/errors.js ----------
+# Route callbacks run in PocketBase executor VMs that do not see globals set
+# by hook files. A helper that is only bound on the loader VM's globalThis
+# (as respondError once was) surfaces as "ReferenceError: X is not defined" in
+# serve.log and the real error is lost. The smoke suite triggers one handler
+# exception on purpose (malformed JSON to /api/invites/create); its
+# [respondError] line must be present and no "is not defined" may occur.
+echo "[pb-smoke] verifying handler exceptions reach the log via respondError (GH#9) ..."
+if grep -q "is not defined" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: a hook handler referenced an undefined identifier (loader-VM global used in an executor VM?):" >&2
+  grep "is not defined" "$DATA_DIR/serve.log" | head -5 >&2
+  exit 1
+fi
+if ! grep -q "\[respondError\] POST /api/invites/create" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: expected a [respondError] line for the provoked handler exception" >&2
+  exit 1
+fi
+echo "[pb-smoke] respondError logging OK"
 echo "[pb-smoke] verifying 4xx is mirrored into _logs (GH#56) ..."
 # PB persists $app.logger() rows asynchronously; retry a few seconds before failing.
 python3 - "$DATA_DIR/pb_data/auxiliary.db" <<'PY'
