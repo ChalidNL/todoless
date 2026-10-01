@@ -596,7 +596,14 @@
     "sendResetLink": "Reset-Link senden",
     "resetLinkSent": "Reset-Link gesendet. Prüfe deine E-Mails.",
     "resetFailed": "Senden des Reset-Links fehlgeschlagen. Bitte versuche es erneut.",
-    "backToLogin": "Zurück zur Anmeldung"
+    "backToLogin": "Zurück zur Anmeldung",
+    "resetTitle": "Neues Passwort wählen",
+    "resetSubtitle": "Gib ein neues Passwort für dein todoless-Konto ein.",
+    "newPassword": "Neues Passwort",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "resetSubmit": "Neues Passwort speichern",
+    "resetDone": "Dein Passwort wurde geändert. Du kannst dich jetzt mit dem neuen Passwort anmelden.",
+    "resetInvalidLink": "Dieser Link ist ungültig oder abgelaufen. Fordere auf dem Anmeldebildschirm einen neuen an."
   },
   "repeat": {
     "day": "Jeden Tag",

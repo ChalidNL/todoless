@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './components/AuthProvider';
 import { Onboarding } from './components/Onboarding';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ResetPassword } from './components/ResetPassword';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
 
@@ -118,7 +119,7 @@ class ErrorBoundary extends React.Component<
 }
 
 function AppContent() {
-  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'app'>('checking');
+  const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'reset' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
   const { completionMessage, dataLoadState, loadError, retryLoad } = useApp();
@@ -128,6 +129,12 @@ function AppContent() {
   useEffect(() => {
     const checkFirstRun = async () => {
       if (loading) return;
+
+      // Password reset link from the email (#68) always wins.
+      if (window.location.pathname.toLowerCase() === '/reset-password') {
+        setAppScreen('reset');
+        return;
+      }
 
       // INVITE FLOW: if URL has invite code, go directly to register
       const urlParams = new URLSearchParams(window.location.search);
@@ -264,6 +271,11 @@ function AppContent() {
         }}
       />
     );
+  }
+
+  if (appScreen === 'reset') {
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    return <ResetPassword token={token} onDone={() => setAppScreen(pb.authStore.isValid ? 'app' : 'login')} />;
   }
 
   if (appScreen === 'register') {

@@ -596,7 +596,14 @@
     "sendResetLink": "Enviar enlace de restablecimiento",
     "resetLinkSent": "Enlace enviado. Revisa tu correo.",
     "resetFailed": "No se pudo enviar el enlace. Inténtalo de nuevo.",
-    "backToLogin": "Volver al inicio de sesión"
+    "backToLogin": "Volver al inicio de sesión",
+    "resetTitle": "Elige una contraseña nueva",
+    "resetSubtitle": "Introduce una contraseña nueva para tu cuenta de todoless.",
+    "newPassword": "Contraseña nueva",
+    "confirmNewPassword": "Confirma la contraseña nueva",
+    "resetSubmit": "Guardar contraseña nueva",
+    "resetDone": "Tu contraseña se ha cambiado. Ya puedes iniciar sesión con la nueva contraseña.",
+    "resetInvalidLink": "Este enlace no es válido o ha caducado. Solicita uno nuevo desde la pantalla de inicio de sesión."
   },
   "repeat": {
     "day": "Cada día",

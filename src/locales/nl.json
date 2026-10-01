@@ -596,7 +596,14 @@
     "sendResetLink": "Reset-link versturen",
     "resetLinkSent": "Reset-link verzonden. Check je e-mail.",
     "resetFailed": "Reset-link versturen mislukt. Probeer het opnieuw.",
-    "backToLogin": "Terug naar inloggen"
+    "backToLogin": "Terug naar inloggen",
+    "resetTitle": "Kies een nieuw wachtwoord",
+    "resetSubtitle": "Voer een nieuw wachtwoord in voor je todoless-account.",
+    "newPassword": "Nieuw wachtwoord",
+    "confirmNewPassword": "Bevestig nieuw wachtwoord",
+    "resetSubmit": "Nieuw wachtwoord opslaan",
+    "resetDone": "Je wachtwoord is gewijzigd. Je kunt nu inloggen met je nieuwe wachtwoord.",
+    "resetInvalidLink": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan via het inlogscherm."
   },
   "repeat": {
     "day": "Elke dag",

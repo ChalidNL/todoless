@@ -66,6 +66,7 @@ test('session persists across reloads and deep links', async ({ page }) => {
 test('wrong credentials show an error and do not sign in', async ({ page }) => {
   await page.goto('/');
   const goToLogin = page.getByRole('button', { name: 'Go to login' });
+  await expect(goToLogin.or(page.locator('#login-email')).first()).toBeVisible();
   if (await goToLogin.isVisible()) await goToLogin.click();
   await page.locator('#login-email').fill(ADMIN.email);
   await page.locator('#login-password').fill('definitely-wrong');

@@ -596,7 +596,14 @@
     "sendResetLink": "Envoyer le lien de réinitialisation",
     "resetLinkSent": "Lien de réinitialisation envoyé. Vérifiez votre e-mail.",
     "resetFailed": "Échec de l'envoi du lien. Veuillez réessayer.",
-    "backToLogin": "Retour à la connexion"
+    "backToLogin": "Retour à la connexion",
+    "resetTitle": "Choisissez un nouveau mot de passe",
+    "resetSubtitle": "Saisissez un nouveau mot de passe pour votre compte todoless.",
+    "newPassword": "Nouveau mot de passe",
+    "confirmNewPassword": "Confirmez le nouveau mot de passe",
+    "resetSubmit": "Enregistrer le mot de passe",
+    "resetDone": "Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "resetInvalidLink": "Ce lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’écran de connexion."
   },
   "repeat": {
     "day": "Chaque jour",
