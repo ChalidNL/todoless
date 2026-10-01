@@ -135,6 +135,9 @@ jobs:
       - name: Label privacy upgrade regression (z062 flip + z073 repair)
         run: bash scripts/test-label-privacy-upgrade.sh
 
+      - name: Registration races and owner-role rules (fresh PocketBase)
+        run: bash scripts/test-registration-and-roles.sh
+
       - name: Prod-to-dev anonymizer (secrets, unique identities, failure cleanup)
         run: |
           python3 tests/test_anonymize_prod_to_dev.py

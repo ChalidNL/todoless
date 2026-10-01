@@ -262,8 +262,8 @@ routerAdd('GET', '/api/validate-invite', (c) => {
 // ── User registration (no auth required) ──
 routerAdd('POST', '/api/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
-  var createUser = function(col, data) {
-    var u = $app;
+  var createUser = function(txApp, col, data) {
+    var u = txApp;
     var rec = new Record(col);
     rec.set('id', $security.randomString(15).toLowerCase());
     rec.set('tokenKey', $security.randomString(50));
@@ -286,14 +286,13 @@ routerAdd('POST', '/api/register', (c) => {
     return rec;
   };
 
-  var createFamily = function(name, createdBy) {
-    var fc = $app.findCollectionByNameOrId('families');
+  var createFamily = function(txApp, name, createdBy) {
+    var fc = txApp.findCollectionByNameOrId('families');
     var fam = new Record(fc);
     fam.set('id', $security.randomString(15).toLowerCase());
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
-    var u = $app;
-    u.save(fam);
+    txApp.save(fam);
     return fam;
   };
 
@@ -329,30 +328,37 @@ routerAdd('POST', '/api/register', (c) => {
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
 
-      var uc = $app.findCollectionByNameOrId('users');
-      var rec = createUser(uc, {
-        email: d.email,
-        password: d.password,
-        passwordConfirm: d.passwordConfirm,
-        name: d.name || d.email.split('@')[0],
-        firstName: d.firstName || d.first_name,
-        lastName: d.lastName || d.last_name,
-        role: (memberType === 'agent') ? 'member' : 'admin',
-        family_id: '',
-        member_status: 'active',
-        member_type: memberType,
-        language: d.language
+      // Review S10: concurrent first registrations each saw "no users yet" and
+      // each bootstrapped its own admin + family. The bootstrap now runs in
+      // one transaction (PocketBase serialises write transactions) and
+      // re-checks inside it, so exactly one wins.
+      var created = null;
+      $app.runInTransaction(function (txApp) {
+        if (txApp.findRecordsByFilter('users', '', '-created', 1, 0).length > 0) {
+          throw new BadRequestError('Registration requires a valid invite code once the first account exists.', {});
+        }
+        var uc = txApp.findCollectionByNameOrId('users');
+        var rec = createUser(txApp, uc, {
+          email: d.email,
+          password: d.password,
+          passwordConfirm: d.passwordConfirm,
+          name: d.name || d.email.split('@')[0],
+          firstName: d.firstName || d.first_name,
+          lastName: d.lastName || d.last_name,
+          role: (memberType === 'agent') ? 'member' : 'admin',
+          family_id: '',
+          member_status: 'active',
+          member_type: memberType,
+          language: d.language
+        });
+        var fam = createFamily(txApp, d.family_name || 'My Family', rec.id);
+        rec.set('family_id', fam.id);
+        txApp.save(rec);
+        created = { rec: rec, fam: fam };
       });
 
-      var fam = createFamily(d.family_name || 'My Family', rec.id);
-
-      // Update user with family_id
-      rec.set('family_id', fam.id);
-      var u = $app;
-      u.save(rec);
-
       return c.json(201, {
-        user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: String(rec.get('role')||'member'), family_id: fam.id }
+        user: { id: created.rec.id, email: String(created.rec.get('email')||''), name: String(created.rec.get('name')||''), role: String(created.rec.get('role')||'member'), family_id: created.fam.id }
       });
     }
 
@@ -367,31 +373,39 @@ routerAdd('POST', '/api/register', (c) => {
     if (!fid) throw new BadRequestError('Inviter has no family — ask admin to create one.', {});
 
     var role = 'member';
-    var uc = $app.findCollectionByNameOrId('users');
-    var rec = createUser(uc, {
-      email: d.email,
-      password: d.password,
-      passwordConfirm: d.passwordConfirm,
-      name: d.name || d.email.split('@')[0],
-      firstName: d.firstName || d.first_name,
-      lastName: d.lastName || d.last_name,
-      role: role,
-      family_id: fid,
-      member_status: 'active',
-      member_type: memberType,
-      language: d.language
+    // Review S10: a single-use invite could be redeemed by several parallel
+    // registrations (each read used = false before any wrote it). Claim the
+    // invite and create the account in one serialised transaction that
+    // re-reads the invite first.
+    var newUser = null;
+    $app.runInTransaction(function (txApp) {
+      var inviteRec = null;
+      try { inviteRec = txApp.findRecordById('invite_codes', invites[0].id); } catch (_eInv) { inviteRec = null; }
+      var stillOpen = inviteRec && inviteRec.get('used') !== true && inviteRec.get('used') !== 1 && String(inviteRec.get('used')) !== 'true';
+      if (!stillOpen) throw new BadRequestError('Invalid or expired invite code.', {});
+      var uc = txApp.findCollectionByNameOrId('users');
+      var rec = createUser(txApp, uc, {
+        email: d.email,
+        password: d.password,
+        passwordConfirm: d.passwordConfirm,
+        name: d.name || d.email.split('@')[0],
+        firstName: d.firstName || d.first_name,
+        lastName: d.lastName || d.last_name,
+        role: role,
+        family_id: fid,
+        member_status: 'active',
+        member_type: memberType,
+        language: d.language
+      });
+      inviteRec.set('used', true);
+      inviteRec.set('used_at', now);
+      inviteRec.set('used_by', rec.id);
+      txApp.save(inviteRec);
+      newUser = rec;
     });
 
-    // Mark invite as used
-    var inviteRec = invites[0];
-    inviteRec.set('used', true);
-    inviteRec.set('used_at', now);
-    inviteRec.set('used_by', rec.id);
-    var uu = $app;
-    uu.save(inviteRec);
-
     return c.json(201, {
-      user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
+      user: { id: newUser.id, email: String(newUser.get('email')||''), name: String(newUser.get('name')||''), role: role, family_id: fid }
     });
   } catch(e) { try { $app.logger().error('invite registration error: ' + String(e)); } catch(_e) {} return c.json(400, { error: 'Unable to register with invite code' }); }
 });
