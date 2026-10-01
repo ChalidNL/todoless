@@ -867,6 +867,87 @@ test('v1 update action updates title/status/due_date on a task', async () => {
   assert.equal(new Date(after.data?.due_date).toISOString(), '2026-12-01T09:00:00.000Z')
 })
 
+// --- 7c. #225: /api/v1 validation and create fields ------------------------
+test('v1 create accepts priority/due_date and rejects invalid input (#225)', async () => {
+  const created = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke v1 fields', priority: 'high', due_date: '2026-11-05T08:00:00.000Z', status: 'in_progress' },
+  })
+  assert.equal(created.status, 201, JSON.stringify(created.data))
+  const rec = await getRecord('tasks', created.data.id)
+  assert.equal(rec.data?.priority, 'high')
+  assert.equal(rec.data?.status, 'todo', 'in_progress is an alias of todo')
+  assert.equal(new Date(rec.data?.due_date).toISOString(), '2026-11-05T08:00:00.000Z')
+
+  for (const [body, error] of [
+    [{ status: 'doing' }, 'Invalid status'],
+    [{ priority: 'urgent' }, 'Invalid priority'],
+    [{ due_date: 'not a date' }, 'Invalid due_date'],
+  ]) {
+    const bad = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke bad', ...body } })
+    assert.equal(bad.status, 400, JSON.stringify(body))
+    assert.equal(bad.data?.error, error)
+    const badUpd = await api('POST', '/api/v1', { token: adminToken, body: { action: 'update', type: 'task', id: created.data.id, ...body } })
+    assert.equal(badUpd.status, 400, `update ${JSON.stringify(body)}`)
+  }
+})
+
+test('v1 grocery create validates shop and assignee (#225)', async () => {
+  for (const body of [{ shop_id: 'doesnotexist123' }, { assignee_id: 'doesnotexist123' }]) {
+    const bad = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'grocery', title: 'Smoke bad grocery', ...body } })
+    assert.equal(bad.status, 400, JSON.stringify(bad.data))
+  }
+})
+
+test('v1 unknown ids are 404 for update/complete/assign/delete (#225)', async () => {
+  for (const action of ['update', 'complete', 'assign', 'delete']) {
+    const r = await api('POST', '/api/v1', { token: adminToken, body: { action, type: 'task', id: 'doesnotexist123', title: 'x' } })
+    assert.equal(r.status, 404, `${action}: ${JSON.stringify(r.data)}`)
+  }
+})
+
+test('v1 create cannot link under a task the caller cannot see (#225)', async () => {
+  const hidden = await api('POST', '/api/collections/tasks/records', {
+    token: memberToken, body: { title: 'Smoke member private parent', status: 'todo', is_private: true, user: member.id },
+  })
+  assert.equal(hidden.status, 200, JSON.stringify(hidden.data))
+  const linked = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'create', type: 'task', title: 'Smoke sneaky child', linked_to: hidden.data.id },
+  })
+  assert.equal(linked.status, 404)
+})
+
+// --- 7d. #224: one task note across the app, /api/v1 and the calendar -------
+test('v1 description reaches the ICS export and ICS descriptions reach the app note (#224)', async () => {
+  const created = await api('POST', '/api/v1', {
+    token: adminToken,
+    body: { action: 'create', type: 'task', title: 'Smoke note sync', description: 'Bring the forms', due_date: '2026-11-06T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 201)
+  let rec = await getRecord('tasks', created.data.id)
+  assert.equal(rec.data?.blocked_comment, 'Bring the forms')
+  assert.equal(rec.data?.description, 'Bring the forms')
+  const ics = await api('GET', '/api/ics-export', { token: adminToken })
+  const text = typeof ics.data === 'string' ? ics.data : JSON.stringify(ics.data)
+  assert.ok(text.includes('DESCRIPTION:Bring the forms'), 'v1 description exported to the calendar')
+
+  // Editing the note in the app (blocked_comment) updates the calendar field.
+  const edited = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { blocked_comment: 'Bring the signed forms' } })
+  assert.equal(edited.status, 200)
+  assert.equal(edited.data?.description, 'Bring the signed forms')
+
+  // An ICS-only description shows up as the app note.
+  const viaIcsField = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken, body: { title: 'Smoke ics note', status: 'todo', user: admin.id, description: 'Room 3' },
+  })
+  assert.equal(viaIcsField.status, 200)
+  assert.equal(viaIcsField.data?.blocked_comment, 'Room 3')
+  const list = await api('POST', '/api/v1', { token: adminToken, body: { action: 'list', type: 'task', perPage: 500 } })
+  const listed = (list.data?.items || []).find((e) => e.id === viaIcsField.data.id)
+  assert.ok(listed, 'task listed by /api/v1')
+  assert.equal(listed.description, 'Room 3')
+})
+
 // --- 7b. GH#88: /api/v1 add_subtask links both sides atomically ------------
 // The transactional branch used the pre-0.23 txApp.dao()/saveRecord() API,
 // which does not exist in PocketBase 0.40 — every call failed with a generic

@@ -43,6 +43,9 @@ onRecordCreate((e) => {
   if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
   rec.set('labels', createLabels);
   rec.set('label', createLabels);
+  // #224: one note, two fields (blocked_comment for the app/API, description
+  // for ICS) — keep them identical.
+  try { require(__hooks + '/lib/task-note.js').syncNoteOnCreate(rec); } catch (_errNote) { /* never block the save */ }
   e.next();
 }, 'tasks');
 
@@ -91,6 +94,9 @@ onRecordUpdate((e) => {
       if (msOrNull(rec.get('start_time')) !== msOrNull(orig.get('start_time'))) changed.start_time = rec.get('start_time');
       if (msOrNull(rec.get('end_time')) !== msOrNull(orig.get('end_time'))) changed.end_time = rec.get('end_time');
       if (Object.prototype.hasOwnProperty.call(changed, 'due_date')) dateSync.syncOnDueDateChange(rec, changed, orig);
+
+      // #224: keep blocked_comment and description identical.
+      require(__hooks + '/lib/task-note.js').syncNoteOnUpdate(rec, orig);
     } catch (_errSync) { /* never block the save */ }
   }
   e.next();
@@ -467,6 +473,28 @@ try {
     // GH#17: an assignee must be an existing users record whose family_id
     // matches the auth user's family (or the auth user themself). Empty id
     // means "unassign" and is always valid.
+    // #225: unknown ids are a 404, not a generic error from an unguarded
+    // findRecordById.
+    function _findEntry(type, id){ try { return $app.findRecordById(type==='task'?'tasks':'items', id); } catch(e) { return null; } }
+    // #225: validated scalar fields accepted by create and update.
+    var _PRIORITIES = ['low','medium','high'];
+    var _TASK_STATUSES = ['backlog','todo','done'];
+    // 'in_progress' is accepted as an alias of 'todo' (same as the agents API).
+    function _normStatus(v){ var st = String(v); return st === 'in_progress' ? 'todo' : st; }
+    function _parseDue(v){
+      if (v === null || v === '') return { ok: true, value: null };
+      var dd = new Date(String(v));
+      if (isNaN(dd.getTime())) return { ok: false };
+      return { ok: true, value: dd.toISOString() };
+    }
+    function _validShop(id){
+      if(!id)return true;
+      var shopRec=null; try{ shopRec=$app.findRecordById('shops',String(id)); }catch(e){ return false; }
+      var owner=String(shopRec.get('user')||''); if(owner===auth.id)return true;
+      var af=String(auth.get('family_id')||''); if(!af||!owner)return false;
+      try{ return String($app.findRecordById('users',owner).get('family_id')||'')===af; }catch(e){ return false; }
+    }
+
     function _validAssignee(id){
       if(!id)return true;
       id=String(id);
@@ -499,8 +527,18 @@ try {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('title', title);
         rec.set('user', auth.id);
-        var s2 = String(gv(d,'status','todo')).trim();
+        var s2 = _normStatus(String(gv(d,'status','todo')).trim());
+        if (s2 && _TASK_STATUSES.indexOf(s2) === -1) return c.json(400, {error:'Invalid status'});
         if (s2) rec.set('status', s2);
+        if (d.priority !== undefined && d.priority !== null && d.priority !== '') {
+          if (_PRIORITIES.indexOf(String(d.priority)) === -1) return c.json(400, {error:'Invalid priority'});
+          rec.set('priority', String(d.priority));
+        }
+        if (d.due_date !== undefined) {
+          var dueCreate = _parseDue(d.due_date);
+          if (!dueCreate.ok) return c.json(400, {error:'Invalid due_date'});
+          if (dueCreate.value) rec.set('due_date', dueCreate.value);
+        }
         var desc = String(gv(d,'description','')).trim();
         if (desc) rec.set('blocked_comment', desc);
         var assign = String(gv(d,'assignee_id','')).trim();
@@ -511,7 +549,15 @@ try {
         rec.set('labels', canonicalLabels);
         rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
-        if (linkedTo) rec.set('linked_to', linkedTo);
+        // Only link under a parent the caller may access: the parent's
+        // subtask_ids is written below (it used to accept any task id, even
+        // one from another family).
+        if (linkedTo) {
+          var linkParent = null;
+          try { linkParent = $app.findRecordById('tasks', linkedTo); } catch(e) {}
+          if (!linkParent || !_canAccessTask(linkParent)) return c.json(404, {error:'Parent task not found'});
+          rec.set('linked_to', linkedTo);
+        }
         var linkedType = String(gv(d,'linked_type','')).trim();
         if (linkedType) rec.set('linked_type', linkedType);
         rec.set('flag',false);
@@ -534,7 +580,7 @@ try {
           }
         }
 
-        return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
+        return c.json(201, {id:rec.id,type:'task',title:rec.get('title'),description:rec.get('blocked_comment'),priority:rec.get('priority')||'',due_date:rec.get('due_date')?String(rec.get('due_date')):'',status:rec.get('status'),assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:'',quantity:null,created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
       }
 
       if (type === 'grocery') {
@@ -544,9 +590,20 @@ try {
         var qty = Number(gv(d,'quantity','1'));
         if (!isNaN(qty) && qty > 0) rec.set('quantity', qty);
         var shop = String(gv(d,'shop_id','')).trim();
+        if (shop && !_validShop(shop)) return c.json(400, {error:'Invalid shop'});
         if (shop) rec.set('shop_id', shop);
         var assign2 = String(gv(d,'assignee_id','')).trim();
+        if (assign2 && !_validAssignee(assign2)) return c.json(400, {error:'Invalid assignee'});
         if (assign2) rec.set('assigned_to', assign2);
+        if (d.priority !== undefined && d.priority !== null && d.priority !== '') {
+          if (_PRIORITIES.indexOf(String(d.priority)) === -1) return c.json(400, {error:'Invalid priority'});
+          rec.set('priority', String(d.priority));
+        }
+        if (d.due_date !== undefined) {
+          var dueItem = _parseDue(d.due_date);
+          if (!dueItem.ok) return c.json(400, {error:'Invalid due_date'});
+          if (dueItem.value) rec.set('due_date', dueItem.value);
+        }
         rec.set('completed', false);
         $app.save(rec);
         return c.json(201, {id:rec.id,type:'grocery',title:rec.get('title'),description:'',status:rec.get('completed')?'done':'todo',assignee_id:rec.get('assigned_to'),labels:rec.get('labels'),shop_id:rec.get('shop_id'),quantity:rec.get('quantity'),created_by:auth.id,completed_by:'',created_at:new Date().toISOString(),updated_at:new Date().toISOString()});
@@ -560,7 +617,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
@@ -573,7 +630,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
@@ -588,14 +645,15 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
       var changed = [];
       if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
-      if (d.status !== undefined && type === 'task') { rec.set('status', String(d.status)); changed.push('status'); }
-      if (d.due_date !== undefined && type === 'task') { rec.set('due_date', (d.due_date === '' || d.due_date === null) ? null : String(d.due_date)); changed.push('due_date'); }
+      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); rec.set('status', stUpd); changed.push('status'); }
+      if (d.priority !== undefined) { var prUpd = d.priority === null ? '' : String(d.priority); if (prUpd && _PRIORITIES.indexOf(prUpd) === -1) return c.json(400,{error:'Invalid priority'}); rec.set('priority', prUpd); changed.push('priority'); }
+      if (d.due_date !== undefined) { var dueUpd = _parseDue(d.due_date); if (!dueUpd.ok) return c.json(400,{error:'Invalid due_date'}); rec.set('due_date', dueUpd.value); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
       if (d.assignee_id !== undefined) { var assigneeUpd = d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id); if (assigneeUpd && !_validAssignee(assigneeUpd)) return c.json(400,{error:'Invalid assignee'}); rec.set('assigned_to', assigneeUpd); changed.push('assignee_id'); }
       if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
@@ -609,7 +667,7 @@ try {
       var type = String(gv(d,'type','')).trim();
       if(!id) return c.json(400,{error:'id required'});
       if(!type||(type!=='task'&&type!=='grocery')) return c.json(400,{error:'type must be task or grocery'});
-      var rec = $app.findRecordById(type==='task'?'tasks':'items',id);
+      var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
       if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});

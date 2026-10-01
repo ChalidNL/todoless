@@ -13,7 +13,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       type: { type: "string", enum: ["task", "grocery"], description: "Entry type" },
       title: { type: "string", example: "Buy milk" },
       description: { type: "string", example: "2% organic" },
-      status: { type: "string", enum: ["todo", "done", "backlog", "in_progress"], example: "todo" },
+      status: { type: "string", enum: ["todo", "done", "backlog"], description: "Tasks only; \"in_progress\" is accepted on input as an alias of \"todo\"", example: "todo" },
       assignee_id: { type: "string", description: "Assigned user ID", nullable: true },
       labels: { type: "array", items: { type: "string" }, example: ["shopping"] },
       shop_id: { type: "string", description: "Shop ID (grocery only)", nullable: true },
@@ -29,10 +29,10 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     return {
       id: { type: "string" },
       title: { type: "string", example: "Fix login bug" },
-      status: { type: "string", enum: ["todo", "in_progress", "done", "backlog"], example: "todo" },
+      status: { type: "string", enum: ["todo", "done", "backlog"], example: "todo" },
       blocked: { type: "boolean", example: false },
       blocked_comment: { type: "string", nullable: true },
-      priority: { type: "string", enum: ["urgent", "normal", "low"], example: "normal" },
+      priority: { type: "string", enum: ["low", "medium", "high"], example: "medium" },
       horizon: { type: "string", enum: ["week", "month", "3months", "6months", "year"], example: "week" },
       due_date: { type: "string", format: "date", nullable: true },
       repeat_interval: { type: "string", nullable: true, example: "weekly" },
@@ -293,14 +293,14 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     return {
       tags: ["Entries"],
       summary: "Unified action dispatcher",
-      description: "Single endpoint for all entry (task+grocery) operations: list, create, update, complete, assign, delete, filters, set_role, set_user_block, delete_user.",
+      description: "Single endpoint for all entry (task+grocery) operations: list, create, update, complete, assign, delete, filters, add_subtask, set_role, set_user_block, delete_user. Unknown ids answer 404; invalid status/priority/due_date answer 400.",
       operationId: "unifiedApi",
       requestBody: {
         required: true,
         content: { "application/json": { schema: {
           type: "object",
           properties: {
-            action: { type: "string", enum: ["list", "create", "update", "complete", "assign", "delete", "filters", "set_role", "set_user_block", "delete_user"] },
+            action: { type: "string", enum: ["list", "create", "update", "complete", "assign", "delete", "filters", "add_subtask", "set_role", "set_user_block", "delete_user"] },
             type: { type: "string", enum: ["task", "grocery"] },
             id: st(),
             title: st(),
@@ -311,6 +311,15 @@ routerAdd('GET', '/api/openapi.json', (c) => {
             shop_id: st(),
             quantity: si(),
             complete: sb(),
+            priority: { type: "string", enum: ["low", "medium", "high"], description: "create/update" },
+            due_date: { type: "string", format: "date-time", nullable: true, description: "create/update; null or empty clears it on update" },
+            linked_to: { type: "string", description: "create: parent task id (must be accessible to the caller)" },
+            linked_type: { type: "string", enum: ["task", "item", "note"], description: "create: type of linked_to" },
+            task_id: { type: "string", description: "add_subtask: parent task id" },
+            subtask_id: { type: "string", description: "add_subtask: child task id" },
+            user_id: { type: "string", description: "set_role / set_user_block / delete_user: target member" },
+            role: { type: "string", enum: ["owner", "admin", "member", "agent"], description: "set_role" },
+            blocked: { type: "boolean", description: "set_user_block" },
             updated_since: { type: "string", format: "date-time", description: "list: only entries updated at or after this time" },
             page: { type: "integer", minimum: 1, description: "list: 1-based page (switches to a paginated response)" },
             perPage: { type: "integer", minimum: 1, maximum: 500, description: "list: page size (default 100)" },
@@ -320,8 +329,10 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       responses: {
         "200": { description: "Success" },
         "201": { description: "Created" },
-        "400": { description: "Bad request" },
+        "400": { description: "Bad request (missing/invalid field)" },
         "401": { description: "Unauthorized" },
+        "403": { description: "Missing permission" },
+        "404": { description: "Entry, task or member not found (or not accessible)" },
       },
     };
   }

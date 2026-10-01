@@ -76,6 +76,7 @@ const sandbox = {
   },
   require: (path) => {
     if (String(path).endsWith('task-date-sync.js')) return require('../pb_hooks/lib/task-date-sync.js')
+    if (String(path).endsWith('task-note.js')) return require('../pb_hooks/lib/task-note.js')
     throw new Error('unexpected require in sandbox: ' + path)
   },
 }
@@ -222,4 +223,18 @@ test('update hook still calls next() when original() is unavailable', () => {
   handlers.updateTasks({ record: rec, next: () => { nextCalls++ } })
   assert.equal(nextCalls, 1)
   assert.equal(String(rec.get('start_time')), D1, 'without a baseline nothing is shifted')
+})
+
+// #224: the v1 API "description" (blocked_comment) and the ICS description
+// field are mirrored by the record hooks.
+test('create hook mirrors blocked_comment and description', () => {
+  assert.equal(runCreate({ title: 't', blocked_comment: 'from api' }).description, 'from api')
+  assert.equal(runCreate({ title: 't', description: 'from ics' }).blocked_comment, 'from ics')
+})
+
+test('update hook mirrors whichever note field changed', () => {
+  const edited = runUpdate({ title: 't', blocked_comment: 'new', description: 'old' }, { title: 't', blocked_comment: 'old', description: 'old' })
+  assert.equal(edited.description, 'new')
+  const imported = runUpdate({ title: 't', blocked_comment: 'old', description: 'ics' }, { title: 't', blocked_comment: 'old', description: 'old' })
+  assert.equal(imported.blocked_comment, 'ics')
 })
