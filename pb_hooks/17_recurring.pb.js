@@ -21,6 +21,8 @@
 // - the pure date math lives in pb_hooks/lib/recurrence.js (unit-tested by
 //   node --test tests/recurrence.test.mjs).
 
+// Scoped to the tasks collection: without the tag the callback would run for
+// every update of every collection (users, items, _logs mirrors, ...).
 onRecordAfterUpdateSuccess((e) => {
   // The hook must NEVER break the completion request: every unexpected error
   // is logged and swallowed so the user's action always succeeds.
@@ -60,6 +62,26 @@ onRecordAfterUpdateSuccess((e) => {
     var nextDate = recurrenceLib.getNextRecurringDate(repeatInterval, baseDate);
     if (!nextDate) return;
 
+    // Reopening a completed recurring task and completing it again must not
+    // spawn a second copy of the same occurrence: skip when this series
+    // (same owner, title, interval) already has a task on the computed date.
+    var dueFilterValue = nextDate.toISOString().replace('T', ' ');
+    var existing = [];
+    try {
+      existing = $app.findRecordsByFilter(
+        'tasks',
+        'user = {:user} && title = {:title} && repeat_interval = {:interval} && due_date = {:due} && id != {:id}',
+        '', 1, 0,
+        { user: String(rec.get('user') || ''), title: String(rec.get('title') || ''), interval: String(repeatInterval), due: dueFilterValue, id: rec.id }
+      ) || [];
+    } catch (_errLookup) { existing = []; }
+    if (existing.length > 0) {
+      try {
+        $app.logger().info('recurrence: occurrence for ' + dueFilterValue + ' already exists (' + existing[0].id + '), not creating another one for task ' + rec.id);
+      } catch (_errLog2) { /* no logger */ }
+      return;
+    }
+
     var collection = $app.findCollectionByNameOrId('tasks');
     var next = new Record(collection);
 
@@ -68,6 +90,9 @@ onRecordAfterUpdateSuccess((e) => {
 
     next.set('user', rec.get('user'));
     next.set('title', rec.get('title'));
+    // Free-text fields belong to the series, not to one occurrence.
+    if (rec.get('description')) next.set('description', rec.get('description'));
+    if (rec.get('location')) next.set('location', rec.get('location'));
     next.set('status', 'todo');
     next.set('repeat_interval', repeatInterval);
     next.set('due_date', nextDate.toISOString());
@@ -82,9 +107,17 @@ onRecordAfterUpdateSuccess((e) => {
     if (rec.get('assigned_to')) next.set('assigned_to', rec.get('assigned_to'));
     if (rec.get('blocked_comment')) next.set('blocked_comment', rec.get('blocked_comment'));
     if (rec.get('all_day') === true) next.set('all_day', true);
-    // start_time is canonicalized by main.pb.js onRecordCreate (:= due_date);
-    // end_time is deliberately NOT copied (a block without a start anchor would
-    // dangle on the old day).
+    // Calendar placement: shift start_time/end_time by the same offset as the
+    // due date so a timed block keeps its length on the next occurrence. A
+    // block is only carried over when it has a start anchor; end_time alone
+    // would dangle on the old day.
+    var shiftMs = nextDate.getTime() - baseDate.getTime();
+    var startMs = dateSync.toMs(rec.get('start_time'));
+    if (!isNaN(startMs)) {
+      next.set('start_time', new Date(startMs + shiftMs).toISOString());
+      var endMs = dateSync.toMs(rec.get('end_time'));
+      if (!isNaN(endMs) && endMs >= startMs) next.set('end_time', new Date(endMs + shiftMs).toISOString());
+    }
 
     $app.save(next);
     try {
@@ -97,4 +130,4 @@ onRecordAfterUpdateSuccess((e) => {
       $app.logger().error('recurrence: failed to create next occurrence: ' + String((err && err.message) || err));
     } catch (_logErr) { /* no logger */ }
   }
-});
+}, 'tasks');
