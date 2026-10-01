@@ -555,6 +555,7 @@
   "auth": {
     "appError": "Error de la app",
     "welcomeBack": "Bienvenido de nuevo",
+    "rateLimited": "Demasiados intentos. Inténtalo de nuevo en un momento.",
     "signInSubtitle": "Inicia sesión en tu cuenta de todoless",
     "email": "Correo electrónico",
     "password": "Contraseña",

@@ -57,4 +57,27 @@ describe('i18n: every key used in source resolves', () => {
       expect(unresolved).toEqual([]);
     });
   }
+
+  // A key that resolves is not necessarily translated: when a language lacks
+  // it in every layer, t() silently falls back to English. Short labels are
+  // often legitimately identical ("Inbox", "Filters", "Error"), so this only
+  // flags English *sentences* - strings with English function words.
+  const englishProse = /\b(the|please|again|your|you|are|is|not|with|this|that|have|been|will|and|for|from|could|cannot|try)\b/i;
+  for (const language of SUPPORTED_UI_LANGUAGES.filter((l) => l !== 'en')) {
+    it(`does not fall back to an English sentence in ${language}`, () => {
+      const untranslated = [...keys.entries()]
+        .filter(([key]) => {
+          const english = t(key, 'en');
+          return t(key, language) === english && englishProse.test(english);
+        })
+        .map(([key, file]) => `${key} = ${JSON.stringify(t(key, 'en'))} (${file})`);
+      expect(untranslated).toEqual([]);
+    });
+  }
+
+  it('single-word labels that were plain English in nl/fr are translated', () => {
+    expect(t('common.restock', 'nl')).not.toBe(t('common.restock', 'en'));
+    expect(t('common.restock', 'fr')).not.toBe('Réranger');
+    expect(t('settings.appInfo', 'nl')).not.toBe(t('settings.appInfo', 'en'));
+  });
 });
