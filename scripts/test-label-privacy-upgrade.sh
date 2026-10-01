@@ -182,6 +182,24 @@ if [[ "$HAVE_SHIPPED" == 1 ]]; then
   boot "$WORK/shipped/pb_migrations" "$WORK/nohooks" "$WORK/data-repair" "$WORK/data-repair.shipped.log"
   stop
   expect_state "$WORK/data-repair" "$EXPECTED_DAMAGED" "shipped z062 (damage reproduced)"
+  # The impact query published with #237 (what an operator runs before
+  # upgrading) must list exactly the tasks z062 flipped.
+  python3 - "$WORK/data-repair/data.db" <<'PY'
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+rows = db.execute("""
+WITH m AS (SELECT applied FROM _migrations WHERE file = 'z062_enforce_label_privacy.js')
+SELECT t.title, t.labels FROM tasks t, m
+WHERE (t.is_private = 1 OR t.is_private = 'true')
+  AND COALESCE(t.label, '') IN ('', '[]', 'null')
+  AND t.labels IS NOT NULL AND TRIM(t.labels) NOT IN ('', 'null')
+  AND t.updated >= strftime('%Y-%m-%d %H:%M:%fZ', m.applied / 1000000.0 - 600, 'unixepoch')
+  AND t.updated <= strftime('%Y-%m-%d %H:%M:%fZ', m.applied / 1000000.0, 'unixepoch')
+ORDER BY t.title""").fetchall()
+titles = [r[0] for r in rows]
+assert titles == ['T2 legacy empty list', 'T3 legacy family label', 'T4 legacy free text'], titles
+print('[label-privacy-upgrade] impact query: ' + '; '.join(f'{t} (labels={l})' for t, l in rows))
+PY
 
   log "C: upgrading to the working tree (z073 repair)"
   boot "$ROOT/pb_migrations" "$ROOT/pb_hooks" "$WORK/data-repair" "$WORK/data-repair.current.log"
@@ -193,6 +211,29 @@ if [[ "$HAVE_SHIPPED" == 1 ]]; then
   boot "$ROOT/pb_migrations" "$ROOT/pb_hooks" "$WORK/data-repair" "$WORK/data-repair.again.log"
   stop
   expect_state "$WORK/data-repair" "$(final_expected "$WORK/data-repair")" "second boot (idempotent)"
+fi
+
+# --- E: a privacy decision made after z062 is never reverted ---------------
+# The owner touched "T2" after the shipped z062 ran (it stayed private): its
+# last write is outside the z062 window, so z073 must leave it alone while
+# still repairing the untouched T3.
+if [[ "$HAVE_SHIPPED" == 1 ]]; then
+  log "E: owner changes a flipped task after z062; z073 must keep that decision"
+  seed "$WORK/data-later"
+  boot "$WORK/shipped/pb_migrations" "$WORK/nohooks" "$WORK/data-later" "$WORK/data-later.shipped.log"
+  stop
+  python3 - "$WORK/data-later/data.db" <<'PY'
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+applied = db.execute("SELECT applied FROM _migrations WHERE file = 'z062_enforce_label_privacy.js'").fetchone()[0]
+later = db.execute("SELECT strftime('%Y-%m-%d %H:%M:%fZ', ? / 1000000.0 + 3600, 'unixepoch')", (applied,)).fetchone()[0]
+db.execute("UPDATE tasks SET updated = ? WHERE title = 'T2 legacy empty list'", (later,))
+db.commit()
+PY
+  boot "$ROOT/pb_migrations" "$ROOT/pb_hooks" "$WORK/data-later" "$WORK/data-later.current.log"
+  stop
+  label="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['label'])" "$WORK/data-later/seed.json")"
+  expect_state "$WORK/data-later" "$(printf 'T1 legacy null|0|[]\nT2 legacy empty list|1|[]\nT3 legacy family label|0|["%s"]\nT4 legacy free text|1|[]\nT5 owner private|1|[]' "$label")" "later owner decision kept"
 fi
 
 # --- D: the fixed upgrade path ----------------------------------------------
