@@ -47,8 +47,9 @@ fi
 # Throwaway superuser for this disposable database only: lets specs set up
 # states the public API deliberately cannot create (e.g. an expired invite).
 export E2E_SU_EMAIL="e2e-root@example.com"
-# Prefixed so the random part can never start with '-' (parsed as a CLI flag).
-E2E_SU_PASSWORD="E2e-$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
+# hex only: token_urlsafe() can start with '-', which PocketBase's CLI then parses as a flag
+# ("unknown shorthand flag: 'm' in -mbCk...") and the whole E2E job dies before the first test.
+E2E_SU_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
 export E2E_SU_PASSWORD
 "$PB" superuser upsert "$E2E_SU_EMAIL" "$E2E_SU_PASSWORD" --dir="$DATA_DIR/pb_data" >/dev/null
 
