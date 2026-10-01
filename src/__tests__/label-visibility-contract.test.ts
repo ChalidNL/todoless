@@ -6,7 +6,6 @@ describe('label based visibility contract', () => {
   const migration = readFileSync(resolve(__dirname, '../../pb_migrations/z061_label_visibility.js'), 'utf8');
   const types = readFileSync(resolve(__dirname, '../types/index.ts'), 'utf8');
   const pbClient = readFileSync(resolve(__dirname, '../lib/pocketbase-client.ts'), 'utf8');
-  const apiClient = readFileSync(resolve(__dirname, '../lib/api-client.ts'), 'utf8');
 
   it('adds label visibility fields and a multi-select canonical task label relation', () => {
     expect(migration).toContain("name: 'visibility'");
@@ -33,7 +32,7 @@ describe('label based visibility contract', () => {
     expect(types).toContain("export type LabelVisibility = 'private' | 'shared' | 'family'");
     expect(types).toContain('visibility: LabelVisibility');
     expect(types).toContain('sharedWith?: string[]');
-    for (const source of [pbClient, apiClient]) {
+    for (const source of [pbClient]) {
       expect(source).toMatch(/visibility:\s*(record|r)\.visibility/);
       expect(source).toMatch(/sharedWith:\s*Array\.isArray\((record|r)\.shared_with\)/);
       expect(source).toMatch(/labelId:\s*taskLabelsFromRecord\((record|r)\)\[0\]/);

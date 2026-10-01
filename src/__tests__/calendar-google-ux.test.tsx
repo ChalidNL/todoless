@@ -32,6 +32,8 @@ vi.mock('../lib/pocketbase-client', () => ({
     getFamilyById: vi.fn().mockResolvedValue({ name: 'Family' }),
     login: vi.fn(),
     getApiTokens: vi.fn().mockResolvedValue([]),
+    icsExport: vi.fn().mockResolvedValue({ ics: 'BEGIN:VCALENDAR\nEND:VCALENDAR', count: 0 }),
+    icsImport: vi.fn().mockResolvedValue({ created: 0, updated: 0, skipped: 0 }),
   },
 }));
 
@@ -44,15 +46,6 @@ vi.mock('../lib/app-update', () => ({
   forceRefreshApp: vi.fn(),
   getNormalizedAppVersion: vi.fn().mockReturnValue('dev'),
   shouldShowUpdateButton: vi.fn().mockReturnValue(false),
-}));
-
-vi.mock('../lib/api-client', () => ({
-  api: {
-    tasks: {
-      icsExport: vi.fn().mockResolvedValue({ ics: 'BEGIN:VCALENDAR\nEND:VCALENDAR', count: 0 }),
-      icsImport: vi.fn().mockResolvedValue({ created: 0, updated: 0, skipped: 0 }),
-    },
-  },
 }));
 
 const baseAppValue = {

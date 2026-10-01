@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api-client';
+import { api } from '../lib/pocketbase-client';
 import { parseIcs, extractIcsFromZip, readFileAsText, type ParsedEvent, type ParseResult } from '../lib/ics-parser';
 
 interface ImportDialogProps {
@@ -99,7 +99,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onClose, onImp
       const batch = allEvents.slice(i, i + BATCH);
       setProgress({ current: Math.min(i + BATCH, allEvents.length), total: allEvents.length });
       try {
-        const res = await api.tasks.icsImport(batch);
+        const res = await api.icsImport(batch);
         created += res.created || 0;
         updated += res.updated || 0;
         skipped += res.skipped || 0;

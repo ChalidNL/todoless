@@ -560,6 +560,41 @@ class PocketBaseClient {
   // Batch delete: single POST instead of N parallel DELETE requests.
   // Keeps "Delete completed" under nginx api_general rate-limit burst (GH#87)
   // and emits one server-side change instead of one per task.
+  // ICS import/export (custom routes). Lived in the second client
+  // (src/lib/api-client.ts) until that file was removed; same wire format.
+  async icsImport(events: unknown[], options?: { assignee?: string; labels?: string[] }): Promise<{
+    created?: number; updated?: number; skipped?: number; errors?: Array<{ title?: string; uid?: string; error: string }>;
+  }> {
+    const response = await fetch('/api/ics-import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+      },
+      body: JSON.stringify({ events, options: options || {} }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Import failed' }));
+      throw new Error(err?.error || `Import failed (${response.status})`);
+    }
+    return response.json();
+  }
+
+  async icsExport(start?: string, end?: string): Promise<{ ics: string; count: number }> {
+    const params = new URLSearchParams();
+    if (start) params.set('start', start);
+    if (end) params.set('end', end);
+    const qs = params.toString();
+    const response = await fetch(`/api/ics-export${qs ? '?' + qs : ''}`, {
+      headers: { 'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '' },
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Export failed' }));
+      throw new Error(err?.error || `Export failed (${response.status})`);
+    }
+    return response.json();
+  }
+
   async deleteTasks(ids: string[]) {
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
     if (uniqueIds.length === 0) {
