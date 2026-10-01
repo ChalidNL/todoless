@@ -155,7 +155,8 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     if (task.status === 'done') {
       updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined });
     } else {
-      updateTask(task.id, { status: 'done', completedAt: Date.now(), completedBy: users.find(u => u.id === (task.assignedTo || ''))?.id || undefined });
+      // completedBy is attributed to the current user by AppContext.updateTask
+      updateTask(task.id, { status: 'done', completedAt: Date.now() });
     }
   };
 
