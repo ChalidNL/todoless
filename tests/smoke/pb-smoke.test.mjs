@@ -708,6 +708,46 @@ test('editing a done recurring task does not create a duplicate occurrence (GH#7
   assert.equal(open[0].blocked_comment ?? '', '', 'the next occurrence must not inherit the edit')
 })
 
+test('next occurrence carries description, location and a shifted time block', async () => {
+  const rec = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: {
+      title: 'Smoke recurring block', repeat_interval: 'week', status: 'todo', user: admin.id,
+      description: 'bring the forms', location: 'town hall',
+      due_date: '2026-11-02T09:00:00.000Z', start_time: '2026-11-02T09:00:00.000Z', end_time: '2026-11-02T10:30:00.000Z',
+    },
+  })
+  assert.equal(rec.status, 200, JSON.stringify(rec.data))
+
+  const done = await api('PATCH', `/api/collections/tasks/records/${rec.data.id}`, { token: adminToken, body: { status: 'done' } })
+  assert.equal(done.status, 200)
+
+  const all = await recurringOccurrences('Smoke recurring block')
+  const next = all.filter((t) => t.status !== 'done')
+  assert.equal(next.length, 1, JSON.stringify(all.map((t) => ({ id: t.id, status: t.status, due_date: t.due_date }))))
+  assert.equal(next[0].description, 'bring the forms')
+  assert.equal(next[0].location, 'town hall')
+  assert.equal(new Date(next[0].due_date).toISOString(), '2026-11-09T09:00:00.000Z')
+  assert.equal(new Date(next[0].start_time).toISOString(), '2026-11-09T09:00:00.000Z')
+  assert.equal(new Date(next[0].end_time).toISOString(), '2026-11-09T10:30:00.000Z')
+})
+
+test('reopening and completing a recurring task again does not duplicate the next occurrence', async () => {
+  const all = await recurringOccurrences('Smoke recurring block')
+  const doneOne = all.find((t) => t.status === 'done')
+  assert.ok(doneOne)
+
+  const reopen = await api('PATCH', `/api/collections/tasks/records/${doneOne.id}`, { token: adminToken, body: { status: 'todo' } })
+  assert.equal(reopen.status, 200)
+  const again = await api('PATCH', `/api/collections/tasks/records/${doneOne.id}`, { token: adminToken, body: { status: 'done' } })
+  assert.equal(again.status, 200)
+
+  const after = await recurringOccurrences('Smoke recurring block')
+  const open = after.filter((t) => t.status !== 'done')
+  assert.equal(open.length, 1, `reopen + complete must reuse the existing occurrence (open: ${open.length})`)
+  assert.equal(after.length, 2, `expected the done task and one next occurrence, got ${after.length}`)
+})
+
 // --- 7b. /api/v1 update action -----------------------------------------
 test('v1 update action updates title/status/due_date on a task', async () => {
   const created = await api('POST', '/api/v1', {
