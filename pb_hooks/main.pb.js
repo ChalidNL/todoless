@@ -478,9 +478,10 @@ try {
     function _findEntry(type, id){ try { return $app.findRecordById(type==='task'?'tasks':'items', id); } catch(e) { return null; } }
     // #225: validated scalar fields accepted by create and update.
     var _PRIORITIES = ['low','medium','high'];
-    var _TASK_STATUSES = ['backlog','todo','done'];
+    var _taskStatus = require(__hooks + '/lib/task-status.js');
+    var _TASK_STATUSES = _taskStatus.TASK_STATUSES;
     // 'in_progress' is accepted as an alias of 'todo' (same as the agents API).
-    function _normStatus(v){ var st = String(v); return st === 'in_progress' ? 'todo' : st; }
+    function _normStatus(v){ return _taskStatus.normalizeTaskStatus(v); }
     function _parseDue(v){
       if (v === null || v === '') return { ok: true, value: null };
       var dd = new Date(String(v));
