@@ -125,6 +125,8 @@ All persistent data lives in `/DATA/AppData/todoless/`:
 
 On every start the entrypoint seeds the bundled hooks/migrations into these volumes and prunes app-managed files that were renamed or removed upstream (and files from newer images when downgrading), so stale hooks stop running and removed migrations never re-apply (GH#35). Pruned files are preserved as `<name>.gh35-removed-<timestamp>` instead of deleted, so a locally customized copy is never destroyed; the suffix is ignored by PocketBase, and directories are never touched. User-added files are never touched at all; the append-only manifests `app-managed-migrations.txt` / `app-managed-hooks.txt` list every file the app has ever seeded and are enforced by CI. Once you have confirmed you no longer need a preserved copy, you can delete any `*.gh35-removed-*` file from `pb_migrations/` or `pb_hooks/`.
 
+The schema is owned by the repository: PocketBase starts with `--automigrate=false`, so a collection edit made in the PocketBase dashboard (or through the superuser API) changes the running database but does **not** write a `<timestamp>_updated_<collection>.js` file into `pb_migrations/`. Such generated files would be invisible to the repository's migration gates, re-run on every start and collide with later bundled migrations (a duplicate field or collection makes PocketBase refuse to start). If an older install already has files like that in `pb_migrations/` — their names start with a 10-digit timestamp — review them and remove the ones you don't need before upgrading; bundled migrations are applied on start either way.
+
 ### Environment (.env.example)
 The `.env.example` file documents available variables. Not all are used by the production compose — the key ones for self-hosters:
 

@@ -57,7 +57,7 @@ services:
     cap_drop:
       - ALL
     entrypoint: ["/entrypoint.sh"]
-    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
+    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate=false"]
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
       DEPLOY_ENV: production
