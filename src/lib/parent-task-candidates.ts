@@ -19,7 +19,7 @@ function descendsFrom(candidate: Task, task: Task, byId: Map<string, Task>): boo
 // not the task itself and not one of its own subtasks - otherwise the task
 // disappears from every list (A -> B -> A hides both; A under a subtask of C
 // is never rendered anywhere).
-export function isEligibleParent(candidate: Task, task: Task, tasks: Task[]): boolean {
+function isEligibleParent(candidate: Task, task: Task, tasks: Task[]): boolean {
   if (candidate.id === task.id || candidate.status === 'done') return false;
   if (isSubtask(candidate)) return false;
   const byId = new Map(tasks.map((t) => [t.id, t]));
