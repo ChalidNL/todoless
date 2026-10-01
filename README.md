@@ -130,14 +130,15 @@ The `.env.example` file documents available variables. Not all are used by the p
 
 | Variable | What it does |
 |---|---|
-| `TZ` | Timezone (default: `Europe/Amsterdam`, hardcoded in compose) |
+| `TZ` | Timezone for both containers (default: `Europe/Amsterdam`) |
 | `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
 | `LOG_LEVEL` | Backend logging verbosity on stdout/stderr (default: `info`) — see below |
 | `POCKETBASE_ADMIN_EMAIL` | PocketBase superuser email - set together with the password to auto-create the dashboard login on start (optional) |
 | `POCKETBASE_ADMIN_PASSWORD` | PocketBase superuser password - set together with the email (optional) |
 | `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
 | `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
-| `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
+| `SMTP_*` | SMTP server for verification/password-reset e-mails (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_AUTH_METHOD`) — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
+| `ENCRYPTION_KEY` | Optional, exactly 32 characters: encrypts the PocketBase settings row (SMTP password, S3/backup keys) at rest. Once settings were saved with a key, PocketBase will not start without that key — keep it with your backups |
 | `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |
 
 > Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth. `VITE_*` remain build-time only; `POCKETBASE_ADMIN_*` are read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)) to upsert the dashboard superuser on start (GH#50).

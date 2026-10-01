@@ -79,8 +79,14 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_AUTH_METHOD: ${SMTP_AUTH_METHOD:-}
       TRUSTED_PROXY_HEADERS: ${TRUSTED_PROXY_HEADERS:-}
       TRUSTED_PROXY_USE_LEFTMOST_IP: ${TRUSTED_PROXY_USE_LEFTMOST_IP:-}
+      # Optional: encrypt the PocketBase settings row (SMTP password, S3 keys)
+      # at rest. Exactly 32 characters; the entrypoint passes
+      # --encryptionEnv=ENCRYPTION_KEY only when it is set and valid. Once
+      # settings were saved with a key, PocketBase will not start without it.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data
