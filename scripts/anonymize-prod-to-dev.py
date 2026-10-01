@@ -18,20 +18,44 @@ What it does:
     (user-defined free text definitions), etc.
   - Preserves: IDs, relations, dates, statuses, repeat intervals, structure
 
+  - Rewrites the PocketBase settings row (_params 'settings'): SMTP, S3 and
+    backup-S3 are disabled with their hosts/credentials blanked, the sender
+    identity and app URL are replaced and the superuser IP allow-list is
+    emptied; rate limits, trusted-proxy, batch and log settings are kept. An
+    encrypted (non-JSON) settings row is deleted so PocketBase recreates safe
+    defaults on first start.
+  - Rotates the token-signing secrets of every auth collection and blanks
+    OAuth2 client secrets (_collections.options).
+  - Clears task/calendar-event identifiers derived from external accounts
+    (uid, external_id).
+  - Gives every user and superuser a unique fake identity and a random tokenKey.
+
+Failure safety: all work happens on <output>.partial-<pid>; only a fully
+anonymized and integrity-checked database is renamed to <output>. On any
+error the partial file and its -wal/-shm/-journal siblings are deleted, so a
+failed run never leaves a file that could be mistaken for a safe copy.
+
 IMPORTANT: The raw prod dump must NEVER be committed to git or left on dev.
+pb_data/auxiliary.db is a separate database with PocketBase's request logs
+(IP addresses, user agents, URLs, e-mail addresses in failed auth requests).
+It is NOT processed here: never copy it to dev; PocketBase creates a fresh
+one on start.
 Also: uploaded files (avatars, photos) live in pb_data/storage, which is NOT
 part of the SQLite DB. The users.avatar field is cleared, but if you copied the
 storage directory alongside the DB you must scrub or delete it yourself.
 
 Exit code:
   0  — success
+  1  — failed; no output file was written
   2  — one or more known sensitive tables/fields could not be processed
        (missing table/column is ignored; unexpected errors are reported)
 """
 
+import json
+import os
+import secrets
 import sqlite3
 import sys
-import os
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
@@ -43,15 +67,95 @@ TEST_PASSWORD = "test1234"
 # This is a real bcrypt hash for "test1234"
 TEST_PASSWORD_HASH = "$2b$10$fGfrfRbf5/h0V4RxIw2NEuVgrK4D5kOEaGw6jNParhr5vbywd1c9O"
 
-FAKE_USERS = [
-    {"email": "admin@example.test", "name": "Admin Test", "first_name": "Admin", "last_name": "Test"},
-    {"email": "member1@example.test", "name": "Gezinslid 1", "first_name": "Gezinslid", "last_name": "Een"},
-    {"email": "member2@example.test", "name": "Gezinslid 2", "first_name": "Gezinslid", "last_name": "Twee"},
-    {"email": "member3@example.test", "name": "Gezinslid 3", "first_name": "Gezinslid", "last_name": "Drie"},
-    {"email": "member4@example.test", "name": "Gezinslid 4", "first_name": "Gezinslid", "last_name": "Vier"},
-    {"email": "member5@example.test", "name": "Gezinslid 5", "first_name": "Gezinslid", "last_name": "Vijf"},
-    {"email": "member6@example.test", "name": "Gezinslid 6", "first_name": "Gezinslid", "last_name": "Zes"},
-]
+def fake_user(index: int) -> dict:
+    """A unique fake identity per row (UNIQUE email index); index 0 is the
+    documented dev login."""
+    if index == 0:
+        return {"email": "admin@example.test", "name": "Admin Test", "first_name": "Admin", "last_name": "Test"}
+    return {"email": f"member{index}@example.test", "name": f"Gezinslid {index}", "first_name": "Gezinslid", "last_name": str(index)}
+
+
+def fake_superuser_email(index: int) -> str:
+    return "admin@example.test" if index == 0 else f"admin{index + 1}@example.test"
+
+
+def new_token_key() -> str:
+    """Random per-record tokenKey (UNIQUE index; never derived from the id)."""
+    return secrets.token_hex(25)
+
+
+# Settings the dev copy keeps as-is: operational, not secret.
+SAFE_SMTP = {"enabled": False, "port": 587, "host": "", "username": "", "password": "", "authMethod": "", "tls": False, "localName": ""}
+SAFE_S3 = {"enabled": False, "bucket": "", "region": "", "endpoint": "", "accessKey": "", "secret": "", "forcePathStyle": False}
+
+
+def sanitize_settings(db: sqlite3.Connection) -> str:
+    """Rewrite the PocketBase settings row; returns what was done."""
+    if not get_columns(db, "_params"):
+        return "no _params table"
+    row = db.execute("SELECT value FROM _params WHERE id = 'settings'").fetchone()
+    if row is None:
+        return "no settings row"
+    raw = row[0]
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    try:
+        settings = json.loads(raw)
+        if not isinstance(settings, dict):
+            raise ValueError("not an object")
+    except (TypeError, ValueError):
+        # Encrypted with the production ENCRYPTION_KEY (or unreadable): drop it.
+        # PocketBase recreates default settings on the next start.
+        db.execute("DELETE FROM _params WHERE id = 'settings'")
+        return "encrypted/unreadable settings row deleted (PocketBase recreates defaults)"
+    settings["smtp"] = dict(SAFE_SMTP)
+    settings["s3"] = dict(SAFE_S3)
+    backups = settings.get("backups") if isinstance(settings.get("backups"), dict) else {}
+    backups["s3"] = dict(SAFE_S3)
+    settings["backups"] = backups
+    meta = settings.get("meta") if isinstance(settings.get("meta"), dict) else {}
+    meta.update({"appURL": "http://localhost:7070", "senderName": "todoless dev", "senderAddress": "noreply@example.test"})
+    settings["meta"] = meta
+    settings["superuserIPs"] = []
+    db.execute("UPDATE _params SET value = ? WHERE id = 'settings'", (json.dumps(settings),))
+    return "SMTP/S3/backup-S3 disabled and blanked, sender + app URL replaced, superuser IPs cleared"
+
+
+def _scrub_secrets(node):
+    """Recursively rotate token-signing secrets and blank OAuth2 client secrets."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "secret" and isinstance(value, str):
+                node[key] = secrets.token_urlsafe(37)[:50]
+            elif key == "clientSecret" and isinstance(value, str):
+                node[key] = ""
+            else:
+                _scrub_secrets(value)
+    elif isinstance(node, list):
+        for value in node:
+            _scrub_secrets(value)
+
+
+def rotate_collection_secrets(db: sqlite3.Connection) -> int:
+    if "options" not in get_columns(db, "_collections"):
+        return 0
+    count = 0
+    for cid, options in db.execute("SELECT id, options FROM _collections WHERE type = 'auth'").fetchall():
+        try:
+            parsed = json.loads(options or "{}")
+        except ValueError:
+            continue
+        _scrub_secrets(parsed)
+        db.execute("UPDATE _collections SET options = ? WHERE id = ?", (json.dumps(parsed), cid))
+        count += 1
+    return count
+
+
+def _fail_point(name: str) -> None:
+    """Test hook (tests/test_anonymize_prod_to_dev.py): simulate a crash."""
+    if os.environ.get("TODOLESS_ANONYMIZE_FAIL_AT") == name:
+        raise RuntimeError(f"simulated failure at {name}")
+
 
 TASK_PLACEHOLDERS = [
     "Boodschappen doen", "Afspraak inplannen", "Documenten nakijken",
@@ -94,7 +198,7 @@ CLEAR_TABLES = [
 
 # Tables that are anonymized in place (kept, but contents scrambled).
 HANDLED_TABLES = {
-    "users", "_superusers", "families", "tasks", "items", "notes",
+    "users", "_superusers", "_params", "_collections", "families", "tasks", "items", "notes",
     "calendar_events", "labels", "projects", "shops",
 }
 
@@ -151,19 +255,44 @@ def main():
         print(f"ERROR: Source file not found: {src}")
         sys.exit(1)
 
+    work = f"{dst}.partial-{os.getpid()}"
+
+    def remove_work_files() -> None:
+        for path in (work, work + "-wal", work + "-shm", work + "-journal"):
+            if os.path.exists(path):
+                os.remove(path)
+
+    try:
+        warnings = anonymize(src, work)
+        # Only a complete, integrity-checked result gets the output name.
+        for suffix in ("-wal", "-shm", "-journal"):
+            if os.path.exists(dst + suffix):
+                os.remove(dst + suffix)
+        os.replace(work, dst)
+    except BaseException as exc:  # noqa: BLE001 - every failure must clean up
+        remove_work_files()
+        print(f"\n❌ Anonymization FAILED ({exc.__class__.__name__}: {exc}).", file=sys.stderr)
+        print(f"   No output was written; {dst} was not created or changed.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"\n✅ Anonymization complete: {dst}")
+    print(f"   Login (app and dashboard): admin@example.test / {TEST_PASSWORD}")
+    print("   ⚠️  Do NOT commit this file to git!")
+    print("   ⚠️  Do NOT copy pb_data/auxiliary.db (request logs with IPs/e-mails) to dev.")
+    if warnings:
+        print("\n⚠️  Completed WITH WARNINGS — one or more expected fields/tables were missing.")
+        sys.exit(2)
+
+
+def anonymize(src: str, dst: str) -> list[str]:
+    """Copy src to dst and anonymize dst in place. Raises on any failure."""
     print(f"Copying {src} → {dst} ...")
     # Use sqlite3.backup() (not a raw file copy) so a WAL-mode source is copied
-    # consistently: uncheckpointed rows in the source -wal are included, and no
-    # stale dst -wal/-shm siblings from a previous interrupted run are replayed.
-    for suffix in ("-wal", "-shm"):
-        stale = dst + suffix
-        if os.path.exists(stale):
-            os.remove(stale)
+    # consistently: uncheckpointed rows in the source -wal are included.
     _copy_db_consistent(src, dst)
 
     print(f"Opening {dst} for anonymization ...")
     db = sqlite3.connect(dst)
-    db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA foreign_keys=OFF")
 
     warnings = []
@@ -171,12 +300,19 @@ def main():
     # ── Users ──
     print("\n── Users ──")
     users = db.execute("SELECT id, email FROM users ORDER BY rowid").fetchall()
+    user_cols = get_columns(db, "users")
+    # Two passes: park every row on a unique placeholder first, so a fake
+    # address can never collide with a production address that is still
+    # waiting for its turn (UNIQUE email index).
+    for uid, _email in users:
+        db.execute("UPDATE users SET email=? WHERE id=?", (f"pending-{uid}@example.invalid", uid))
     for i, (uid, _email) in enumerate(users):
-        fake = FAKE_USERS[i % len(FAKE_USERS)]
-        db.execute(
-            "UPDATE users SET email=?, name=?, first_name=?, last_name=?, password=?, tokenKey=?, emailVisibility=0, verified=1 WHERE id=?",
-            (fake["email"], fake["name"], fake["first_name"], fake["last_name"], TEST_PASSWORD_HASH, f"tk_test_{uid[:8]}", uid),
-        )
+        fake = fake_user(i)
+        sets = {"email": fake["email"], "name": fake["name"], "password": TEST_PASSWORD_HASH,
+                "tokenKey": new_token_key(), "emailVisibility": 0, "verified": 1,
+                "first_name": fake["first_name"], "last_name": fake["last_name"]}
+        sets = {k: v for k, v in sets.items() if k in user_cols}
+        db.execute(f"UPDATE users SET {', '.join(f'{k}=?' for k in sets)} WHERE id=?", (*sets.values(), uid))
         # GH#97: clear profile free text, avatar reference and invite code
         clear_extra_fields(db, "users", uid, {
             "display_name": fake["name"],
@@ -185,12 +321,21 @@ def main():
         })
         print(f"  {uid[:8]}... → {fake['email']}")
 
-    su = db.execute("SELECT id FROM _superusers").fetchall()
+    su = db.execute("SELECT id FROM _superusers ORDER BY rowid").fetchall()
     for (su_id,) in su:
+        db.execute("UPDATE _superusers SET email=? WHERE id=?", (f"pending-{su_id}@example.invalid", su_id))
+    for i, (su_id,) in enumerate(su):
         db.execute(
-            "UPDATE _superusers SET email='admin@example.test', password=?, tokenKey=?, emailVisibility=0 WHERE id=?",
-            (TEST_PASSWORD_HASH, f"tk_su_{su_id[:8]}", su_id),
+            "UPDATE _superusers SET email=?, password=?, tokenKey=?, emailVisibility=0 WHERE id=?",
+            (fake_superuser_email(i), TEST_PASSWORD_HASH, new_token_key(), su_id),
         )
+        print(f"  superuser {su_id[:8]}... → {fake_superuser_email(i)}")
+    _fail_point("after-users")
+
+    # ── PocketBase settings + auth secrets ──
+    print("\n── Settings ──")
+    print(f"  {sanitize_settings(db)}")
+    print(f"  token secrets rotated on {rotate_collection_secrets(db)} auth collection(s)")
 
     # ── Families ──
     print("\n── Families ──")
@@ -208,8 +353,9 @@ def main():
         new_title = scramble_title(title or "Taak", TASK_PLACEHOLDERS, i)
         db.execute("UPDATE tasks SET title=?, blocked_comment='' WHERE id=?", (new_title, tid))
         # GH#97: clear free-text description/location (columns added in 058)
-        clear_extra_fields(db, "tasks", tid, {"description": "", "location": ""})
+        clear_extra_fields(db, "tasks", tid, {"description": "", "location": "", "uid": "", "external_id": ""})
     print(f"  {len(tasks)} tasks anonymized")
+    _fail_point("after-tasks")
     if "description" not in task_cols or "location" not in task_cols:
         warnings.append("tasks table missing description/location columns (migration 058 not applied?)")
 
@@ -233,7 +379,7 @@ def main():
     for i, (eid, title) in enumerate(events):
         db.execute("UPDATE calendar_events SET title=?, description='' WHERE id=?", (scramble_title(title or "Afspraak", TASK_PLACEHOLDERS, i), eid))
         # GH#97: clear free-text location and attendee identity data (056)
-        clear_extra_fields(db, "calendar_events", eid, {"location": "", "attendees": "[]"})
+        clear_extra_fields(db, "calendar_events", eid, {"location": "", "attendees": "[]", "uid": "", "external_id": ""})
     print(f"  {len(events)} calendar events anonymized")
     if "location" not in event_cols or "attendees" not in event_cols:
         warnings.append("calendar_events table missing location/attendees columns (migration 056 not applied?)")
@@ -282,6 +428,13 @@ def main():
                 raise
 
     db.commit()
+    check = db.execute("PRAGMA integrity_check").fetchone()[0]
+    if check != "ok":
+        raise RuntimeError(f"integrity check failed: {check}")
+    # One self-contained file: no -wal/-shm siblings to forget or leak, and
+    # VACUUM rewrites it so no overwritten value survives in a free page.
+    db.execute("PRAGMA journal_mode=DELETE")
+    db.execute("VACUUM")
     db.close()
 
     # ── Post-run audit: what was NOT touched ──
@@ -289,6 +442,7 @@ def main():
     print("  - pb_data/storage files (avatars, uploads) are not part of this DB file.")
     print("    users.avatar was cleared, but if you copied the storage directory")
     print("    you must scrub/delete it yourself.")
+    print("  - pb_data/auxiliary.db (request logs: IPs, URLs, e-mails) is not processed.")
     audit = _audit_remaining(db_path=dst, handled=HANDLED_TABLES, cleared=set(cleared))
     for line in audit:
         print(f"  {line}")
@@ -297,14 +451,7 @@ def main():
         print("\n⚠️  Warnings:")
         for w in warnings:
             print(f"  - {w}")
-
-    print(f"\n✅ Anonymization complete: {dst}")
-    print(f"   Login: admin@example.test / {TEST_PASSWORD}")
-    print(f"   ⚠️  Do NOT commit this file to git!")
-
-    if warnings:
-        print("\n⚠️  Completed WITH WARNINGS — one or more expected fields/tables were missing.")
-        sys.exit(2)
+    return warnings
 
 
 def _audit_remaining(db_path: str, handled: set, cleared: set) -> list[str]:

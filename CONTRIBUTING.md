@@ -45,6 +45,21 @@ Open the app and complete the onboarding to create your first account. Set `TODO
 
 To test the production containers instead, run the full stack as described in the [README Quick Start](README.md#quick-start).
 
+## Working with a copy of real data
+
+Never develop against a production database. If you need realistic data, make an anonymized copy:
+
+```bash
+docker compose stop pocketbase   # or use a backup zip from pb_data/backups
+python3 scripts/anonymize-prod-to-dev.py /path/to/prod/pb_data/data.db ./pb_data/data.db
+```
+
+- The script replaces names, e-mail addresses, passwords (all become `test1234`; the first user and the first superuser are `admin@example.test`), titles and free text. It deletes tokens, invites, integrations and push data, and clears external calendar identifiers.
+- It rewrites the PocketBase settings: SMTP, S3 and backup S3 are disabled and their credentials removed. If the settings are encrypted (`ENCRYPTION_KEY`), the row is deleted and PocketBase recreates safe defaults. Token-signing secrets are rotated.
+- The output only appears once anonymization has fully succeeded. After an error no output file is left behind.
+- **Copy only `data.db`.** `pb_data/auxiliary.db` holds PocketBase's request logs (IP addresses, URLs, e-mail addresses) and is **not** anonymized; PocketBase creates a fresh one. Uploaded files in `pb_data/storage` are not scrubbed either.
+- Never commit any database file, anonymized or not.
+
 ## Database migrations
 
 PocketBase applies `pb_migrations/*.js` in lexical file-name order and records applied files by **file name** in its SQLite `_migrations` table. That has two consequences:
