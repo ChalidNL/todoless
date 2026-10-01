@@ -160,6 +160,8 @@ All settings are optional. Put them in a `.env` file next to `docker-compose.yml
 
 On every start, the container copies the bundled hooks and migrations into these directories. Files the app no longer ships are renamed to `<name>.gh35-removed-<timestamp>`, never deleted, and files you added yourself are never touched.
 
+The database schema is owned by this repository. PocketBase starts with `--automigrate=false`, so a collection edit in the PocketBase dashboard changes the running database but does **not** write a `<timestamp>_updated_<collection>.js` file into `pb_migrations/`. Such files would re-run on every start and could collide with later bundled migrations. If an older install already has files like that in `pb_migrations/` (their names start with a 10-digit timestamp), review them and remove the ones you don't need before upgrading.
+
 ### Logs
 Both containers log to stdout/stderr, so `docker compose logs`, Dozzle, Portainer or Loki pick them up. Request logs contain the method, route, status, duration and client IP; query strings, headers and bodies are never logged. Warnings and errors also appear in the PocketBase dashboard under **Logs** (kept for 5 days by default).
 
