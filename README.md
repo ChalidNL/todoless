@@ -1,68 +1,103 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="todoless" width="120" />
+<img src="docs/assets/logo.png" alt="todoless logo" width="112" />
 
 # todoless
 
-**The family organizer that keeps your data yours.**
+**Less managing. More living.**
 
-Local-first · Self-hosted · Made in Europe · Free forever — no subscriptions, no paywalls.
+The self-hosted family organizer for tasks, calendar and groceries.<br />
+Your family. Your data.
 
-[Why todoless](#-why-todoless) · [Quick Start](#-quick-start) · [Configuration](#-configuration) · [Security](#-running-securely) · [Roadmap](#-roadmap)
+[Website](https://todoless.eu) · [Install](#quick-start) · [Features](#features) · [Privacy](#privacy) · [API](#api-and-integrations) · [Releases](https://github.com/ChalidNL/todoless/releases)
+
+Free & open source · Self-hosted · Made in Europe · v1.0.0
 
 </div>
+
+<p align="center">
+  <img src="docs/assets/screenshots/mobile-inbox.png" alt="Inbox with the Todo Sprint overview on a phone" width="250" />
+  &nbsp;
+  <img src="docs/assets/screenshots/mobile-tasks.png" alt="Tasks with labels, assignees, due dates and focus" width="250" />
+  &nbsp;
+  <img src="docs/assets/screenshots/mobile-groceries.png" alt="Shared grocery list with quantities and shops" width="250" />
+</p>
 
 ---
 
 ## Why todoless?
 
-There are thousands of to-do apps. Almost none of them are built around **your privacy**. todoless is.
+The dentist appointment. The permission slip. What's for dinner on Thursday. In most families, one person carries all of it in their head.
 
-Family life is full of appointments, reminders and recurring patterns — groceries, school runs, swimming lessons, doctor visits. No app made that calm and clear *without* shipping your family's data to someone else's servers.
+todoless gives the whole household one calm, shared place for it, and it runs on **your own server**: a Raspberry Pi, an old laptop or a NAS. There is no account with us, no cloud service in between, and nothing to subscribe to.
 
-todoless is a small gift back to people who just want to organise daily life, on their own terms:
-
-- 🔒 **Your data stays yours.** Self-hosted on your own machine. No tracking, no ads, no profiling.
-- 🏠 **Local-first.** Runs on your own server — a Raspberry Pi, an old laptop, a NAS. You own the database.
-- 🇪🇺 **Designed and built in Europe**, with data sovereignty as a first principle — not an afterthought.
-- 🆓 **Free forever.** No subscriptions. No "premium" tier. Every feature is available to everyone, always.
-- 👨‍👩‍👧‍👦 **Made for families.** Shared tasks, groceries, a calendar of everyone's appointments, and recurring routines — in one calm, mobile-first interface.
-- 🧩 **Open and yours to shape.** Self-hosted and transparent; you can read the code that runs your family's data.
-
-> todoless was never meant to be a million-dollar business. It's a contribution back — software that respects the people who use it.
+- **Privacy first.** No telemetry, no ads, no profiling. Your household data stays on hardware you control.
+- **Self-hosted.** Two Docker containers, about five minutes to set up.
+- **Made for families.** Shared lists, assignees and roles, a family calendar and a shopping list, on a mobile-first interface.
+- **Free and open source.** AGPL-3.0. Every feature is available to everyone, with no premium tier. You can read the code that runs your family's day.
+- **Made in Europe.** Designed and built with data sovereignty as a starting point.
 
 ---
 
-## Screenshots
+## Features
 
-| Inbox | Tasks | Calendar |
-|---|---|---|
-| ![Inbox](docs/assets/screenshot-inbox.png) | ![Tasks](docs/assets/screenshot-tasks.png) | ![Calendar](docs/assets/screenshot-calendar.png) |
+Everything below is available in **v1.0.0**.
 
-| Groceries | Week view | Settings |
-|---|---|---|
-| ![Groceries](docs/assets/screenshot-groceries.png) | ![Week](docs/assets/screenshot-week.png) | ![Settings](docs/assets/screenshot-settings.png) |
+**Capture: Inbox / Brain Dump**
+- Type a thought, press Enter, and it's saved. Structure it later.
+- Search, filter and sort the inbox; select several items at once.
+
+**Structure: Tasks**
+- Labels in your own colors, assignees, due dates, priorities, sub-tasks and a comment per task.
+- Repeating tasks (daily, weekly, monthly…) create their next occurrence when you complete them.
+- Mark tasks as focus or blocked. Overdue and focus tasks are grouped at the top.
+
+**Focus: Todo Sprint**
+- Pick the tasks that matter now from the inbox. They become your short Todo Sprint in Tasks, and the rest can wait.
+
+**Together: family and roles**
+- One household, shared by everyone. Invite members with a code or link; they join automatically.
+- Roles: Owner, Admin, Member. Lists are shared with the household; labels can be private or shared with the family.
+- Changes appear live on every signed-in device.
+
+**Everyday life: calendar and groceries**
+- Dated tasks become your calendar: Day, 3 days, Week, Work week, Month and Schedule views.
+- Import and export `.ics` files, or subscribe from Apple Calendar, Google Calendar, Outlook or any other app that reads an ICS feed.
+- A shared shopping list with quantities and shops you define, in your own colors. **Restock** brings ticked-off items back for next time.
+
+**Your installation**
+- An installable mobile-first PWA for phones, tablets and desktops.
+- Interface in English, Dutch, German, French and Spanish.
+- Daily automatic backups (PocketBase built-in, kept for 7 days).
+- A documented REST API with scoped API tokens. See [API and integrations](#api-and-integrations).
+
+<p align="center">
+  <img src="docs/assets/screenshots/desktop-calendar.png" alt="Family week calendar on a desktop browser" width="820" />
+</p>
 
 ---
 
-## What you get
+## Privacy
 
-- **Inbox** — capture anything quickly; sort it later.
-- **Tasks** — due dates, recurring patterns, labels, assignees, priorities, focus, subtasks.
-- **Calendar** — every task with a date, visualised. Day / 3-day / Week / Work week / Month / Schedule views.
-- **Groceries** — a shared shopping list with quantities and shops, for the whole household.
-- **Multi-member** — one household, multiple people, shared and personal items. Invite-based onboarding.
-- **Mobile-first** — built for phones, where family logistics actually happen.
+| | |
+|---|---|
+| **Where your data lives** | In a PocketBase (SQLite) database in `/DATA/AppData/todoless/pb_data` on your server. That's also where backups are stored. |
+| **What leaves your server** | Nothing by default. The server only connects out when *you* configure it: e-mail through your own SMTP server, or backups to S3-compatible storage. Updating pulls new images from GitHub Container Registry. |
+| **What your browser loads** | Only your own server. The shipped nginx sets a Content-Security-Policy that blocks scripts, styles, fonts and requests to any other host. There are no analytics, trackers or external fonts. |
+| **Who can see what** | Members of your household see shared lists. Private labels stay with their owner. The admin dashboard (`/_/`) only answers on private networks. |
+| **Calendar feed** | The subscription link contains a secret, read-only token. Anyone with the link can read the family calendar, so share it only with people you trust. You can revoke your links in Settings at any time. |
+
+Keeping a self-hosted service safe is your responsibility: keep it updated and don't expose it to the internet without HTTPS (see [Running securely](#running-securely)).
 
 ---
 
-## Quick Start
+## Quick start
 
-todoless runs as two Docker containers: **nginx frontend** and **PocketBase backend** (database + auth + API), orchestrated with Docker Compose.
+todoless runs as two containers, started with Docker Compose:
+- **todoless**: nginx with the web app.
+- **pocketbase**: database, authentication and API.
 
-### Requirements
-- A machine that can run **Docker** and **Docker Compose** (Linux, Raspberry Pi 4+, NAS, or any always-on computer).
-- ~5 minutes.
+**Requirements:** an always-on machine with Docker and Docker Compose (Linux, a Raspberry Pi 4 or newer, a NAS…).
 
 ### 1. Clone
 ```bash
@@ -70,91 +105,63 @@ git clone https://github.com/ChalidNL/todoless.git
 cd todoless
 ```
 
-### 2. Create data directories
-PocketBase needs persistent storage. Create the directories Docker will mount:
+### 2. Create the data directories
+The PocketBase container runs as a fixed non-root user (uid 1000). Create its storage directories and give them to that user:
 ```bash
-sudo mkdir -p /DATA/AppData/todoless/pb_data
-sudo mkdir -p /DATA/AppData/todoless/pb_migrations
-sudo mkdir -p /DATA/AppData/todoless/pb_hooks
+sudo mkdir -p /DATA/AppData/todoless/pb_data /DATA/AppData/todoless/pb_migrations /DATA/AppData/todoless/pb_hooks
+sudo chown -R 1000:1000 /DATA/AppData/todoless
 ```
-The PocketBase container runs as a fixed non-root user (uid 1000), so the
-directories must be owned by that user:
-```bash
-sudo chown -R 1000:1000 /DATA/AppData/todoless/pb_data /DATA/AppData/todoless/pb_migrations /DATA/AppData/todoless/pb_hooks
-```
+To store data somewhere else, change the three volume paths in `docker-compose.yml` first, and `chown` those paths instead.
 
-> **Custom paths:** If you prefer different locations, edit `docker-compose.yml` and change the volume `source` paths before starting, and chown those paths to uid 1000 as above.
-
-### 3. Run
+### 3. Start
 ```bash
 docker compose up -d
 ```
-This pulls the pre-built images from GitHub Container Registry and starts everything.
+This pulls the published images from GitHub Container Registry. The first start takes a minute while the database is set up. `docker compose ps` shows both containers as `healthy` when they are ready.
 
-### 4. Open
-Visit **http://your-server-ip:7070**. On first run, you'll see the onboarding:
-1. Choose your language
-2. Create your admin account and name your household
-3. Invite family members from Settings
+### 4. Create your family
+Open **http://your-server:7070** and follow the onboarding:
+1. Choose your language.
+2. Name your household.
+3. Create the admin account.
+
+Then invite your family from **Settings → Members**.
+
+> **Optional:** copy `.env.example` to `.env` before step 3 to change the port, set your timezone, configure e-mail (for password resets) or create the PocketBase dashboard login. See [Configuration](#configuration).
 
 ---
 
 ## Configuration
 
-### Port
-The app is exposed on port **7070** by default. To change it, set `TODOLESS_PORT` in `.env` (see `.env.example`):
-```yaml
-# docker-compose.yml (no edit needed)
-ports:
-  - target: 8080
-    published: "${TODOLESS_PORT:-7070}"
-```
-```bash
-# .env
-TODOLESS_PORT=8080
-```
+All settings are optional. Put them in a `.env` file next to `docker-compose.yml`; `.env.example` documents every variable.
+
+| Variable | Purpose |
+|---|---|
+| `TODOLESS_PORT` | Published web port (default `7070`) |
+| `TZ` | Timezone for both containers (default `Europe/Amsterdam`) |
+| `APP_URL` | Public address of your install, used in e-mail links (for example `https://todo.example.org`) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_AUTH_METHOD` | Your SMTP server, used for password-reset e-mails. E-mail is enabled when `SMTP_HOST` is set. |
+| `TRUSTED_PROXY_HEADERS`, `TRUSTED_PROXY_USE_LEFTMOST_IP` | Client-IP detection behind a reverse proxy (for example `X-Forwarded-For`) |
+| `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` | Create or update the PocketBase dashboard login on every start |
+| `LOG_LEVEL` | Backend log verbosity: `info` (default), `warn`, `error` or `debug` |
+| `MAIL_WEBHOOK_SECRET` | Shared secret for the optional inbound-mail webhook |
+
+`APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are applied to PocketBase **once**, on the first start. After that, change them in the PocketBase dashboard under **Settings**.
+
+**Never commit your `.env` file**: it contains passwords.
 
 ### Volumes
-All persistent data lives in `/DATA/AppData/todoless/`:
 
-| Directory | Purpose |
+| Host directory | Contents |
 |---|---|
-| `pb_data/` | PocketBase database + file uploads |
-| `pb_migrations/` | Schema migration scripts |
-| `pb_hooks/` | Server-side API hooks |
+| `/DATA/AppData/todoless/pb_data` | Database, uploaded files and backups |
+| `/DATA/AppData/todoless/pb_migrations` | Database migrations (managed by the image) |
+| `/DATA/AppData/todoless/pb_hooks` | Server-side API hooks (managed by the image) |
 
-On every start the entrypoint seeds the bundled hooks/migrations into these volumes and prunes app-managed files that were renamed or removed upstream (and files from newer images when downgrading), so stale hooks stop running and removed migrations never re-apply (GH#35). Pruned files are preserved as `<name>.gh35-removed-<timestamp>` instead of deleted, so a locally customized copy is never destroyed; the suffix is ignored by PocketBase, and directories are never touched. User-added files are never touched at all; the append-only manifests `app-managed-migrations.txt` / `app-managed-hooks.txt` list every file the app has ever seeded and are enforced by CI. Once you have confirmed you no longer need a preserved copy, you can delete any `*.gh35-removed-*` file from `pb_migrations/` or `pb_hooks/`.
+On every start, the container copies the bundled hooks and migrations into these directories. Files the app no longer ships are renamed to `<name>.gh35-removed-<timestamp>`, never deleted, and files you added yourself are never touched.
 
-### Environment (.env.example)
-The `.env.example` file documents available variables. Not all are used by the production compose — the key ones for self-hosters:
-
-| Variable | What it does |
-|---|---|
-| `TZ` | Timezone (default: `Europe/Amsterdam`, hardcoded in compose) |
-| `TODOLESS_PORT` | Published web port, read by compose (default: `7070`, see `.env.example`) |
-| `LOG_LEVEL` | Backend logging verbosity on stdout/stderr (default: `info`) — see below |
-| `POCKETBASE_ADMIN_EMAIL` | PocketBase superuser email - set together with the password to auto-create the dashboard login on start (optional) |
-| `POCKETBASE_ADMIN_PASSWORD` | PocketBase superuser password - set together with the email (optional) |
-| `MAIL_WEBHOOK_SECRET` | Inbound mail webhook shared secret, sent as Bearer token by your mail provider; webhook fails closed with 503 if unset |
-| `APP_NAME`, `APP_URL` | PocketBase app name / public URL (used in e-mails) — applied once by the settings bootstrap (GH#51) |
-| `SMTP_*` | SMTP server for verification/password-reset e-mails — SMTP is enabled when `SMTP_HOST` is set; applied once by the settings bootstrap (GH#51) |
-| `TRUSTED_PROXY_*` | Trusted proxy headers for client-IP detection behind a reverse proxy — applied once by the settings bootstrap (GH#51) |
-
-> Runtime settings bootstrap (GH#51): `APP_NAME`, `APP_URL`, `SMTP_*` and `TRUSTED_PROXY_*` are read by docker-compose.yml and applied to PocketBase settings **once** by migration `z067` on first start — fresh installs and upgrades alike. Afterwards the admin Dashboard is the source of truth. `VITE_*` remain build-time only; `POCKETBASE_ADMIN_*` are read by the container entrypoint (see [Accessing the PocketBase dashboard](#accessing-the-pocketbase-dashboard-admin)) to upsert the dashboard superuser on start (GH#50).
-
-### Logging & observability
-The PocketBase container writes structured, single-line request logs to **stdout/stderr**, which any Docker log setup (Loki/promtail, Dozzle, Portainer, `docker logs`) picks up automatically:
-
-```
-[pb-request] ts=2026-09-28T10:45:19Z level=info method=GET path=/api/entries status=200 duration_ms=3 ip=192.168.2.10 auth=abc123
-[pb-request] ts=2026-09-28T10:45:19Z level=warn method=POST path=/api/invites/create status=401 duration_ms=1 ip=192.168.2.10 auth=-
-```
-
-- `level=info` → stdout · `level=warn`/`level=error` → stderr · `path` is the route only (query string, headers and bodies are **never** logged).
-- 4xx/5xx lines are also mirrored into PocketBase's own log store (`auxiliary.db` → `_logs`) via `$app.logger()`, so they show up in the admin dashboard (and can be shipped via the superuser API `GET /api/logs/request`).
-- Unhandled errors thrown by custom routes are logged (`level=error ... error="..."`) instead of being silently swallowed.
-- `LOG_LEVEL` controls verbosity: `info` (default) logs everything · `warn`/`error` only logs warnings/errors · `debug`/`trace` adds PocketBase's own `--dev` output (console logs + SQL) to the same streams.
-- Log retention in `_logs` defaults to 5 days — adjust under **Settings → Logs** in the admin dashboard if you need longer history.
+### Logs
+Both containers log to stdout/stderr, so `docker compose logs`, Dozzle, Portainer or Loki pick them up. Request logs contain the method, route, status, duration and client IP; query strings, headers and bodies are never logged. Warnings and errors also appear in the PocketBase dashboard under **Logs** (kept for 5 days by default).
 
 ---
 
@@ -166,144 +173,103 @@ git pull
 docker compose pull
 docker compose up -d
 ```
-PocketBase automatically applies new migrations on restart. Check the [releases page](https://github.com/ChalidNL/todoless/releases) for breaking changes before updating.
+New database migrations are applied automatically when PocketBase restarts. Read the [release notes](https://github.com/ChalidNL/todoless/releases) before updating.
 
-### Updating to the non-root images (GH#45)
+`docker-compose.yml` pins each image by digest, so an install only changes when you pull a new version of this repository. To follow a specific release instead, replace the `image:` lines with `ghcr.io/chalidnl/todoless-frontend:1.0.0` and `ghcr.io/chalidnl/todoless-pocketbase:1.0.0` (or `:1.0` for the latest 1.0.x).
 
-Since the 2026-09-28 release both containers run as **non-root** users: the
-frontend as uid 101 (`nginx-unprivileged`) and PocketBase as uid 1000. If you
-are upgrading an install that was created before that release, your storage
-directories are still owned by root and PocketBase will refuse to start until
-they are migrated **once**:
+<details>
+<summary><b>Upgrading an install from before the non-root images (September 2026)</b></summary>
+
+Since September 2026 both containers run as non-root users. Older installs have root-owned data directories, and PocketBase then stops with `[entrypoint] ERROR: /pb_data is not writable`. Fix the ownership once:
 
 ```bash
 cd todoless
 git pull
 docker compose stop
-sudo chown -R 1000:1000 /DATA/AppData/todoless/pb_data \
-    /DATA/AppData/todoless/pb_migrations \
-    /DATA/AppData/todoless/pb_hooks
+sudo chown -R 1000:1000 /DATA/AppData/todoless/pb_data /DATA/AppData/todoless/pb_migrations /DATA/AppData/todoless/pb_hooks
 docker compose pull
 docker compose up -d
 ```
-
-Fresh installs (see [Quick Start](#-quick-start)) already chown the directories
-during setup, so no extra step is needed there. The command is safe to rerun.
-
-> If after `docker compose up -d` the `pocketbase` container is **restarting**
-> (crash loop) with `[entrypoint] ERROR: /pb_data is not writable` in
-> `docker compose logs pocketbase`, the volumes are still root-owned — run the
-> `chown` block above once and `docker compose up -d` again.
+</details>
 
 ### Backups
+PocketBase makes a consistent backup **every day at 02:00** and keeps the **last 7**. Backups are stored in `/DATA/AppData/todoless/pb_data/backups` and include the database and all uploaded files. In the PocketBase dashboard under **Settings → Backups** you can download or restore a backup, change the schedule, or copy backups to S3-compatible storage.
 
-PocketBase's built-in backup is enabled by default: it creates a **consistent zip snapshot every day at 02:00** (server time) and **keeps the last 7 backups**. Backups live in `pb_data/backups` (on the host: `/DATA/AppData/todoless/pb_data/backups`) and include the database plus all uploaded files. Download or restore them under **Settings → Backups** in the admin dashboard — you can also change the schedule/retention or mirror backups to S3-compatible storage there.
-
-> ⚠️ **Never copy the database while the app is running.** PocketBase uses SQLite in WAL mode: while the app is up there is a `data.db-wal` file holding the most recent writes, so copying `data.db` alone silently loses the last transactions. Use the built-in backup above (transaction-safe, runs while the app is up) or the offline recipe below (stopping PocketBase checkpoints the WAL first):
+Never copy `data.db` while the app is running: recent changes live in a separate WAL file and would be lost. Use the built-in backup, or stop PocketBase first:
 ```bash
-# Manual alternative: stop PocketBase first for a clean copy
 docker compose stop pocketbase
 sudo cp -r /DATA/AppData/todoless/pb_data /backup/pb_data-$(date +%Y%m%d)
 docker compose start pocketbase
 ```
-> **Your data, your responsibility — and your control.**
 
 ---
 
 ## Running securely
 
-todoless is meant to live on your own network. Here's how to access it safely:
+todoless is meant to live on your own network. The container serves plain HTTP on port 7070, so **never expose that port directly to the internet**.
 
-### Option A: Tailscale (recommended for families)
-Install [Tailscale](https://tailscale.com) on your server and your devices. Access todoless at `http://your-server:7070` — private, encrypted, nothing exposed to the internet.
+- **Private network (recommended for families):** install [Tailscale](https://tailscale.com) or WireGuard on the server and your devices, and open `http://your-server:7070` from anywhere. Nothing is exposed publicly.
+- **Public domain:** put a reverse proxy with HTTPS in front, for example Caddy (`todo.example.org { reverse_proxy localhost:7070 }`), Traefik or nginx with Let's Encrypt. Set `APP_URL` to the public address, and set `TRUSTED_PROXY_HEADERS` so rate limiting sees real client IPs.
 
-### Option B: Reverse proxy + HTTPS
-If you want a public domain, put todoless behind a reverse proxy with HTTPS:
+Built-in hardening:
+- Both containers run as non-root, with all Linux capabilities dropped; the web container's filesystem is read-only.
+- PocketBase is not published on the host. It is reachable only through nginx.
+- Logins, registration and API calls are rate-limited.
+- Strict security headers are set, including a Content-Security-Policy.
 
-| Proxy | Setup |
-|---|---|
-| **Caddy** | `your.domain { reverse_proxy localhost:7070 }` |
-| **Traefik** | Add labels to the compose service |
-| **nginx + Let's Encrypt** | Standard reverse proxy with certbot |
+To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
-> ⚠️ **Important:** If you use a reverse proxy, configure it to terminate TLS. The todoless container only serves HTTP — do not expose port 7070 directly to the internet without HTTPS in front of it.
+<details>
+<summary><b>PocketBase admin dashboard</b></summary>
 
-### Security hardening
-- **Reporting vulnerabilities:** see [SECURITY.md](SECURITY.md) for supported versions and how to privately report a vulnerability.
-- The PocketBase backend is not published to the host - only accessible internally via the nginx proxy. The admin dashboard at `/_/` is allow-listed to private networks only (see below).
-- Frontend container runs as an unprivileged Nginx user (uid 101) in a **read-only** filesystem with all capabilities dropped (`cap_drop: ALL`).
-- PocketBase container runs as a fixed non-root user (uid 1000) with all capabilities dropped (`cap_drop: ALL`, no `cap_add`).
-- Use `:latest` for quick trials; pin a release tag, commit SHA tag, or digest in production.
-- Validate SMTP before going live (invite/password-reset emails).
+PocketBase's own dashboard at **http://your-server:7070/_/** gives access to the data, settings, backups and logs. It only answers requests from private networks (LAN, loopback and the Tailscale range).
 
-### Accessing the PocketBase dashboard (admin)
-
-PocketBase ships its own admin dashboard at `/_/` (collections, settings, backups, `_logs`, user recovery). It is reachable at **http://your-server-ip:7070/_/**, but only from private networks: the shipped nginx allow-lists RFC1918 LAN ranges, loopback and the Tailscale CGNAT range (`100.64.0.0/10`), and answers `403` for everyone else. Never expose the app port to the public internet.
-
-**1. Superuser (usually automatic)**
-
-The web onboarding only creates an app admin. The PocketBase superuser is bootstrapped automatically if you set both `POCKETBASE_ADMIN_EMAIL` and `POCKETBASE_ADMIN_PASSWORD` in `.env` before `docker compose up -d` - the container entrypoint runs `pocketbase superuser upsert` on every start (idempotent, so updating the password later is just editing `.env` and recreating the container).
-
-**Manual alternative** (no `.env`): on the server, with the stack running:
-
+Set `POCKETBASE_ADMIN_EMAIL` and `POCKETBASE_ADMIN_PASSWORD` in `.env` to create the dashboard login automatically, or create it once by hand:
 ```bash
-docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-very-strong-password'
+docker compose exec pocketbase pocketbase superuser upsert admin@example.com 'a-long-unique-password'
 ```
 
-> The command writes to the same `pb_data` database the server uses. If you created a superuser manually, keep the same email/password in `.env` so the entrypoint keeps it in sync.
+To use the dashboard without any LAN exposure, publish PocketBase on the server's loopback only by adding `ports: ["127.0.0.1:8090:8090"]` to the `pocketbase` service. Then run `docker compose up -d pocketbase`, open an SSH tunnel (`ssh -L 8090:127.0.0.1:8090 user@your-server`) and browse to `http://127.0.0.1:8090/_/`. Remove the port line again when you're done.
+</details>
 
-**2. If you prefer zero LAN exposure (SSH tunnel only)**
+---
 
-1. Temporarily publish PocketBase to the host's loopback interface only. In `docker-compose.yml`, under the `pocketbase` service add:
-   ```yaml
-   ports:
-     - "127.0.0.1:8090:8090"
-   ```
-2. Recreate the container: `docker compose up -d pocketbase`
-3. From your workstation, tunnel into it: `ssh -L 8090:127.0.0.1:8090 user@your-server`
-4. Open **http://127.0.0.1:8090/_/** on your workstation and sign in with the superuser.
-5. When finished, remove the two lines you added and `docker compose up -d pocketbase` - the dashboard is unreachable again.
+## API and integrations
 
-Binding to `127.0.0.1` (not `0.0.0.0`) keeps the port off your LAN; only the SSH tunnel can reach it.
+- **REST API:** every install documents its own API in Swagger UI at **`/api/docs`**, also linked from **Settings** in the app. The public reference is at **[todoless.eu/docs](https://todoless.eu/docs/)**.
+- **API tokens:** for scripts and automations, create a scoped token (`tasks`, `groceries`, `calendar`; read, write or delete) with `POST /api/api-tokens` while signed in. The token is shown once and only its hash is stored. Wildcard scopes are reserved for owners and admins.
+- **Calendar feed:** subscribe to `/api/calendar.ics` from any calendar app that supports ICS subscriptions (Apple, Google, Outlook, Thunderbird, Home Assistant's remote calendar…), or import and export `.ics` files.
 
 ---
 
 ## Tech stack
-- **Frontend:** React 18 + Vite 6 + Tailwind CSS
-- **Backend:** PocketBase 0.40 (SQLite + auth + REST API + realtime)
-- **Deployment:** Docker Compose, pre-built GHCR images
-- **Privacy:** everything runs on your hardware
 
----
+- **Frontend:** React 18, Vite 6, Tailwind CSS 4, an installable PWA.
+- **Backend:** PocketBase 0.40, which provides SQLite, authentication, a REST API and realtime updates, extended with JavaScript hooks.
+- **Deployment:** Docker Compose with multi-arch images (amd64, arm64) published to GitHub Container Registry.
 
 ## Roadmap
-- [x] Multilingual UI (NL / FR / EN / DE / ES)
-- [x] Calendar import/export (.ics)
-- [ ] Recurring "family run" weekly planning ritual
-- [ ] Push notifications (mobile)
-- [ ] Companion mobile app (Android)
 
-*See the [issues](https://github.com/ChalidNL/todoless/issues) for details.*
+These ideas are **not** part of v1.0.0:
+- A weekly "family run" planning ritual
+- Push notifications on mobile
+- A companion Android app
 
----
+Follow progress and share ideas in the [issues](https://github.com/ChalidNL/todoless/issues).
 
 ## Contributing
-todoless is built in the open. Issues, ideas and pull requests are welcome. Because this is family data software, please keep **privacy and simplicity** front of mind in any contribution.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
----
+Issues, ideas and pull requests are welcome. Because this is family data software, please keep **privacy and simplicity** front of mind. [CONTRIBUTING.md](CONTRIBUTING.md) explains the development setup, the quality checks and the migration rules.
 
 ## License
-todoless is licensed under the **[GNU Affero General Public License v3.0](LICENSE)** (AGPL-3.0).
 
-This keeps the code open and free — for everyone, forever. If you modify todoless and make it available over a network (including self-hosting modifications), you must share your changes under the same license. That's how we protect the community.
+todoless is licensed under the [GNU Affero General Public License v3.0](LICENSE). If you modify todoless and offer it to others over a network, you must share your changes under the same license.
 
 ---
 
 <div align="center">
 
-**todoless** — organise family life, keep your privacy.
-Made in Europe. Your data stays home.
+**todoless** · Less managing. More living.<br />
+Made in Europe · [todoless.eu](https://todoless.eu)
 
 </div>

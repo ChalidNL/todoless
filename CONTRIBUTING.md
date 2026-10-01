@@ -26,19 +26,24 @@ Thanks for your interest in contributing! todoless is family data software — p
 
 ## Development setup
 
+You need Node.js 22 and the [PocketBase 0.40.4](https://github.com/pocketbase/pocketbase/releases/tag/v0.40.4) binary for your platform.
+
 ```bash
 git clone https://github.com/ChalidNL/todoless.git
 cd todoless
 npm install
-cp .env.example .env  # edit as needed
-npm run dev            # frontend dev server
+
+# Backend: PocketBase with this repo's hooks and migrations (data in ./pb_data, git-ignored)
+./pocketbase serve --http=127.0.0.1:8091 --dir=./pb_data \
+  --migrationsDir=./pb_migrations --hooksDir=./pb_hooks
+
+# Frontend, in a second terminal: http://localhost:7071 (proxies /api to localhost:8091)
+npm run dev
 ```
 
-The repo ships one `docker-compose.yml`, used both for production and local use — it pulls the pre-built PocketBase image, so it's the fastest way to get a backend running locally while you iterate on the frontend with `npm run dev`:
-```bash
-docker compose up -d pocketbase
-```
-There is no separate dev compose file. If you need to test frontend + backend together in containers, run the full stack the same way production does (see [README Quick Start](README.md#quick-start)).
+Open the app and complete the onboarding to create your first account. Set `TODOLESS_API_PROXY` if PocketBase runs on another address.
+
+To test the production containers instead, run the full stack as described in the [README Quick Start](README.md#quick-start).
 
 ## Database migrations
 
@@ -57,9 +62,11 @@ Before submitting a PR, run:
 ```bash
 npm run typecheck
 npm run lint
-npm test
+npm test                      # frontend unit tests
+node --test tests/*.test.mjs  # backend contract tests
 npm run build
 ```
+CI additionally runs a live PocketBase smoke suite (`scripts/pb-smoke.sh`), the migration checks and the Playwright mobile E2E suite (`scripts/e2e.sh`); both scripts download PocketBase themselves.
 
 ## Commit messages
 
