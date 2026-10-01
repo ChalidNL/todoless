@@ -102,6 +102,11 @@ if ! grep -Eq "\[pb-request\].*status=(400|401|403|404|429|5[0-9][0-9])" "$DATA_
   echo "[pb-smoke] ERROR: missing 4xx/5xx [pb-request] line" >&2
   exit 1
 fi
+if ! grep -q "\[pb-request\].*path=/api/validate-invite.*ip=203.0.113.9" "$DATA_DIR/serve.log"; then
+  echo "[pb-smoke] ERROR: request logger did not resolve the client IP from X-Forwarded-For (GH#43)" >&2
+  grep "path=/api/validate-invite" "$DATA_DIR/serve.log" | tail -3 >&2
+  exit 1
+fi
 echo "[pb-smoke] stdout request logging OK"
 echo "[pb-smoke] verifying 4xx is mirrored into _logs (GH#56) ..."
 # PB persists $app.logger() rows asynchronously; retry a few seconds before failing.

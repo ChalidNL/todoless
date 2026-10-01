@@ -85,6 +85,16 @@ test('request logger records 4xx statuses (unauthenticated + bad input)', async 
   assert.equal(badInput.data?.message, 'code required')
 })
 
+// --- 0b. GH#43: the stdout request log shows the client IP behind a proxy ----
+// z069 configures trustedProxy (X-Forwarded-For, rightmost). The request
+// logger must resolve the IP the same way PocketBase does (e.realIP()), not
+// log the proxy's remoteAddr. scripts/pb-smoke.sh asserts the resulting
+// serve.log line (ip=203.0.113.9 for this request).
+test('request logger resolves the client IP from X-Forwarded-For (GH#43)', async () => {
+  const res = await fetch(BASE + '/api/validate-invite', { headers: { 'X-Forwarded-For': '203.0.113.9' } })
+  assert.equal(res.status, 400) // "code required" — any logged status is fine
+})
+
 // --- 0c. GH#36: direct user creation stays closed after all migrations ------
 // users.createRule must be null (locked) when the full migration chain has
 // applied: an anonymous POST to the native users API must be forbidden. If a
