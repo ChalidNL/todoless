@@ -9,7 +9,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // refetches. Bulk actions now run with bounded concurrency and refresh once.
 
 const { api, authState, bootstrap, inFlight } = vi.hoisted(() => {
-  const items = Array.from({ length: 30 }, (_, i) => ({
+  // 60 items: the old 3N pattern (180 requests) exceeded the nginx api_general burst of 120.
+  const items = Array.from({ length: 60 }, (_, i) => ({
     id: `item-${i}`, title: `Grocery ${i}`, completed: true, labels: [], quantity: 1, userId: 'user-1', createdAt: 1_700_000_000_000 + i, isPrivate: false,
   }));
   const bootstrap = {
@@ -69,7 +70,7 @@ describe('bulk item/task actions', () => {
 
   it('restock updates every checked grocery, with bounded concurrency and ONE refresh', async () => {
     render(<AppProvider><RestockWhenReady /></AppProvider>);
-    await waitFor(() => expect(api.updateItem).toHaveBeenCalledTimes(30));
+    await waitFor(() => expect(api.updateItem).toHaveBeenCalledTimes(60));
     // the boot loads entries via getBootstrap; refreshEntries() is getTasks+getItems
     await waitFor(() => expect(api.getItems).toHaveBeenCalledTimes(1));
     await new Promise((resolve) => setTimeout(resolve, 30));
@@ -85,7 +86,7 @@ describe('bulk item/task actions', () => {
       return {};
     });
     const { findByTestId } = render(<AppProvider><RestockWhenReady /></AppProvider>);
-    await waitFor(() => expect(api.updateItem).toHaveBeenCalledTimes(30));
+    await waitFor(() => expect(api.updateItem).toHaveBeenCalledTimes(60));
     await waitFor(() => expect(api.getItems).toHaveBeenCalledTimes(1));
     expect((await findByTestId('msg')).textContent).toBe('Some changes could not be saved');
   });
