@@ -773,15 +773,32 @@ try {
       }
 
       var familyAdmins = $app.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
+      var actorIsOwner = String(actorRoleRecord.get('role') || '') === 'owner';
+      var currentOwner = null;
+      for (var oi = 0; oi < familyAdmins.length; oi++) {
+        if (String(familyAdmins[oi].get('role') || '') === 'owner') { currentOwner = familyAdmins[oi]; break; }
+      }
 
-      // Keep a single admin/owner per family: promoting a new admin demotes the others in that family only.
+      // The owner is the one role that cannot be demoted or blocked, so it is
+      // never handed out by an admin: only the owner transfers ownership (and
+      // becomes admin), and an admin may claim it only for a family that has
+      // no owner at all (older installs, GH#23).
+      if (newRole === 'owner' && currentOwner && !actorIsOwner) {
+        return c.json(403, { error: 'Only the owner can transfer ownership' });
+      }
+
+      // Keep a single admin per family besides the owner: promoting a new
+      // admin/owner demotes the other admins to member -- never the owner,
+      // and on an ownership transfer the previous owner becomes admin.
       if (newRole === 'admin' || newRole === 'owner') {
         var u2 = $app;
         for (var i = 0; i < familyAdmins.length; i++) {
-          if (familyAdmins[i].id !== targetId) {
-            familyAdmins[i].set('role', 'member');
-            u2.save(familyAdmins[i]);
-          }
+          var other = familyAdmins[i];
+          if (other.id === targetId) continue;
+          var otherIsOwner = String(other.get('role') || '') === 'owner';
+          if (otherIsOwner && newRole !== 'owner') continue;
+          other.set('role', otherIsOwner ? 'admin' : 'member');
+          u2.save(other);
         }
       }
 

@@ -1853,32 +1853,42 @@ test('agent dispatch GET rejects revoked and expired keys like POST (GH#21)', as
 // strictly on `user = auth.id`, so the key became permanently invisible and
 // un-revocable to every admin the family ever has afterwards.
 test('new admin can list and revoke agent keys created by a demoted former admin (GH#22)', async () => {
+  // The family owner (promoted in the GH#23 test) is never demoted (review
+  // S9), so the single-admin hand-over is exercised between two regular
+  // admins: the first mints a key, promoting the second demotes the first.
+  const former = await registerDisposableMember('gh22-former@smoke.test', 'GH22 Former')
   const successor = await registerDisposableMember('gh22-successor@smoke.test', 'GH22 Successor')
-  const successorToken = successor.token
+  const ownerToken = (await auth('admin@smoke.test', 'password123')).token
+  const toAdmin = await api('POST', '/api/v1', { token: ownerToken, body: { action: 'set_role', user_id: former.user.id, role: 'admin' } })
+  assert.equal(toAdmin.status, 200, JSON.stringify(toAdmin.data))
+  const formerToken = (await auth('gh22-former@smoke.test', 'password123')).token
 
-  // Former admin (top-level `admin`/`adminToken`) mints a key while still admin.
+  // Former admin mints a key while still admin.
   const created = await api('POST', '/api/agent/keys', {
-    token: adminToken,
+    token: formerToken,
     body: { name: 'gh22-legacy-key', scopes: ['entries:read'] },
   })
   assert.equal(created.status, 201, 'former admin should be able to create the key')
   const legacyKeyId = created.data?.id
   assert.ok(legacyKeyId, 'expected created key id')
 
-  // Transfer admin: promoting the successor demotes the current admin
-  // (single-admin-per-family invariant enforced by /api/v1 set_role).
+  // Transfer admin: promoting the successor demotes the former admin -- but
+  // not the owner.
   const promote = await api('POST', '/api/v1', {
-    token: adminToken,
+    token: ownerToken,
     body: { action: 'set_role', user_id: successor.user.id, role: 'admin' },
   })
   assert.equal(promote.status, 200, 'admin transfer should succeed')
   assert.equal(promote.data?.role, 'admin')
+  const ownerRecord = await api('GET', `/api/collections/users/records/${admin.id}`, { token: ownerToken })
+  assert.equal(ownerRecord.data?.role, 'owner', 'the owner keeps the owner role (S9)')
 
   // Former admin lost the admin role and can no longer call admin-only routes.
-  const formerAdminList = await api('GET', '/api/agent/keys', { token: adminToken })
+  const formerAdminList = await api('GET', '/api/agent/keys', { token: formerToken })
   assert.equal(formerAdminList.status, 403, 'demoted former admin must lose admin-only access')
 
   // New admin must see the legacy key in the family-scoped list.
+  const successorToken = (await auth('gh22-successor@smoke.test', 'password123')).token
   const successorList = await api('GET', '/api/agent/keys', { token: successorToken })
   assert.equal(successorList.status, 200)
   const found = (successorList.data || []).find((k) => k.id === legacyKeyId)
