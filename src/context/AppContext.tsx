@@ -356,15 +356,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setEntries(buildEntries(fetchedTasks, fetchedItems));
   };
 
+  // Persists a new entry and resolves once the server has it (no refresh).
+  const persistNewEntry = async (entry: Omit<Entry, 'id' | 'createdAt'>) => {
+    if (entry.type === 'task') {
+      const { completed, ...taskData } = entry;
+      await api.createTask({ ...taskData, status: completed ? 'done' : 'todo' });
+    } else {
+      const { blocked, blockedComment, flag, ...itemData } = entry;
+      await api.createItem(itemData);
+    }
+  };
+
   const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
     void (async () => {
-      if (entry.type === 'task') {
-        const { completed, ...taskData } = entry;
-        await api.createTask({ ...taskData, status: completed ? 'done' : 'todo' });
-      } else {
-        const { blocked, blockedComment, flag, ...itemData } = entry;
-        await api.createItem(itemData);
-      }
+      await persistNewEntry(entry);
       await refreshEntries();
     })();
   };
@@ -930,45 +935,63 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     addSprint(sprint);
   };
 
+  // Conversions create the copy FIRST and remove the original only once the
+  // copy exists. Firing both as independent calls meant a failed create
+  // (validation, offline, 429) left the user with neither.
   const convertTaskToItem = (taskId: string) => {
     const task = effectiveTasks.find((t) => t.id === taskId);
     if (!task) return;
-    addItem({ title: task.title, completed: false, labels: task.labels });
-    deleteTask(taskId);
+    void (async () => {
+      try {
+        await api.createItem({ title: task.title, completed: false, labels: task.labels });
+      } catch (error) {
+        console.error('convertTaskToItem: copy not created, keeping the task', error);
+        return;
+      }
+      await api.deleteTask(taskId);
+      await refreshEntries();
+    })();
   };
 
   const convertItemToTask = (itemId: string) => {
     const item = effectiveItems.find((i) => i.id === itemId);
     if (!item) return;
-    addTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
-    deleteItem(itemId);
+    void (async () => {
+      try {
+        await api.createTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
+      } catch (error) {
+        console.error('convertItemToTask: copy not created, keeping the item', error);
+        return;
+      }
+      await api.deleteItem(itemId);
+      await refreshEntries();
+    })();
   };
 
   const swapEntity = (id: string) => {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
-    if (entry.type === 'task') {
-      // Task → Grocery: preserve all fields via addEntry/deleteEntry
-      addEntry({
-        ...entry,
-        type: 'item',
-        completed: false,
-        status: 'todo' as const,
-        blocked: false,
-        flag: false,
-      });
-      deleteEntry(id);
-    } else {
-      // Grocery → Task: preserve all fields via addEntry/deleteEntry
-      addEntry({
-        ...entry,
-        type: 'task',
-        status: 'todo' as const,
-        blocked: false,
-        flag: false,
-      });
-      deleteEntry(id);
-    }
+    const { id: _originalId, createdAt: _createdAt, ...fields } = entry;
+    const copy: Omit<Entry, 'id' | 'createdAt'> = entry.type === 'task'
+      // Task → Grocery: preserve all fields
+      ? { ...fields, type: 'item', completed: false, status: 'todo' as const, blocked: false, flag: false }
+      // Grocery → Task: preserve all fields
+      : { ...fields, type: 'task', status: 'todo' as const, blocked: false, flag: false };
+    void (async () => {
+      try {
+        await persistNewEntry(copy);
+      } catch (error) {
+        console.error('swapEntity: copy not created, keeping the original', error);
+        return;
+      }
+      if (entry.type === 'task') {
+        await api.deleteTask(id);
+      } else {
+        await api.deleteItem(id);
+      }
+      setEntries(prev => prev.filter(e => e.id !== id));
+      await refreshEntries();
+    })();
   };
 
   const generateInviteCode = async (): Promise<InviteCode | null> => {
