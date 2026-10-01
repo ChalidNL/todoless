@@ -5,8 +5,11 @@
 //   1. pb_hooks/lib/errors.js exports a respondError() helper that logs the
 //      real error server-side (console + $app.logger()) and returns a GENERIC
 //      client body — no exception text.
-//   2. pb_hooks/04_request_logger.pb.js binds `respondError` as a global so
-//      every auto-loaded route handler can call it.
+//   2. Every call site loads the helper via require(__hooks + '/lib/errors.js')
+//      inside the handler. PocketBase runs route callbacks in executor VMs
+//      that do not see globals set by hook files, so a bare `respondError(`
+//      (as the former globalThis shim in 04_request_logger.pb.js invited)
+//      throws ReferenceError at runtime and the real error is lost.
 //   3. NO client-facing `c.json(...)` in any pb_hooks file embeds raw dynamic
 //      error text (String(e)/e.stack/message) anymore.
 //   4. Every file that previously leaked now calls respondError().
@@ -75,6 +78,29 @@ test('respondError supports custom message + extra response fields (constructed 
   }
 })
 
+test('respondError still logs method + path when requestInfo() itself throws (malformed body)', () => {
+  const { respondError } = require('../pb_hooks/lib/errors.js')
+  const logged = []
+  const origError = console.error
+  global.$app = { logger: () => ({ error: (msg) => logged.push(msg) }) }
+  console.error = () => {}
+  try {
+    const c = {
+      request: { method: 'POST', url: { path: '/api/invites/create' } },
+      requestInfo: () => { throw new Error('jsontext: unexpected EOF') },
+      get: () => null,
+      json: (status, body) => body,
+    }
+    const result = respondError(c, new Error('jsontext: unexpected EOF'), 500)
+    assert.deepEqual(result, { error: 'Internal server error' })
+    assert.equal(logged.length, 1)
+    assert.match(logged[0], /\[respondError\] POST \/api\/invites\/create: jsontext: unexpected EOF/)
+  } finally {
+    console.error = origError
+    delete global.$app
+  }
+})
+
 test('respondError defaults to 500 when status omitted', () => {
   const { respondError } = require('../pb_hooks/lib/errors.js')
   const origError = console.error
@@ -95,12 +121,22 @@ test('respondError defaults to 500 when status omitted', () => {
   }
 })
 
-// --- 2. Global shim binding ----------------------------------------------
-test('04_request_logger.pb.js binds respondError as a global (PB auto-loaded shim)', () => {
-  const source = read('pb_hooks/04_request_logger.pb.js')
-  assert.match(source, /function respondError\(c, e, status, message, extra\)/)
-  assert.match(source, /globalThis\.respondError = respondError;/)
-  assert.match(source, /require\(__hooks \+ '\/lib\/errors\.js'\)/)
+const HOOK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'pb_hooks')
+
+// --- 2. Executor-VM scope: no bare global calls -------------------------
+// A bare `respondError(` in a *.pb.js file resolves against the executor VM's
+// globals and throws "respondError is not defined" at runtime. Every call must
+// go through the required module (errorsLib.respondError / require(...).respondError).
+test('no pb_hooks file calls respondError as a bare global; the loader shim is gone', () => {
+  const bare = /(?<![.\w])respondError\(/
+  for (const name of fs.readdirSync(HOOK_ROOT).filter((n) => n.endsWith('.pb.js'))) {
+    const source = read(`pb_hooks/${name}`)
+    // strip comments so documentation of the anti-pattern does not trip the check
+    const code = source.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
+    assert.doesNotMatch(code, bare, `${name} calls respondError( without require(__hooks + '/lib/errors.js')`)
+  }
+  const logger = read('pb_hooks/04_request_logger.pb.js').replace(/\/\/.*$/gm, '')
+  assert.doesNotMatch(logger, /globalThis\.respondError/, 'the non-functional globalThis shim must not come back')
 })
 
 // --- 3. No leak pattern anywhere in pb_hooks ------------------------------
@@ -113,7 +149,6 @@ const LEAK_PATTERNS = [
   /(?:error|errors)\s*[:=]\s*String\(\s*e\d*\s*\)/, // raw String(e/e2/...) assigned to error key / pushed into error arrays (object-key position only — NOT .error(...) logger calls)
 ]
 
-const HOOK_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'pb_hooks')
 
 function hookFiles() {
   const out = []

@@ -41,7 +41,7 @@ try {
       });
     }
     return c.json(200, result);
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ─── CREATE token (POST) ───────────────────────────────────────────────────
@@ -113,7 +113,7 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
       created: rec.get('created'),
       message: 'Save this token — it will not be shown again.',
     });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ─── DELETE token (DELETE) ─────────────────────────────────────────────────
@@ -146,7 +146,7 @@ try {
 
     $app.delete(token);
     return c.json(200, { deleted: true, id: tokenId });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 
 // ─── TOGGLE token enable/disable (PATCH) ───────────────────────────────────
@@ -187,5 +187,5 @@ try {
       enabled: newVal,
       message: newVal ? 'Token enabled' : 'Token disabled',
     });
-  } catch(e) { return respondError(c, e, 500); }
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });

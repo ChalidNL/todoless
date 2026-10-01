@@ -24,7 +24,7 @@ function registerCompanionDeviceHandler(c) {
       device: companion.deviceResponse(result.record),
     });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 }
 
@@ -55,7 +55,7 @@ function createCompanionTestNotificationHandler(c) {
       notification: emitted.payload,
     });
   } catch (e) {
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 }
 
