@@ -304,7 +304,7 @@ routerAdd('POST','/api/ics-import',function(c){
       total:totalProcessed,
     });
   }catch(e){
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -457,6 +457,6 @@ routerAdd('GET','/api/ics-export',function(c){
       count:tasks.length,
     });
   }catch(e){
-    return respondError(c, e, 500);
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });

@@ -157,6 +157,27 @@ test('admin can authenticate', async () => {
   adminToken = a.token
 })
 
+// --- GH#9: unexpected exceptions go through lib/errors.js -------------------
+// A malformed JSON body makes c.requestInfo() throw inside the handler. The
+// catch block must answer with the generic respondError() body (500, no
+// exception text) — not PocketBase's fallback "Something went wrong" 400,
+// which is what clients got while respondError was only bound on the loader
+// VM's globalThis and threw ReferenceError in every executor VM.
+// scripts/pb-smoke.sh additionally asserts that the real error reached
+// serve.log via a [respondError] line and that no "is not defined" occurred.
+test('a handler exception yields the generic respondError body, not a PB fallback (GH#9)', async () => {
+  const res = await fetch(BASE + '/api/invites/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+    body: '{"type": ',
+  })
+  const text = await res.text()
+  let data = null
+  try { data = JSON.parse(text) } catch { data = text }
+  assert.equal(res.status, 500, text)
+  assert.deepEqual(data, { error: 'Internal server error' })
+})
+
 // --- 3. Invite --------------------------------------------------------
 let inviteCode = null
 
