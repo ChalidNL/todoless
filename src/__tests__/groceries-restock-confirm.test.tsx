@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { GroceriesView } from '../components/groceries/GroceriesView';
 
 const useAppMock = vi.fn();
@@ -50,7 +50,6 @@ describe('GroceriesView restock action', () => {
   });
 
   it('asks for confirmation before restocking completed groceries', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const uncheckAllDoneItems = vi.fn();
     const showCompletionMessage = vi.fn();
 
@@ -65,13 +64,14 @@ describe('GroceriesView restock action', () => {
     const restockButton = screen.getByRole('button', { name: 'Restock' });
     fireEvent.click(restockButton);
 
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    const dialog = screen.getByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(uncheckAllDoneItems).not.toHaveBeenCalled();
     expect(showCompletionMessage).not.toHaveBeenCalled();
   });
 
   it('restocks completed groceries after confirmation', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const uncheckAllDoneItems = vi.fn();
     const showCompletionMessage = vi.fn();
 
@@ -86,7 +86,7 @@ describe('GroceriesView restock action', () => {
     const restockButton = screen.getByRole('button', { name: 'Restock' });
     fireEvent.click(restockButton);
 
-    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Restock' }));
     expect(uncheckAllDoneItems).toHaveBeenCalledTimes(1);
     expect(showCompletionMessage).toHaveBeenCalledWith('Groceries restocked');
   });

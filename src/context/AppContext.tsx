@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState, type R
 import { getISOWeek } from '../utils/dateUtils';
 import { api, isInvalidOldPasswordError, normalizeLabel } from '../lib/pocketbase-client';
 import { t } from '../i18n/translations';
+import { classifyLoadError } from '../lib/load-error';
 import { pb } from '../lib/pocketbase';
 
 const FILTER_PARAM_KEY = 'filters';
@@ -493,8 +494,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         ]);
         setDataLoadState('ready');
       } catch (error2) {
+        const kind = classifyLoadError(error2);
+        if (kind === 'auth') {
+          // Expired/revoked session: a retry can never succeed. Clearing the
+          // auth store re-runs refreshAll (onChange) and the app shows login.
+          pb.authStore.clear();
+          return;
+        }
         setDataLoadState('error');
-        setLoadError(error2 instanceof Error && error2.message ? error2.message : t('common.error'));
+        setLoadError(t(`errors.${kind}`));
       }
     }
   };

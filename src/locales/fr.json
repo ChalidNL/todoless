@@ -141,7 +141,14 @@
         "title": "Calendrier",
         "tagline": "Consultez les plans familiaux en un coup d’œil."
       }
-    }
+    },
+    "firstNamePlaceholder": "Jean",
+    "lastNamePlaceholder": "Dupont",
+    "emailPlaceholder": "vous@exemple.fr",
+    "passwordPlaceholder": "Au moins 8 caractères",
+    "confirmPasswordPlaceholder": "Répétez votre mot de passe",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
   },
   "tasks": {
     "title": "Tâches",
@@ -408,7 +415,19 @@
     "sortNewest": "Plus récents d'abord",
     "sortOldest": "Plus anciens d'abord",
     "sortAlpha": "A-Z",
-    "sortAlphaReverse": "Z-A"
+    "sortAlphaReverse": "Z-A",
+    "membersCount": {
+      "one": "{n} membre",
+      "other": "{n} membres"
+    },
+    "labelsCount": {
+      "one": "{n} étiquette",
+      "other": "{n} étiquettes"
+    },
+    "shopsCount": {
+      "one": "{n} magasin",
+      "other": "{n} magasins"
+    }
   },
   "projects": {
     "title": "Projets",
@@ -501,7 +520,9 @@
     "noResults": "Aucun résultat",
     "markAllDone": "Tout marquer comme fait",
     "clearAll": "Tout effacer",
-    "empty": "Vide"
+    "empty": "Vide",
+    "select": "Sélectionner",
+    "selectedCount": "{n} sélectionné(s)"
   },
   "members": {
     "title": "Famille",
@@ -604,5 +625,16 @@
     "doneSprint": "Sprint terminé",
     "blocked": "Bloqué",
     "doneToday": "Fait aujourd'hui"
+  },
+  "ics": {
+    "sectionTitle": "Import et export d'agenda"
+  },
+  "errors": {
+    "offline": "Vous êtes hors ligne ou le serveur est injoignable. Vérifiez votre connexion et réessayez.",
+    "server": "Le serveur n’a pas pu charger vos données. Réessayez dans un instant.",
+    "forbidden": "Votre compte ne peut pas accéder à ces données pour le moment. Demandez à l’administrateur de votre famille.",
+    "unknown": "Une erreur est survenue lors du chargement de vos données.",
+    "reload": "Recharger l’application",
+    "resetLocal": "Se déconnecter et réinitialiser cet appareil"
   }
 }

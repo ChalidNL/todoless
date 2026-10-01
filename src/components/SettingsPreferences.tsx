@@ -18,7 +18,7 @@ export function SettingsPreferences() {
   ];
 
   return (
-    <div className="app-shell-bg min-h-full pb-24">
+    <div className="app-shell-bg min-h-full pb-6">
       <SettingsDetailHeader
         mode="detail"
         themeColor="#f97316"

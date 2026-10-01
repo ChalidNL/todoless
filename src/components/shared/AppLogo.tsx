@@ -1,4 +1,5 @@
-const APP_ICON_SRC = '/icons/logo-rainbow.png';
+// Official todoless mark, generated from docs/assets/logo.png (scripts/generate-icons.js).
+const APP_ICON_SRC = '/icons/logo-mark.png';
 
 interface AppLogoProps {
   size?: 'sm' | 'md' | 'lg';

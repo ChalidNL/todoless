@@ -51,7 +51,7 @@ export const TaskActionBar = React.memo(function TaskActionBar({
   themeColor = '#22c55e',
 }: TaskActionBarProps) {
   const renderButton = (b: ActionButton) => {
-    const btnClass = `p-1.5 rounded transition-all duration-150 ${
+    const btnClass = `grid h-10 w-full min-w-0 place-items-center rounded-lg transition-all duration-150 ${
       b.isSet || b.active
         ? ''
         : 'hover:bg-neutral-100 text-neutral-400'
@@ -60,6 +60,7 @@ export const TaskActionBar = React.memo(function TaskActionBar({
     return (
       <button
         key={b.key}
+        type="button"
         onClick={b.onClick}
         className={btnClass}
         style={b.isSet ? { color: b.color || themeColor, background: `${b.color || themeColor}12` } : undefined}
@@ -75,19 +76,23 @@ export const TaskActionBar = React.memo(function TaskActionBar({
     );
   };
 
+  // Ten equal cells in one row when the card is wide enough, otherwise a 2x5
+  // grid: the bar never overflows narrow cards (320px phones, calendar
+  // popovers) and every control keeps a 40px-tall tap target.
   return (
-    <div className="flex items-center gap-1.5" data-component="TaskActionBar">
-      {renderButton(buttons.label)}
-      {renderButton(buttons.assignee)}
-      {renderButton(buttons.schedule)}
-      {renderButton(buttons.subtask)}
-      {renderButton(buttons.priority)}
-      {renderButton(buttons.focus)}
-      {renderButton(buttons.comment)}
-      {renderButton(buttons.flag)}
-      {renderButton(buttons.more)}
-      <div className="flex-1" />
-      {renderButton(buttons.delete)}
+    <div className="@container" data-component="TaskActionBar">
+      <div className="grid grid-cols-5 gap-1 @[18rem]:grid-cols-10">
+        {renderButton(buttons.label)}
+        {renderButton(buttons.assignee)}
+        {renderButton(buttons.schedule)}
+        {renderButton(buttons.subtask)}
+        {renderButton(buttons.priority)}
+        {renderButton(buttons.focus)}
+        {renderButton(buttons.comment)}
+        {renderButton(buttons.flag)}
+        {renderButton(buttons.more)}
+        {renderButton(buttons.delete)}
+      </div>
     </div>
   );
 });

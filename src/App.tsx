@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
@@ -8,15 +8,10 @@ import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { InboxBacklog } from './components/InboxBacklog';
 import { TasksView } from './components/TasksView';
-import { CalendarView } from './components/calendar/CalendarView';
+
 import { GroceriesView } from './components/groceries/GroceriesView';
 import { Settings } from './components/Settings';
-import { MembersView } from './components/MembersView';
-import { LabelsView } from './components/LabelsView';
-import { ShopsView } from './components/ShopsView';
-import { ProfileView } from './components/ProfileView';
-import { SettingsPreferences } from './components/SettingsPreferences';
-import { NotificationsView } from './components/NotificationsView';
+
 import { pb } from './lib/pocketbase';
 import { api } from './lib/pocketbase-client';
 import { Inbox as InboxIcon, ShoppingCart, Settings as SettingsIcon, RefreshCw, CalendarDays, CheckSquare } from 'lucide-react';
@@ -26,6 +21,16 @@ import { fetchSetupStatus } from './lib/bootstrap-status';
 import { t } from './i18n/translations';
 import { AppShell } from './components/layout/AppShell';
 import { BottomNavigation, type BottomNavItem } from './components/layout/BottomNavigation';
+
+// Screens not needed at launch are split out of the startup bundle (the
+// service worker precaches every chunk, so they still open offline).
+const CalendarView = lazy(() => import('./components/calendar/CalendarView').then((m) => ({ default: m.CalendarView })));
+const MembersView = lazy(() => import('./components/MembersView').then((m) => ({ default: m.MembersView })));
+const LabelsView = lazy(() => import('./components/LabelsView').then((m) => ({ default: m.LabelsView })));
+const ShopsView = lazy(() => import('./components/ShopsView').then((m) => ({ default: m.ShopsView })));
+const ProfileView = lazy(() => import('./components/ProfileView').then((m) => ({ default: m.ProfileView })));
+const SettingsPreferences = lazy(() => import('./components/SettingsPreferences').then((m) => ({ default: m.SettingsPreferences })));
+const NotificationsView = lazy(() => import('./components/NotificationsView').then((m) => ({ default: m.NotificationsView })));
 
 const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 
@@ -67,23 +72,34 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+        <div className="min-h-dvh bg-neutral-50 flex items-center justify-center p-4" role="alert">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <RefreshCw className="w-8 h-8 text-red-600" />
             </div>
             <h1 className="text-xl font-bold mb-2">{t('auth.appError')}</h1>
             <p className="text-neutral-600 mb-6 text-sm">
-              {t('auth.appErrorDescription')}
+              {t('errors.unknown')}
             </p>
+            {/* Reload first: a render crash rarely needs local state wiped. The
+                reset (sign out + clear this device's settings; server data is
+                untouched) stays available as the escape hatch. */}
             <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="min-h-[var(--app-touch-target)] w-full rounded-lg bg-[var(--app-primary)] px-4 py-3 font-medium text-white transition-colors"
+            >
+              {t('errors.reload')}
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 localStorage.clear();
                 window.location.reload();
               }}
-              className="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              className="mt-2 min-h-[var(--app-touch-target)] w-full rounded-lg px-4 py-2 text-sm font-medium text-red-600"
             >
-              {t('auth.resetAllData')}
+              {t('errors.resetLocal')}
             </button>
           </div>
         </div>
@@ -246,7 +262,7 @@ function AppContent() {
 
   if (dataLoadState === 'loading') {
     return (
-      <main className="app-shell-bg grid min-h-screen place-items-center p-6" role="status" aria-live="polite">
+      <main className="app-shell-bg grid min-h-dvh place-items-center p-6" role="status" aria-live="polite">
         <div className="app-surface flex items-center gap-3 rounded-[var(--app-radius-xl)] px-5 py-4 text-[var(--app-text-muted)]">
           <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
           <span>{t('common.loading', language)}</span>
@@ -257,10 +273,10 @@ function AppContent() {
 
   if (dataLoadState === 'error') {
     return (
-      <main className="app-shell-bg grid min-h-screen place-items-center p-6">
+      <main className="app-shell-bg grid min-h-dvh place-items-center p-6">
         <section className="app-surface w-full max-w-md rounded-[var(--app-radius-xl)] p-6 text-center" role="alert">
           <h1 className="text-xl font-bold text-[var(--app-text)]">{t('common.error', language)}</h1>
-          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('auth.appErrorDescription', language)}</p>
+          <p className="mt-2 text-sm text-[var(--app-text-muted)]">{loadError || t('errors.unknown', language)}</p>
           <button
             type="button"
             onClick={() => void retryLoad()}
@@ -291,6 +307,7 @@ function AppContent() {
 
   return (
     <AppShell toast={toast} bottomNav={<BottomNavigation items={navItems} />}>
+        <Suspense fallback={<div className="grid min-h-full place-items-center p-6 text-[var(--app-text-muted)]" role="status" aria-live="polite"><RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" /></div>}>
         <Routes>
           <Route path="/" element={<InboxBacklog />} />
           <Route path="/tasks" element={<TasksView />} />
@@ -306,6 +323,7 @@ function AppContent() {
           <Route path="/settings/notifications" element={<NotificationsView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
     </AppShell>
   );
 }

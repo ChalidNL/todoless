@@ -131,12 +131,13 @@ export const AppHeader = ({
         key={`${type}-${id}`}
         type="button"
         onClick={() => toggleChipFilter(type, id, label, color)}
-        className={`inline-flex min-h-8 flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
+        className={`inline-flex min-h-8 max-w-full flex-shrink-0 items-center rounded-full border px-2.5 text-xs font-bold shadow-sm transition-all ${
           active ? 'text-white' : 'border-[var(--app-border-subtle)] bg-white text-[var(--app-text-muted)]'
         }`}
         style={active ? { backgroundColor: color || 'var(--app-accent)' } : undefined}
+        title={label}
       >
-        {label}
+        <span className="truncate">{label}</span>
       </button>
     );
   };
@@ -263,7 +264,7 @@ export const AppHeader = ({
               </button>
 
               {showFilterDropdown && (
-                <div className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto backdrop-blur-xl bg-white/90 border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+                <div data-popover className="app-surface absolute left-0 top-full z-50 mt-2 max-h-80 w-64 max-w-[calc(100vw-2*var(--app-space-screen-x))] overflow-y-auto overflow-x-hidden overscroll-contain backdrop-blur-xl bg-white/90 border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
                   <div className="border-b border-[var(--app-border-subtle)] p-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-[var(--app-text-muted)]">{t('filters.title')}</span>
@@ -366,7 +367,7 @@ export const AppHeader = ({
           )}
 
           {showSearch && (
-            <div className="flex min-h-12 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
+            <div className="flex min-h-12 min-w-0 flex-1 items-center gap-3 rounded-[var(--app-radius-pill)] bg-white/95 px-4 shadow-sm backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.95)' }}>
               <Search className="h-[17px] w-[17px] flex-shrink-0" style={{ color: theme.color }} strokeWidth={2.2} />
               <input
                 ref={inputRef}

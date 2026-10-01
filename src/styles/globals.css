@@ -765,3 +765,14 @@ html {
     scroll-snap-align: start;
   }
 }
+/* iOS Safari zooms the whole page when a focused form control's text is
+   smaller than 16px — the layout then pans sideways like a website. On touch
+   devices every text-entry control stays at >= 16px. Unlayered on purpose so
+   it wins over size utilities such as text-sm (utilities live in a layer). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}

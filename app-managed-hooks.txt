@@ -36,6 +36,7 @@
 16_bootstrap.pb.js
 16_user_privilege_guard.pb.js
 17_recurring.pb.js
+18_ownership_guard.pb.js
 __tests__/validate-security-hooks.mjs
 _tmp_create.pb.js
 _tmp_debug.pb.js

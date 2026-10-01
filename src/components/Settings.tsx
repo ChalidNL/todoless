@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from './AuthProvider';
 import { userDisplayName } from '../types';
-import { t } from '../i18n/translations';
+import { getActiveLanguage, t } from '../i18n/translations';
 import { Link } from 'react-router-dom';
 import { ChevronRight, LogOut, Copy, RefreshCw, ExternalLink, Camera, Users, UserCircle2, Tag, SlidersHorizontal, Bell, Store, BookOpen } from 'lucide-react';
 import { AppHeader } from './shared/NewGlobalHeader';
@@ -11,6 +11,7 @@ import { Button } from './ui/AppButton';
 
 import { fetchLatestAppVersion, forceRefreshApp, getNormalizedAppVersion, shouldShowUpdateButton } from '../lib/app-update';
 import { copyTextToClipboard } from '../lib/clipboard';
+import { resolveDocsUrl } from '../lib/docs-url';
 
 // Version polling: check on mount and on focus/visibility only, throttled to at most
 // once per VERSION_CHECK_MIN_INTERVAL_MS instead of a fixed 60s background poll (GH#78).
@@ -90,7 +91,7 @@ export const Settings = () => {
 
   if (!currentUser) {
     return (
-      <div className="app-shell-bg min-h-screen flex items-center justify-center">
+      <div className="app-shell-bg min-h-full flex items-center justify-center">
         <p className="text-neutral-600">{t('common.noData')}</p>
       </div>
     );
@@ -98,12 +99,18 @@ export const Settings = () => {
 
   const displayName = userDisplayName(currentUser);
   const initials = `${currentUser.firstName?.[0] || ''}${currentUser.lastName?.[0] || ''}`.toUpperCase() || displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'CT';
-  const docsUrl = import.meta.env.VITE_DOCS_URL || 'http://192.168.2.100:8090/docs/';
+  const docsUrl = resolveDocsUrl(import.meta.env.VITE_DOCS_URL);
+  // "1 member" / "3 members" in the active language (keys: <base>.one / <base>.other).
+  const countLabel = (base: string, n: number) => {
+    let form = 'other';
+    try { form = new Intl.PluralRules(getActiveLanguage()).select(n) === 'one' ? 'one' : 'other'; } catch { /* default */ }
+    return t(`${base}.${form}`).replace('{n}', String(n));
+  };
   const settingsItems = [
     { href: '/settings/profile', icon: UserCircle2, color: '#8b5cf6', label: t('settings.yourProfile'), sub: currentUser.email },
-    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: `${users.length} ${t('members.title')}` },
-    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: `${labels.length} ${t('settings.labels')}` },
-    { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: `${shops.length} ${t('settings.shops')}` },
+    { href: '/settings/members', icon: Users, color: '#06b6d4', label: t('members.title'), sub: countLabel('settings.membersCount', users.length) },
+    { href: '/settings/labels', icon: Tag, color: '#eab308', label: t('settings.labels'), sub: countLabel('settings.labelsCount', labels.length) },
+    { href: '/settings/shops', icon: Store, color: '#ec4899', label: t('settings.shops'), sub: countLabel('settings.shopsCount', shops.length) },
     { href: '/settings/preferences', icon: SlidersHorizontal, color: '#f97316', label: t('settings.preferences'), sub: t('settings.firstDayOfWeek') },
     { href: '/settings/notifications', icon: Bell, color: '#22c55e', label: t('settings.notifications'), sub: null },
     { href: docsUrl, icon: BookOpen, color: '#0ea5e9', label: t('settings.documentation'), sub: t('settings.apiDocumentation'), external: true },
@@ -113,7 +120,7 @@ export const Settings = () => {
     <>
       <AppHeader screen="instellingen" showSearch={false} showFilters={false} showAdd={false} />
 
-      <div className="mx-auto max-w-2xl pb-24 pt-3">
+      <div className="mx-auto max-w-2xl pb-6 pt-3">
         <Link to="/settings/profile" className="relative mx-4 mb-3 flex flex-col items-center gap-3 overflow-hidden rounded-[28px] px-6 py-8 text-center shadow-[0_16px_40px_rgba(99,102,241,0.28)] active:scale-[0.99]" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)' }}>
           <span className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
           <span className="relative grid h-[84px] w-[84px] place-items-center rounded-full border-[3px] border-white/60 bg-white/25 text-[32px] font-black text-white shadow-lg">

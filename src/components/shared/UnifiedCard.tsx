@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { ConfirmDialog } from './ConfirmDialog';
 import { Task, Item, userDisplayName, Priority, RepeatInterval } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
@@ -388,7 +389,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   }
                 }}
                 placeholder={t('tasks.newSubtaskTitle')}
-                className="flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
+                className="min-w-0 flex-1 text-xs px-2 py-1.5 border border-neutral-200 rounded bg-white"
                 aria-label={t('tasks.newSubtaskTitle')}
               />
               <button
@@ -604,7 +605,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                   type="date"
                   value={formatLocalDateInputValue(entity.dueDate)}
                   onChange={(e) => setValue({ dueDate: e.target.value ? (combineLocalDateAndTime(e.target.value, formatLocalTimeInputValue(entity.dueDate) || '00:00') ?? parseLocalDateInputValue(e.target.value)) : null })}
-                  className="text-sm px-2 py-1.5 border border-neutral-200 rounded flex-1"
+                  className="text-sm px-2 py-1.5 border border-neutral-200 rounded min-w-0 flex-1"
                   aria-label={t('tasks.dueDateAria')}
                 />
                 <input
@@ -681,7 +682,7 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
                       }
                     }}
                     placeholder={t('items.shopInputPlaceholder')}
-                    className="flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
+                    className="min-w-0 flex-1 text-sm px-2 py-1.5 border border-neutral-200 rounded"
                     aria-label={t('items.shopInputAria')}
                   />
                   {hasShop && (
@@ -753,25 +754,11 @@ export const UnifiedCard = ({ entity, type }: UnifiedCardProps) => {
 
       {/* Delete confirmation dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20" onClick={() => setShowDeleteConfirm(false)}>
-          <div className="bg-white rounded-lg shadow-xl p-5 mx-4 max-w-xs w-full" onClick={e => e.stopPropagation()}>
-            <p className="text-sm font-medium text-neutral-900 mb-4">{isTask ? t('common.confirmDeleteTitle') : t('items.confirmDelete')}</p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
-              >
-                {t('common.no')}
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
-              >
-                {t('common.confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={isTask ? t('common.confirmDeleteTitle') : t('items.confirmDelete')}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       )}
     </div>
   );

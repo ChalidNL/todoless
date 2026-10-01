@@ -167,9 +167,16 @@ describe('Calendar Google-inspired UX', () => {
     expect(within(first).queryByRole('checkbox')).not.toBeInTheDocument();
     const calendarCard = within(first).getByTestId('compact-task-card-a');
     expect(calendarCard).toHaveAttribute('data-component', 'CompactTaskCard');
+    // The expanded editor is clamped to the calendar surface (never wider than
+    // 430px, never extending past the surface edge) instead of the old
+    // `calc(100vw - 24px)` anchored at the column, which overflowed the screen.
+    const surface = screen.getByTestId('calendar-day-time-grid');
+    vi.spyOn(surface, 'getBoundingClientRect').mockReturnValue({ left: 12, right: 363, top: 0, bottom: 600, width: 351, height: 600, x: 12, y: 0, toJSON: () => ({}) } as DOMRect);
+    Object.defineProperty(calendarCard, 'offsetParent', { configurable: true, get: () => first });
+    vi.spyOn(first, 'getBoundingClientRect').mockReturnValue({ left: 300, right: 330, top: 0, bottom: 112, width: 30, height: 112, x: 300, y: 0, toJSON: () => ({}) } as DOMRect);
     fireEvent.click(within(first).getByText('Alpha'));
-    expect(calendarCard).toHaveStyle({ width: 'calc(100vw - 24px)', maxWidth: '430px' });
-    expect(calendarCard).toHaveClass('max-w-none');
+    expect(calendarCard).toHaveClass('absolute', 'max-w-none');
+    expect(calendarCard).toHaveStyle({ width: '335px', left: '-280px' });
   });
 
   it('uses the selected first day of week for week and month ranges', () => {

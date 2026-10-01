@@ -182,7 +182,7 @@ test('second user registers with the invite code', async () => {
   const r = await api('POST', '/api/register', {
     body: {
       email: 'member@smoke.test', password: 'password123', passwordConfirm: 'password123',
-      name: 'Smoke Member', invite_code: inviteCode, user_type: 'family_member', language: 'en',
+      name: 'Smoke Member', firstName: 'Smoke', lastName: 'Member', invite_code: inviteCode, user_type: 'family_member', language: 'en',
     },
   })
   assert.equal(r.status, 201)
@@ -195,7 +195,62 @@ test('second user registers with the invite code', async () => {
 test('member can authenticate', async () => {
   const a = await auth('member@smoke.test', 'password123')
   assert.ok(a.token, 'expected token')
+  // Structured name from the register form is persisted (profile edits it).
+  assert.equal(a.record?.first_name, 'Smoke')
+  assert.equal(a.record?.last_name, 'Member')
   memberToken = a.token
+})
+
+// --- 4b. Ownership guard (pb_hooks/18_ownership_guard.pb.js) ---------------
+// A signed-in member must not be able to mint credentials or plant records in
+// someone else's name through the native collection API. Before the guard a
+// member could create an api_token with a self-chosen secret bound to the
+// admin (full API access as the admin), an agent key, or an invite bound to
+// another user's family.
+test('member cannot forge api tokens, agent keys, invites or families via the native API', async () => {
+  const forged = [
+    ['api_tokens', { name: 'x', token_hash: 'a'.repeat(64), permissions: ['*'], enabled: true, user: admin.id }],
+    ['agent_keys', { name: 'x', key_hash: 'b'.repeat(64), key_prefix: 'tlsk_forged', scopes: ['*'], active: true, user: admin.id }],
+    ['invite_codes', { code: 'FORGEDCODE01', expires_at: '2099-01-01 00:00:00Z', used: false, user: admin.id, type: 'human' }],
+    ['families', { name: 'Forged family' }],
+  ]
+  for (const [collection, body] of forged) {
+    const r = await api('POST', `/api/collections/${collection}/records`, { token: memberToken, body })
+    assert.equal(r.status, 403, `${collection}: native create must be forbidden`)
+  }
+  const invite = await api('GET', '/api/validate-invite?code=FORGEDCODE01')
+  assert.notEqual(invite.data?.valid, true, 'forged invite must not exist')
+})
+
+test('member cannot create or re-own records in another user\'s name', async () => {
+  const spoof = await api('POST', '/api/collections/items/records', { token: memberToken, body: { title: 'Spoofed', user: admin.id } })
+  assert.equal(spoof.status, 403)
+
+  const own = await api('POST', '/api/collections/items/records', { token: memberToken, body: { title: 'Owner defaulted' } })
+  assert.equal(own.status, 200)
+  assert.equal(own.data?.user, member.id, 'omitted owner defaults to the caller')
+
+  const repoint = await api('PATCH', `/api/collections/items/records/${own.data.id}`, { token: memberToken, body: { user: admin.id } })
+  assert.equal(repoint.status, 403, 'owner field is immutable via the native API')
+
+  const edit = await api('PATCH', `/api/collections/items/records/${own.data.id}`, { token: memberToken, body: { title: 'Edited', user: member.id } })
+  assert.equal(edit.status, 200, 'normal edits (unchanged owner) keep working')
+  assert.equal(edit.data?.title, 'Edited')
+})
+
+test('member cannot change their own member_type', async () => {
+  const r = await api('PATCH', `/api/collections/users/records/${member.id}`, { token: memberToken, body: { member_type: 'agent' } })
+  assert.equal(r.status, 400)
+})
+
+test('families and agent audit log are not readable across tenants', async () => {
+  const families = await api('GET', '/api/collections/families/records?perPage=200', { token: memberToken })
+  assert.equal(families.status, 200)
+  assert.deepEqual((families.data?.items || []).map((f) => f.id), [admin.family_id])
+
+  const audit = await api('GET', '/api/collections/agent_audit_log/records?perPage=200', { token: memberToken })
+  assert.equal(audit.status, 200)
+  assert.ok((audit.data?.items || []).every((row) => row.user === member.id), 'only own audit rows are visible')
 })
 
 // --- 5. Shared vs private visibility ----------------------------------

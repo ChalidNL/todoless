@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -49,9 +50,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "bash scripts/e2e.sh",
     "knip": "knip",
     "security:secrets": "bash scripts/security/scan-secrets.sh",
     "vendor:swagger-ui": "node scripts/vendor-swagger-ui.mjs",
+    "icons:generate": "node scripts/generate-icons.js",
     "audit:visible-strings": "node scripts/audit-visible-strings.cjs"
   }
 }

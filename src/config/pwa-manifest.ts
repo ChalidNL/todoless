@@ -6,6 +6,7 @@ interface PwaManifestIcon {
 }
 
 export interface PwaManifest {
+  id: string;
   name: string;
   short_name: string;
   description: string;
@@ -31,6 +32,8 @@ export interface PwaManifestOptions {
 
 export function buildPwaManifest(opts: PwaManifestOptions): PwaManifest {
   return {
+    // Stable identity so a future start_url change never forks the install.
+    id: '/',
     name: opts.appName,
     short_name: opts.appShort,
     // i18n-ignore: PWA install-tip metadata is intentionally English product copy (not UI chrome)
@@ -45,15 +48,14 @@ export function buildPwaManifest(opts: PwaManifestOptions): PwaManifest {
     categories: ['productivity', 'utilities'],
     screenshots: [],
     launch_handler: { client_mode: 'navigate-existing' },
+    // Generated from the official logo by scripts/generate-icons.js. Maskable
+    // variants keep the whole mark inside the 40% safe-zone radius on an opaque
+    // background so launcher masks neither clip nor shrink it.
     icons: [
-      { src: `${opts.iconDir}/icon-192.png`, sizes: '192x192', type: 'image/png' },
-      { src: `${opts.iconDir}/icon-512.png`, sizes: '512x512', type: 'image/png' },
-      {
-        src: `${opts.iconDir}/icon-512-maskable.png`,
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'maskable',
-      },
+      { src: `${opts.iconDir}/icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: `${opts.iconDir}/icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: `${opts.iconDir}/icon-192-maskable.png`, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: `${opts.iconDir}/icon-512-maskable.png`, sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   };
 }

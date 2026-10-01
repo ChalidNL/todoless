@@ -3,7 +3,7 @@ import { t } from '../../i18n/translations';
 
 export function SplashScreen() {
   return (
-    <div className="app-splash app-rainbow-animated min-h-screen bg-[var(--app-bg)] flex items-center justify-center px-6">
+    <div className="app-splash app-rainbow-animated min-h-dvh bg-[var(--app-bg)] flex items-center justify-center px-6">
       <div className="app-scale-in relative flex flex-col items-center gap-4">
         <div className="absolute inset-[-48px] -z-10 rounded-full bg-[var(--app-rainbow-soft)] blur-3xl" />
         <div className="grid h-24 w-24 place-items-center rounded-[32px] bg-white/75 shadow-[var(--app-shadow-card-active)] ring-1 ring-white/60 backdrop-blur-xl">

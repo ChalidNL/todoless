@@ -8,15 +8,17 @@
     <meta name="color-scheme" content="light" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="format-detection" content="telephone=no" />
-    <meta name="description" content="Self-hosted productivity app" />
+    <meta name="description" content="todoless — the self-hosted family organizer" />
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "default" keeps dark status-bar icons on the light app chrome; black-translucent
+         rendered white icons over the light header (unreadable). -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="todoless" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+    <!-- Icons are generated from the official logo (docs/assets/logo.png) by scripts/generate-icons.js -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>todoless</title>
   </head>
 

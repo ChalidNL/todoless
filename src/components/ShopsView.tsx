@@ -1,4 +1,5 @@
 import { Pencil, Store, Trash2, X } from 'lucide-react';
+import { ConfirmDialog } from './shared/ConfirmDialog';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
@@ -18,7 +19,9 @@ export function ShopsView() {
   const [draftColor, setDraftColor] = useState('#ec4899');
 
   const closeModal = () => { setShowModal(false); setEditing(null); setDraftName(''); };
-  const openCreate = () => { setEditing(null); setDraftName(''); setDraftColor('#ec4899'); setShowModal(true); };
+  // Text typed in the header field becomes the new shop's name.
+  const openCreate = () => { setEditing(null); setDraftName(search.trim()); setDraftColor('#ec4899'); setShowModal(true); };
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const openEditStore = (shop: Shop) => { setEditing(shop); setDraftName(shop.name); setDraftColor(shop.color || '#ec4899'); setShowModal(true); };
   const saveShop = () => {
     const name = draftName.trim();
@@ -30,7 +33,7 @@ export function ShopsView() {
   const visibleShops = shops.filter((shop) => !search.trim() || shop.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
-    <div className="app-shell-bg min-h-full pb-24">
+    <div className="app-shell-bg min-h-full pb-6">
       <SettingsDetailHeader
         mode="list"
         screen="shop"
@@ -54,7 +57,16 @@ export function ShopsView() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-4">
           <div className="w-full max-w-lg rounded-[28px] bg-white p-4 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="shop-dialog-title">
             <div className="mb-4 flex items-center justify-between"><h2 id="shop-dialog-title" className="text-base font-black text-[var(--app-text)]">{editing ? t('settings.editShopTitle') : t('settings.addShopTitle')}</h2><button type="button" onClick={closeModal} className="grid h-11 w-11 place-items-center rounded-full bg-[var(--app-bg)]" aria-label={t('common.close')}><X className="h-4 w-4" /></button></div>
-            <input value={draftName} onChange={(event) => setDraftName(event.target.value)} placeholder={t('settings.shopNamePlaceholder')} className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-sm font-semibold outline-none" autoFocus />
+            <input
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); saveShop(); } if (event.key === 'Escape') closeModal(); }}
+              placeholder={t('settings.shopNamePlaceholder')}
+              aria-label={t('settings.shopNamePlaceholder')}
+              enterKeyHint="done"
+              className="min-h-[var(--app-touch-target)] w-full rounded-[var(--app-radius-input)] border border-[var(--app-border-subtle)] px-3 text-[16px] font-semibold outline-none"
+              autoFocus
+            />
             <div className="flex flex-wrap gap-2.5 py-4">{COLOR_PALETTE.map((color) => <button key={color} type="button" onClick={() => setDraftColor(color)} className="h-9 w-9 rounded-full" style={{ background: color, border: draftColor === color ? '3px solid #1a1a2e' : '3px solid transparent', boxShadow: draftColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none' }} aria-label={color} />)}</div>
             <div className="flex gap-2">
               <Button label={t('common.save')} onClick={saveShop} />
@@ -63,17 +75,19 @@ export function ShopsView() {
                   label={t('common.delete')}
                   icon={Trash2}
                   variant="destructive"
-                  onClick={() => {
-                    if (window.confirm(t('common.confirmDeleteTitle'))) {
-                      deleteShop(editing.id);
-                      closeModal();
-                    }
-                  }}
+                  onClick={() => setConfirmDelete(true)}
                 />
               )}
             </div>
           </div>
         </div>
+      )}
+      {confirmDelete && editing && (
+        <ConfirmDialog
+          title={t('common.confirmDeleteTitle')}
+          onConfirm={() => { deleteShop(editing.id); setConfirmDelete(false); closeModal(); }}
+          onCancel={() => setConfirmDelete(false)}
+        />
       )}
     </div>
   );

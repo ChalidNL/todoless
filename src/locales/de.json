@@ -141,7 +141,14 @@
         "title": "Kalender",
         "tagline": "Familienpläne auf einen Blick."
       }
-    }
+    },
+    "firstNamePlaceholder": "Max",
+    "lastNamePlaceholder": "Müller",
+    "emailPlaceholder": "du@beispiel.de",
+    "passwordPlaceholder": "Mindestens 8 Zeichen",
+    "confirmPasswordPlaceholder": "Passwort wiederholen",
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen"
   },
   "tasks": {
     "title": "Aufgaben",
@@ -408,7 +415,19 @@
     "sortNewest": "Neueste zuerst",
     "sortOldest": "Älteste zuerst",
     "sortAlpha": "A-Z",
-    "sortAlphaReverse": "Z-A"
+    "sortAlphaReverse": "Z-A",
+    "membersCount": {
+      "one": "{n} Mitglied",
+      "other": "{n} Mitglieder"
+    },
+    "labelsCount": {
+      "one": "{n} Label",
+      "other": "{n} Labels"
+    },
+    "shopsCount": {
+      "one": "{n} Geschäft",
+      "other": "{n} Geschäfte"
+    }
   },
   "projects": {
     "title": "Projekte",
@@ -501,7 +520,9 @@
     "noResults": "Keine Ergebnisse",
     "markAllDone": "Alle als erledigt markieren",
     "clearAll": "Alle löschen",
-    "empty": "Leer"
+    "empty": "Leer",
+    "select": "Auswählen",
+    "selectedCount": "{n} ausgewählt"
   },
   "members": {
     "title": "Familie",
@@ -604,5 +625,16 @@
     "doneSprint": "Erledigter Sprint",
     "blocked": "Blockiert",
     "doneToday": "Heute erledigt"
+  },
+  "ics": {
+    "sectionTitle": "Kalender importieren & exportieren"
+  },
+  "errors": {
+    "offline": "Du bist offline oder der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",
+    "server": "Der Server konnte deine Daten nicht laden. Bitte versuche es gleich noch einmal.",
+    "forbidden": "Dein Konto hat gerade keinen Zugriff auf diese Daten. Frag den Admin deiner Familie.",
+    "unknown": "Beim Laden deiner Daten ist etwas schiefgelaufen.",
+    "reload": "App neu laden",
+    "resetLocal": "Abmelden und dieses Gerät zurücksetzen"
   }
 }

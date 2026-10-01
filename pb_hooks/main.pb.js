@@ -255,6 +255,10 @@ routerAdd('POST', '/api/register', (c) => {
     rec.set('password', data.password);
     rec.set('passwordConfirm', data.passwordConfirm || data.password);
     rec.set('name', data.name || '');
+    // Keep the structured name the onboarding/register forms collect (the
+    // profile screen edits first/last name; previously only \`name\` was kept).
+    rec.set('first_name', String(data.firstName || '').trim().slice(0, 100));
+    rec.set('last_name', String(data.lastName || '').trim().slice(0, 100));
     rec.set('emailVisibility', false);
     rec.set('role', data.role || 'user');
     rec.set('family_id', data.family_id || '');
@@ -314,6 +318,8 @@ routerAdd('POST', '/api/register', (c) => {
         password: d.password,
         passwordConfirm: d.passwordConfirm,
         name: d.name || d.email.split('@')[0],
+        firstName: d.firstName || d.first_name,
+        lastName: d.lastName || d.last_name,
         role: (memberType === 'agent') ? 'member' : 'admin',
         family_id: '',
         member_status: 'active',
@@ -350,6 +356,8 @@ routerAdd('POST', '/api/register', (c) => {
       password: d.password,
       passwordConfirm: d.passwordConfirm,
       name: d.name || d.email.split('@')[0],
+      firstName: d.firstName || d.first_name,
+      lastName: d.lastName || d.last_name,
       role: role,
       family_id: fid,
       member_status: 'active',
