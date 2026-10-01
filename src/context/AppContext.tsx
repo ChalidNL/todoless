@@ -392,39 +392,59 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (failed > 0) showCompletionMessage(t('common.someChangesNotSaved'));
   };
 
-  const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
+  // Fire-and-forget mutation with a safety net. The helpers below update
+  // the server and then re-read; when the request failed they used to end as
+  // an unhandled rejection - no message, no re-read - so the optimistic state
+  // stayed on screen until the next resync. Now: log, re-read anyway (which
+  // reverts the optimistic state), and tell the user once.
+  const mutate = (label: string, request: () => Promise<unknown>, ...refreshers: Array<() => Promise<unknown>>) => {
     void (async () => {
-      await persistNewEntry(entry);
-      await refreshEntries();
+      let failed = false;
+      try {
+        await request();
+      } catch (error) {
+        failed = true;
+        console.error(`${label} failed`, error);
+      }
+      for (const refresh of refreshers) {
+        try {
+          await refresh();
+        } catch (error) {
+          console.error(`${label}: refresh failed`, error);
+        }
+      }
+      if (failed) showCompletionMessage(t('common.someChangesNotSaved'));
     })();
   };
 
+  const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
+    mutate('addEntry', () => persistNewEntry(entry), refreshEntries);
+  };
+
   const updateEntry = (id: string, updates: Partial<Entry>) => {
-    void (async () => {
-      setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-      const entry = entries.find(e => e.id === id);
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    const entry = entries.find(e => e.id === id);
+    mutate('updateEntry', async () => {
       if (entry?.type === 'task') {
         const { completed, ...taskUpdates } = updates;
-        await api.updateTask(id, taskUpdates);
+        await api.updateTask(id, withCompletionAttribution(id, taskUpdates as Partial<Task>));
       } else if (entry?.type === 'item') {
         const { blocked, blockedComment, flag, ...itemUpdates } = updates;
         await api.updateItem(id, itemUpdates);
       }
-      await refreshEntries();
-    })();
+    }, refreshEntries);
   };
 
   const deleteEntry = (id: string) => {
-    void (async () => {
-      const entry = entries.find(e => e.id === id);
+    const entry = entries.find(e => e.id === id);
+    mutate('deleteEntry', async () => {
       if (entry?.type === 'task') {
         await api.deleteTask(id);
       } else {
         await api.deleteItem(id);
       }
       setEntries(prev => prev.filter(e => e.id !== id));
-      await refreshEntries();
-    })();
+    }, refreshEntries);
   };
 
   const completeEntry = (id: string) => {
@@ -647,30 +667,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [sprints]);
 
   const addItem = (item: Omit<Item, 'id' | 'createdAt'>) => {
-    void (async () => {
-      await api.createItem(item);
-      await refreshEntries();
-    })();
+    mutate('createItem', () => api.createItem(item), refreshEntries);
   };
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt' | 'completedAt'>) => {
-    void (async () => {
-      try {
-        await api.createTask(task);
-        await refreshEntries();
-      } catch (error: any) {
-        const detail = error?.response?.data || error?.data || error?.message || error;
-        console.error('addTask failed — full error:', JSON.stringify(detail, null, 2));
-        console.error('addTask payload:', JSON.stringify(task));
-      }
-    })();
+    mutate('createTask', () => api.createTask(task), refreshEntries);
   };
 
   const addNote = (note: Omit<Note, 'id' | 'createdAt'>) => {
-    void (async () => {
-      await api.createNote(note);
-      await refreshNotes();
-    })();
+    mutate('createNote', () => api.createNote(note), refreshNotes);
   };
 
   const addLabel = async (label: Omit<Label, 'id'>): Promise<Label | undefined> => {
@@ -689,19 +694,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const createLabel = addLabel;
 
   const addShop = (shop: Omit<Shop, 'id'>) => {
-    void (async () => {
-      await api.createShop(shop);
-      await refreshShops();
-    })();
+    mutate('createShop', () => api.createShop(shop), refreshShops);
   };
 
   const createShop = addShop;
 
   const addSprint = (sprint: Omit<Sprint, 'id'>) => {
-    void (async () => {
-      await api.createSprint(sprint);
-      await refreshSprints();
-    })();
+    mutate('createSprint', () => api.createSprint(sprint), refreshSprints);
   };
 
   const addUser = (user: User) => {
@@ -709,10 +708,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateItem = (id: string, updates: Partial<Item>) => {
-    void (async () => {
-      await api.updateItem(id, updates);
-      await refreshEntries();
-    })();
+    mutate('updateItem', () => api.updateItem(id, updates), refreshEntries);
   };
 
   // Completion attribution: the person who ticks the box is the completer -
@@ -730,31 +726,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateTask = (id: string, updates: Partial<Task>) => {
     const attributed = withCompletionAttribution(id, updates);
-    void (async () => {
-      await api.updateTask(id, attributed);
-      await refreshEntries();
-    })();
+    mutate('updateTask', () => api.updateTask(id, attributed), refreshEntries);
   };
 
   const updateNote = (id: string, updates: Partial<Note>) => {
-    void (async () => {
-      await api.updateNote(id, updates);
-      await refreshNotes();
-    })();
+    mutate('updateNote', () => api.updateNote(id, updates), refreshNotes);
   };
 
   const updateLabel = (id: string, updates: Partial<Label>) => {
-    void (async () => {
-      await api.updateLabel(id, updates);
-      await refreshLabels();
-    })();
+    mutate('updateLabel', () => api.updateLabel(id, updates), refreshLabels);
   };
 
   const updateShop = (id: string, updates: Partial<Shop>) => {
-    void (async () => {
-      await api.updateShop(id, updates);
-      await refreshShops();
-    })();
+    mutate('updateShop', () => api.updateShop(id, updates), refreshShops);
   };
 
   const updateAppSettings = async (settings: Partial<AppSettings>): Promise<boolean> => {
@@ -807,80 +791,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteItem = (id: string) => {
-    void (async () => {
-      await api.deleteItem(id);
-      await refreshEntries();
-      await refreshNotes();
-    })();
+    mutate('deleteItem', () => api.deleteItem(id), refreshEntries, refreshNotes);
   };
 
   const deleteTask = (id: string) => {
-    void (async () => {
-      await api.deleteTask(id);
-      await refreshEntries();
-      await refreshNotes();
-    })();
+    mutate('deleteTask', () => api.deleteTask(id), refreshEntries, refreshNotes);
   };
 
   const deleteTasks = (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
     if (uniqueIds.length === 0) return;
-    void (async () => {
-      await api.deleteTasks(uniqueIds);
-      await refreshEntries();
-      await refreshNotes();
-    })();
+    mutate('deleteTasks', () => api.deleteTasks(uniqueIds), refreshEntries, refreshNotes);
   };
 
   const deleteNote = (id: string) => {
-    void (async () => {
-      await api.deleteNote(id);
-      await refreshNotes();
-    })();
+    mutate('deleteNote', () => api.deleteNote(id), refreshNotes);
   };
 
   const deleteLabel = (id: string) => {
-    void (async () => {
-      await api.deleteLabel(id);
-      await Promise.all([refreshLabels(), refreshEntries(), refreshNotes()]);
-    })();
+    mutate('deleteLabel', () => api.deleteLabel(id), refreshLabels, refreshEntries, refreshNotes);
   };
 
   const deleteShop = (id: string) => {
-    void (async () => {
-      await api.deleteShop(id);
-      await refreshShops();
-    })();
+    mutate('deleteShop', () => api.deleteShop(id), refreshShops);
   };
 
   const deleteSprint = (id: string) => {
-    void (async () => {
-      await api.deleteSprint(id);
-      await refreshSprints();
-    })();
+    mutate('deleteSprint', () => api.deleteSprint(id), refreshSprints);
   };
 
   const updateSprintFn = (id: string, updates: Partial<Sprint>) => {
-    void (async () => {
-      await api.updateSprint(id, updates);
-      await refreshSprints();
-    })();
+    mutate('updateSprint', () => api.updateSprint(id, updates), refreshSprints);
   };
 
   const startSprint = (id: string) => {
-    void (async () => {
-      await api.updateSprint(id, { status: 'active' });
-      await refreshSprints();
-    })();
+    mutate('updateSprint', () => api.updateSprint(id, { status: 'active' }), refreshSprints);
   };
 
   const completeSprint = (id: string) => {
-    void (async () => {
-      await api.updateSprint(id, { status: 'completed' });
-      await refreshSprints();
-      // Archive completed tasks for this sprint
-      archiveCompletedSprintTasks(id);
-    })();
+    // after the refresh: archive the completed tasks of this sprint
+    mutate('completeSprint', () => api.updateSprint(id, { status: 'completed' }), refreshSprints, async () => { archiveCompletedSprintTasks(id); });
   };
 
   const archiveCompletedSprintTasks = (sprintId?: string) => {
@@ -978,31 +928,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const convertTaskToItem = (taskId: string) => {
     const task = effectiveTasks.find((t) => t.id === taskId);
     if (!task) return;
-    void (async () => {
-      try {
-        await api.createItem({ title: task.title, completed: false, labels: task.labels });
-      } catch (error) {
-        console.error('convertTaskToItem: copy not created, keeping the task', error);
-        return;
-      }
+    // The copy must exist before the original is removed (#238): a failed
+    // create throws before deleteTask runs, and mutate() reports it.
+    mutate('convertTaskToItem', async () => {
+      await api.createItem({ title: task.title, completed: false, labels: task.labels });
       await api.deleteTask(taskId);
-      await refreshEntries();
-    })();
+    }, refreshEntries);
   };
 
   const convertItemToTask = (itemId: string) => {
     const item = effectiveItems.find((i) => i.id === itemId);
     if (!item) return;
-    void (async () => {
-      try {
-        await api.createTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
-      } catch (error) {
-        console.error('convertItemToTask: copy not created, keeping the item', error);
-        return;
-      }
+    mutate('convertItemToTask', async () => {
+      await api.createTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
       await api.deleteItem(itemId);
-      await refreshEntries();
-    })();
+    }, refreshEntries);
   };
 
   const swapEntity = (id: string) => {
@@ -1014,21 +954,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       ? { ...fields, type: 'item', completed: false, status: 'todo' as const, blocked: false, flag: false }
       // Grocery → Task: preserve all fields
       : { ...fields, type: 'task', status: 'todo' as const, blocked: false, flag: false };
-    void (async () => {
-      try {
-        await persistNewEntry(copy);
-      } catch (error) {
-        console.error('swapEntity: copy not created, keeping the original', error);
-        return;
-      }
+    // Create the copy first and delete the original only once it exists
+    // (#238); a failed create throws before the delete and mutate() reports it.
+    mutate('swapEntity', async () => {
+      await persistNewEntry(copy);
       if (entry.type === 'task') {
         await api.deleteTask(id);
       } else {
         await api.deleteItem(id);
       }
       setEntries(prev => prev.filter(e => e.id !== id));
-      await refreshEntries();
-    })();
+    }, refreshEntries);
   };
 
   const generateInviteCode = async (): Promise<InviteCode | null> => {
@@ -1055,10 +991,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteInviteCode = (id: string) => {
-    void (async () => {
-      await api.deleteInvite(id);
-      await refreshInvites();
-    })();
+    mutate('deleteInvite', () => api.deleteInvite(id), refreshInvites);
   };
 
   const uncheckAllDoneTasks = () => {
@@ -1072,38 +1005,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addReward = (reward: Omit<Reward, 'id'>) => {
-    void (async () => {
-      await api.createReward(reward);
-      await refreshRewards();
-    })();
+    mutate('createReward', () => api.createReward(reward), refreshRewards);
   };
 
   const deleteReward = (id: string) => {
-    void (async () => {
-      await api.deleteReward(id);
-      await refreshRewards();
-    })();
+    mutate('deleteReward', () => api.deleteReward(id), refreshRewards);
   };
 
   const addGoal = (goal: Omit<Goal, 'id'>) => {
-    void (async () => {
-      await api.createGoal(goal);
-      await refreshGoals();
-    })();
+    mutate('createGoal', () => api.createGoal(goal), refreshGoals);
   };
 
   const updateGoalFn = (id: string, updates: Partial<Goal>) => {
-    void (async () => {
-      await api.updateGoal(id, updates);
-      await refreshGoals();
-    })();
+    mutate('updateGoal', () => api.updateGoal(id, updates), refreshGoals);
   };
 
   const deleteGoal = (id: string) => {
-    void (async () => {
-      await api.deleteGoal(id);
-      await refreshGoals();
-    })();
+    mutate('deleteGoal', () => api.deleteGoal(id), refreshGoals);
   };
 
   // Derived: total points earned by the current user from rewards
@@ -1115,7 +1033,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, [rewards]);
 
   const updateReward = (id: string, updates: Partial<Reward>) => {
-    void (async () => {
+    mutate('updateReward', async () => {
       const pbUpdates: Record<string, unknown> = {};
       if (updates.title !== undefined) pbUpdates.title = updates.title;
       if (updates.points !== undefined) pbUpdates.points = updates.points;
@@ -1125,58 +1043,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (updates.taskId !== undefined) pbUpdates.task_id = updates.taskId;
       if (updates.awardedBy !== undefined) pbUpdates.awarded_by = updates.awardedBy;
       await pb.collection('rewards').update(id, pbUpdates);
-      await refreshRewards();
-    })();
+    }, refreshRewards);
   };
 
   const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
-    void (async () => {
-      await api.createProject(project);
-      await refreshProjects();
-    })();
+    mutate('createProject', () => api.createProject(project), refreshProjects);
   };
 
   const updateProjectFn = (id: string, updates: Partial<Project>) => {
-    void (async () => {
-      await api.updateProject(id, updates);
-      await refreshProjects();
-    })();
+    mutate('updateProject', () => api.updateProject(id, updates), refreshProjects);
   };
 
   const deleteProject = (id: string) => {
-    void (async () => {
-      await api.deleteProject(id);
-      await refreshProjects();
-    })();
+    mutate('deleteProject', () => api.deleteProject(id), refreshProjects);
   };
 
   // --- Reminders ---
   const addReminder = (reminder: Omit<Reminder, 'id' | 'createdAt' | 'dismissed' | 'fired'>) => {
-    void (async () => {
-      await api.createReminder(reminder);
-      await refreshReminders();
-    })();
+    mutate('createReminder', () => api.createReminder(reminder), refreshReminders);
   };
 
   const updateReminderFn = (id: string, updates: Partial<Reminder>) => {
-    void (async () => {
-      await api.updateReminder(id, updates);
-      await refreshReminders();
-    })();
+    mutate('updateReminder', () => api.updateReminder(id, updates), refreshReminders);
   };
 
   const dismissReminder = (id: string) => {
-    void (async () => {
-      await api.dismissReminder(id);
-      await refreshReminders();
-    })();
+    mutate('dismissReminder', () => api.dismissReminder(id), refreshReminders);
   };
 
   const deleteReminder = (id: string) => {
-    void (async () => {
-      await api.deleteReminder(id);
-      await refreshReminders();
-    })();
+    mutate('deleteReminder', () => api.deleteReminder(id), refreshReminders);
   };
 
   const contextValue = useMemo(
