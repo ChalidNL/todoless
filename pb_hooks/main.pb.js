@@ -25,6 +25,11 @@
 
 onRecordCreate((e) => {
   var rec = e.record;
+  // #241: only a top-level task can be a parent (no self-links, no cycles).
+  var parentError = require(__hooks + '/lib/task-parent.js').parentLinkError(rec, function (id) {
+    try { return $app.findRecordById('tasks', id); } catch (_e) { return null; }
+  });
+  if (parentError) throw new BadRequestError(parentError);
   var dateSync = require(__hooks + '/lib/task-date-sync.js');
   // Canonical defaults — always applied, no outer try/catch: a failure here
   // must fail the save rather than persist a half-initialised task.
@@ -60,6 +65,15 @@ onRecordCreate((e) => {
 
 onRecordUpdate((e) => {
   var rec = e.record;
+  // #241: re-check the parent link whenever it changes.
+  var prevLinkedTo = '';
+  try { prevLinkedTo = String(rec.original().get('linked_to') || ''); } catch (_eOrig) { prevLinkedTo = ''; }
+  if (String(rec.get('linked_to') || '') !== prevLinkedTo) {
+    var parentErrorU = require(__hooks + '/lib/task-parent.js').parentLinkError(rec, function (id) {
+      try { return $app.findRecordById('tasks', id); } catch (_e) { return null; }
+    });
+    if (parentErrorU) throw new BadRequestError(parentErrorU);
+  }
   var orig = null;
   try { if (typeof rec.original === 'function') orig = rec.original(); } catch (_errOriginal) { orig = null; }
   if (orig) {

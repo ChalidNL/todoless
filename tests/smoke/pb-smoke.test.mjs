@@ -1347,6 +1347,32 @@ test('/api/entries label filter matches groceries by label id', async () => {
   assert.deepEqual(r.data[0].labels, [label.data.id])
 })
 
+// --- 8g. #241: no subtask cycles, whichever route writes the link ----------
+test('the server refuses self-links and cyclic or nested parent links (#241)', async () => {
+  const mk = async (title, extra = {}) => {
+    const r = await api('POST', '/api/collections/tasks/records', { token: adminToken, body: { title, status: 'todo', user: admin.id, ...extra } })
+    assert.equal(r.status, 200, JSON.stringify(r.data))
+    return r.data.id
+  }
+  const a = await mk('Cycle A')
+  const b = await mk('Cycle B', { linked_to: a, linked_type: 'task' })
+  const c = await mk('Cycle C')
+  // A -> B -> A
+  const cyc = await api('PATCH', `/api/collections/tasks/records/${a}`, { token: adminToken, body: { linked_to: b, linked_type: 'task' } })
+  assert.equal(cyc.status, 400, `A under its own subtask must fail: ${JSON.stringify(cyc.data)}`)
+  const self = await api('PATCH', `/api/collections/tasks/records/${c}`, { token: adminToken, body: { linked_to: c, linked_type: 'task' } })
+  assert.equal(self.status, 400, 'self-link must fail')
+  const nested = await api('POST', '/api/collections/tasks/records', { token: adminToken, body: { title: 'Cycle D', status: 'todo', user: admin.id, linked_to: b, linked_type: 'task' } })
+  assert.equal(nested.status, 400, 'a subtask cannot get subtasks')
+  const viaV1 = await api('POST', '/api/v1', { token: adminToken, body: { action: 'add_subtask', task_id: b, subtask_id: a } })
+  assert.ok(viaV1.status >= 400, `/api/v1 add_subtask must not create A -> B -> A: ${viaV1.status}`)
+  const after = await api('GET', `/api/collections/tasks/records/${a}`, { token: adminToken })
+  assert.equal(after.data.linked_to, '', 'A is still top-level')
+  // a valid link still works
+  const ok = await api('PATCH', `/api/collections/tasks/records/${c}`, { token: adminToken, body: { linked_to: a, linked_type: 'task' } })
+  assert.equal(ok.status, 200, JSON.stringify(ok.data))
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {

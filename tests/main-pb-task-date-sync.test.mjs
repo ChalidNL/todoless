@@ -77,6 +77,7 @@ const sandbox = {
   require: (path) => {
     if (String(path).endsWith('task-date-sync.js')) return require('../pb_hooks/lib/task-date-sync.js')
     if (String(path).endsWith('task-note.js')) return require('../pb_hooks/lib/task-note.js')
+    if (String(path).endsWith('task-parent.js')) return require('../pb_hooks/lib/task-parent.js')
     throw new Error('unexpected require in sandbox: ' + path)
   },
 }
