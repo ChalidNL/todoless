@@ -258,13 +258,14 @@ describe('red onboarding visual and localization contract', () => {
     expect(markSeen).toHaveBeenCalledTimes(2);
   });
 
-  it('uses i18n keys for every bottom navigation label', () => {
-    const app = readFileSync(resolve(__dirname, '../App.tsx'), 'utf8');
-
-    for (const key of ['nav.inbox', 'nav.tasks', 'nav.calendar', 'nav.groceries', 'nav.settings']) {
-      expect(app).toContain(`t('${key}', language)`);
+  it('bottom navigation labels resolve to the active language (GH#99: behaviour, not a source grep)', () => {
+    const expected = {
+      en: ['Inbox', 'Tasks', 'Calendar', 'Groceries', 'Settings'],
+      nl: ['Postvak IN', 'Taken', 'Agenda', 'Shop', 'Instellingen'],
+    } as const;
+    for (const [language, labels] of Object.entries(expected)) {
+      expect(['nav.inbox', 'nav.tasks', 'nav.calendar', 'nav.groceries', 'nav.settings'].map((key) => t(key, language as 'en' | 'nl'))).toEqual(labels);
     }
-    expect(app).not.toMatch(/label:\s*'(?:Taken|Agenda|Instellingen|Boodschappen)'/);
   });
 
   it('only advertises modules that actually exist in the app (GH#72)', async () => {

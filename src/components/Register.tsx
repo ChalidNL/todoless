@@ -33,11 +33,21 @@ export const Register = ({ onRegister }: RegisterProps) => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('invite') || localStorage.getItem('pending_invite_code') || '';
-    if (code) {
-      setInviteCode(code);
-      setStep('create'); // Skip validation if code is in URL
-      localStorage.removeItem('pending_invite_code'); // Cleanup
-    }
+    if (!code) return;
+    const normalized = code.trim().toUpperCase();
+    setInviteCode(normalized);
+    localStorage.removeItem('pending_invite_code'); // Cleanup
+    // Validate invite links up front: an expired/used/invalid link must fail
+    // here, not after the person has filled in the whole registration form.
+    let cancelled = false;
+    setIsLoading(true);
+    api.validateInviteCode(normalized)
+      .then(() => { if (!cancelled) setStep('create'); })
+      .catch((validationError: any) => {
+        if (!cancelled) setError(translatePbError(validationError?.message, 'auth.expiredInviteCode'));
+      })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const handleValidateInvite = async () => {

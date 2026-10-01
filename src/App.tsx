@@ -37,6 +37,13 @@ const ONBOARDING_SEEN_KEY = 'todoless_onboarding_completed';
 const getOnboardingSeenValueForUser = (userId?: string | null) =>
   userId ? `user:${userId}` : 'anon';
 
+/** Remember that this device has a signed-in user (invite registration and plain login included). */
+const markDeviceOnboarded = () => {
+  try {
+    localStorage.setItem(ONBOARDING_SEEN_KEY, getOnboardingSeenValueForUser(pb.authStore.record?.id ?? null));
+  } catch { /* storage unavailable: worst case the intro is shown again */ }
+};
+
 // Known top-level app routes (mirrors the <Routes> tree below). Used so the
 // first-run/onboarding check can recognize an unmapped path and defer to the
 // Router's own wildcard redirect instead of unconditionally showing onboarding.
@@ -147,9 +154,11 @@ function AppContent() {
 
       const onboardingSeenValue = localStorage.getItem(ONBOARDING_SEEN_KEY);
       const expectedOnboardingSeenValue = getOnboardingSeenValueForUser((user as any)?.id ?? null);
+      // Signed out on a device where someone already used the app (any stored
+      // value): go straight to login, never back to the intro slides.
       const hasCompletedOnboarding =
         onboardingSeenValue === expectedOnboardingSeenValue ||
-        (onboardingSeenValue === 'true' && !user);
+        (!!onboardingSeenValue && !user);
 
       // Fast path: if localStorage says onboarding already done, skip all APi checks
       if (hasCompletedOnboarding) {
@@ -158,6 +167,15 @@ function AppContent() {
           setAppScreen('register');
         } else if (!pb.authStore.isValid || !user) {
           setAppScreen('login');
+          // A server that was reset has no accounts: first-run setup, not a
+          // login nobody can pass. Checked in the background (fast path).
+          void fetchSetupStatus().then(({ hasUsers }) => {
+            if (hasUsers === false) {
+              localStorage.removeItem(ONBOARDING_SEEN_KEY);
+              setOnboardingMode('admin');
+              setAppScreen('onboarding');
+            }
+          }).catch(() => { /* offline: stay on login */ });
         } else {
           setAppScreen('app');
         }
@@ -249,15 +267,15 @@ function AppContent() {
   }
 
   if (appScreen === 'register') {
-    return <Register onRegister={() => { setAppScreen('app'); }} />;
+    return <Register onRegister={() => { markDeviceOnboarded(); setAppScreen('app'); }} />;
   }
 
   if (appScreen === 'login') {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { markDeviceOnboarded(); setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
   if (!pb.authStore.isValid) {
-    return <Login onLogin={() => { setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
+    return <Login onLogin={() => { markDeviceOnboarded(); setAppScreen('app'); }} onSwitchToRegister={() => setAppScreen('register')} />;
   }
 
   if (dataLoadState === 'loading') {

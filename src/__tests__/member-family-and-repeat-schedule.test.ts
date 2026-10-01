@@ -64,7 +64,11 @@ describe('repeat schedule', () => {
 
   it('calculates the next monthly weekday recurrence from UTC-midnight due dates without shifting weekday', () => {
     const nextDueDate = getNextRecurringDueDate('month_weekday', '2026-06-08T00:00:00.000Z');
-    expect(nextDueDate).toBe('2026-07-13T10:00:00.000Z');
+    // Assert the calendar day (second Monday of July), not a hard-coded UTC
+    // offset of the internal noon anchor (GH#99).
+    const next = new Date(nextDueDate);
+    expect(new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(next)).toBe('2026-07-13');
+    expect(new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Amsterdam', weekday: 'long' }).format(next)).toBe('Monday');
   });
 
   it('calculates the next monthly weekday recurrence from the due date pattern', () => {
