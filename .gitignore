@@ -78,3 +78,6 @@ scripts/test-collaboration.sh
 *.swo
 *~
 Thumbs.db
+
+# Python bytecode (scripts/*.py)
+__pycache__/
