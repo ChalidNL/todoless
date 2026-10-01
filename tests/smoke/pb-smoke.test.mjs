@@ -566,6 +566,99 @@ test('editing a done recurring task does not create a duplicate occurrence (GH#7
   assert.equal(open[0].blocked_comment ?? '', '', 'the next occurrence must not inherit the edit')
 })
 
+// --- 7a. Canonical record hooks (main.pb.js) -------------------------------
+// The create/update hooks were registered as onRecordCreate('tasks', fn) —
+// the pre-0.23 argument order — which registers nothing on PocketBase 0.23+.
+// None of the defaults applied (a native create without status failed with
+// "Cannot be blank"), start_time was never canonicalized and the GH#79 date
+// sync never ran. These tests pin the model-level behaviour for both the
+// native collection API and a custom route ($app.save path).
+test('native task create applies canonical defaults and start_time := due_date', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke canonical defaults', user: admin.id, due_date: '2026-11-02T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.equal(created.data?.status, 'todo')
+  assert.equal(created.data?.is_private, false)
+  assert.equal(created.data?.flag, false)
+  assert.equal(created.data?.all_day, false)
+  assert.equal(new Date(created.data?.start_time).toISOString(), '2026-11-02T09:00:00.000Z')
+})
+
+test('native due_date change moves start_time/end_time; clearing due_date clears both (GH#79)', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: {
+      title: 'Smoke date sync', user: admin.id, status: 'todo',
+      due_date: '2026-11-02T09:00:00.000Z', start_time: '2026-11-02T08:00:00.000Z', end_time: '2026-11-02T09:30:00.000Z',
+    },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+
+  const moved = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { due_date: '2026-11-03T09:00:00.000Z' } })
+  assert.equal(moved.status, 200)
+  assert.equal(new Date(moved.data?.start_time).toISOString(), '2026-11-03T08:00:00.000Z')
+  assert.equal(new Date(moved.data?.end_time).toISOString(), '2026-11-03T09:30:00.000Z')
+
+  const renamed = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { title: 'Smoke date sync renamed' } })
+  assert.equal(renamed.status, 200)
+  assert.equal(new Date(renamed.data?.start_time).toISOString(), '2026-11-03T08:00:00.000Z', 'unrelated edits must not touch the block')
+
+  const explicit = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, {
+    token: adminToken, body: { due_date: '2026-11-04T09:00:00.000Z', start_time: '2026-11-04T12:00:00.000Z' },
+  })
+  assert.equal(explicit.status, 200)
+  assert.equal(new Date(explicit.data?.start_time).toISOString(), '2026-11-04T12:00:00.000Z', 'an explicit start_time wins over the sync')
+
+  const cleared = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { due_date: null } })
+  assert.equal(cleared.status, 200)
+  assert.equal(cleared.data?.due_date, '')
+  assert.equal(cleared.data?.start_time, '')
+  assert.equal(cleared.data?.end_time, '')
+})
+
+test('v1 update of due_date moves start_time too (custom route goes through the same model hook)', async () => {
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken,
+    body: { title: 'Smoke v1 date sync', user: admin.id, status: 'todo', due_date: '2026-11-02T09:00:00.000Z' },
+  })
+  assert.equal(created.status, 200)
+  assert.equal(new Date(created.data?.start_time).toISOString(), '2026-11-02T09:00:00.000Z')
+
+  const upd = await api('POST', '/api/v1', {
+    token: adminToken, body: { action: 'update', type: 'task', id: created.data.id, due_date: '2026-11-05T09:00:00.000Z' },
+  })
+  assert.equal(upd.status, 200, JSON.stringify(upd.data))
+  const after = await api('GET', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken })
+  assert.equal(new Date(after.data?.start_time).toISOString(), '2026-11-05T09:00:00.000Z')
+})
+
+test('label relation changes are mirrored into the legacy labels field', async () => {
+  const label = await api('POST', '/api/collections/labels/records', {
+    token: adminToken,
+    body: { name: 'Smoke mirror label', color: '#336699', user: admin.id, owner: admin.id, family: admin.family_id, visibility: 'family' },
+  })
+  assert.equal(label.status, 200, JSON.stringify(label.data))
+  const created = await api('POST', '/api/collections/tasks/records', {
+    token: adminToken, body: { title: 'Smoke label mirror', user: admin.id, status: 'todo', label: [label.data.id] },
+  })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.deepEqual(created.data?.labels, [label.data.id])
+
+  const removed = await api('PATCH', `/api/collections/tasks/records/${created.data.id}`, { token: adminToken, body: { label: [] } })
+  assert.equal(removed.status, 200)
+  assert.deepEqual(removed.data?.labels, [])
+})
+
+test('native item create defaults quantity to 1 and completed to false', async () => {
+  const created = await api('POST', '/api/collections/items/records', { token: adminToken, body: { title: 'Smoke item defaults', user: admin.id } })
+  assert.equal(created.status, 200, JSON.stringify(created.data))
+  assert.equal(created.data?.quantity, 1)
+  assert.equal(created.data?.completed, false)
+  assert.equal(created.data?.is_private, false)
+})
+
 // --- 7b. /api/v1 update action -----------------------------------------
 test('v1 update action updates title/status/due_date on a task', async () => {
   const created = await api('POST', '/api/v1', {

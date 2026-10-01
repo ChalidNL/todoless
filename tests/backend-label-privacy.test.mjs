@@ -106,10 +106,13 @@ test('record hooks write every label into the canonical relation on create and u
 
   // Live canonical label write on create (main.pb.js onRecordCreate) and
   // update (onRecordUpdate), replacing the dead routes/tasks.js dual-write.
+  // On update the relation (`label`) is canonical and mirrored into the legacy
+  // `labels` JSON field; a legacy write to `labels` alone is mirrored back.
+  // Behaviour is exercised in tests/main-pb-task-date-sync.test.mjs.
   assert.match(main, /rec\.set\('labels', createLabels\)/)
   assert.match(main, /rec\.set\('label', createLabels\)/)
-  assert.match(main, /e\.record\.set\('labels', updateLabels\)/)
-  assert.match(main, /e\.record\.set\('label', updateLabels\)/)
+  assert.match(main, /rec\.set\('labels', newLabel\)/)
+  assert.match(main, /rec\.set\('label', newLabels\)/)
   // No first-label-only truncation in any live canonical write.
   assert.doesNotMatch(main, /labels\s*\[0\]/)
   assert.doesNotMatch(authLib, /labels\s*\[0\]/)

@@ -10,11 +10,24 @@
 
 
 // ── Canonical Record Hooks: single creation path for ALL sources (UI, API, agent) ──
+//
+// PocketBase >= 0.23 record hooks take (handler, ...collectionTags) and the
+// handler MUST call e.next() for the save to go ahead. The previous
+// (collectionName, handler) order silently registered nothing — none of the
+// defaults below applied and the GH#79 date sync never ran (the function
+// source became the "tag", so the hook never matched a collection).
+//
+// These are MODEL-level hooks on purpose: they fire for every persist path
+// ($app.save() from /api/v1, /api/tasks, agent routes, other hooks) as well as
+// the native collection API. That also means there is NO request context here
+// (e.requestInfo does not exist on model events) — "what changed" comes from
+// e.record.original(), the pre-update snapshot.
 
-    onRecordCreate('tasks', (e) => {
+onRecordCreate((e) => {
   var rec = e.record;
   var dateSync = require(__hooks + '/lib/task-date-sync.js');
-  // Canonical defaults - ALWAYS set, no outer try/catch
+  // Canonical defaults — always applied, no outer try/catch: a failure here
+  // must fail the save rather than persist a half-initialised task.
   if (!rec.get('status')) rec.set('status', 'todo');
   if (rec.get('flag') === undefined || rec.get('flag') === null) rec.set('flag', false);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
@@ -24,80 +37,64 @@
   // empty PB date fields are truthy DateTime zero objects, so the old
   // `!rec.get('start_time')` truthiness check was dead code (GH#11).
   dateSync.ensureStartOnCreate(rec);
-  var createLabels = rec.get('label') || rec.get('labels') || [];
+  // `label` (relation) is canonical; mirror it into the legacy `labels` JSON
+  // field so older readers keep seeing the same ids.
+  var createLabels = rec.get('label');
   if (!Array.isArray(createLabels)) createLabels = createLabels ? [String(createLabels)] : [];
   rec.set('labels', createLabels);
   rec.set('label', createLabels);
+  e.next();
+}, 'tasks');
 
-  // Request info - call ONCE, store reference
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
-
-  // Auto-set user from auth context if not provided
-  if (!rec.get('user')) {
-    var auth = info && info.auth ? info.auth : null;
-    if (auth) rec.set('user', auth.id);
-  }
-  // Subtask_ids from request data
-  if (info) {
-    try {
-      var data = info.data || {};
-      if (data && data.subtask_ids !== undefined) {
-        rec.set('subtask_ids', data.subtask_ids);
-      }
-    } catch(ex) { /* no data */ }
-  }
-});
-
-onRecordCreate('items', (e) => {
+onRecordCreate((e) => {
   var rec = e.record;
-  // Canonical defaults - ALWAYS set, no outer try/catch
+  // Canonical defaults — always applied, no outer try/catch
   if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
   if (!rec.get('quantity')) rec.set('quantity', 1);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
+  e.next();
+}, 'items');
 
-  // Request info - call ONCE, store reference
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) { /* no request context */ }
-
-  // Auto-set user from auth context if not provided
-  if (!rec.get('user')) {
-    var auth = info && info.auth ? info.auth : null;
-    if (auth) rec.set('user', auth.id);
-  }
-});
-
-onRecordUpdate('tasks', (e) => {
-  var info = null;
-  try { info = e.requestInfo(); } catch(ex) {}
-  if (info) {
+onRecordUpdate((e) => {
+  var rec = e.record;
+  var orig = null;
+  try { if (typeof rec.original === 'function') orig = rec.original(); } catch (_errOriginal) { orig = null; }
+  if (orig) {
+    // Neither mirroring nor the date sync may ever block a save.
     try {
-      var data = info.body || info.data || {};
-      if (data && data.subtask_ids !== undefined) {
-        e.record.set('subtask_ids', data.subtask_ids);
+      var dateSync = require(__hooks + '/lib/task-date-sync.js');
+      var idList = function (v) {
+        if (Array.isArray(v)) return v.map(function (x) { return String(x); });
+        return v ? [String(v)] : [];
+      };
+      // Legacy `labels` is a JSON field: record.get() yields raw bytes in the
+      // JSVM, so read it through getString() + JSON.parse.
+      var legacyLabels = function (r) {
+        try { var parsed = JSON.parse(r.getString('labels') || 'null'); return Array.isArray(parsed) ? parsed.map(String) : []; } catch (_e) { return []; }
+      };
+      var newLabel = idList(rec.get('label')), oldLabel = idList(orig.get('label'));
+      var newLabels = legacyLabels(rec), oldLabels = legacyLabels(orig);
+      if (JSON.stringify(newLabel) !== JSON.stringify(oldLabel)) {
+        rec.set('labels', newLabel);                       // canonical relation changed → mirror
+      } else if (JSON.stringify(newLabels) !== JSON.stringify(oldLabels)) {
+        rec.set('label', newLabels);                       // legacy client wrote `labels` only
       }
-      if (data && (data.labels !== undefined || data.label !== undefined)) {
-        var updateLabels = data.label !== undefined ? data.label : data.labels;
-        if (!Array.isArray(updateLabels)) updateLabels = updateLabels ? [String(updateLabels)] : [];
-        e.record.set('labels', updateLabels);
-        e.record.set('label', updateLabels);
-      }
+
       // GH#79: keep start_time/end_time in agreement with due_date changes
-      // from the task list (which only ever sends due_date) or API clients.
-      if (data && Object.prototype.hasOwnProperty.call(data, 'due_date')) {
-        var syncOriginal = null;
-        try {
-          if (typeof e.record.original === 'function') syncOriginal = e.record.original();
-          else if (typeof e.record.originalCopy === 'function') syncOriginal = e.record.originalCopy();
-        } catch(_e) { syncOriginal = null; }
-        if (!syncOriginal) {
-          try { syncOriginal = $app.findRecordById('tasks', e.record.id); } catch(_e) { syncOriginal = null; }
-        }
-        require(__hooks + '/lib/task-date-sync.js').syncOnDueDateChange(e.record, data, syncOriginal);
-      }
-    } catch(err) { /* ignore */ }
+      // (task list and API clients only ever send due_date). The sync lib
+      // expects the request-body view ("which keys were sent"); rebuild it
+      // from the diff against the original so it works for every persist path.
+      var msOrNull = function (v) { var m = dateSync.toMs(v); return isNaN(m) ? null : m; };
+      var changed = {};
+      var newDueMs = msOrNull(rec.get('due_date'));
+      if (newDueMs !== msOrNull(orig.get('due_date'))) changed.due_date = newDueMs === null ? null : new Date(newDueMs).toISOString();
+      if (msOrNull(rec.get('start_time')) !== msOrNull(orig.get('start_time'))) changed.start_time = rec.get('start_time');
+      if (msOrNull(rec.get('end_time')) !== msOrNull(orig.get('end_time'))) changed.end_time = rec.get('end_time');
+      if (Object.prototype.hasOwnProperty.call(changed, 'due_date')) dateSync.syncOnDueDateChange(rec, changed, orig);
+    } catch (_errSync) { /* never block the save */ }
   }
-});
+  e.next();
+}, 'tasks');
 
 // ─── Public API endpoints ────────────────────────────────────────────────
 
