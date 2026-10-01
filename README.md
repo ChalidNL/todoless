@@ -222,7 +222,7 @@ todoless is meant to live on your own network. The container serves plain HTTP o
 Built-in hardening:
 - Both containers run as non-root, with all Linux capabilities dropped; the web container's filesystem is read-only.
 - PocketBase is not published on the host. It is reachable only through nginx.
-- Logins, registration and API calls are rate-limited.
+- Logins (including dashboard logins), registration and API calls are rate-limited per client. Spoofed `X-Forwarded-For` headers are ignored: PocketBase only trusts the address nginx adds itself.
 - Strict security headers are set, including a Content-Security-Policy.
 
 To report a vulnerability, see [SECURITY.md](SECURITY.md).
@@ -230,7 +230,7 @@ To report a vulnerability, see [SECURITY.md](SECURITY.md).
 <details>
 <summary><b>PocketBase admin dashboard</b></summary>
 
-PocketBase's own dashboard at **http://your-server:7070/_/** gives access to the data, settings, backups and logs. It only answers requests from private networks (LAN, loopback and the Tailscale range).
+PocketBase's own dashboard at **http://your-server:7070/_/** gives access to the data, settings, backups and logs. It only answers **direct** requests from private networks (LAN, loopback and the Tailscale range). A request that arrives through a reverse proxy (it carries `X-Forwarded-For`, `Forwarded`, `X-Real-IP` or `CF-Connecting-IP`) gets `403`: behind a proxy, every visitor appears to come from the proxy's private address, so the allow-list could not tell the internet from your LAN. If you used to open the dashboard through your reverse proxy, open it directly on the LAN, via Tailscale or through an SSH tunnel instead.
 
 Set `POCKETBASE_ADMIN_EMAIL` and `POCKETBASE_ADMIN_PASSWORD` in `.env` to create the dashboard login automatically, or create it once by hand:
 ```bash
