@@ -1391,6 +1391,17 @@ test('completed_by records who completed the task on /api/v1 and the agent dispa
   await api('POST', `/api/agent/keys/${key.data.id}/revoke`, { token: adminToken })
 })
 
+// --- 8i. #236: an admin cannot mint a token that acts as a human member ---
+test('an admin cannot create an API token for a human member (it would bypass their privacy) (#236)', async () => {
+  const minted = await api('POST', `/api/members/${member.id}/token`, { token: adminToken })
+  assert.equal(minted.status, 403, `admin minting a token for a human member must fail: ${JSON.stringify(minted.data)}`)
+  assert.ok(!minted.data?.token, 'no raw token returned')
+  const own = await api('POST', `/api/members/${admin.id}/token`, { token: adminToken })
+  assert.ok(own.status === 200 || own.status === 201, `admin may mint their own: ${own.status}`)
+  const byMember = await api('POST', `/api/members/${admin.id}/token`, { token: memberToken })
+  assert.equal(byMember.status, 403, 'members cannot mint tokens for others')
+})
+
 // --- 9. Password change ------------------------------------------------
 test('member can change their password (PATCH with oldPassword)', async () => {
   const r = await api('PATCH', `/api/collections/users/records/${member.id}`, {

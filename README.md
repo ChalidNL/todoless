@@ -245,7 +245,7 @@ To use the dashboard without any LAN exposure, publish PocketBase on the server'
 ## API and integrations
 
 - **REST API:** every install documents its own API in Swagger UI at **`/api/docs`**, also linked from **Settings** in the app. The public reference is at **[todoless.eu/docs](https://todoless.eu/docs/)**.
-- **API tokens:** for scripts and automations, create a scoped token (`tasks`, `groceries`, `calendar`; read, write or delete) with `POST /api/api-tokens` while signed in. The token is shown once and only its hash is stored. Wildcard scopes are reserved for owners and admins.
+- **API tokens:** for scripts and automations, create a scoped token (`tasks`, `groceries`, `calendar`; read, write or delete) with `POST /api/api-tokens` while signed in. The token is shown once and only its hash is stored. Wildcard scopes are reserved for owners and admins. A token always acts as the person it belongs to. That's why owners and admins can create tokens only for themselves and for assistant (agent) accounts, never for another family member.
 - **Calendar feed:** subscribe to `/api/calendar.ics` from any calendar app that supports ICS subscriptions (Apple, Google, Outlook, Thunderbird, Home Assistant's remote calendar…), or import and export `.ics` files.
 
 ---

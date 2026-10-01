@@ -534,7 +534,7 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied — member belongs to another family' });
     }
 
@@ -603,8 +603,15 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
+    }
+    // #236: a token minted here acts AS the member, including their private
+    // tasks and groceries. So an admin may only mint one for an agent
+    // (family assistant) account or for themselves; a human member creates
+    // their own tokens (POST /api/api-tokens).
+    if (targetUserId !== actingUserId && String(memberUser.get('member_type') || 'human') !== 'agent') {
+      return c.json(403, { error: 'Tokens for a human member can only be created by that member' });
     }
 
     // Disable any existing tokens for this user
@@ -625,6 +632,8 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
     rec.set('token_hash', hash);
     rec.set('permissions', ['tasks:write', 'groceries:write', 'tasks:read', 'groceries:read']);
     rec.set('enabled', true);
+    // token_type is required (migration 040); without it every call here 500'd.
+    rec.set('token_type', String(memberUser.get('member_type') || '') === 'agent' ? 'agent_api_token' : 'personal_api_token');
     $app.save(rec);
 
     return c.json(201, {
@@ -681,7 +690,7 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
     }
 
