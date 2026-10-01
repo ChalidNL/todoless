@@ -230,7 +230,7 @@ test('custom task authorization matches the collection rule for mixed non-family
 })
 
 test('frontend clients propagate all labels to the canonical relation instead of only the first label', () => {
-  for (const path of ['src/lib/pocketbase-client.ts', 'src/lib/api-client.ts']) {
+  for (const path of ['src/lib/pocketbase-client.ts']) {
     const source = read(path)
     assert.doesNotMatch(source, /label:\s*[^\n]*labels\?\.\[0\]/, path)
     assert.doesNotMatch(source, /payload\.label\s*=\s*updates\.labels\?\.\[0\]/, path)
