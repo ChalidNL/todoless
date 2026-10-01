@@ -10,7 +10,7 @@
     "ical.js": "^2.2.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.487.0",
-    "pocketbase": "^0.26.8",
+    "pocketbase": "^0.28.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.8",
