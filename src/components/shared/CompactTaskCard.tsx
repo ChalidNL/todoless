@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { parentTaskCandidates } from '../../lib/parent-task-candidates';
 import { Task, RepeatInterval, userDisplayName } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/pocketbase-client';
@@ -308,16 +309,10 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
   const hasLabels = task.labels.length > 0;
   const hasAssignee = !!task.assignedTo;
   const hasSchedule = !!task.dueDate || !!task.repeatInterval;
-  const parentTaskMatches = useMemo(() => {
-    const query = parentSearch.trim().toLowerCase();
-    return tasks
-      .filter((candidate) => {
-        if (candidate.id === task.id || candidate.status === 'done') return false;
-        if (!query) return true;
-        return candidate.title.toLowerCase().includes(query);
-      })
-      .slice(0, 6);
-  }, [parentSearch, task.id, tasks]);
+  const parentTaskMatches = useMemo(
+    () => parentTaskCandidates(tasks, task, parentSearch),
+    [parentSearch, task, tasks],
+  );
 
   const isLabelFiltered = (id: string) => isChipFilterActive('label', id);
   const isAssigneeFiltered = (id?: string) => id ? isChipFilterActive('assignee', id) : false;
