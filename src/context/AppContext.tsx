@@ -690,9 +690,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     })();
   };
 
+  // Completion attribution: the person who ticks the box is the completer -
+  // not the assignee - and leaving the done state clears it. Callers that pass
+  // completedBy explicitly keep control.
+  const withCompletionAttribution = (id: string, updates: Partial<Task>): Partial<Task> => {
+    if (!('status' in updates) || 'completedBy' in updates) return updates;
+    const wasDone = tasks.find((t) => t.id === id)?.status === 'done';
+    if (updates.status === 'done') {
+      if (wasDone) return updates;
+      return { ...updates, completedBy: pb.authStore.record?.id || appSettings.currentUserId || undefined };
+    }
+    return { ...updates, completedBy: undefined };
+  };
+
   const updateTask = (id: string, updates: Partial<Task>) => {
+    const attributed = withCompletionAttribution(id, updates);
     void (async () => {
-      await api.updateTask(id, updates);
+      await api.updateTask(id, attributed);
       await refreshEntries();
     })();
   };
