@@ -1235,6 +1235,40 @@ test('labels and assignees are validated on ICS import, v1 and the agent dispatc
   assert.equal(v1Ghost.status, 400, JSON.stringify(v1Ghost.data))
 })
 
+test('ICS import maps simple RRULEs onto repeat_interval and keeps the rest raw (#257)', async () => {
+  const res = await api('POST', '/api/ics-import', { token: memberToken, body: { events: [
+    { uid: 'smoke-257-weekly', title: 'Weekly import', start_time: '2026-11-09T08:00:00.000Z', end_time: '2026-11-09T09:00:00.000Z', all_day: false, rrule: 'FREQ=WEEKLY;BYDAY=MO' },
+    { uid: 'smoke-257-allday', title: 'Monthly weekday import', start_time: '2026-11-10T00:00:00.000Z', end_time: '2026-11-11T00:00:00.000Z', all_day: true, rrule: 'FREQ=MONTHLY;BYDAY=2TU' },
+    { uid: 'smoke-257-complex', title: 'Every other week import', start_time: '2026-11-11T08:00:00.000Z', all_day: false, rrule: 'FREQ=WEEKLY;INTERVAL=2' },
+  ] } })
+  assert.equal(res.status, 200, JSON.stringify(res.data))
+  assert.equal(res.data.created, 3, JSON.stringify(res.data))
+
+  const byUid = async (uid) => {
+    const r = await api('GET', `/api/collections/tasks/records?filter=${encodeURIComponent(`uid = "${uid}"`)}`, { token: memberToken })
+    assert.equal(r.status, 200)
+    assert.equal(r.data.items.length, 1, uid)
+    return r.data.items[0]
+  }
+  const weekly = await byUid('smoke-257-weekly')
+  assert.equal(weekly.repeat_interval, 'week')
+  assert.equal(weekly.rrule || '', '')
+  assert.match(weekly.due_date, /^2026-11-09 08:00:00/)
+  const monthly = await byUid('smoke-257-allday')
+  assert.equal(monthly.repeat_interval, 'month_weekday')
+  assert.match(monthly.due_date, /^2026-11-10 00:00:00/)
+  const complex = await byUid('smoke-257-complex')
+  assert.equal(complex.repeat_interval || '', '')
+  assert.equal(complex.rrule, 'FREQ=WEEKLY;INTERVAL=2')
+
+  // Completing the mapped series creates the next occurrence like an app task.
+  const done = await api('PATCH', `/api/collections/tasks/records/${weekly.id}`, { token: memberToken, body: { status: 'done' } })
+  assert.equal(done.status, 200, JSON.stringify(done.data))
+  const next = await api('GET', `/api/collections/tasks/records?filter=${encodeURIComponent('title = "Weekly import" && status = "todo"')}`, { token: memberToken })
+  assert.equal(next.data.items.length, 1, JSON.stringify(next.data))
+  assert.match(next.data.items[0].due_date, /^2026-11-16 08:00:00/)
+})
+
 // --- 8f. Private-item access matrix (tasks AND groceries) -----------------
 // A member's private task and private grocery must be reachable by that
 // member only. Everyone else -- another family member, the family admin, the

@@ -645,7 +645,12 @@
     "linkCopied": "Link copied",
     "revokeLinks": "Revoke subscription links",
     "revokedLinks": "Subscription links revoked: {n}",
-    "subscribeFailed": "Could not create the subscription link."
+    "subscribeFailed": "Could not create the subscription link.",
+    "eventWithoutStart": "Event without a start date skipped: {title}",
+    "eventUnreadable": "An event could not be read: {error}",
+    "fileUnreadable": "The file could not be read as a calendar: {error}",
+    "recurringUnsupported": "Repeats in a pattern todoless can't follow; shown once",
+    "recurringShort": "Series"
   },
   "errors": {
     "offline": "You're offline or the server can't be reached. Check your connection and try again.",

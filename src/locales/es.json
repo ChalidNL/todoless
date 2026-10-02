@@ -646,7 +646,12 @@
     "linkCopied": "Enlace copiado",
     "revokeLinks": "Revocar enlaces de suscripción",
     "revokedLinks": "Enlaces de suscripción revocados: {n}",
-    "subscribeFailed": "No se pudo crear el enlace de suscripción."
+    "subscribeFailed": "No se pudo crear el enlace de suscripción.",
+    "eventWithoutStart": "Evento sin fecha de inicio omitido: {title}",
+    "eventUnreadable": "No se pudo leer un evento: {error}",
+    "fileUnreadable": "No se pudo leer el archivo como calendario: {error}",
+    "recurringUnsupported": "Se repite con un patrón que todoless no puede seguir; se muestra una vez",
+    "recurringShort": "Serie"
   },
   "errors": {
     "offline": "Estás sin conexión o no se puede contactar con el servidor. Comprueba tu conexión e inténtalo de nuevo.",

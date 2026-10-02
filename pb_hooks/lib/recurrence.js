@@ -2,157 +2,163 @@
 // GH#7 — pure recurrence date math, ported from the never-loaded legacy
 // pb_hooks/cron/recurring-tasks.js (pre-0.23 API, no .pb.js suffix).
 //
-// Pure JS — no PocketBase globals — so the same file can be
+// Pure JS — no PocketBase globals and no Intl (Goja has none) — so the same
+// file can be
 //   * required from PB Goja hook handlers (require(__hooks + '/lib/recurrence.js')), and
 //   * unit-tested by `node --test tests/recurrence.test.mjs` (see that file).
+//
+// src/lib/repeat-schedule.ts is a line-for-line TypeScript copy for the
+// calendar preview; src/__tests__/recurrence-client-server.test.ts runs both
+// over every interval and several years of anchors and requires identical
+// dates (#256). Change both or neither.
+//
+// The rule:
+//   * A date at exactly 00:00:00.000 UTC is a date-only value (how the app
+//     stores a due date without a time): it moves by calendar days in UTC and
+//     stays at UTC midnight.
+//   * Any other date is a moment in time: it moves on the Europe/Amsterdam
+//     wall clock, so "every Monday 09:00" stays 09:00 across DST changes.
+//   * month: same day of the month, clamped to the month's last day.
+//   * month_weekday: the same n-th weekday of the month; the 5th (or one
+//     that is the month's last) becomes the last one.
+//   * Each occurrence is computed from the previous one, exactly as the
+//     server creates them.
 
-const AMSTERDAM_TIME_ZONE = 'Europe/Amsterdam'
+var MINUTE_MS = 60 * 1000
 
-function toDate(value) {
-  return value instanceof Date ? new Date(value.getTime()) : new Date(value)
+// Last Sunday of the given month (0-based), as a UTC day of the month.
+function lastSundayOfMonth(year, monthIndex) {
+  var last = new Date(Date.UTC(year, monthIndex + 1, 0))
+  return last.getUTCDate() - last.getUTCDay()
 }
 
-function getTimeZoneOffsetMinutes(date, timeZone) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    timeZoneName: 'longOffset',
-  })
-  const timeZoneName = formatter.formatToParts(date).find((part) => part.type === 'timeZoneName')?.value ?? 'GMT+00:00'
-  const match = timeZoneName.match(/GMT([+-])(\d{2}):(\d{2})/)
-
-  if (!match) {
-    return 0
-  }
-
-  const [, sign, hours, minutes] = match
-  const totalMinutes = (Number(hours) * 60) + Number(minutes)
-  return sign === '-' ? -totalMinutes : totalMinutes
+// Europe/Amsterdam offset from UTC in minutes at the given instant: CEST
+// (+120) from the last Sunday of March 01:00 UTC to the last Sunday of
+// October 01:00 UTC, CET (+60) otherwise (EU rule since 1996).
+function amsterdamOffsetMinutes(ms) {
+  var year = new Date(ms).getUTCFullYear()
+  var start = Date.UTC(year, 2, lastSundayOfMonth(year, 2), 1)
+  var end = Date.UTC(year, 9, lastSundayOfMonth(year, 9), 1)
+  return ms >= start && ms < end ? 120 : 60
 }
 
-function createAmsterdamNoonDate(year, monthIndex, day) {
-  const utcGuess = new Date(Date.UTC(year, monthIndex, day, 12, 0, 0, 0))
-  const offsetMinutes = getTimeZoneOffsetMinutes(utcGuess, AMSTERDAM_TIME_ZONE)
-  return new Date(utcGuess.getTime() - (offsetMinutes * 60_000))
+function toMs(value) {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime()
 }
 
-function toCalendarDate(value) {
-  if (typeof value === 'string') {
-    const utcMidnightMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})T00:00:00(?:\.000)?Z$/)
-    if (utcMidnightMatch) {
-      const [, year, month, day] = utcMidnightMatch
-      return createAmsterdamNoonDate(Number(year), Number(month) - 1, Number(day))
-    }
-  }
-
-  return toDate(value)
+function isDateOnly(ms) {
+  return ms % (24 * 60 * MINUTE_MS) === 0
 }
 
-function addMonthsPreservingDay(baseDate, monthsToAdd) {
-  const year = baseDate.getUTCFullYear()
-  const monthIndex = baseDate.getUTCMonth() + monthsToAdd
-  const targetYear = year + Math.floor(monthIndex / 12)
-  const normalizedMonth = ((monthIndex % 12) + 12) % 12
-  const daysInMonth = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate()
-  const targetDay = Math.min(baseDate.getUTCDate(), daysInMonth)
+// Wall-clock fields as a "UTC" Date (read them with getUTC*).
+function toWall(ms, dateOnly) {
+  return new Date(dateOnly ? ms : ms + amsterdamOffsetMinutes(ms) * MINUTE_MS)
+}
 
+function fromWall(wall, dateOnly) {
+  var wallMs = wall.getTime()
+  if (dateOnly) return new Date(wallMs)
+  // The offset depends on the result itself; one correction step settles it
+  // (a wall time inside the spring-forward gap lands an hour later).
+  var guess = wallMs - amsterdamOffsetMinutes(wallMs - 60 * MINUTE_MS) * MINUTE_MS
+  return new Date(wallMs - amsterdamOffsetMinutes(guess) * MINUTE_MS)
+}
+
+function withDate(wall, year, monthIndex, day) {
   return new Date(Date.UTC(
-    targetYear,
-    normalizedMonth,
-    targetDay,
-    baseDate.getUTCHours(),
-    baseDate.getUTCMinutes(),
-    baseDate.getUTCSeconds(),
-    baseDate.getUTCMilliseconds()
+    year, monthIndex, day,
+    wall.getUTCHours(), wall.getUTCMinutes(), wall.getUTCSeconds(), wall.getUTCMilliseconds()
   ))
 }
 
-function getMonthlyWeekdayParts(input) {
-  const date = toCalendarDate(input)
-  const dayOfMonth = date.getUTCDate()
-  const occurrenceIndex = Math.floor((dayOfMonth - 1) / 7)
-  const weekdayIndex = date.getUTCDay()
-  const nextSameWeekday = new Date(date.getTime())
-  nextSameWeekday.setUTCDate(dayOfMonth + 7)
+function daysInMonth(year, monthIndex) {
+  return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate()
+}
 
+function addMonthsClamped(wall, monthsToAdd) {
+  var monthIndex = wall.getUTCMonth() + monthsToAdd
+  var year = wall.getUTCFullYear() + Math.floor(monthIndex / 12)
+  var month = ((monthIndex % 12) + 12) % 12
+  return withDate(wall, year, month, Math.min(wall.getUTCDate(), daysInMonth(year, month)))
+}
+
+// Which weekday of its month a wall date is: index 0 = first, and whether it
+// is the month's last one.
+function monthlyWeekdayParts(wall) {
+  var day = wall.getUTCDate()
   return {
-    weekdayIndex,
-    occurrenceIndex,
-    isLastOccurrence: nextSameWeekday.getUTCMonth() !== date.getUTCMonth(),
+    weekdayIndex: wall.getUTCDay(),
+    occurrenceIndex: Math.floor((day - 1) / 7),
+    isLastOccurrence: day + 7 > daysInMonth(wall.getUTCFullYear(), wall.getUTCMonth()),
   }
 }
 
-function getNthWeekdayInFollowingMonth(baseDate) {
-  const calendarDate = toCalendarDate(baseDate)
-  const targetMonthSeed = addMonthsPreservingDay(calendarDate, 1)
-  const targetYear = targetMonthSeed.getUTCFullYear()
-  const targetMonth = targetMonthSeed.getUTCMonth()
-  const { weekdayIndex, occurrenceIndex, isLastOccurrence } = getMonthlyWeekdayParts(calendarDate)
-
-  const firstDayOfMonth = new Date(Date.UTC(
-    targetYear,
-    targetMonth,
-    1,
-    calendarDate.getUTCHours(),
-    calendarDate.getUTCMinutes(),
-    calendarDate.getUTCSeconds(),
-    calendarDate.getUTCMilliseconds()
-  ))
-
-  const firstWeekdayOffset = (weekdayIndex - firstDayOfMonth.getUTCDay() + 7) % 7
-  const firstWeekdayDate = 1 + firstWeekdayOffset
-  let targetDay = firstWeekdayDate + (occurrenceIndex * 7)
-
-  const daysInMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate()
-
-  if (isLastOccurrence || targetDay > daysInMonth) {
-    const lastDayOfMonth = new Date(Date.UTC(
-      targetYear,
-      targetMonth,
-      daysInMonth,
-      calendarDate.getUTCHours(),
-      calendarDate.getUTCMinutes(),
-      calendarDate.getUTCSeconds(),
-      calendarDate.getUTCMilliseconds()
-    ))
-    const reverseOffset = (lastDayOfMonth.getUTCDay() - weekdayIndex + 7) % 7
-    targetDay = daysInMonth - reverseOffset
+function nthWeekdayInFollowingMonth(wall) {
+  var parts = monthlyWeekdayParts(wall)
+  var monthIndex = wall.getUTCMonth() + 1
+  var year = wall.getUTCFullYear() + Math.floor(monthIndex / 12)
+  var month = monthIndex % 12
+  var total = daysInMonth(year, month)
+  var firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay()
+  var day = 1 + ((parts.weekdayIndex - firstWeekday + 7) % 7) + parts.occurrenceIndex * 7
+  if (parts.isLastOccurrence || day > total) {
+    var lastWeekday = new Date(Date.UTC(year, month, total)).getUTCDay()
+    day = total - ((lastWeekday - parts.weekdayIndex + 7) % 7)
   }
-
-  return new Date(Date.UTC(
-    targetYear,
-    targetMonth,
-    targetDay,
-    calendarDate.getUTCHours(),
-    calendarDate.getUTCMinutes(),
-    calendarDate.getUTCSeconds(),
-    calendarDate.getUTCMilliseconds()
-  ))
+  return withDate(wall, year, month, day)
 }
 
 function getNextRecurringDate(repeatInterval, baseDateInput) {
-  const rawDate = toDate(baseDateInput)
-  const nextDate = new Date(rawDate.getTime())
+  var ms = toMs(baseDateInput)
+  if (isNaN(ms)) return null
+  var dateOnly = isDateOnly(ms)
+  var wall = toWall(ms, dateOnly)
+  var next
 
   switch (repeatInterval) {
     case 'day':
-      nextDate.setUTCDate(nextDate.getUTCDate() + 1)
-      return nextDate
+      next = withDate(wall, wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate() + 1)
+      break
     case 'week':
-      nextDate.setUTCDate(nextDate.getUTCDate() + 7)
-      return nextDate
+      next = withDate(wall, wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate() + 7)
+      break
     case 'month':
-      return addMonthsPreservingDay(toCalendarDate(baseDateInput), 1)
+      next = addMonthsClamped(wall, 1)
+      break
     case 'month_weekday':
-      return getNthWeekdayInFollowingMonth(baseDateInput)
+      next = nthWeekdayInFollowingMonth(wall)
+      break
     case 'year':
-      nextDate.setUTCFullYear(nextDate.getUTCFullYear() + 1)
-      return nextDate
+      next = addMonthsClamped(wall, 12)
+      break
     default:
       return null
   }
+  return fromWall(next, dateOnly)
+}
+
+// The monthly-weekday pattern of a date, in the same terms the next date is
+// computed with (for labels such as "every second Monday").
+function getMonthlyWeekdayParts(dateInput) {
+  var ms = toMs(dateInput)
+  return monthlyWeekdayParts(toWall(ms, isDateOnly(ms)))
+}
+
+// Calendar position of a date for matching an imported RRULE (#257): the
+// monthly-weekday parts plus day of month and month (1-12), in the same
+// date-only / Amsterdam wall-clock terms as above.
+function getAnchorParts(dateInput) {
+  var ms = toMs(dateInput)
+  var wall = toWall(ms, isDateOnly(ms))
+  var parts = monthlyWeekdayParts(wall)
+  parts.day = wall.getUTCDate()
+  parts.month = wall.getUTCMonth() + 1
+  return parts
 }
 
 module.exports = {
-  getNextRecurringDate,
-  toCalendarDate,
-};
+  getNextRecurringDate: getNextRecurringDate,
+  getAnchorParts: getAnchorParts,
+  getMonthlyWeekdayParts: getMonthlyWeekdayParts,
+  amsterdamOffsetMinutes: amsterdamOffsetMinutes,
+}

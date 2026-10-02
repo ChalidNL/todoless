@@ -646,7 +646,12 @@
     "linkCopied": "Link kopiert",
     "revokeLinks": "Abo-Links widerrufen",
     "revokedLinks": "Abo-Links widerrufen: {n}",
-    "subscribeFailed": "Der Abo-Link konnte nicht erstellt werden."
+    "subscribeFailed": "Der Abo-Link konnte nicht erstellt werden.",
+    "eventWithoutStart": "Termin ohne Startdatum übersprungen: {title}",
+    "eventUnreadable": "Ein Termin konnte nicht gelesen werden: {error}",
+    "fileUnreadable": "Die Datei konnte nicht als Kalender gelesen werden: {error}",
+    "recurringUnsupported": "Wiederholt sich nach einem Muster, dem todoless nicht folgen kann; einmal angezeigt",
+    "recurringShort": "Serie"
   },
   "errors": {
     "offline": "Du bist offline oder der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut.",

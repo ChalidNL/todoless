@@ -1,5 +1,5 @@
-import { RRule, rrulestr } from 'rrule';
-import type { Task, RepeatInterval } from '../types';
+import type { Task } from '../types';
+import { getNextRecurringDate } from './repeat-schedule';
 
 export type CalendarView = 'schedule' | 'day' | '3days' | 'week' | 'workweek' | 'month';
 
@@ -73,35 +73,47 @@ export function buildCalendarItems({
   );
 }
 
+// Upper bound on occurrences walked per task and range (a daily series that
+// started years ago still renders; a runaway loop cannot hang the calendar).
+const MAX_RECURRENCE_STEPS = 5000;
+
+/**
+ * Occurrences of a recurring task inside [rangeStart, rangeEnd]. Walks the
+ * series with getNextRecurringDate, the same rule the server uses to create
+ * the next task (#256), from the due date (or the start when there is none).
+ * A timed block keeps its offset to the due date and its length, exactly as
+ * the server shifts start_time/end_time.
+ */
 export function expandRecurringTask(task: Task, rangeStart: number, rangeEnd: number): Task[] {
   if (!task.repeatInterval) return [task];
 
-  const startTime = task.startTime || task.dueDate;
-  if (!startTime) return [task];
+  const anchor = task.dueDate || task.startTime;
+  if (!anchor) return [task];
 
+  const startOffset = task.startTime ? task.startTime - anchor : 0;
   const duration = task.startTime && task.endTime
     ? Math.max(0, task.endTime - task.startTime)
     : 0;
 
-  // Prefer explicit recurrence_rule JSON field when present
-  const rruleStr = (task as any).recurrenceRule
-    ? (task as any).recurrenceRule
-    : repeatIntervalToRRule(task.repeatInterval, task.dueDate || task.startTime);
-  const rule = rrulestr(rruleStr, { dtstart: new Date(startTime) }) as RRule;
-
-  return rule
-    .between(new Date(rangeStart), new Date(rangeEnd), true)
-    .map((date) => {
-      const newStartTime = date.getTime();
-      return {
+  const occurrences: Task[] = [];
+  let due: number | null = anchor;
+  for (let step = 0; due !== null && step < MAX_RECURRENCE_STEPS; step += 1) {
+    const start = due + startOffset;
+    if (start > rangeEnd) break;
+    if (start + duration >= rangeStart) {
+      const recurrenceId = new Date(due).toISOString();
+      occurrences.push({
         ...task,
-        id: `${task.id}:${date.toISOString()}`,
-        startTime: newStartTime,
-        endTime: newStartTime + duration,
-        dueDate: newStartTime,
-        recurrenceId: date.toISOString(),
-      };
-    });
+        id: `${task.id}:${recurrenceId}`,
+        startTime: task.startTime ? start : task.startTime,
+        endTime: task.startTime ? start + duration : task.endTime,
+        dueDate: task.dueDate ? due : task.dueDate,
+        recurrenceId,
+      });
+    }
+    due = getNextRecurringDate(task.repeatInterval, due)?.getTime() ?? null;
+  }
+  return occurrences;
 }
 
 export function sameLocalDay(a: number, b: number) {
@@ -276,27 +288,4 @@ function overlaps(start: number, end: number, rangeStart: number, rangeEnd: numb
 
 function storageKey(userId: string) {
   return `todoless_calendar_view_${userId}`;
-}
-
-function repeatIntervalToRRule(interval: RepeatInterval, referenceDate: number | undefined): string {
-  switch (interval) {
-    case 'day':
-      return 'FREQ=DAILY';
-    case 'week':
-      return 'FREQ=WEEKLY';
-    case 'month':
-      return 'FREQ=MONTHLY';
-    case 'year':
-      return 'FREQ=YEARLY';
-    case 'month_weekday': {
-      if (!referenceDate) return 'FREQ=MONTHLY;BYDAY=MO,TU,WE,TH,FR'; // fallback
-      const d = new Date(referenceDate);
-      const weekdays = ['SU','MO','TU','WE','TH','FR','SA'];
-      const wd = weekdays[d.getDay()];
-      const nth = Math.ceil(d.getDate() / 7); // 1st, 2nd, 3rd, 4th
-      return `FREQ=MONTHLY;BYDAY=${nth}${wd}`; // e.g. FREQ=MONTHLY;BYDAY=2WE
-    }
-    default:
-      return 'FREQ=DAILY';
-  }
 }

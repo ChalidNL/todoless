@@ -645,7 +645,12 @@
     "linkCopied": "Lien copié",
     "revokeLinks": "Révoquer les liens d’abonnement",
     "revokedLinks": "Liens d’abonnement révoqués : {n}",
-    "subscribeFailed": "Impossible de créer le lien d’abonnement."
+    "subscribeFailed": "Impossible de créer le lien d’abonnement.",
+    "eventWithoutStart": "Événement sans date de début ignoré : {title}",
+    "eventUnreadable": "Un événement n'a pas pu être lu : {error}",
+    "fileUnreadable": "Le fichier n'a pas pu être lu comme agenda : {error}",
+    "recurringUnsupported": "Se répète selon un schéma que todoless ne peut pas suivre ; affiché une fois",
+    "recurringShort": "Série"
   },
   "errors": {
     "offline": "Vous êtes hors ligne ou le serveur est injoignable. Vérifiez votre connexion et réessayez.",

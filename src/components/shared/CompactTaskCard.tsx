@@ -138,8 +138,11 @@ export const CompactTaskCard = ({ task, showCheckbox = true, urgent = false, sta
     ? formatDate(task.dueDate, { month: 'short', day: 'numeric' })
     : null;
 
-  const repeatLabel = getRepeatLabel(task.repeatInterval, task.dueDate);
-  const repeatChipLabel = getRepeatChipLabel(task.repeatInterval, task.dueDate);
+  // An imported series with an RRULE the app can't follow is shown once,
+  // with a marker instead of a repeat interval (#257).
+  const unsupportedRepeat = !task.repeatInterval && !!task.recurrenceRule;
+  const repeatLabel = unsupportedRepeat ? t('ics.recurringUnsupported') : getRepeatLabel(task.repeatInterval, task.dueDate);
+  const repeatChipLabel = unsupportedRepeat ? t('ics.recurringShort') : getRepeatChipLabel(task.repeatInterval, task.dueDate);
   const hasComment = !!task.blockedComment?.trim();
 
   // Subtasks: tasks that have this task's id in their linkedTo/linkedType (subtask relationship).

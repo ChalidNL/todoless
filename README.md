@@ -199,6 +199,8 @@ Things that behave differently:
 - The PocketBase dashboard (`/_/`) no longer answers through a reverse proxy, and no longer from `172.16.0.0/12` by default (that is where Docker's networks live). Use it directly on the LAN, via Tailscale or through an SSH tunnel, or adjust `TODOLESS_DASHBOARD_ALLOW` (see [Running securely](#running-securely)).
 - The web container no longer trusts a client-IP header from a fixed address. Behind a reverse proxy or cloudflared, set `TODOLESS_TRUSTED_PROXIES` (and `TODOLESS_REAL_IP_HEADER`) so rate limits use the real visitor IP.
 - Admins can no longer create API tokens for other human family members.
+- Recurring tasks with a time keep their clock time across daylight-saving changes (a weekly 09:00 task stays at 09:00), and the calendar shows exactly the occurrences the server will create.
+- Imported calendar series that repeat daily, weekly, monthly, on the n-th weekday or yearly now become normal recurring tasks. Other patterns are shown once with a "Series" marker. Re-import a calendar you imported before to convert its series.
 
 Optional: set `ENCRYPTION_KEY` to encrypt the PocketBase settings. Keep the key with your backups (see [Settings encryption](#settings-encryption)).
 </details>

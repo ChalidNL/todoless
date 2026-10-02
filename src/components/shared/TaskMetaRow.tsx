@@ -167,6 +167,7 @@ export const TaskMetaRow = React.memo(function TaskMetaRow({
         <AttributeChip
           icon={<RotateCcw className="w-3 h-3" />}
           label={repeatChipLabel || repeatLabel}
+          ariaLabel={repeatLabel}
           color="#0f766e"
           active={isRepeatFiltered}
           onClick={onRepeatClick}

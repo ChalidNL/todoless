@@ -645,7 +645,12 @@
     "linkCopied": "Link gekopieerd",
     "revokeLinks": "Abonnementslinks intrekken",
     "revokedLinks": "Abonnementslinks ingetrokken: {n}",
-    "subscribeFailed": "Kon de abonnementslink niet maken."
+    "subscribeFailed": "Kon de abonnementslink niet maken.",
+    "eventWithoutStart": "Afspraak zonder startdatum overgeslagen: {title}",
+    "eventUnreadable": "Een afspraak kon niet worden gelezen: {error}",
+    "fileUnreadable": "Het bestand kon niet als agenda worden gelezen: {error}",
+    "recurringUnsupported": "Herhaalt volgens een patroon dat todoless niet kan volgen; eenmalig getoond",
+    "recurringShort": "Reeks"
   },
   "errors": {
     "offline": "Je bent offline of de server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",

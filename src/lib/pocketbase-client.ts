@@ -95,6 +95,8 @@ export const normalizeTask = (record: any): Task => ({
   allDay: !!record.all_day,
   showInCalendar: typeof record.show_in_calendar === 'boolean' ? record.show_in_calendar : true,
   repeatInterval: record.repeat_interval || undefined,
+  // Raw RRULE of an imported series the app's model can't express (#257).
+  recurrenceRule: record.rrule || undefined,
   completedAt: toTimestamp(record.completed_at),
   archived: !!record.archived,
   archivedAt: toTimestamp(record.archived_at),
