@@ -1,27 +1,13 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// PB 0.34 JS hooks: 
-// - function/var declarations don't hoist into callbacks — inline helpers per handler
-// - c.requestInfo() call ONCE per request
-// - use info.body NOT info.data (PB 0.34 compat)
-// - $app.save(rec) for users throws "ReferenceError: tasks" (PB 0.34.2 bug)
-//   FIX: use $app.save(rec) with manual id/tokenKey
+// PocketBase runs each route/hook callback in its own context: top-level
+// functions and variables are not visible inside them, so shared code lives
+// in lib/ and is require()d inside the callback.
 
-
-
-// ── Canonical Record Hooks: single creation path for ALL sources (UI, API, agent) ──
-//
-// PocketBase >= 0.23 record hooks take (handler, ...collectionTags) and the
-// handler MUST call e.next() for the save to go ahead. The previous
-// (collectionName, handler) order silently registered nothing — none of the
-// defaults below applied and the GH#79 date sync never ran (the function
-// source became the "tag", so the hook never matched a collection).
-//
-// These are MODEL-level hooks on purpose: they fire for every persist path
-// ($app.save() from /api/v1, /api/tasks, agent routes, other hooks) as well as
-// the native collection API. That also means there is NO request context here
-// (e.requestInfo does not exist on model events) — "what changed" comes from
-// e.record.original(), the pre-update snapshot.
+// ── Record defaults for tasks and items ──
+// Model-level hooks: they run for every persist path ($app.save() from the
+// custom routes and other hooks, and the collection API). There is no request
+// context here; e.record.original() is the pre-update snapshot.
 
 onRecordCreate((e) => {
   var rec = e.record;
@@ -38,10 +24,7 @@ onRecordCreate((e) => {
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
   if (rec.get('focus') === undefined || rec.get('focus') === null) rec.set('focus', false);
   if (rec.get('all_day') === undefined || rec.get('all_day') === null) rec.set('all_day', false);
-  // GH#79: start_time := due_date canonical default. Must use hasDate() —
-  // empty PB date fields are truthy DateTime zero objects, so the old
-  // `!rec.get('start_time')` truthiness check was dead code (GH#11).
-  dateSync.ensureStartOnCreate(rec);
+  dateSync.ensureStartOnCreate(rec); // start_time := due_date (GH#79)
   // `label` (relation) is canonical; mirror it into the legacy `labels` JSON
   // field so older readers keep seeing the same ids.
   var createLabels = rec.get('label');
@@ -56,7 +39,6 @@ onRecordCreate((e) => {
 
 onRecordCreate((e) => {
   var rec = e.record;
-  // Canonical defaults — always applied, no outer try/catch
   if (rec.get('completed') === undefined || rec.get('completed') === null) rec.set('completed', false);
   if (!rec.get('quantity')) rec.set('quantity', 1);
   if (rec.get('is_private') === undefined || rec.get('is_private') === null) rec.set('is_private', false);
@@ -97,10 +79,8 @@ onRecordUpdate((e) => {
         rec.set('label', newLabels);                       // legacy client wrote `labels` only
       }
 
-      // GH#79: keep start_time/end_time in agreement with due_date changes
-      // (task list and API clients only ever send due_date). The sync lib
-      // expects the request-body view ("which keys were sent"); rebuild it
-      // from the diff against the original so it works for every persist path.
+      // GH#79: start_time/end_time follow due_date changes. The sync lib takes
+      // "which keys were sent", rebuilt here from the diff with the original.
       var msOrNull = function (v) { var m = dateSync.toMs(v); return isNaN(m) ? null : m; };
       var changed = {};
       var newDueMs = msOrNull(rec.get('due_date'));
@@ -157,17 +137,10 @@ routerAdd('GET', '/api/version', (c) => {
   });
 });
 
-// ─── Route helpers ──
-// Legacy pb_hooks/routes/* and pb_hooks/cron/* were removed in GH#31 —
-// PocketBase only loads root-level *.pb.js hooks, so those files were dead
-// code. Shared Bearer token / API-key helpers live in pb_hooks/lib/auth.js
-// (GH#30) — loaded via require(__hooks + '/lib/auth.js') from route callbacks.
 
 // ── Create invite code (server-side, bypasses PB API rules) ──
-// NOTE: authorization here is `role` (admin/owner) only, checked below.
-// This codebase has no email-verification flow, and the `verified` field on
-// the users collection is NOT used as an authorization gate anywhere -- do
-// not assume it is a security control when touching this handler or others.
+// Authorization is the admin/owner role. `users.verified` is not a security
+// control anywhere (there is no e-mail verification flow).
 routerAdd('POST', '/api/invites/create', (c) => {
   try {
     var info = c.requestInfo();
@@ -243,7 +216,7 @@ routerAdd('GET', '/api/validate-invite', (c) => {
 
 // ── User registration (no auth required) ──
 routerAdd('POST', '/api/register', (c) => {
-  // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
+  // Users are created here, not through the collection API (createRule is locked).
   var createUser = function(txApp, col, data) {
     var u = txApp;
     var rec = new Record(col);
@@ -310,10 +283,9 @@ routerAdd('POST', '/api/register', (c) => {
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
 
-      // Review S10: concurrent first registrations each saw "no users yet" and
-      // each bootstrapped its own admin + family. The bootstrap now runs in
-      // one transaction (PocketBase serialises write transactions) and
-      // re-checks inside it, so exactly one wins.
+      // Concurrent first registrations must not each bootstrap an admin and a
+      // family: the bootstrap runs in one (serialised) write transaction and
+      // re-checks that no user exists, so exactly one wins.
       var created = null;
       $app.runInTransaction(function (txApp) {
         if (txApp.findRecordsByFilter('users', '', '-created', 1, 0).length > 0) {
@@ -355,10 +327,9 @@ routerAdd('POST', '/api/register', (c) => {
     if (!fid) throw new BadRequestError('Inviter has no family — ask admin to create one.', {});
 
     var role = 'member';
-    // Review S10: a single-use invite could be redeemed by several parallel
-    // registrations (each read used = false before any wrote it). Claim the
-    // invite and create the account in one serialised transaction that
-    // re-reads the invite first.
+    // A single-use invite must not be redeemed by parallel registrations:
+    // re-read it, create the account and mark it used in one serialised
+    // transaction.
     var newUser = null;
     $app.runInTransaction(function (txApp) {
       var inviteRec = null;
@@ -399,7 +370,7 @@ routerAdd('GET', '/api/entries', (c) => {
 
 try {
     var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord');
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -424,7 +395,7 @@ routerAdd('POST', '/api/v1', (c) => {
 
 try {
     var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
     var info = c.requestInfo();
     var body = info.body || {};
     var d = body;
@@ -852,8 +823,8 @@ try {
       if (String(targetDel.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot delete the owner' });
 
       var counts = { transferred: {}, cascaded_private: {}, cleared: {}, cascaded_personal: {} };
-      // N9: transfer, clear and delete in one transaction, so a failure part
-      // way leaves the member and all their records as they were.
+      // One transaction: a failure part way leaves the member and all their
+      // records as they were.
       var dao = $app;
       var retainedCollections = ['tasks', 'items', 'notes', 'labels', 'shops', 'calendar_events', 'sprints', 'invite_codes', 'rewards', 'goals', 'projects', 'reminders', 'briefings'];
       var personalCollections = ['app_settings', 'integrations', 'ai_settings', 'api_tokens', 'external_references', 'companion_devices'];
@@ -963,9 +934,6 @@ try {
     return c.json(400, { error: 'Unknown action: ' + action });
   } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
-
-// ── Load additional route files ──────────────────────────────────────
-// Route files now auto-loaded from 10_openapi.pb.js, 11_docs.pb.js, 12_users.pb.js
 
 // ── Agent management endpoints ──────────────────────────────────────────
 // These work with api_tokens records where enabled=false = pending, enabled=true = approved.

@@ -7,13 +7,13 @@
 # (/api proxied to that PocketBase) and runs Playwright (tests/e2e/*.spec.ts).
 #
 # Usage:
-#   bash scripts/e2e.sh                        # download PB 0.40.4, build, run
+#   bash scripts/e2e.sh                        # download PocketBase, build, run
 #   PB_BIN=/path/to/pocketbase bash scripts/e2e.sh
 #   SKIP_BUILD=1 bash scripts/e2e.sh -g layout # reuse build/, filter specs
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${E2E_PB_PORT:-8098}"
 WEB_PORT="${E2E_WEB_PORT:-4173}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,15 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [[ -n "${PB_BIN:-}" ]]; then
-  PB="$PB_BIN"
-else
-  PB="$BIN_DIR/pocketbase"
-  echo "[e2e] downloading PocketBase ${PB_VERSION} ..."
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$BIN_DIR/pb.zip"
-  python3 -m zipfile -e "$BIN_DIR/pb.zip" "$BIN_DIR" >/dev/null
-  chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$BIN_DIR")"
 
 cd "$ROOT"
 if [[ "${SKIP_BUILD:-0}" != "1" ]]; then

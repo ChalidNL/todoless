@@ -28,7 +28,7 @@
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8097}"
 # upstream main before the fix; the z062 loop is identical in every revision since 575c239
 SHIPPED_REF="${SHIPPED_REF:-1b1d69d}"
@@ -48,14 +48,7 @@ cd "$ROOT"
 log() { echo "[label-privacy-upgrade] $*"; }
 fail() { echo "[label-privacy-upgrade] ERROR: $*" >&2; exit 1; }
 
-if [[ -n "${PB_BIN:-}" ]]; then
-  PB="$PB_BIN"
-else
-  PB="$WORK/pocketbase"
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$WORK/pb.zip"
-  python3 -m zipfile -e "$WORK/pb.zip" "$WORK" >/dev/null
-  chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$WORK")"
 
 # --- migration sets ----------------------------------------------------------
 mkdir -p "$WORK/pre/pb_migrations" "$WORK/shipped/pb_migrations" "$WORK/nohooks"

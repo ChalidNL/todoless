@@ -321,11 +321,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Bulk mutations: run the per-record requests with bounded concurrency and
-  // refresh ONCE at the end. Firing N updates each followed by a full
-  // refreshEntries() meant 3N requests in one burst (the nginx api_general
-  // zone allows 120) and N racing refetches. Failures are logged and reported
-  // once; the final refresh brings the UI back in line with the server.
+  // Bulk mutations: bounded concurrency and ONE refresh at the end (keeps a
+  // bulk action within the nginx rate limit). Failures are reported once.
   const BULK_CONCURRENCY = 4;
   const runBulk = async (label: string, jobs: Array<() => Promise<unknown>>) => {
     let failed = 0;
@@ -346,11 +343,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (failed > 0) showCompletionMessage(t('common.someChangesNotSaved'));
   };
 
-  // Fire-and-forget mutation with a safety net. The helpers below update
-  // the server and then re-read; when the request failed they used to end as
-  // an unhandled rejection - no message, no re-read - so the optimistic state
-  // stayed on screen until the next resync. Now: log, re-read anyway (which
-  // reverts the optimistic state), and tell the user once.
+  // Fire-and-forget mutation: on failure, log, re-read anyway (reverting the
+  // optimistic state) and tell the user once.
   const mutate = (label: string, request: () => Promise<unknown>, ...refreshers: Array<() => Promise<unknown>>) => {
     void (async () => {
       let failed = false;
@@ -492,12 +486,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [users.length]);
 
-  // #77: realtime events are applied to local state instead of refetching
-  // everything on every event (one grocery tick used to reload every list on
-  // every device). Small collections are refetched, debounced, so a bulk
-  // action produces one request instead of N. A full resync on focus/visibility
-  // and every few minutes covers events PocketBase does not deliver (records
-  // that stopped being readable).
+  // #77: realtime events update local state directly; small collections are
+  // refetched, debounced. A full resync on focus/visibility and every few
+  // minutes covers events PocketBase does not deliver (records that stopped
+  // being readable).
   useEffect(() => {
     if (!pb.authStore.isValid) return;
     const myId = pb.authStore.record?.id;

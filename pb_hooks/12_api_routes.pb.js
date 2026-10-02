@@ -11,8 +11,8 @@ routerAdd('POST', '/api/tasks', function(c) {
     // Step 1: Try Bearer token auth
     var authLib = require(__hooks + '/lib/auth.js');
     var dates = require(__hooks + '/lib/dates.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -130,8 +130,8 @@ routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
   try {
     // Bearer token auth
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -202,8 +202,8 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
     var dates = require(__hooks + '/lib/dates.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -304,8 +304,8 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
     var dates = require(__hooks + '/lib/dates.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -371,8 +371,8 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
 routerAdd('POST', '/api/groceries', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -438,8 +438,8 @@ routerAdd('POST', '/api/groceries', function(c) {
 routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();
@@ -503,8 +503,8 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
     // Auth
     var authLib = require(__hooks + '/lib/auth.js');
     var dates = require(__hooks + '/lib/dates.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var userId = null;
@@ -571,8 +571,8 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var actingUserId = null;
@@ -659,8 +659,8 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
   try {
     // Auth
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var actingUserId = null;
@@ -727,8 +727,8 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
 routerAdd('POST', '/api/v1/tasks/batch-delete', function(c) {
   try {
     var authLib = require(__hooks + '/lib/auth.js');
-    var tokenAuth = authLib.bearerAuthMiddleware(c, { lenientInvalidHeader: true });
-    if (tokenAuth) return tokenAuth;
+    var tokenAuth = authLib.bearerAuthMiddleware(c);
+    if (tokenAuth) return c.json(tokenAuth.status, { error: tokenAuth.error });
 
     var tokInfo = c.get('apiTokenInfo');
     var info = c.requestInfo();

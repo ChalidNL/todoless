@@ -3,7 +3,6 @@
   "entry": [
     "scripts/**/*.{js,mjs,ts}",
     "tests/**/*.test.mjs",
-    "tests/ics-logic-test.js",
     "tests/upgrade/*.mjs"
   ],
   "project": [

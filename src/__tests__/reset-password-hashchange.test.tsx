@@ -6,7 +6,7 @@ vi.mock('../lib/pocketbase', () => ({ pb: { collection: () => ({ confirmPassword
 
 import { ResetPassword } from '../components/ResetPassword';
 
-describe('ResetPassword (#68, patch 0006)', () => {
+describe('ResetPassword (#68)', () => {
   it('a reset link opened on the already-open page submits the NEW token and cleans the URL', async () => {
     window.history.replaceState({}, '', '/reset-password');
     render(<ResetPassword token="first-token" onDone={() => {}} />);

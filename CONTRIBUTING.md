@@ -19,7 +19,7 @@ Thanks for your interest in contributing! todoless is family data software — p
 
 - `main` is the only integration branch and the source of truth.
 - Short-lived feature/fix branches are merged into `main` by PR after the quality gates pass.
-- The `dev`, `beta`, and `red` branches are retired for public contribution and release flow. Do not target new PRs at them and do not rely on them for Docker tags.
+- The old `dev` branch is retired: target `main`, and don't rely on it for Docker tags.
 - Every push to `main` builds the moving `:latest` images plus immutable `:<commit-sha>` images.
 - Release tags named `vX.Y.Z` or `vX.Y.Z-prerelease` build immutable semver images without the leading `v`. Stable `vX.Y.Z` tags also publish a `:X.Y` line tag.
 - Production installs should pin a release tag, semver line tag, commit SHA tag, or digest. `:latest` is convenient for fresh installs and demos, not a production pin.

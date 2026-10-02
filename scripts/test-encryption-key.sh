@@ -15,7 +15,7 @@
 #   PB_BIN=/path/to/pocketbase bash scripts/test-encryption-key.sh
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8092}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d /tmp/todoless-enc-test.XXXXXX)"
@@ -26,11 +26,7 @@ trap cleanup EXIT
 log() { echo "[encryption-key] $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-if [[ -n "${PB_BIN:-}" ]]; then PB="$PB_BIN"; else
-  PB="$WORK/pocketbase"
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$WORK/pb.zip"
-  python3 -m zipfile -e "$WORK/pb.zip" "$WORK" >/dev/null; chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$WORK")"
 
 KEY="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"      # 32 characters
 WRONG="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"

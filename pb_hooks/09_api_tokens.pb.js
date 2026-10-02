@@ -11,7 +11,7 @@ routerAdd('GET', '/api/api-tokens', (c) => {
 
 try {
     var ba = _bam(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
@@ -53,7 +53,7 @@ function _gt(len) { if(typeof len==='undefined')len=48; return 'tl_'+$security.r
   function _ht(tok) { return $security.sha256(tok); }
   try {
     var ba = _bam(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
@@ -123,7 +123,7 @@ routerAdd('DELETE', '/api/api-tokens/{id}', (c) => {
 
 try {
     var ba = _bam(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;
@@ -156,7 +156,7 @@ routerAdd('PATCH', '/api/api-tokens/{id}/toggle', (c) => {
 
 try {
     var ba = _bam(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
 
     var _ti = c.get('apiTokenInfo');
     var auth = null;

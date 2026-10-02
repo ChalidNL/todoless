@@ -131,15 +131,10 @@ function AppContent() {
   const { user, loading } = useAuth();
   const { language } = useLanguage();
 
-  // A signed-in user on this device means onboarding is done — regardless of
-  // which path authenticated them (plain login, invite registration). The
-  // marker must be written at the auth boundary, not only in the callbacks of
-  // each screen: the post-auth FIRST-run check can win the race against those
-  // callbacks and leave the device without the marker, so the next cold load
-  // (e.g. after logout) wrongly shows the intro slides. The admin/user
-  // onboarding screens are exempt: they must finish their own final step
-  // ("Open todoless") before the device is considered onboarded, otherwise the
-  // fast path would skip that step.
+  // A signed-in user means this device is onboarded, whichever path signed
+  // them in. Written here at the auth boundary because the first-run check can
+  // win the race against the screens' own callbacks. The admin/user onboarding
+  // is exempt until its final step ("Open todoless") is done.
   useEffect(() => {
     if (user && pb.authStore.isValid && appScreen !== 'onboarding') markDeviceOnboarded();
   }, [user, appScreen]);
@@ -148,12 +143,9 @@ function AppContent() {
     const checkFirstRun = async () => {
       if (loading) return;
 
-      // The admin and user onboarding end with their own final step ("Open
-      // todoless"); creating the account signs the user in, which re-runs
-      // this check, and depending on whether the onboarding-seen flag had
-      // already been saved it either stayed on the onboarding or jumped
-      // straight into the app, skipping that step. The onboarding's own
-      // onComplete decides where to go once it is really done.
+      // Creating the account in the admin/user onboarding signs the user in and
+      // re-runs this check; the onboarding's own onComplete decides where to
+      // go, so its final step is never skipped.
       const current = screenRef.current;
       if (current.screen === 'onboarding' && (current.mode === 'admin' || current.mode === 'user')) return;
 
@@ -172,10 +164,8 @@ function AppContent() {
         return;
       }
 
-      // DEF-ROUTE-001 fix: an authenticated user hitting an unrecognized deep
-      // link (e.g. a stale/bad URL) must never be routed into onboarding —
-      // send them straight to 'app' so the Router's own wildcard route
-      // (`<Route path="*" element={<Navigate to="/" replace />} />`) handles it.
+      // A signed-in user on an unknown deep link goes to the app (the router's
+      // wildcard route redirects), never into onboarding.
       const currentPath = window.location.pathname.toLowerCase();
       const isKnownPath = KNOWN_APP_PATHS.includes(currentPath);
       if (!isKnownPath && pb.authStore.isValid && user) {

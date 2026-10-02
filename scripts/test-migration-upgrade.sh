@@ -18,7 +18,7 @@
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8099}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d /tmp/pb-upgrade.XXXXXX)"
@@ -38,14 +38,7 @@ if [[ -z "$PREV_REF" ]] || ! git rev-parse --verify --quiet "$PREV_REF^{commit}"
 fi
 echo "[upgrade] previous release: $PREV_REF ($(git rev-parse --short "$PREV_REF"))"
 
-if [[ -n "${PB_BIN:-}" ]]; then
-  PB="$PB_BIN"
-else
-  PB="$WORK/pocketbase"
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$WORK/pb.zip"
-  python3 -m zipfile -e "$WORK/pb.zip" "$WORK" >/dev/null
-  chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$WORK")"
 
 mkdir -p "$WORK/old"
 git archive "$PREV_REF" pb_migrations pb_hooks | tar -x -C "$WORK/old"

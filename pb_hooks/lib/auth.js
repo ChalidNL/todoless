@@ -87,37 +87,41 @@ function findApiTokenByRaw(rawToken) {
   return null;
 }
 
-function bearerAuthMiddleware(c, options) {
-  options = options || {};
+// Bearer API-token auth for the custom routes. Returns null to continue (no
+// API token - including a PocketBase session token, which PocketBase itself
+// authenticates - or a valid one: then apiTokenInfo/authRecord are set), or
+// { status, error } for the caller to send. It never writes the response
+// itself: c.json() returns nothing in the JSVM, so a route could not tell
+// that a response had been written and would answer a second time.
+function bearerAuthMiddleware(c) {
   try {
     var parsed = getBearerToken(c);
-    if (parsed.missing) return null;
-    if (parsed.error) return options.lenientInvalidHeader ? null : c.json(401, { error: parsed.error });
+    if (parsed.missing || parsed.error) return null;
 
     var tokRec = findApiTokenByRaw(parsed.token);
     if (!tokRec) return null;
 
-    if (!isEnabled(tokRec)) return c.json(401, { error: 'API token is disabled' });
+    if (!isEnabled(tokRec)) return { status: 401, error: 'API token is disabled' };
     var expMs = expiryMs(tokRec);
-    if (expMs > 0 && expMs < Date.now()) return c.json(401, { error: 'API token has expired' });
+    if (expMs > 0 && expMs < Date.now()) return { status: 401, error: 'API token has expired' };
 
     var userId = String(tokRec.get('user') || '');
     var user = null;
-    try { user = $app.findRecordById('users', userId); } catch (e) { return c.json(401, { error: 'Token owner not found' }); }
-    if (!user) return c.json(401, { error: 'Token owner not found' });
+    try { user = $app.findRecordById('users', userId); } catch (e) { return { status: 401, error: 'Token owner not found' }; }
+    if (!user) return { status: 401, error: 'Token owner not found' };
 
     var rawActive = user.get('active');
-    if (rawActive === false || rawActive === 0 || rawActive === 'false') return c.json(403, { error: 'Token owner account is blocked' });
+    if (rawActive === false || rawActive === 0 || rawActive === 'false') return { status: 403, error: 'Token owner account is blocked' };
     var rawMemberStatus = user.get('member_status');
-    if (rawMemberStatus === 'blocked') return c.json(403, { error: 'Token owner account is blocked' });
-    if (rawMemberStatus === 'pending_approval') return c.json(403, { error: 'Token owner is pending approval' });
+    if (rawMemberStatus === 'blocked') return { status: 403, error: 'Token owner account is blocked' };
+    if (rawMemberStatus === 'pending_approval') return { status: 403, error: 'Token owner is pending approval' };
 
     c.set('apiTokenInfo', buildTokenInfo(tokRec, user));
     c.set('authRecord', user);
     return null;
   } catch (e) {
-    var errorsLib = require(__hooks + '/lib/errors.js');
-    return errorsLib.respondError(c, e, 500);
+    try { console.error('[bearerAuth] ' + String(e)); } catch (_l) { /* never break the request */ }
+    return { status: 500, error: 'Internal server error' };
   }
 }
 

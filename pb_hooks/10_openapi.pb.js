@@ -878,9 +878,8 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     ],
     paths: {
       // ── System ──
-      // NOTE: paths below are real, verified routerAdd() registrations from pb_hooks/*.pb.js
-      // (DEF-API-001 fix — the previous "/todoless/*" tree here never existed as a route and
-      // returned 404 for every documented path; PocketBase serves these at /api/<path>).
+      // Every path below is a routerAdd() registration in pb_hooks/*.pb.js,
+      // served under /api/ (the smoke suite checks the parity).
       "/hook-health": {
         get: {
           tags: ["System"],

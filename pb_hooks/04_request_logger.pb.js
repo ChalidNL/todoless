@@ -1,40 +1,14 @@
-// pb_hooks/04_request_logger.pb.js
-// GH#56 — Make PocketBase request/error logs available on stdout / log collector.
+// Request log on stdout/stderr (GH#56). PocketBase keeps request logs only in
+// auxiliary.db, so `docker logs` and log collectors would see no backend
+// traffic. One logfmt line per request (4xx/5xx on stderr and mirrored to
+// $app.logger()), plus unhandled route exceptions, which are rethrown so
+// PocketBase keeps its response semantics.
 //
-// PocketBase stores request logs only in auxiliary.db (`_logs`, 5-day retention)
-// and does NOT print them to stdout by default. Docker-log setups (Loki/promtail,
-// Dozzle, Portainer) therefore see zero backend traffic, and errors thrown from
-// custom routes are swallowed (only a bare 4xx/5xx response, nothing logged).
+// Privacy: method, path without query, client IP and user id only.
 //
-// This hook registers a global `routerUse` middleware that:
-//   1. prints every request to stdout (2xx/3xx) or stderr (4xx/5xx) in a single
-//      logfmt-style line — captured by `docker logs`, Loki, promtail, Dozzle, ...
-//   2. mirrors 4xx/5xx to `$app.logger()` so they also land in `_logs` at a
-//      warn/error level (visible in the admin dashboard + /api/logs API)
-//   3. logs unhandled exceptions thrown from any route handler (previously
-//      silently swallowed) and rethrows them so PocketBase keeps its response
-//      semantics (e.g. BadRequestError -> 400).
-//
-// Verified against PB 0.35.1 JSVM: routerUse((e) => ...), e.status(), console.*,
-// $app.logger().* key/value args.
-//
-// Privacy: logs method + path only (no query string, no headers, no body),
-// remote IP and authenticated user id — never passwords/tokens/invite codes.
-
-// ─── Shared error responder (GH#9) ───────────────────────────────────────────
-// The implementation lives in pb_hooks/lib/errors.js. Route handlers must load
-// it INSIDE the handler:
-//
-//   } catch (e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
-//
-// Do NOT bind it (or any helper) on globalThis here: PocketBase evaluates hook
-// files in a loader VM but runs every routerAdd/onRecord* callback in a
-// separate executor VM that only sees the built-in globals ($app, require,
-// __hooks, ...). A `globalThis.respondError = ...` in this file is invisible to
-// the handlers, so every `catch (e) { return respondError(...) }` threw
-// "ReferenceError: respondError is not defined" instead — the client got
-// PocketBase's generic 400 and the real error never reached the logs.
-// tests/gh9-error-leak.test.mjs and scripts/pb-smoke.sh guard against this.
+// Route handlers report errors through lib/errors.js, required inside the
+// handler: callbacks run in a separate VM that cannot see globals defined
+// in this file (tests/gh9-error-leak.test.mjs guards it).
 
 routerUse(function (e) {
   var startMs = Date.now();

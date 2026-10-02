@@ -32,13 +32,13 @@ vi.mock('../lib/pocketbase', () => ({ pb: mocks.pb }));
 import { api } from '../lib/pocketbase-client';
 
 /**
- * GH#80 / CERT2-TSK-001 — reopening a completed task left completed_at populated.
+ * GH#80 — reopening a completed task left completed_at populated.
  *
  * The payload builder assigned `undefined` for falsy dates, so JSON.stringify
  * dropped the key and PocketBase never received a clearing instruction. These
  * tests assert on the PATCH payload itself, not component state.
  */
-describe('PocketBase date-field clearing on update (GH#80 / CERT2-TSK-001)', () => {
+describe('PocketBase date-field clearing on update (GH#80)', () => {
   beforeEach(() => {
     mocks.update.mockClear();
     mocks.getOne.mockClear();
