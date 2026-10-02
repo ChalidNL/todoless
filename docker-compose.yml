@@ -2,9 +2,9 @@ name: todoless
 
 services:
   todoless:
-    # The v1.0.0 release image. GH#47: after the release build, pin by digest
+    # The v1.0.1 release image. GH#47: after the release build, pin by digest
     # (ghcr.io/...@sha256:...) for an immutable install; dependabot renews it.
-    image: ghcr.io/chalidnl/todoless-frontend:1.0.0
+    image: ghcr.io/chalidnl/todoless-frontend:1.0.1
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -50,8 +50,8 @@ services:
             en_US: Web UI
 
   pocketbase:
-    # The v1.0.0 release image (see the note on the todoless service).
-    image: ghcr.io/chalidnl/todoless-pocketbase:1.0.0
+    # The v1.0.1 release image (see the note on the todoless service).
+    image: ghcr.io/chalidnl/todoless-pocketbase:1.0.1
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:

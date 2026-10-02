@@ -11,7 +11,7 @@ Your family. Your data.
 
 [Website](https://todoless.eu) · [Install](#quick-start) · [Features](#features) · [Privacy](#privacy) · [API](#api-and-integrations) · [Releases](https://github.com/ChalidNL/todoless/releases)
 
-Free & open source · Self-hosted · Made in Europe · v1.0.0
+Free & open source · Self-hosted · Made in Europe · v1.0.1
 
 </div>
 
@@ -41,7 +41,7 @@ todoless gives the whole household one calm, shared place for it, and it runs on
 
 ## Features
 
-Everything below is available in **v1.0.0**.
+Everything below is available in **v1.0.1**.
 
 **Capture: Inbox / Brain Dump**
 - Type a thought, press Enter, and it's saved. Structure it later.
@@ -185,10 +185,13 @@ docker compose up -d
 ```
 New database migrations are applied automatically when PocketBase restarts. Read the [release notes](https://github.com/ChalidNL/todoless/releases) before updating.
 
-`docker-compose.yml` uses the images of the release you checked out (`:1.0.0`). For a fully immutable install, replace the tag with the image digest shown on the [release page](https://github.com/ChalidNL/todoless/releases).
+`docker-compose.yml` uses the images of the release you checked out (`:1.0.1`). For a fully immutable install, replace the tag with the image digest shown on the [release page](https://github.com/ChalidNL/todoless/releases).
 
 <details>
-<summary><b>Upgrading to v1.0.0 from an earlier install</b></summary>
+<summary><b>Upgrading to v1.0.1 from an earlier install (including v1.0.0)</b></summary>
+
+The `:1.0.0` images were built before the security and privacy fixes below were merged. If you run v1.0.0, update to v1.0.1.
+
 
 What happens automatically when PocketBase restarts:
 - **Task visibility repair.** On installs that already existed in August 2026, a migration from then could mark family members' existing tasks as private by mistake. The owner still saw them, but the rest of the family didn't. Migration `z073` restores visibility for exactly those tasks: tasks that were private, were changed by that migration run and have not been touched since. Tasks that carry a label which no longer exists stay private. Tasks whose privacy you changed yourself afterwards are left alone. The log line `[z073] label privacy repair: reverted N task(s)` shows what was done.
@@ -278,7 +281,7 @@ To use the dashboard without any LAN exposure, publish PocketBase on the server'
 
 ## Roadmap
 
-These ideas are **not** part of v1.0.0:
+These ideas are **not** part of v1.0.1:
 - A weekly "family run" planning ritual
 - Push notifications on mobile
 - A companion Android app

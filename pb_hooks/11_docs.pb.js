@@ -30,7 +30,7 @@ function swaggerHtmlHandler(c) {
   html += '</style>\n'
   html += '</head>\n'
   html += '<body>\n'
-  html += '<div class="version-badge">todoless API v1.0.0</div>\n'
+  html += '<div class="version-badge">todoless API v1.0.1</div>\n'
   html += '<div id="swagger-ui"></div>\n'
   html += '<script src="/docs/swagger-ui/swagger-ui-bundle.js"></script>\n'
   html += '<script src="/docs/swagger-ui/swagger-ui-standalone-preset.js"></script>\n'
