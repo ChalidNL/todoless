@@ -21,7 +21,7 @@ export interface Shop {
 export type Priority = 'low' | 'medium' | 'high';
 type Horizon = 'week' | 'month' | '3months' | '6months' | 'year';
 type TaskStatus = 'backlog' | 'todo' | 'done';
-export type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
+type SprintDuration = '1week' | '2weeks' | '3weeks' | '1month';
 type SprintStatus = 'planned' | 'active' | 'completed';
 export type RepeatInterval = 'day' | 'week' | 'month' | 'year' | 'month_weekday';
 
@@ -170,29 +170,6 @@ export interface Sprint {
   createdBy?: string;
 }
 
-export interface CalendarEvent {
-  id: string;
-  uid?: string;
-  title: string;
-  description?: string;
-  location?: string;
-  startTime: number;
-  endTime: number;
-  allDay?: boolean;
-  timezone?: string;
-  rrule?: string;
-  exdates?: string[];
-  recurrenceId?: string;
-  color?: string;
-  attendees?: Array<{ id?: string; email?: string; name?: string; rsvp?: 'yes' | 'no' | 'maybe' | 'pending' }>;
-  source?: 'local' | 'ics_import' | 'caldav';
-  externalId?: string;
-  taskId?: string;
-  reminders?: number[];
-  createdAt: number;
-  createdBy?: string;
-}
-
 export interface AppSettings {
   hasCompletedOnboarding?: boolean;
   setupComplete?: boolean;
@@ -208,11 +185,6 @@ export interface AppSettings {
   taskReminders?: boolean;
   reminderMinutes?: number;
   briefingEnabled?: boolean;
-}
-
-export interface ProgressStats {
-  tasksCompletedThisWeek: number;
-  lastWeekReset: number;
 }
 
 export interface Reward {

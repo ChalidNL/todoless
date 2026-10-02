@@ -2,7 +2,6 @@ import { pb } from './pocketbase';
 import { getActiveLanguage } from '../i18n/translations';
 import type {
   AppSettings,
-  CalendarEvent,
   InviteCode,
   Item,
   Label,
@@ -182,29 +181,6 @@ const normalizeSprint = (record: any): Sprint => ({
   status: record.status || 'planned',
   goal: record.goal ?? undefined,
   createdBy: record.user,
-});
-
-const normalizeCalendarEvent = (record: any): CalendarEvent => ({
-  id: record.id,
-  uid: record.uid || undefined,
-  title: record.title,
-  description: record.description || undefined,
-  location: record.location || undefined,
-  startTime: toTimestamp(record.start_time) || Date.now(),
-  endTime: toTimestamp(record.end_time) || toTimestamp(record.start_time) || Date.now(),
-  allDay: !!record.all_day,
-  timezone: record.timezone || undefined,
-  rrule: record.rrule || undefined,
-  exdates: Array.isArray(record.exdates) ? record.exdates : [],
-  recurrenceId: record.recurrence_id || undefined,
-  color: record.color || '#8B5CF6',
-  attendees: Array.isArray(record.attendees) ? record.attendees : [],
-  source: record.source || 'local',
-  externalId: record.external_id || undefined,
-  taskId: record.task_id || undefined,
-  reminders: Array.isArray(record.reminders) ? record.reminders : [],
-  createdAt: toTimestamp(record.created) || Date.now(),
-  createdBy: record.owner || record.user,
 });
 
 const normalizeInvite = (record: any): InviteCode => ({
@@ -403,13 +379,6 @@ class PocketBaseClient {
 
   async logout() {
     pb.authStore.clear();
-  }
-
-  async getCurrentUser() {
-    if (!pb.authStore.isValid || !pb.authStore.record) {
-      throw new Error('Not authenticated');
-    }
-    return { user: normalizeUser(pb.authStore.record) };
   }
 
   async getTasks(): Promise<Task[]> {
@@ -691,26 +660,6 @@ class PocketBaseClient {
     return list.map(normalizeNote);
   }
 
-  async createNote(note: Partial<Note>) {
-    return pb.collection('notes').create({
-      title: note.title,
-      content: note.content,
-      pinned: note.pinned || false,
-      linked_type: note.linkedType,
-      linked_to: note.linkedTo,
-      linked_ids: note.linkedIds || [],
-      linked_task_ids: note.linkedTaskIds || [],
-      linked_item_ids: note.linkedItemIds || [],
-      project_id: note.projectId,
-      labels: note.labels || [],
-      assigned_to: note.assignedTo,
-      due_date: note.dueDate ? new Date(note.dueDate).toISOString() : null,
-      repeat_interval: note.repeatInterval,
-      is_private: note.isPrivate || false,
-      user: pb.authStore.record?.id,
-    });
-  }
-
   async updateNote(id: string, updates: Partial<Note>) {
     return pb.collection('notes').update(id, {
       ...updates,
@@ -797,20 +746,6 @@ class PocketBaseClient {
     return list.map(normalizeSprint);
   }
 
-  async createSprint(sprint: Partial<Sprint>) {
-    return pb.collection('sprints').create({
-      name: sprint.name,
-      start_date: sprint.startDate ? new Date(sprint.startDate).toISOString() : null,
-      end_date: sprint.endDate ? new Date(sprint.endDate).toISOString() : null,
-      duration: sprint.duration,
-      week_number: sprint.weekNumber,
-      year: sprint.year,
-      status: sprint.status || 'planned',
-      goal: sprint.goal ?? null,
-      user: pb.authStore.record?.id,
-    });
-  }
-
   async updateSprint(id: string, updates: Partial<Sprint>) {
     return pb.collection('sprints').update(id, {
       name: updates.name,
@@ -826,69 +761,6 @@ class PocketBaseClient {
 
   async deleteSprint(id: string) {
     await pb.collection('sprints').delete(id);
-  }
-
-  async getCalendarEvents(): Promise<CalendarEvent[]> {
-    if (!pb.authStore.isValid) return [];
-    const familyId = pb.authStore.record?.family_id;
-    const userId = pb.authStore.record?.id;
-    const filter = familyId
-      ? `(family = "${familyId}" || user.family_id = "${familyId}" || owner = "${userId}")`
-      : `(user = "${userId}" || owner = "${userId}")`;
-    const list = await pb.collection('calendar_events').getFullList({ filter, sort: 'start_time' });
-    return list.map(normalizeCalendarEvent);
-  }
-
-  async createCalendarEvent(event: Partial<CalendarEvent>) {
-    const userId = pb.authStore.record?.id;
-    const familyId = pb.authStore.record?.family_id;
-    return pb.collection('calendar_events').create({
-      uid: event.uid || `todoless-${crypto.randomUUID()}@todoless`,
-      title: event.title,
-      description: event.description,
-      location: event.location,
-      start_time: event.startTime ? new Date(event.startTime).toISOString() : null,
-      end_time: event.endTime ? new Date(event.endTime).toISOString() : null,
-      all_day: event.allDay || false,
-      timezone: event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-      rrule: event.rrule,
-      exdates: event.exdates || [],
-      recurrence_id: event.recurrenceId,
-      color: event.color || '#8B5CF6',
-      attendees: event.attendees || [],
-      source: event.source || 'local',
-      external_id: event.externalId,
-      reminders: event.reminders || [],
-      task_id: event.taskId,
-      owner: userId,
-      family: familyId || undefined,
-      user: userId,
-    });
-  }
-
-  async updateCalendarEvent(id: string, updates: Partial<CalendarEvent>) {
-    return pb.collection('calendar_events').update(id, {
-      title: updates.title,
-      description: updates.description,
-      location: updates.location,
-      start_time: toISOIfPresent(updates, 'startTime'),
-      end_time: toISOIfPresent(updates, 'endTime'),
-      all_day: updates.allDay,
-      timezone: updates.timezone,
-      rrule: updates.rrule,
-      exdates: updates.exdates,
-      recurrence_id: updates.recurrenceId,
-      color: updates.color,
-      attendees: updates.attendees,
-      source: updates.source,
-      external_id: updates.externalId,
-      reminders: updates.reminders,
-      task_id: updates.taskId,
-    });
-  }
-
-  async deleteCalendarEvent(id: string) {
-    await pb.collection('calendar_events').delete(id);
   }
 
   /** Check if the current authenticated user has an app_settings record (i.e. has seen onboarding). */
@@ -926,7 +798,7 @@ class PocketBaseClient {
         hasCompletedOnboarding: false,
         sprintDuration: '2weeks',
         sprintStartDay: 1,
-        language: 'en',
+        language: getActiveLanguage(),
         archiveRetention: 30,
         autoCleanup: true,
         theme: 'light',
@@ -946,7 +818,8 @@ class PocketBaseClient {
             user: userId,
             sprint_duration: '2weeks',
             sprint_start_day: 1,
-            language: 'en',
+            // The language the person is using right now, not English (#255).
+            language: getActiveLanguage(),
             archive_retention_days: 30,
             auto_cleanup: true,
             theme: 'light',
@@ -1153,19 +1026,6 @@ class PocketBaseClient {
     return list.map(normalizeReward);
   }
 
-  async createReward(reward: Partial<Reward>) {
-    return pb.collection('rewards').create({
-      title: reward.title,
-      points: reward.points || 0,
-      earned_by: reward.earnedBy,
-      earned_at: reward.earnedAt ? new Date(reward.earnedAt).toISOString() : new Date().toISOString(),
-      reason: reward.reason,
-      task_id: reward.taskId,
-      awarded_by: reward.awardedBy || pb.authStore.record?.id,
-      user: pb.authStore.record?.id,
-    });
-  }
-
   async deleteReward(id: string) {
     await pb.collection('rewards').delete(id);
   }
@@ -1175,18 +1035,6 @@ class PocketBaseClient {
     if (!pb.authStore.isValid) return [];
     const list = await pb.collection('goals').getFullList({ sort: '-created' });
     return list.map(normalizeGoal);
-  }
-
-  async createGoal(goal: Partial<Goal>) {
-    return pb.collection('goals').create({
-      title: goal.title,
-      description: goal.description,
-      points_required: goal.pointsRequired || 0,
-      points_current: goal.pointsCurrent || 0,
-      target_user: goal.targetUser,
-      completed: false,
-      user: pb.authStore.record?.id,
-    });
   }
 
   async updateGoal(id: string, updates: Partial<Goal>) {
@@ -1255,33 +1103,6 @@ class PocketBaseClient {
     return list.map(normalizeReminder);
   }
 
-  async createReminder(reminder: Partial<Reminder>) {
-    try {
-      return await pb.collection('reminders').create({
-        title: reminder.title,
-        description: reminder.description,
-        due_date: reminder.dueDate ? new Date(reminder.dueDate).toISOString() : null,
-        end_time: reminder.endTime ? new Date(reminder.endTime).toISOString() : null,
-        recurring: reminder.recurring,
-        assignee: reminder.assignee,
-        labels: reminder.labels || [],
-        flagged: reminder.flagged || false,
-        is_private: reminder.isPrivate || false,
-        linked_type: reminder.linkedType,
-        linked_to: reminder.linkedTo,
-        source: reminder.source || 'manual',
-        dismissed: reminder.dismissed || false,
-        dismissed_at: reminder.dismissedAt ? new Date(reminder.dismissedAt).toISOString() : null,
-        user: pb.authStore.record?.id,
-      });
-    } catch (error: any) {
-      const msg = error?.response?.message || error?.message || 'Failed to create reminder';
-      console.error('createReminder failed:', error);
-      this.showError(`Failed to add reminder: ${msg}`);
-      throw error;
-    }
-  }
-
   async updateReminder(id: string, updates: Partial<Reminder>) {
     return pb.collection('reminders').update(id, {
       title: updates.title,
@@ -1335,25 +1156,6 @@ class PocketBaseClient {
     return list.map(normalizeItem);
   }
 
-  async getHouseholdUsers(): Promise<User[]> {
-    return this.getUsers();
-  }
-
-  // Family
-  async createFamily(name: string, createdBy: string): Promise<{ id: string; name: string }> {
-    const record = await pb.collection('families').create({ name, created_by: createdBy });
-    return { id: record.id, name: record['name'] as string };
-  }
-
-  async getFamilyById(id: string): Promise<{ id: string; name: string }> {
-    const record = await pb.collection('families').getOne(id);
-    return { id: record.id, name: record['name'] as string };
-  }
-
-  async updateUserFamily(userId: string, familyId: string): Promise<void> {
-    await pb.collection('users').update(userId, { family_id: familyId });
-  }
-
   // ─── API Tokens ───────────────────────────────────────────────────────
   async getApiTokens(): Promise<any[]> {
     const response = await fetch('/api/api-tokens', {
@@ -1390,20 +1192,6 @@ class PocketBaseClient {
     }
   }
 
-  async toggleApiToken(tokenId: string, enabled: boolean): Promise<void> {
-    const response = await fetch(`/api/api-tokens/${tokenId}/toggle`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${pb.authStore.token}`,
-      },
-      body: JSON.stringify({ enabled }),
-    });
-    if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to toggle token');
-    }
-  }
 }
 
 /**

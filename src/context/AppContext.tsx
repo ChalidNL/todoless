@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { getISOWeek } from '../utils/dateUtils';
 import { api, isInvalidOldPasswordError, normalizeItem, normalizeLabel, normalizeTask } from '../lib/pocketbase-client';
 import { applyRealtimeEvent, isVisibleToMe } from '../lib/realtime-reducer';
 import { t } from '../i18n/translations';
@@ -47,10 +46,8 @@ import type {
   Label,
   Shop,
   AppSettings,
-  ProgressStats,
   Sprint,
   User,
-  SprintDuration,
   InviteCode,
   Reward,
   Goal,
@@ -142,27 +139,17 @@ interface AppContextType {
   projects: Project[];
   sharedView: boolean;
   appSettings: AppSettings;
-  progressStats: ProgressStats;
   completionMessage: string | null;
-  currentSprint: Sprint | null;
   // Entry model
   entries: Entry[];
-  addEntry: (entry: Omit<Entry, 'id' | 'createdAt'>) => void;
-  updateEntry: (id: string, updates: Partial<Entry>) => void;
-  deleteEntry: (id: string) => void;
-  completeEntry: (id: string) => void;
-  assignEntry: (id: string, userId: string) => void;
   refreshEntries: () => Promise<void>;
   // Legacy methods
   addItem: (item: Omit<Item, 'id' | 'createdAt'>) => void;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completedAt'>) => void;
-  addNote: (note: Omit<Note, 'id' | 'createdAt'>) => void;
   addLabel: (label: Omit<Label, 'id'>) => Promise<Label | undefined>;
   createLabel: (label: Omit<Label, 'id'>) => Promise<Label | undefined>;
   addShop: (shop: Omit<Shop, 'id'>) => void;
   createShop: (shop: Omit<Shop, 'id'>) => void;
-  addSprint: (sprint: Omit<Sprint, 'id'>) => void;
-  addUser: (user: User) => void;
   updateItem: (id: string, updates: Partial<Item>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   updateNote: (id: string, updates: Partial<Note>) => void;
@@ -179,46 +166,25 @@ interface AppContextType {
   deleteShop: (id: string) => void;
   deleteSprint: (id: string) => void;
   updateSprint: (id: string, updates: Partial<Sprint>) => void;
-  startSprint: (id: string) => void;
-  completeSprint: (id: string) => void;
-  archiveCompletedSprintTasks: (sprintId?: string) => void;
-  archiveAllDoneTasks: () => void;
-  deleteArchivedTasks: () => void;
-  cleanupExpiredArchives: () => void;
   activeChipFilters: {type: string; id: string; label?: string; color?: string}[];
   toggleChipFilter: (type: string, id: string, label?: string, color?: string) => void;
   clearChipFilters: () => void;
   isChipFilterActive: (type: string, id: string) => boolean;
   showCompletionMessage: (message: string) => void;
   moveTaskToStatus: (taskId: string, status: 'backlog' | 'todo' | 'done') => void;
-  createNewSprint: () => void;
-  convertTaskToItem: (taskId: string) => void;
-  convertItemToTask: (itemId: string) => void;
   swapEntity: (id: string) => void;
   generateInviteCode: (type?: 'human' | 'agent') => Promise<InviteCode | null>;
   deleteInviteCode: (id: string) => void;
-  uncheckAllDoneTasks: () => void;
   uncheckAllDoneItems: () => void;
-  addReward: (reward: Omit<Reward, 'id'>) => void;
   deleteReward: (id: string) => void;
-  addGoal: (goal: Omit<Goal, 'id'>) => void;
   updateGoal: (id: string, updates: Partial<Goal>) => void;
   deleteGoal: (id: string) => void;
-  setSharedView: (shared: boolean) => void;
-  refreshRewards: () => Promise<void>;
-  refreshGoals: () => Promise<void>;
-  totalPoints: number;
-  updateReward: (id: string, updates: Partial<Reward>) => void;
-  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   updateProject: (id: string, updates: Partial<Project>) => void;
   deleteProject: (id: string) => void;
-  refreshProjects: () => Promise<void>;
   reminders: Reminder[];
-  addReminder: (reminder: Omit<Reminder, 'id' | 'createdAt' | 'dismissed' | 'fired'>) => void;
   updateReminder: (id: string, updates: Partial<Reminder>) => void;
   dismissReminder: (id: string) => void;
   deleteReminder: (id: string) => void;
-  refreshReminders: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -229,13 +195,6 @@ export const useApp = () => {
     throw new Error('useApp must be used within AppProvider');
   }
   return context;
-};
-
-const getWeekStart = () => {
-  const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day;
-  return new Date(now.setDate(diff)).setHours(0, 0, 0, 0);
 };
 
 const defaultSettings: AppSettings = {
@@ -289,13 +248,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [sharedView, setSharedView] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>(defaultSettings);
-  const [progressStats] = useState<ProgressStats>({
-    tasksCompletedThisWeek: 0,
-    lastWeekReset: getWeekStart(),
-  });
   const [activeChipFilters, setActiveChipFilters] = useState<ChipFilter[]>(() => readFiltersFromUrl());
   const [completionMessage, setCompletionMessage] = useState<string | null>(null);
-  const [currentSprint, setCurrentSprint] = useState<Sprint | null>(null);
   const [dataLoadState, setDataLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -415,44 +369,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
       if (failed) showCompletionMessage(t('common.someChangesNotSaved'));
     })();
-  };
-
-  const addEntry = (entry: Omit<Entry, 'id' | 'createdAt'>) => {
-    mutate('addEntry', () => persistNewEntry(entry), refreshEntries);
-  };
-
-  const updateEntry = (id: string, updates: Partial<Entry>) => {
-    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-    const entry = entries.find(e => e.id === id);
-    mutate('updateEntry', async () => {
-      if (entry?.type === 'task') {
-        const { completed, ...taskUpdates } = updates;
-        await api.updateTask(id, withCompletionAttribution(id, taskUpdates as Partial<Task>));
-      } else if (entry?.type === 'item') {
-        const { blocked, blockedComment, flag, ...itemUpdates } = updates;
-        await api.updateItem(id, itemUpdates);
-      }
-    }, refreshEntries);
-  };
-
-  const deleteEntry = (id: string) => {
-    const entry = entries.find(e => e.id === id);
-    mutate('deleteEntry', async () => {
-      if (entry?.type === 'task') {
-        await api.deleteTask(id);
-      } else {
-        await api.deleteItem(id);
-      }
-      setEntries(prev => prev.filter(e => e.id !== id));
-    }, refreshEntries);
-  };
-
-  const completeEntry = (id: string) => {
-    void updateEntry(id, { completed: true, status: 'done', completedAt: Date.now() });
-  };
-
-  const assignEntry = (id: string, userId: string) => {
-    void updateEntry(id, { assignedTo: userId });
   };
 
   const refreshSettings = async () => {
@@ -660,22 +576,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [completionMessage]);
 
-  // Auto-detect current active sprint
-  useEffect(() => {
-    const active = sprints.find((s) => s.status === 'active');
-    setCurrentSprint(active ?? null);
-  }, [sprints]);
-
   const addItem = (item: Omit<Item, 'id' | 'createdAt'>) => {
     mutate('createItem', () => api.createItem(item), refreshEntries);
   };
 
   const addTask = (task: Omit<Task, 'id' | 'createdAt' | 'completedAt'>) => {
     mutate('createTask', () => api.createTask(task), refreshEntries);
-  };
-
-  const addNote = (note: Omit<Note, 'id' | 'createdAt'>) => {
-    mutate('createNote', () => api.createNote(note), refreshNotes);
   };
 
   const addLabel = async (label: Omit<Label, 'id'>): Promise<Label | undefined> => {
@@ -698,14 +604,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createShop = addShop;
-
-  const addSprint = (sprint: Omit<Sprint, 'id'>) => {
-    mutate('createSprint', () => api.createSprint(sprint), refreshSprints);
-  };
-
-  const addUser = (user: User) => {
-    setUsers((prev) => [...prev, user]);
-  };
 
   const updateItem = (id: string, updates: Partial<Item>) => {
     mutate('updateItem', () => api.updateItem(id, updates), refreshEntries);
@@ -824,48 +722,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     mutate('updateSprint', () => api.updateSprint(id, updates), refreshSprints);
   };
 
-  const startSprint = (id: string) => {
-    mutate('updateSprint', () => api.updateSprint(id, { status: 'active' }), refreshSprints);
-  };
-
-  const completeSprint = (id: string) => {
-    // after the refresh: archive the completed tasks of this sprint
-    mutate('completeSprint', () => api.updateSprint(id, { status: 'completed' }), refreshSprints, async () => { archiveCompletedSprintTasks(id); });
-  };
-
-  const archiveCompletedSprintTasks = (sprintId?: string) => {
-    const now = Date.now();
-    const retention = appSettings.archiveRetention || 0;
-    const deleteAfter = retention > 0 ? now + retention * 24 * 60 * 60 * 1000 : undefined;
-    const sprint = sprintId ? sprints.find((s) => s.id === sprintId) : currentSprint;
-    if (!sprint) return;
-
-    const done = effectiveTasks.filter((task) => task.status === 'done' && task.sprintId === sprint.id);
-    void runBulk('archiveCompletedSprintTasks', done.map((task) => () => api.updateTask(task.id, { archived: true, archivedAt: now, deleteAfter })));
-  };
-
-  const archiveAllDoneTasks = () => {
-    const now = Date.now();
-    const retention = appSettings.archiveRetention || 0;
-    const deleteAfter = retention > 0 ? now + retention * 24 * 60 * 60 * 1000 : undefined;
-
-    const done = effectiveTasks.filter((task) => task.status === 'done' && !task.archived);
-    void runBulk('archiveAllDoneTasks', done.map((task) => () => api.updateTask(task.id, { archived: true, archivedAt: now, deleteAfter })));
-  };
-
-  const deleteArchivedTasks = () => {
-    const ids = effectiveTasks.filter((task) => task.archived).map((task) => task.id);
-    deleteTasks(ids);
-  };
-
-  const cleanupExpiredArchives = () => {
-    const now = Date.now();
-    const ids = effectiveTasks
-      .filter((task) => task.archived && task.deleteAfter && task.deleteAfter < now)
-      .map((task) => task.id);
-    deleteTasks(ids);
-  };
-
   const toggleChipFilter = (type: string, id: string, label?: string, color?: string) => {
     setActiveChipFilters((prev) => {
       const exists = prev.find((f) => f.type === type && f.id === id);
@@ -889,60 +745,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Moving OUT of 'done' must clear completion metadata or PocketBase keeps
     // the old completed_at (GH#80) — the done-today counter would keep counting.
     updateTask(taskId, status === 'done' ? { status, completedAt: Date.now() } : { status, completedAt: undefined, completedBy: undefined });
-  };
-
-  const createNewSprint = () => {
-    const now = new Date();
-    const duration = appSettings.sprintDuration || '2weeks';
-    const startDay = appSettings.sprintStartDay ?? 1;
-    let durationDays = 14;
-
-    if (duration === '1week') durationDays = 7;
-    if (duration === '3weeks') durationDays = 21;
-    if (duration === '1month') durationDays = 30;
-
-    const currentDay = now.getDay();
-    let daysUntilStart = startDay - currentDay;
-    if (daysUntilStart <= 0) daysUntilStart += 7;
-
-    const startDate = new Date(now);
-    startDate.setDate(startDate.getDate() + daysUntilStart);
-    startDate.setHours(0, 0, 0, 0);
-
-    const sprint: Omit<Sprint, 'id'> = {
-      name: `Sprint ${sprints.length + 1}`,
-      startDate: startDate.getTime(),
-      endDate: startDate.getTime() + durationDays * 24 * 60 * 60 * 1000,
-      duration: duration as SprintDuration,
-      weekNumber: getISOWeek(startDate),
-      year: startDate.getFullYear(),
-      status: 'planned',
-    };
-
-    addSprint(sprint);
-  };
-
-  // Conversions create the copy FIRST and remove the original only once the
-  // copy exists. Firing both as independent calls meant a failed create
-  // (validation, offline, 429) left the user with neither.
-  const convertTaskToItem = (taskId: string) => {
-    const task = effectiveTasks.find((t) => t.id === taskId);
-    if (!task) return;
-    // The copy must exist before the original is removed (#238): a failed
-    // create throws before deleteTask runs, and mutate() reports it.
-    mutate('convertTaskToItem', async () => {
-      await api.createItem({ title: task.title, completed: false, labels: task.labels });
-      await api.deleteTask(taskId);
-    }, refreshEntries);
-  };
-
-  const convertItemToTask = (itemId: string) => {
-    const item = effectiveItems.find((i) => i.id === itemId);
-    if (!item) return;
-    mutate('convertItemToTask', async () => {
-      await api.createTask({ title: item.title, status: 'todo', blocked: false, labels: item.labels, flag: false });
-      await api.deleteItem(itemId);
-    }, refreshEntries);
   };
 
   const swapEntity = (id: string) => {
@@ -994,26 +796,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     mutate('deleteInvite', () => api.deleteInvite(id), refreshInvites);
   };
 
-  const uncheckAllDoneTasks = () => {
-    const done = effectiveTasks.filter((task) => task.status === 'done');
-    void runBulk('uncheckAllDoneTasks', done.map((task) => () => api.updateTask(task.id, { status: 'todo', completedAt: undefined, completedBy: undefined })));
-  };
-
   const uncheckAllDoneItems = () => {
     const done = effectiveItems.filter((item) => item.completed);
     void runBulk('uncheckAllDoneItems', done.map((item) => () => api.updateItem(item.id, { completed: false, quantity: 1 })));
   };
 
-  const addReward = (reward: Omit<Reward, 'id'>) => {
-    mutate('createReward', () => api.createReward(reward), refreshRewards);
-  };
-
   const deleteReward = (id: string) => {
     mutate('deleteReward', () => api.deleteReward(id), refreshRewards);
-  };
-
-  const addGoal = (goal: Omit<Goal, 'id'>) => {
-    mutate('createGoal', () => api.createGoal(goal), refreshGoals);
   };
 
   const updateGoalFn = (id: string, updates: Partial<Goal>) => {
@@ -1024,43 +813,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     mutate('deleteGoal', () => api.deleteGoal(id), refreshGoals);
   };
 
-  // Derived: total points earned by the current user from rewards
-  const totalPoints = useMemo(() => {
-    const currentUserId = pb.authStore.record?.id;
-    return rewards
-      .filter(r => r.earnedBy === currentUserId || !r.earnedBy)
-      .reduce((sum, r) => sum + r.points, 0);
-  }, [rewards]);
-
-  const updateReward = (id: string, updates: Partial<Reward>) => {
-    mutate('updateReward', async () => {
-      const pbUpdates: Record<string, unknown> = {};
-      if (updates.title !== undefined) pbUpdates.title = updates.title;
-      if (updates.points !== undefined) pbUpdates.points = updates.points;
-      if (updates.earnedBy !== undefined) pbUpdates.earned_by = updates.earnedBy;
-      if (updates.earnedAt !== undefined) pbUpdates.earned_at = new Date(updates.earnedAt).toISOString();
-      if (updates.reason !== undefined) pbUpdates.reason = updates.reason;
-      if (updates.taskId !== undefined) pbUpdates.task_id = updates.taskId;
-      if (updates.awardedBy !== undefined) pbUpdates.awarded_by = updates.awardedBy;
-      await pb.collection('rewards').update(id, pbUpdates);
-    }, refreshRewards);
-  };
-
-  const addProject = (project: Omit<Project, 'id' | 'createdAt'>) => {
-    mutate('createProject', () => api.createProject(project), refreshProjects);
-  };
-
   const updateProjectFn = (id: string, updates: Partial<Project>) => {
     mutate('updateProject', () => api.updateProject(id, updates), refreshProjects);
   };
 
   const deleteProject = (id: string) => {
     mutate('deleteProject', () => api.deleteProject(id), refreshProjects);
-  };
-
-  // --- Reminders ---
-  const addReminder = (reminder: Omit<Reminder, 'id' | 'createdAt' | 'dismissed' | 'fired'>) => {
-    mutate('createReminder', () => api.createReminder(reminder), refreshReminders);
   };
 
   const updateReminderFn = (id: string, updates: Partial<Reminder>) => {
@@ -1089,27 +847,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       users,
       inviteCodes,
       appSettings,
-      progressStats,
       completionMessage,
-      currentSprint,
       // Entry model
       entries,
-      addEntry,
-      updateEntry,
-      deleteEntry,
-      completeEntry,
-      assignEntry,
       refreshEntries,
       // Legacy methods
       addItem,
       addTask,
-      addNote,
       addLabel,
       createLabel,
       addShop,
       createShop,
-      addSprint,
-      addUser,
       updateItem,
       updateTask,
       updateNote,
@@ -1126,50 +874,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       deleteShop,
       deleteSprint,
       updateSprint: updateSprintFn,
-      startSprint,
-      completeSprint,
-      archiveCompletedSprintTasks,
-      archiveAllDoneTasks,
-      deleteArchivedTasks,
-      cleanupExpiredArchives,
       activeChipFilters,
       toggleChipFilter,
       clearChipFilters,
       isChipFilterActive,
       showCompletionMessage,
       moveTaskToStatus,
-      createNewSprint,
-      convertTaskToItem,
-      convertItemToTask,
       swapEntity,
       generateInviteCode,
       deleteInviteCode,
-      uncheckAllDoneTasks,
       uncheckAllDoneItems,
       rewards,
       goals,
       projects,
       sharedView,
-      totalPoints,
-      addReward,
       deleteReward,
-      updateReward,
-      addGoal,
       updateGoal: updateGoalFn,
       deleteGoal,
-      setSharedView: updateSharedView,
-      refreshRewards,
-      refreshGoals,
-      addProject,
       updateProject: updateProjectFn,
       deleteProject,
-      refreshProjects,
       reminders,
-      addReminder,
       updateReminder: updateReminderFn,
       dismissReminder,
       deleteReminder,
-      refreshReminders,
     }),
     [
       effectiveItems,
@@ -1184,12 +911,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       goals,
       projects,
       sharedView,
-      totalPoints,
       appSettings,
-      progressStats,
       activeChipFilters,
       completionMessage,
-      currentSprint,
       reminders,
       entries,
       dataLoadState,
