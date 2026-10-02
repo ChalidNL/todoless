@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/anonymize-prod-to-dev.py against a REAL PocketBase database.
 #
-# Seeds a production-like database (PocketBase 0.40.4 + this repo's
+# Seeds a production-like database (real PocketBase + this repo's
 # migrations, so every UNIQUE index is real): 9 users, 2 superusers,
 # SMTP/S3/backup-S3 credentials and sender identity in the settings row,
 # tasks and calendar events with external identifiers. Then:
@@ -16,7 +16,7 @@
 #   PB_BIN=/path/to/pocketbase bash scripts/test-anonymizer.sh
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8093}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d /tmp/todoless-anon-test.XXXXXX)"
@@ -27,11 +27,7 @@ trap cleanup EXIT
 log() { echo "[anon-test] $*"; }
 fail() { echo "FAIL: $*" >&2; exit 1; }
 
-if [[ -n "${PB_BIN:-}" ]]; then PB="$PB_BIN"; else
-  PB="$WORK/pocketbase"
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$WORK/pb.zip"
-  python3 -m zipfile -e "$WORK/pb.zip" "$WORK" >/dev/null; chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$WORK")"
 
 boot() { # $1 = data dir, extra args...
   local dir="$1"; shift

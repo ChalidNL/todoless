@@ -1,6 +1,6 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Owner-bound rules for three per-person collections (review S4):
+// Owner-bound rules for three per-person collections:
 // - app_settings: listRule was `@request.auth.id != ""`, so any member could
 //   list every other user's settings row (viewRule was already owner-only).
 // - goals / rewards: update/delete only required a session, so any member

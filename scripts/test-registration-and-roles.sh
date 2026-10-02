@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Registration races and owner-role rules against the REAL PocketBase binary
-# (review S10, S9, S14). Needs fresh databases, so it is not part of the
+# (parallel first registrations, parallel use of one invite, owner role rules). Needs fresh databases, so it is not part of the
 # shared smoke suite.
 #   1. 8 parallel first registrations -> exactly one admin + family
 #   2. 8 parallel registrations with one single-use invite -> one account
@@ -8,18 +8,14 @@
 #
 #   PB_BIN=/path/to/pocketbase bash scripts/test-registration-and-roles.sh
 set -euo pipefail
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8091}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d /tmp/todoless-reg-test.XXXXXX)"
 PB_PID=""
 cleanup() { [[ -n "$PB_PID" ]] && kill "$PB_PID" 2>/dev/null || true; rm -rf "$WORK"; }
 trap cleanup EXIT
-if [[ -n "${PB_BIN:-}" ]]; then PB="$PB_BIN"; else
-  PB="$WORK/pocketbase"
-  curl -fsSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip" -o "$WORK/pb.zip"
-  python3 -m zipfile -e "$WORK/pb.zip" "$WORK" >/dev/null; chmod +x "$PB"
-fi
+PB="$(pocketbase_bin "$WORK")"
 boot() {
   "$PB" serve --http="127.0.0.1:${PB_PORT}" --dir="$1" --migrationsDir="$ROOT/pb_migrations" --hooksDir="$ROOT/pb_hooks" --automigrate=false >"$1.log" 2>&1 &
   PB_PID=$!

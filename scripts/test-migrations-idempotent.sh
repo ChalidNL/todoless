@@ -25,11 +25,10 @@
 #   PB_PORT=8091 bash scripts/test-migrations-idempotent.sh
 #   PB_MIGRATIONS_DIR=... PB_HOOKS_DIR=...                      # fixtures only
 #
-# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.40.4).
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 PB_PORT="${PB_PORT:-8091}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MIGRATIONS_DIR="${PB_MIGRATIONS_DIR:-$ROOT/pb_migrations}"
@@ -49,18 +48,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 1. Obtain the PocketBase binary ----------------------------------------
-if [[ -n "${PB_BIN:-}" ]]; then
-  PB="$PB_BIN"
-else
-  PB="$BIN_DIR/pocketbase"
-  if [[ ! -x "$PB" ]]; then
-    URL="https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip"
-    echo "[migration-idempotency] downloading PocketBase ${PB_VERSION} ..."
-    curl -fsSL "$URL" -o "$BIN_DIR/pb.zip"
-    python3 -m zipfile -e "$BIN_DIR/pb.zip" "$BIN_DIR" >/dev/null
-    chmod +x "$PB"
-  fi
-fi
+PB="$(pocketbase_bin "$BIN_DIR")"
 echo "[migration-idempotency] using PB: $("$PB" --version)"
 
 JS_COUNT="$(find "$MIGRATIONS_DIR" -maxdepth 1 -type f -name '*.js' | wc -l | tr -d ' ')"

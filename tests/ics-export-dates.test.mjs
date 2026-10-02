@@ -46,13 +46,14 @@ function runExport(taskRecords) {
   const sandbox = {
     __hooks: '',
     routerAdd: (method, path, handler) => routerCalls.push({ method, path, handler }),
-    // Route handlers require the shared generator (pb_hooks/lib/ics-feed.js);
-    // load the real file against this sandbox's $app.
+    // Route handlers require shared files from pb_hooks/lib; load the real
+    // ones against this sandbox's $app, like PocketBase does.
     require: (p) => {
-      if (!String(p).endsWith('/lib/ics-feed.js')) throw new Error('unexpected require: ' + p)
-      const mod = { module: { exports: {} }, $app: sandbox.$app }
+      const m = String(p).match(/\/lib\/([\w-]+\.js)$/)
+      if (!m) throw new Error('unexpected require: ' + p)
+      const mod = { module: { exports: {} }, $app: sandbox.$app, require: sandbox.require, __hooks: '' }
       vm.createContext(mod)
-      vm.runInContext(read('pb_hooks/lib/ics-feed.js'), mod)
+      vm.runInContext(read('pb_hooks/lib/' + m[1]), mod)
       return mod.module.exports
     },
     $app: {
@@ -239,4 +240,45 @@ test('export never contains another member\'s private task (behaviour, shared wi
   assert.match(body.ics, /SUMMARY:Mine private/)
   assert.match(body.ics, /SUMMARY:Theirs shared/)
   assert.doesNotMatch(body.ics, /Theirs private/)
+})
+
+// RFC 5545 line handling (formerly the stand-alone tests/ics-logic-test.js).
+const utf8Len = (s) => Buffer.byteLength(s, 'utf8')
+const physicalLines = (ics) => ics.split('\r\n').filter(Boolean)
+const unfold = (ics) => ics.replace(/\r\n /g, '')
+
+test('long multibyte values fold at 75 octets without splitting a character', () => {
+  const desc = 'é'.repeat(40) + ' 🎉'.repeat(10)
+  const ics = runExport([fakeRecord({ ...base, all_day: true, start_time: '2026-05-01T00:00:00.000Z', due_date: emptyDateTime(), end_time: emptyDateTime(), description: desc })]).ics
+  for (const line of physicalLines(ics)) {
+    assert.ok(utf8Len(line) <= 75, `line over 75 octets: ${utf8Len(line)}`)
+    assert.ok(!/[\uD800-\uDBFF]$/.test(line) && !/^ ?[\uDC00-\uDFFF]/.test(line), 'surrogate pair split across a fold')
+  }
+  assert.ok(unfold(ics).includes('DESCRIPTION:' + desc))
+})
+
+test('carriage returns and newlines in text are escaped, never emitted raw', () => {
+  const ics = runExport([fakeRecord({ ...base, all_day: true, start_time: '2026-05-02T00:00:00.000Z', due_date: emptyDateTime(), end_time: emptyDateTime(), description: 'first line\r\nsecond line' })]).ics
+  assert.ok(unfold(ics).includes('DESCRIPTION:first line\\r\\nsecond line'))
+  assert.doesNotMatch(ics.replace(/\r\n/g, ''), /[\r\n]/)
+})
+
+test('RRULE is folded like other lines and stripped of control characters', () => {
+  const rrule = 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;UNTIL=20271231T000000Z;WKST=MO;BYSETPOS=1,2,3\u0007'
+  const ics = runExport([fakeRecord({ ...base, start_time: '2026-05-04T08:00:00.000Z', due_date: emptyDateTime(), end_time: emptyDateTime(), rrule })]).ics
+  for (const line of physicalLines(ics)) assert.ok(utf8Len(line) <= 75)
+  assert.ok(unfold(ics).includes('RRULE:' + rrule.replace('\u0007', '')))
+})
+
+test('all-day dates use Europe/Amsterdam, not the server timezone', () => {
+  const previous = process.env.TZ
+  process.env.TZ = 'America/Los_Angeles' // west of UTC: local dates would shift a day back
+  try {
+    const ics = runExport([fakeRecord({ ...base, all_day: true, start_time: '2026-05-01T00:00:00.000Z', due_date: emptyDateTime(), end_time: emptyDateTime() })]).ics
+    assert.match(ics, /DTSTART;VALUE=DATE:20260501\r\n/)
+    assert.match(ics, /DTEND;VALUE=DATE:20260502\r\n/)
+  } finally {
+    if (previous === undefined) delete process.env.TZ
+    else process.env.TZ = previous
+  }
 })

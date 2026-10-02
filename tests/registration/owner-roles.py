@@ -1,4 +1,4 @@
-# Owner-role rules (review S9/S14) against a fresh PocketBase; driven by
+# Owner-role rules (the owner keeps the role; only the owner transfers it) against a fresh PocketBase; driven by
 # scripts/test-registration-and-roles.sh.
 import json, sys, urllib.request, urllib.error
 B = sys.argv[1]; PW = 'Probe-Passw0rd-1'
@@ -24,12 +24,12 @@ def check(name, cond, detail=''):
 st, _ = req('POST', '/api/v1', {'action': 'set_role', 'user_id': o['id'], 'role': 'owner'}, ot)
 check('admin of a family without owner may claim owner (GH#23)', st == 200 and role(o['id'], ot) == 'owner', st)
 st, _ = req('POST', '/api/v1', {'action': 'set_role', 'user_id': ids['a'], 'role': 'admin'}, ot)
-check('S9: owner promotes a member to admin and stays owner', st == 200 and role(o['id'], ot) == 'owner' and role(ids['a'], ot) == 'admin', (st, role(o['id'], ot)))
+check('owner promotes a member to admin and stays owner', st == 200 and role(o['id'], ot) == 'owner' and role(ids['a'], ot) == 'admin', (st, role(o['id'], ot)))
 at, _ = login('a@p.test')
 st, d = req('POST', '/api/v1', {'action': 'set_role', 'user_id': ids['a'], 'role': 'owner'}, at)
-check('S14: an admin cannot make themselves owner', st == 403 and role(o['id'], ot) == 'owner', (st, d))
+check('an admin cannot make themselves owner', st == 403 and role(o['id'], ot) == 'owner', (st, d))
 st, d = req('POST', '/api/v1', {'action': 'set_role', 'user_id': ids['b'], 'role': 'owner'}, at)
-check('S14: an admin cannot hand out owner either', st == 403, (st, d))
+check('an admin cannot hand out owner either', st == 403, (st, d))
 st, d = req('POST', '/api/v1', {'action': 'set_role', 'user_id': o['id'], 'role': 'member'}, at)
 check('the owner cannot be demoted by an admin', st == 403 and role(o['id'], ot) == 'owner', (st, d))
 st, _ = req('POST', '/api/v1', {'action': 'set_role', 'user_id': ids['b'], 'role': 'owner'}, ot)

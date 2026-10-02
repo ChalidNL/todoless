@@ -2,10 +2,15 @@ import { expect, test, type APIRequestContext, type Browser, type Page } from '@
 import { ADMIN, expectNoHorizontalOverflow, login } from './helpers';
 
 /**
- * Invite & family baseline (tests/invite-flow-baseline.md, BT-P0-001…016) as
- * an executable two-user chain. BT-P0-001/002/013 for the admin are covered by
- * 01-onboarding-auth; this spec covers invites, the second user, family
- * visibility, privacy and the three form factors.
+ * Invite & family baseline (BT-P0-001…016) as an executable two-user chain:
+ *   001 fresh setup · 002 admin login · 003 generate invite · 004 open invite
+ *   in a separate context · 005 accept into the inviter's family · 006 member
+ *   visible to the admin · 007 member login · 008 shared data visible to both
+ *   · 009 private data owner-only · 010/011/012 invalid/expired/reused invite
+ *   fails without creating a user · 013 logout · 014/015/016 desktop, tablet
+ *   and mobile.
+ * 001/002/013 for the admin are covered by 01-onboarding-auth; this spec
+ * covers the rest.
  */
 test.describe.configure({ mode: 'serial' });
 

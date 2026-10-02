@@ -1,30 +1,11 @@
-// pb_hooks/15_member_status_gate.pb.js
-// GH#98 follow-up (t_318f2396): enforce member_status on PocketBase's native
-// API read/write paths.
+// A blocked or pending-approval account gets 403 on every /api/ route, even
+// with a still-valid session (GH#98). Custom routes keep their own checks as
+// defense in depth, and z068 adds the same condition to the read rules.
+// Public routes and the auth endpoints stay reachable, so a blocked member
+// can still sign in and see why their data calls fail.
 //
-// Root cause: the /api/v1 and /api/entries handlers trusted `info.auth`
-// without re-checking member_status, and PB's native /api/collections/* reads
-// only gate via listRule — which PocketBase applies as a SQL *filter*, so a
-// blocked member with a still-valid token got HTTP 200 with an (empty) page
-// instead of 401/403.
-//
-// This global routerUse middleware answers 403 for a blocked or
-// pending-approval account on every native records/files request
-// (/api/collections/*, /api/files/*), before PB's own handlers run. Auth
-// endpoints (login, refresh, verification, password reset, impersonate,
-// external OAuth) stay reachable so a blocked member can still authenticate
-// and receive the 'Account is blocked' error from their first data call.
-//
-// IMPORTANT: e.next() must NOT be wrapped in try/catch. If the downstream
-// handler throws (e.g. PB's 403 "Only superusers..." delete denial), the
-// exception must propagate up the middleware chain untouched — swallowing it
-// and re-calling next() turns PB errors into silent 200 responses.
-//
-// Since review S1 this covers every /api/ route (see the allow-list below);
-// custom routes keep their own checks as defense in depth.
-//
-// The z068 migration additionally conjoins the same status guard into every
-// member-readable listRule/viewRule as defense-in-depth at the data layer.
+// e.next() is deliberately not wrapped in try/catch: errors from later
+// handlers (e.g. PocketBase's own 403s) must propagate unchanged.
 
 routerUse(function (e) {
   var auth = null;
@@ -34,11 +15,7 @@ routerUse(function (e) {
   var path = '';
   try { path = String(e.request.url.path || ''); } catch (_p) {}
 
-  // Review S1: every /api/ route is gated, not only the native records/files
-  // API. Custom routes that forgot their own check (/api/bootstrap,
-  // /api/tasks, /api/ics-export, /api/api-tokens, ...) let a blocked member
-  // with a still-valid session keep reading and writing family data. The
-  // routes below must stay reachable without an active account.
+  // Reachable without an active account:
   if (path.indexOf('/api/') !== 0) return e.next();
   var open = ['/api/health', '/api/hook-health', '/api/setup-status', '/api/version', '/api/register',
               '/api/validate-invite', '/api/docs', '/api/swagger', '/api/openapi.json',

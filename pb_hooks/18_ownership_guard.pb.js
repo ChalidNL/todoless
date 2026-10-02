@@ -1,29 +1,14 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-// Ownership guard for DIRECT PocketBase collection API writes
+// Ownership rules for direct collection API writes
 // (/api/collections/{name}/records). Custom routes persist through $app.save()
-// and never trigger *Request hooks, so server-side flows are unaffected.
-//
-// Why: several collections were created with createRule `@request.auth.id != ""`
-// and updateRule `user = @request.auth.id`, which let any signed-in member
-//   - create api_tokens / agent_keys with a self-chosen secret hash bound to
-//     ANY user (incl. other families) -> full API access as the victim;
-//   - create invite_codes bound to another user's family -> join that family;
-//   - create owner-scoped records (items, shops, ...) in someone else's name,
-//     or re-point `user` on their own records to another user/family.
-//
-// Rules:
-//   1. api_tokens, agent_keys, invite_codes, families: native create is
-//      forbidden for non-superusers — the dedicated routes (/api/api-tokens,
-//      /api/agent/keys, /api/invites/create, /api/register) generate secrets
-//      server-side and are the only supported path.
-//   2. agent_keys, invite_codes: native update is forbidden for non-superusers
-//      (revocation/consumption go through their routes).
-//   3. Owner-scoped collections: on create `user` must be the caller (it is
-//      filled in when omitted); on update the owner field may not change.
-//
-// NOTE: JSVM handlers run in isolated contexts — keep all constants inside
-// the handler bodies (top-level variables are not visible to them).
+// and never trigger *Request hooks.
+//   1. api_tokens, agent_keys, invite_codes, families: no native create for
+//      non-superusers; their routes generate the secrets server-side.
+//   2. agent_keys, invite_codes: no native update (revoke/redeem via routes).
+//   3. Owner-scoped collections: `user` is the caller on create (filled in
+//      when omitted) and cannot change on update.
+// Constants live inside the handlers: callbacks cannot see top-level values.
 
 onRecordCreateRequest((e) => {
   if (e.hasSuperuserAuth()) return e.next();

@@ -206,7 +206,9 @@ test('all loaded agent task routes enforce the same label privacy contract', () 
   const source = read('pb_hooks/03_agent_tasks.pb.js')
   const authLib = read('pb_hooks/lib/auth.js')
 
-  assert.match(source, /function canAccessTaskForUser\(/)
+  // One implementation of the task privacy check (lib/auth.js), no local copies.
+  assert.match(source, /canAccessTaskForUser = require\(__hooks \+ '\/lib\/auth\.js'\)\.canAccessTaskForUser/)
+  assert.doesNotMatch(source, /function canAccessTaskForUser\(/)
   assert.match(source, /if\s*\(!canAccessTaskForUser\(t,\s*a\.user\)\)\s*continue/)
   assert.match(source, /if\s*\(!canAccessTaskForUser\(t,\s*a\.user\)\)\s*return c\.json\(403/)
   assert.match(source, /status = \{:status\}/)
@@ -224,7 +226,8 @@ test('ICS import and export cannot bypass privacy and keep canonical labels sync
   // Export generation lives in lib/ics-feed.js (shared with /api/calendar.ics).
   const source = read('pb_hooks/14_ics.pb.js') + read('pb_hooks/lib/ics-feed.js')
 
-  assert.match(source, /function canAccessTaskForUser\(/)
+  assert.match(source, /canAccessTaskForUser = require\(__hooks \+ '\/lib\/auth\.js'\)\.canAccessTaskForUser/)
+  assert.doesNotMatch(source, /function canAccessTaskForUser\(/)
   assert.match(source, /existingList\s*=\s*existingList\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)
   assert.match(source, /tasks\s*=\s*tasks\.filter\(function\(task\)\s*\{\s*return canAccessTaskForUser\(task,\s*auth\)/)
   assert.match(source, /existing\.set\('label',uniqueLabels\)/)
@@ -273,8 +276,8 @@ test('invite flow keeps generated, entered, validated, and registered codes on o
   assert.doesNotMatch(client, /data\.invite\.(id|code)/)
 })
 
-// GH#99: the invite/family baseline (tests/invite-flow-baseline.md,
-// BT-P0-001…016) is executed for real by tests/e2e/05-invite-family.spec.ts
+// GH#99: the invite/family baseline (BT-P0-001…016) is executed for real by
+// tests/e2e/05-invite-family.spec.ts
 // (two browser contexts, invalid/expired/reused invites, desktop/tablet/mobile)
 // instead of checking that the IDs occur in the Markdown file.
 

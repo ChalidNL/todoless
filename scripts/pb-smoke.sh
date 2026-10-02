@@ -7,17 +7,16 @@
 # it (node --test + global fetch). Teardown happens on EXIT.
 #
 # Usage:
-#   bash scripts/pb-smoke.sh                 # download PB 0.40.4 and run
+#   bash scripts/pb-smoke.sh                 # download PocketBase and run
 #   PB_BIN=/path/to/pocketbase bash scripts/pb-smoke.sh   # reuse local binary
 #   PB_PORT=8091 bash scripts/pb-smoke.sh    # non-default port
 #
-# The pinned PB_VERSION must match Dockerfile.pocketbase (muchobien 0.40.4).
 # =============================================================================
 set -euo pipefail
 
-PB_VERSION="${PB_VERSION:-0.40.4}"
+source "$(dirname "${BASH_SOURCE[0]}")/lib/pocketbase.sh"
 # Export so the booted binary (and the test env) inherit it: /api/version
-# reports PB_VERSION via the build-time env (GH#33), and pb-migration-upgrade.sh
+# reports PB_VERSION via the build-time env (GH#33), and test-migration-upgrade.sh
 # uses the same field as its port-collision ownership guard.
 export PB_VERSION
 PB_PORT="${PB_PORT:-8090}"
@@ -37,18 +36,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 1. Obtain the PocketBase binary -------------------------------------
-if [[ -n "${PB_BIN:-}" ]]; then
-  PB="$PB_BIN"
-else
-  PB="$BIN_DIR/pocketbase"
-  if [[ ! -x "$PB" ]]; then
-    URL="https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_amd64.zip"
-    echo "[pb-smoke] downloading PocketBase ${PB_VERSION} ..."
-    curl -fsSL "$URL" -o "$BIN_DIR/pb.zip"
-    python3 -m zipfile -e "$BIN_DIR/pb.zip" "$BIN_DIR" >/dev/null
-    chmod +x "$PB"
-  fi
-fi
+PB="$(pocketbase_bin "$BIN_DIR")"
 
 echo "[pb-smoke] using PB: $("$PB" --version)"
 

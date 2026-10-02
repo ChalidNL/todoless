@@ -1496,9 +1496,9 @@ test('an admin cannot create an API token for a human member (it would bypass th
   assert.equal(byMember.status, 403, 'members cannot mint tokens for others')
 })
 
-// --- 8j. Review S1: a blocked member is refused on every /api/ route --------
-test('a blocked member with a valid session is refused on custom routes too (S1)', async () => {
-  const blocked = await registerDisposableMember('s1-blocked@smoke.test', 'S1 Blocked')
+// --- 8j. A blocked member is refused on every /api/ route --------
+test('a blocked member with a valid session is refused on custom routes too', async () => {
+  const blocked = await registerDisposableMember('blocked-gate@smoke.test', 'Blocked Gate')
   const st = await api('POST', '/api/v1', { token: adminToken, body: { action: 'set_user_block', user_id: blocked.user.id, blocked: true } })
   assert.equal(st.status, 200, JSON.stringify(st.data))
   for (const [method, path, body] of [
@@ -1514,12 +1514,12 @@ test('a blocked member with a valid session is refused on custom routes too (S1)
   assert.equal((await api('GET', '/api/setup-status', { token: blocked.token })).status, 200)
 })
 
-// --- 8k. Review S4: goals / rewards / app_settings are owner-bound ----------
-test('another member cannot change or delete my goals and rewards, nor list my settings (S4)', async () => {
-  const other = await registerDisposableMember('s4-other@smoke.test', 'S4 Other')
+// --- 8k. goals / rewards / app_settings are owner-bound ----------
+test('another member cannot change or delete my goals and rewards, nor list my settings', async () => {
+  const other = await registerDisposableMember('owner-bound-other@smoke.test', 'Other Member')
   for (const [coll, body] of [
-    ['goals', { title: 'S4 goal', goal: 'S4 goal', points_required: 5, user: member.id, status: 'active' }],
-    ['rewards', { title: 'S4 reward', user: member.id, points: 1, reason: 'smoke' }],
+    ['goals', { title: 'Owner-bound goal', goal: 'Owner-bound goal', points_required: 5, user: member.id, status: 'active' }],
+    ['rewards', { title: 'Owner-bound reward', user: member.id, points: 1, reason: 'smoke' }],
   ]) {
     const rec = await api('POST', `/api/collections/${coll}/records`, { token: memberToken, body })
     assert.equal(rec.status, 200, `${coll}: ${JSON.stringify(rec.data)}`)
@@ -1527,7 +1527,7 @@ test('another member cannot change or delete my goals and rewards, nor list my s
     assert.ok(upd.status === 403 || upd.status === 404, `${coll} update by another member -> ${upd.status}`)
     const del = await api('DELETE', `/api/collections/${coll}/records/${rec.data.id}`, { token: other.token })
     assert.ok(del.status === 403 || del.status === 404, `${coll} delete by another member -> ${del.status}`)
-    const own = await api('PATCH', `/api/collections/${coll}/records/${rec.data.id}`, { token: memberToken, body: { title: 'S4 edited by owner' } })
+    const own = await api('PATCH', `/api/collections/${coll}/records/${rec.data.id}`, { token: memberToken, body: { title: 'Edited by owner' } })
     assert.equal(own.status, 200, `${coll} owner update`)
   }
   // make sure the member has a settings row (the unique index may say it exists already)
@@ -1800,8 +1800,6 @@ test('vendored swagger-ui-init.js is self-contained and external-call-free (GH#6
 // authFromApiKey() must NOT write the agent_keys record on every request:
 // a polling integration would otherwise cause one SQLite write per poll.
 // Rapid successive authenticated requests must not advance last_used_at.
-// (The >60s elapse path is covered by scripts/verify-gh29-throttle.py, which
-// backdates the DB row and asserts the next request advances it.)
 test('agent key last_used_at is throttled on repeated auth-test calls (GH#29)', async () => {
   assert.ok(adminToken, 'expected admin session from earlier bootstrap')
 
@@ -1964,8 +1962,8 @@ test('agent dispatch GET rejects revoked and expired keys like POST (GH#21)', as
 // strictly on `user = auth.id`, so the key became permanently invisible and
 // un-revocable to every admin the family ever has afterwards.
 test('new admin can list and revoke agent keys created by a demoted former admin (GH#22)', async () => {
-  // The family owner (promoted in the GH#23 test) is never demoted (review
-  // S9), so the single-admin hand-over is exercised between two regular
+  // The family owner (promoted in the GH#23 test) is never demoted, so the
+  // single-admin hand-over is exercised between two regular
   // admins: the first mints a key, promoting the second demotes the first.
   const former = await registerDisposableMember('gh22-former@smoke.test', 'GH22 Former')
   const successor = await registerDisposableMember('gh22-successor@smoke.test', 'GH22 Successor')
@@ -1992,7 +1990,7 @@ test('new admin can list and revoke agent keys created by a demoted former admin
   assert.equal(promote.status, 200, 'admin transfer should succeed')
   assert.equal(promote.data?.role, 'admin')
   const ownerRecord = await api('GET', `/api/collections/users/records/${admin.id}`, { token: ownerToken })
-  assert.equal(ownerRecord.data?.role, 'owner', 'the owner keeps the owner role (S9)')
+  assert.equal(ownerRecord.data?.role, 'owner', 'the owner keeps the owner role')
 
   // Former admin lost the admin role and can no longer call admin-only routes.
   const formerAdminList = await api('GET', '/api/agent/keys', { token: formerToken })
