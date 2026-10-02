@@ -844,7 +844,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     openapi: "3.0.3",
     info: {
       title: "todoless API",
-      version: "1.0.0",
+      version: "1.0.1",
       description: "todoless — self-hosted multi-user task and grocery manager.\n\nBase URL: https://[host]:7070/api\n\nAuthentication: PocketBase JWT token via Authorization: Bearer header or PB cookie.",
       contact: { name: "todoless" },
     },
