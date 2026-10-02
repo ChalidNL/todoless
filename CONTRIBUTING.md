@@ -26,19 +26,39 @@ Thanks for your interest in contributing! todoless is family data software — p
 
 ## Development setup
 
+You need Node.js 22 and the [PocketBase 0.40.4](https://github.com/pocketbase/pocketbase/releases/tag/v0.40.4) binary for your platform.
+
 ```bash
 git clone https://github.com/ChalidNL/todoless.git
 cd todoless
 npm install
-cp .env.example .env  # edit as needed
-npm run dev            # frontend dev server
+
+# Backend: PocketBase with this repo's hooks and migrations (data in ./pb_data, git-ignored)
+./pocketbase serve --http=127.0.0.1:8091 --dir=./pb_data \
+  --migrationsDir=./pb_migrations --hooksDir=./pb_hooks
+
+# Frontend, in a second terminal: http://localhost:7071 (proxies /api to localhost:8091)
+npm run dev
 ```
 
-The repo ships one `docker-compose.yml`, used both for production and local use — it pulls the pre-built PocketBase image, so it's the fastest way to get a backend running locally while you iterate on the frontend with `npm run dev`:
+Open the app and complete the onboarding to create your first account. Set `TODOLESS_API_PROXY` if PocketBase runs on another address.
+
+To test the production containers instead, run the full stack as described in the [README Quick Start](README.md#quick-start).
+
+## Working with a copy of real data
+
+Never develop against a production database. If you need realistic data, make an anonymized copy:
+
 ```bash
-docker compose up -d pocketbase
+docker compose stop pocketbase   # or use a backup zip from pb_data/backups
+python3 scripts/anonymize-prod-to-dev.py /path/to/prod/pb_data/data.db ./pb_data/data.db
 ```
-There is no separate dev compose file. If you need to test frontend + backend together in containers, run the full stack the same way production does (see [README Quick Start](README.md#quick-start)).
+
+- The script replaces names, e-mail addresses, passwords (all become `test1234`; the first user and the first superuser are `admin@example.test`), titles and free text. It deletes tokens, invites, integrations and push data, and clears external calendar identifiers.
+- It rewrites the PocketBase settings: SMTP, S3 and backup S3 are disabled and their credentials removed. If the settings are encrypted (`ENCRYPTION_KEY`), the row is deleted and PocketBase recreates safe defaults. Token-signing secrets are rotated.
+- The output only appears once anonymization has fully succeeded. After an error no output file is left behind.
+- **Copy only `data.db`.** `pb_data/auxiliary.db` holds PocketBase's request logs (IP addresses, URLs, e-mail addresses) and is **not** anonymized; PocketBase creates a fresh one. Uploaded files in `pb_data/storage` are not scrubbed either.
+- Never commit any database file, anonymized or not.
 
 ## Database migrations
 
@@ -57,9 +77,11 @@ Before submitting a PR, run:
 ```bash
 npm run typecheck
 npm run lint
-npm test
+npm test                      # frontend unit tests
+node --test tests/*.test.mjs  # backend contract tests
 npm run build
 ```
+CI additionally runs a live PocketBase smoke suite (`scripts/pb-smoke.sh`), the migration checks and the Playwright mobile E2E suite (`scripts/e2e.sh`); both scripts download PocketBase themselves.
 
 ## Commit messages
 

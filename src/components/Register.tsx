@@ -5,6 +5,7 @@ import { Eye, EyeOff, CheckCircle2, Loader2 } from 'lucide-react';
 import { api } from '../lib/pocketbase-client';
 import { PASSWORD_MIN_LENGTH } from '../lib/password';
 import { t, translatePbError } from '../i18n/translations';
+import { getLinkInviteCode } from '../lib/url-secrets';
 
 interface RegisterProps {
   onRegister: () => void;
@@ -32,7 +33,7 @@ export const Register = ({ onRegister }: RegisterProps) => {
   // Check for invite code in URL or localStorage
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('invite') || localStorage.getItem('pending_invite_code') || '';
+    const code = getLinkInviteCode() || params.get('invite') || localStorage.getItem('pending_invite_code') || '';
     if (!code) return;
     const normalized = code.trim().toUpperCase();
     setInviteCode(normalized);

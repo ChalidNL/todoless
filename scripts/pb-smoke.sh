@@ -53,13 +53,24 @@ fi
 echo "[pb-smoke] using PB: $("$PB" --version)"
 
 # --- 2. Start PocketBase with repo hooks + migrations on a temp dir --------
+# Throwaway superuser for this disposable database only: the access-matrix
+# tests use it for superuser-only checks. Hex password: never starts with '-' (#250).
+export SMOKE_SU_EMAIL="smoke-root@example.com"
+SMOKE_SU_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
+export SMOKE_SU_PASSWORD
+# The access-matrix test seeds an unrelated family straight into this
+# disposable database (no public route can create one once setup is done).
+export SMOKE_DB="$DATA_DIR/pb_data/data.db"
+"$PB" superuser upsert "$SMOKE_SU_EMAIL" "$SMOKE_SU_PASSWORD" --dir="$DATA_DIR/pb_data" \
+  --migrationsDir="$ROOT/pb_migrations" --hooksDir="$ROOT/pb_hooks" >/dev/null
+
 echo "[pb-smoke] booting PocketBase on 127.0.0.1:${PB_PORT} ..."
 "$PB" serve \
   --http="127.0.0.1:${PB_PORT}" \
   --dir="$DATA_DIR/pb_data" \
   --migrationsDir="$ROOT/pb_migrations" \
   --hooksDir="$ROOT/pb_hooks" \
-  --automigrate >"$DATA_DIR/serve.log" 2>&1 &
+  --automigrate=false >"$DATA_DIR/serve.log" 2>&1 &
 PB_PID=$!
 
 # --- 3. Wait for readiness ---------------------------------------------------

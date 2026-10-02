@@ -471,6 +471,8 @@
     "inviteCode": "Código de invitación",
     "inviteLink": "Enlace de invitación",
     "minutesRemaining": "Quedan {n} minutos",
+    "hoursRemaining": "Quedan {n} horas",
+    "daysRemaining": "Quedan {n} días",
     "saveTokenWarning": "Guarda este token ahora — no se mostrará de nuevo. El agente estará pendiente hasta que lo apruebes.",
     "share": "Compartir",
     "shareFailed": "Error al compartir",
@@ -555,6 +557,7 @@
   "auth": {
     "appError": "Error de la app",
     "welcomeBack": "Bienvenido de nuevo",
+    "rateLimited": "Demasiados intentos. Inténtalo de nuevo en un momento.",
     "signInSubtitle": "Inicia sesión en tu cuenta de todoless",
     "email": "Correo electrónico",
     "password": "Contraseña",

@@ -197,6 +197,7 @@ try {
 
 routerAdd('POST', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var taskStatus = require(__hooks + '/lib/task-status.js');
   var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
@@ -245,6 +246,16 @@ try {
         : { filter: 'user = {:actingUserId}', params: { actingUserId: actingUserId } };
     }
 
+    // Unknown ids answer 404 instead of throwing out of the handler.
+    function findEntryRecord(collection, entryId) {
+      try { return $app.findRecordById(collection, entryId); } catch (_e) { return null; }
+    }
+    // Groceries follow the same rule as everywhere else (authLib): the agent
+    // acts as its owner user and never sees more than that user.
+    function canAccessEntry(rec, entryType) {
+      return entryType === 'task' ? canAccessTaskForUser(rec, ownerUser) : authLib.canAccessItemForUser(rec, ownerUser);
+    }
+
     function recordInFamily(rec, fid, uid) {
       var ownerId = String(rec.get('user') || '');
       if (!fid) return ownerId === uid;
@@ -264,7 +275,7 @@ try {
       var collectionName = type === 'grocery' ? 'items' : 'tasks';
 
       if (id) {
-        var rec = $app.findRecordById(collectionName, id);
+        var rec = findEntryRecord(collectionName, id);
         if (!rec) return c.json(404, { error: 'Entry not found' });
 
         // Ensure family-scoped access
@@ -281,7 +292,7 @@ try {
             return c.json(403, { error: 'Access denied' });
           }
         }
-        if (collectionName === 'tasks' && !canAccessTaskForUser(rec, ownerUser)) {
+        if (!canAccessEntry(rec, collectionName === 'tasks' ? 'task' : 'grocery')) {
           return c.json(403, { error: 'Access denied' });
         }
 
@@ -309,9 +320,8 @@ try {
       var queryParams = family.params;
       var itemQueryParams = familyId ? { familyId: familyId } : { actingUserId: actingUserId };
       var t = String(gv(q, 'type', '')).trim();
-      var status = String(gv(q, 'status', '')).trim();
-      var validReadStatuses = ['', 'backlog', 'todo', 'done'];
-      if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
+      var status = taskStatus.normalizeTaskStatus(gv(q, 'status', ''));
+      if (status && !taskStatus.isTaskStatus(status)) return c.json(400, { error: 'Invalid status' });
 
       var results = [];
 
@@ -343,6 +353,7 @@ try {
         var items = $app.findRecordsByFilter('items', itemFilter, '-created', 10000, 0, itemQueryParams);
         for (var ii = 0; ii < items.length; ii++) {
           var ir = items[ii];
+          if (!authLib.canAccessItemForUser(ir, ownerUser)) continue;
           results.push({
             id: ir.id, type: 'grocery',
             title: String(ir.get('title') || ''),
@@ -383,14 +394,15 @@ try {
         var rec = new Record($app.findCollectionByNameOrId('tasks'));
         rec.set('user', actingUserId);
         rec.set('title', title);
-        var rawStatus = String(gv(d, 'status', 'todo'));
-        var validStatuses = ['backlog', 'todo', 'in_progress', 'done'];
-        var st = validStatuses.indexOf(rawStatus) >= 0 ? rawStatus : 'todo';
-        if (st === 'in_progress') st = 'todo';
+        var st = taskStatus.normalizeTaskStatus(gv(d, 'status', 'todo')) || 'todo';
+        if (!taskStatus.isTaskStatus(st)) return c.json(400, { error: 'Invalid status' });
         rec.set('status', st);
         rec.set('blocked_comment', String(gv(d, 'description', '') || ''));
+        if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
         rec.set('assigned_to', gv(d, 'assignee_id', ''));
-        setCanonicalTaskLabels(rec, gv(d, 'labels', []));
+        var createLabels = authLib.validateLabelIdsForUser(gv(d, 'labels', []), ownerUser);
+        if (!createLabels.ok) return c.json(createLabels.status, { error: createLabels.error });
+        setCanonicalTaskLabels(rec, createLabels.ids);
         rec.set('due_date', gv(d, 'due_date', ''));
         rec.set('is_private', false);
         rec.set('completed_at', st === 'done' ? new Date().toISOString() : null);
@@ -416,6 +428,7 @@ try {
       itemRec.set('user', actingUserId);
       itemRec.set('title', title);
       itemRec.set('completed', String(gv(d, 'status', 'todo')) === 'done');
+      if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       itemRec.set('assigned_to', gv(d, 'assignee_id', ''));
       itemRec.set('labels', gv(d, 'labels', []));
       itemRec.set('shop_id', gv(d, 'shop_id', ''));
@@ -445,15 +458,22 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
-      if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) rec.set('assigned_to', gv(d, 'assignee_id', ''));
+      if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) {
+        if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
+        rec.set('assigned_to', gv(d, 'assignee_id', ''));
+      }
       if (Object.prototype.hasOwnProperty.call(d, 'labels')) {
-        if (type === 'task') setCanonicalTaskLabels(rec, gv(d, 'labels', []));
+        if (type === 'task') {
+          var updateLabels = authLib.validateLabelIdsForUser(gv(d, 'labels', []), ownerUser);
+          if (!updateLabels.ok) return c.json(updateLabels.status, { error: updateLabels.error });
+          setCanonicalTaskLabels(rec, updateLabels.ids);
+        }
         else rec.set('labels', gv(d, 'labels', []));
       }
       if (Object.prototype.hasOwnProperty.call(d, 'due_date')) rec.set('due_date', gv(d, 'due_date', ''));
@@ -461,8 +481,8 @@ try {
       if (type === 'task') {
         if (Object.prototype.hasOwnProperty.call(d, 'description')) rec.set('blocked_comment', gv(d, 'description', ''));
         if (Object.prototype.hasOwnProperty.call(d, 'status')) {
-          var sr = String(gv(d, 'status', 'todo'));
-          if (sr === 'in_progress') sr = 'todo';
+          var sr = taskStatus.normalizeTaskStatus(gv(d, 'status', 'todo'));
+          if (!taskStatus.isTaskStatus(sr)) return c.json(400, { error: 'Invalid status' });
           rec.set('status', sr);
           rec.set('completed_at', sr === 'done' ? new Date().toISOString() : null);
         }
@@ -486,10 +506,10 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       var title = String(rec.get('title') || '');
       $app.delete(rec);
@@ -507,12 +527,15 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       if (type === 'task') {
+        // #240: the agent completes on behalf of its owner user.
+        if (complete && String(rec.get('status')) !== 'done') rec.set('completed_by', ownerUser.id);
+        if (!complete) rec.set('completed_by', '');
         rec.set('status', complete ? 'done' : 'todo');
         rec.set('completed_at', complete ? new Date().toISOString() : null);
       } else {
@@ -532,11 +555,12 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
+      if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
       $app.save(rec);
       auditLog(agentKey, 'assign', type, rec.id, { assignee_id: gv(d, 'assignee_id', '') }, c);
@@ -552,14 +576,17 @@ try {
       }
 
       var collName = type === 'task' ? 'tasks' : 'items';
-      var rec = $app.findRecordById(collName, id);
+      var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (type === 'task' && !canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
 
       var newLabels = gv(d, 'labels', []);
-      if (type === 'task') setCanonicalTaskLabels(rec, newLabels);
-      else rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
+      if (type === 'task') {
+        var setLabels = authLib.validateLabelIdsForUser(newLabels, ownerUser);
+        if (!setLabels.ok) return c.json(setLabels.status, { error: setLabels.error });
+        setCanonicalTaskLabels(rec, setLabels.ids);
+      } else rec.set('labels', Array.isArray(newLabels) ? newLabels : []);
       $app.save(rec);
       auditLog(agentKey, 'set_labels', type, rec.id, { labels: rec.get('labels') }, c);
       return c.json(200, { labels: rec.get('labels') || [] });
@@ -569,7 +596,7 @@ try {
       var id = String(gv(d, 'id', '')).trim();
       if (!id) return c.json(400, { error: 'id required' });
 
-      var rec = $app.findRecordById('tasks', id);
+      var rec = findEntryRecord('tasks', id);
       if (!rec) return c.json(404, { error: 'Task not found' });
       if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
       if (!canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
@@ -589,6 +616,7 @@ try {
 // ─── Agent: GET list (lightweight alternative to POST read) ─────────────────
 routerAdd('GET', '/api/agent/dispatch', function(c) {
   var authLib = require(__hooks + '/lib/auth.js');
+  var taskStatus = require(__hooks + '/lib/task-status.js');
   var dates = require(__hooks + '/lib/dates.js');
   var authFromApiKey = authLib.authFromAgentKey;
   var generateApiKey = authLib.generateAgentKey;
@@ -633,9 +661,8 @@ try {
     var info = c.requestInfo();
     var q = info.query || {};
     var t = String(gv(q, 'type', '')).trim();
-    var status = String(gv(q, 'status', '')).trim();
-    var validReadStatuses = ['', 'backlog', 'todo', 'done'];
-    if (validReadStatuses.indexOf(status) === -1) return c.json(400, { error: 'invalid status' });
+    var status = taskStatus.normalizeTaskStatus(gv(q, 'status', ''));
+    if (status && !taskStatus.isTaskStatus(status)) return c.json(400, { error: 'Invalid status' });
     var limit = parseInt(gv(q, 'limit', '100'), 10);
     if (limit < 1) limit = 100;
 
@@ -665,6 +692,7 @@ try {
       var items = $app.findRecordsByFilter('items', f, '-created', limit, 0, itemQueryParams);
       for (var ii = 0; ii < items.length; ii++) {
         var ir = items[ii];
+        if (!require(__hooks + '/lib/auth.js').canAccessItemForUser(ir, ownerUser)) continue;
         results.push({
           id: ir.id, type: 'grocery',
           title: String(ir.get('title') || ''),

@@ -196,7 +196,8 @@ test('task with no real dates is skipped entirely', () => {
     all_day: false,
   })])
   const ics = body.ics
-  assert.equal(body.count, 1)
+  // #234: a skipped task is not counted - the count is what the file contains
+  assert.equal(body.count, 0)
   assert.equal(vevents(ics), 0)
   assert.doesNotMatch(ics, /BEGIN:VEVENT/)
 })
@@ -210,6 +211,9 @@ test('mixed batch never emits an empty or zero-length DTEND and VEVENTs match ta
   ])
   const ics = body.ics
   assert.equal(vevents(ics), 3)
+  // #234: count reports the VEVENTs written, not the tasks considered -
+  // task d had no usable date and was skipped
+  assert.equal(body.count, 3)
   assert.doesNotMatch(ics, /DTEND:\s*(\r\n|$)/)
   for (const id of ['a', 'b', 'c']) {
     assert.match(ics, new RegExp(`UID:todoless-${id}@family-family-a`))

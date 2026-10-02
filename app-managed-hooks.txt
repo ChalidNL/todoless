@@ -91,3 +91,5 @@ routes/tasks.js
 routes/users.js
 test.js
 lib/task-note.js
+lib/task-status.js
+lib/task-parent.js

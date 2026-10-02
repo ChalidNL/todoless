@@ -61,6 +61,7 @@ interface TranslationStructure {
     edit: string;
     editTitle: string;
     error: string;
+    someChangesNotSaved: string;
     export: string;
     filter: string;
     filters: string;
@@ -351,6 +352,8 @@ interface TranslationStructure {
     inviteCode: string;
     inviteLink: string;
     minutesRemaining: string;
+    hoursRemaining: string;
+    daysRemaining: string;
     saveTokenWarning: string;
     share: string;
     shareFailed: string;
@@ -464,6 +467,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Edit',
       editTitle: 'Edit Title',
       error: 'Error',
+      someChangesNotSaved: 'Some changes could not be saved',
       export: 'Export',
       filter: 'Filter',
       filters: 'Filters',
@@ -786,6 +790,8 @@ const translations: Record<Language, TranslationStructure> = {
       inviteCode: 'Invite Code',
       inviteLink: 'Invite Link',
       minutesRemaining: '{n} minutes remaining',
+      hoursRemaining: '{n} hours remaining',
+      daysRemaining: '{n} days remaining',
       saveTokenWarning: 'Save this token now — it will not be shown again. The agent will be pending until you approve it.',
       share: 'Share',
       shareFailed: 'Share failed',
@@ -897,6 +903,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Modifier',
       editTitle: 'Modifier le titre',
       error: 'Erreur',
+      someChangesNotSaved: 'Certaines modifications n’ont pas pu être enregistrées',
       export: 'Exporter',
       filter: 'Filtrer',
       filters: 'Filtres',
@@ -920,7 +927,7 @@ const translations: Record<Language, TranslationStructure> = {
       overdue: 'En retard',
       print: 'Imprimer',
       refresh: 'Actualiser',
-      restock: 'Réranger',
+      restock: 'Réapprovisionner',
       remove: 'Supprimer',
       retry: 'Réessayer',
       save: 'Enregistrer',
@@ -1217,6 +1224,8 @@ const translations: Record<Language, TranslationStructure> = {
       inviteCode: 'Code d\'invitation',
       inviteLink: 'Lien d\'invitation',
       minutesRemaining: 'Encore {n} minutes',
+      hoursRemaining: 'Encore {n} heures',
+      daysRemaining: 'Encore {n} jours',
       saveTokenWarning: 'Sauvegardez ce jeton maintenant — il ne sera plus affiché. L\'agent sera en attente jusqu\'à votre approbation.',
       share: 'Partager',
       shareFailed: 'Échec du partage',
@@ -1328,6 +1337,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Bewerken',
       editTitle: 'Titel bewerken',
       error: 'Fout',
+      someChangesNotSaved: 'Sommige wijzigingen konden niet worden opgeslagen',
       export: 'Exporteren',
       filter: 'Filteren',
       filters: 'Filters',
@@ -1351,7 +1361,7 @@ const translations: Record<Language, TranslationStructure> = {
       overdue: 'Verlopen',
       print: 'Afdrukken',
       refresh: 'Vernieuwen',
-      restock: 'Restock',
+      restock: 'Aanvullen',
       remove: 'Verwijderen',
       retry: 'Opnieuw proberen',
       save: 'Opslaan',
@@ -1499,7 +1509,7 @@ const translations: Record<Language, TranslationStructure> = {
       agents: 'Agenten',
       apiDocumentation: 'API Documentatie',
       apiTokens: 'API Tokens',
-      appInfo: 'App Info',
+      appInfo: 'App-info',
       approve: 'Goedkeuren',
       approvedCount: 'Goedgekeurd',
       approving: 'Goedkeuren...',
@@ -1650,6 +1660,8 @@ const translations: Record<Language, TranslationStructure> = {
       inviteCode: 'Uitnodigingscode',
       inviteLink: 'Uitnodigingslink',
       minutesRemaining: 'Nog {n} minuten geldig',
+      hoursRemaining: 'Nog {n} uur geldig',
+      daysRemaining: 'Nog {n} dagen geldig',
       saveTokenWarning: 'Bewaar dit token nu — het wordt niet meer getoond. De agent blijft in afwachting totdat u goedkeurt.',
       share: 'Delen',
       shareFailed: 'Delen mislukt',
@@ -1761,6 +1773,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Bearbeiten',
       editTitle: 'Titel bearbeiten',
       error: 'Fehler',
+      someChangesNotSaved: 'Einige Änderungen konnten nicht gespeichert werden',
       export: 'Exportieren',
       filter: 'Filtern',
       filters: 'Filter',
@@ -2081,6 +2094,8 @@ const translations: Record<Language, TranslationStructure> = {
       inviteCode: 'Einladungscode',
       inviteLink: 'Einladungslink',
       minutesRemaining: 'Noch {n} Minuten',
+      hoursRemaining: 'Noch {n} Stunden',
+      daysRemaining: 'Noch {n} Tage',
       saveTokenWarning: 'Speichern Sie dieses Token jetzt — es wird nicht wieder angezeigt. Der Agent bleibt in Wartestellung, bis Sie ihn genehmigen.',
       share: 'Teilen',
       shareFailed: 'Teilen fehlgeschlagen',
@@ -2192,6 +2207,7 @@ const translations: Record<Language, TranslationStructure> = {
       edit: 'Editar',
       editTitle: 'Editar título',
       error: 'Error',
+      someChangesNotSaved: 'Algunos cambios no se han podido guardar',
       export: 'Exportar',
       filter: 'Filtrar',
       filters: 'Filtros',
@@ -2374,7 +2390,7 @@ const translations: Record<Language, TranslationStructure> = {
       generateAgent: 'Generar invitación de agente', generateFailed: 'Error al generar el código',
       generateHuman: 'Generar invitación de persona', generated: '{type} generado', generating: 'Generando...',
       humanInviteTitle: 'Compartir invitación de persona', humanLabel: 'Persona', inviteCode: 'Código de invitación',
-      inviteLink: 'Enlace de invitación', minutesRemaining: 'Quedan {n} minutos',
+      inviteLink: 'Enlace de invitación', minutesRemaining: 'Quedan {n} minutos', hoursRemaining: 'Quedan {n} horas', daysRemaining: 'Quedan {n} días',
       saveTokenWarning: 'Guarda este token ahora — no se mostrará de nuevo.',
       share: 'Compartir', shareFailed: 'Error al compartir', shareInvite: 'Compartir invitación',
       shareViaWhatsApp: 'Compartir por WhatsApp', urlCopied: '¡URL copiada!', usedOn: 'Usado el {date}',

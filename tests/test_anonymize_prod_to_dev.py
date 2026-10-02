@@ -33,23 +33,23 @@ SCRIPT = os.path.join(ROOT, "scripts", "anonymize-prod-to-dev.py")
 
 SCHEMA = {
     "users": [
-        "id TEXT PRIMARY KEY", "email TEXT", "name TEXT", "first_name TEXT", "last_name TEXT",
+        "id TEXT PRIMARY KEY", "email TEXT UNIQUE", "name TEXT", "first_name TEXT", "last_name TEXT",
         "password TEXT", "tokenKey TEXT", "emailVisibility INTEGER", "verified INTEGER",
         "role TEXT", "family_id TEXT", "invite_code TEXT", "display_name TEXT",
         "avatar TEXT", "language TEXT", "created TEXT", "updated TEXT",
     ],
-    "_superusers": ["id TEXT PRIMARY KEY", "email TEXT", "password TEXT", "tokenKey TEXT", "emailVisibility INTEGER"],
+    "_superusers": ["id TEXT PRIMARY KEY", "email TEXT UNIQUE", "password TEXT", "tokenKey TEXT", "emailVisibility INTEGER"],
     "families": ["id TEXT PRIMARY KEY", "name TEXT", "created TEXT"],
     "tasks": [
         "id TEXT PRIMARY KEY", "title TEXT", "description TEXT", "location TEXT",
         "status TEXT", "blocked INTEGER", "blocked_comment TEXT", "user TEXT",
-        "due_date TEXT", "labels TEXT", "created TEXT",
+        "due_date TEXT", "labels TEXT", "uid TEXT", "external_id TEXT", "created TEXT",
     ],
     "items": ["id TEXT PRIMARY KEY", "title TEXT", "completed INTEGER", "user TEXT", "created TEXT"],
     "notes": ["id TEXT PRIMARY KEY", "title TEXT", "content TEXT", "pinned INTEGER", "user TEXT", "created TEXT"],
     "calendar_events": [
         "id TEXT PRIMARY KEY", "title TEXT", "description TEXT", "location TEXT",
-        "attendees TEXT", "start_time TEXT", "end_time TEXT", "user TEXT", "created TEXT",
+        "attendees TEXT", "start_time TEXT", "end_time TEXT", "user TEXT", "uid TEXT", "external_id TEXT", "created TEXT",
     ],
     "labels": ["id TEXT PRIMARY KEY", "name TEXT", "color TEXT", "user TEXT", "created TEXT"],
     "projects": ["id TEXT PRIMARY KEY", "title TEXT", "description TEXT", "user TEXT"],
@@ -77,7 +77,7 @@ SCHEMA = {
     "_authOrigins": ["id TEXT PRIMARY KEY", "collectionRef TEXT", "recordRef TEXT", "fingerprint TEXT", "created TEXT", "updated TEXT"],
     "_collections": ["id TEXT PRIMARY KEY", "name TEXT", "type TEXT", "schema TEXT"],
     "_migrations": ["id TEXT PRIMARY KEY", "file TEXT", "applied TEXT"],
-    "_params": ["id TEXT PRIMARY KEY", "key TEXT", "value TEXT"],
+    "_params": ["id TEXT PRIMARY KEY", "value TEXT", "created TEXT", "updated TEXT"],
     # table intentionally not handled — audit must flag it
     "custom_free_text": ["id TEXT PRIMARY KEY", "content TEXT"],
 }
@@ -107,12 +107,28 @@ def create_synthetic_db(path: str):
             ("u_0002", "marie@example.com", "Marie Vries", "Marie", "Vries", "$2a$10$def", "tk_real_2", 0, 1, "user", "f_0001", "INVITE-REAL-2", "Mama", "file_avatar_marie.png", "nl", "2026-01-03", "2026-01-04"),
         ],
     )
+    # 9 users in total: more than the old fixed list of 7 fake identities (UNIQUE email!)
+    db.executemany(
+        "INSERT INTO users (id, email, name, first_name, last_name, password, tokenKey, emailVisibility, verified, role, family_id, invite_code, display_name, avatar, language, created, updated) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [(f"u_{i:04d}", f"kind{i}@real-domain.nl", f"Kind {i} Jansen", f"Kind{i}", "Jansen", "$2a$10$kid", f"tk_real_{i}", 0, 1, "member", "f_0001", f"INVITE-REAL-{i}", f"Kind {i}", "", "nl", "2026-01-05", "2026-01-05")
+         for i in range(3, 10)],
+    )
     db.execute("INSERT INTO _superusers (id, email, password, tokenKey, emailVisibility) VALUES ('su_0001', 'real-admin@real-domain.nl', '$2a$10$xyz', 'tk_su_real', 0)")
+    db.execute("INSERT INTO _superusers (id, email, password, tokenKey, emailVisibility) VALUES ('su_0002', 'second-admin@real-domain.nl', '$2a$10$xyz2', 'tk_su_real2', 0)")
+    # PocketBase settings row: SMTP/S3 credentials are stored in clear text here
+    db.execute("INSERT INTO _params (id, value, created, updated) VALUES ('settings', ?, '2026-01-01', '2026-01-01')", (
+        '{"smtp":{"enabled":true,"port":587,"host":"smtp.real-provider.nl","username":"mailer@real-domain.nl","password":"SMTP-REAL-SECRET","authMethod":"","tls":true,"localName":""},'
+        '"s3":{"enabled":true,"bucket":"prod-bucket","region":"eu","endpoint":"https://s3.real","accessKey":"AKIAREAL","secret":"S3-REAL-SECRET","forcePathStyle":false},'
+        '"backups":{"cron":"0 2 * * *","cronMaxKeep":7,"s3":{"enabled":true,"bucket":"prod-backups","region":"eu","endpoint":"https://s3.real","accessKey":"AKIABACKUP","secret":"BACKUP-REAL-SECRET","forcePathStyle":false}},'
+        '"meta":{"appName":"Todoless","appURL":"https://todoless.real-domain.nl","senderName":"Jan Jansen","senderAddress":"jan@real-domain.nl"},'
+        '"rateLimits":{"enabled":true,"rules":[]},"trustedProxy":{"headers":["X-Real-IP"],"useLeftmostIP":false}}',
+    ))
     for i in range(2):
         db.execute("INSERT INTO families (id, name, created) VALUES (?, ?, ?)", (f"f_000{i+1}", "De Jansen-van Vries", "2026-01-01"))
 
     # tasks with free-text description/location
     db.execute("INSERT INTO tasks (id, title, description, location, status, blocked, blocked_comment, user, due_date, labels, created) VALUES ('t_0001','Opa naar ziekenhuis','Rolstoel mee; kamer 4C','Amsterdam UMC, Meibergdreef 9','todo',0,'','u_0001','2026-02-01','[]','2026-01-01')")
+    db.execute("UPDATE tasks SET uid='abc123@google.com', external_id='jan.jansen@gmail.com/evt/42' WHERE id='t_0001'")
     db.execute("INSERT INTO tasks (id, title, description, location, status, blocked, blocked_comment, user, due_date, labels, created) VALUES ('t_0002','Verjaardag Tim','Cadeau: LEGO; allergie pinda','Huize Jansen, Dorpsstraat 3','backlog',0,'','u_0002','2026-03-01','[]','2026-01-02')")
     for i in range(10):
         db.execute("INSERT INTO items (id, title, completed, user, created) VALUES (?, ?, 0, ?, ?)", (f"i_{i:04d}", f"Echte boodschap {i}", "u_0001", "2026-01-01"))
@@ -120,6 +136,7 @@ def create_synthetic_db(path: str):
     # notes, calendar events with location/attendees
     db.execute("INSERT INTO notes (id, title, content, pinned, user, created) VALUES ('n_0001','Echte notitie','Vertrouwelijk gesprek met dokter Pietersen over symptomen','0','u_0001','2026-01-01')")
     db.execute("INSERT INTO calendar_events (id, title, description, location, attendees, start_time, end_time, user, created) VALUES ('e_0001','Schoolafspraak Tim','Oudergesprek met juf Sandra','Basisschool De Zon, Kerkplein 5','[\"tim@real-domain.nl\",\"juf.sandra@school.nl\"]','2026-02-01T09:00:00Z','2026-02-01T10:00:00Z','u_0001','2026-01-01')")
+    db.execute("UPDATE calendar_events SET uid='evt-1@calendar.real-domain.nl', external_id='outlook:AAMk-real' WHERE id='e_0001'")
     db.execute("INSERT INTO calendar_events (id, title, description, location, attendees, start_time, end_time, user, created) VALUES ('e_0002','Doktersafspraak','Controle hart','Huisartsenpraktijk De Veste, Singel 1','[]','2026-02-02T14:00:00Z','2026-02-02T14:30:00Z','u_0002','2026-01-02')")
 
     # labels with real names
@@ -196,9 +213,20 @@ def main() -> int:
         check("users anonymized + avatar/invite_code cleared", all(
             e.endswith("@example.test") and c == "" and ic == "" for e, _n, _d, c, ic in rows
         ), str(rows))
-        check("users display_name set", all(d in ("Admin Test", "Gezinslid 1", "Gezinslid 2", "Gezinslid 3") for _e, _n, d, _c, _i in rows), str(rows))
-        su = db.execute("SELECT email FROM _superusers").fetchall()
-        check("superuser anonymized", su == [("admin@example.test",)], str(su))
+        check("users display_name set", all(re.fullmatch(r"Admin Test|Gezinslid \d+", d) for _e, _n, d, _c, _i in rows), str(rows))
+        check("every user gets a unique fake email (9 users > 7 fixed identities)",
+              len(rows) == 9 and len({e for e, *_ in rows}) == 9 and not any("real-domain" in e for e, *_ in rows), str([e for e, *_ in rows]))
+        su = db.execute("SELECT email FROM _superusers ORDER BY rowid").fetchall()
+        check("superusers anonymized with unique emails", len(su) == 2 and len(set(su)) == 2 and su[0] == ("admin@example.test",) and not any("real-domain" in e for (e,) in su), str(su))
+
+        # PocketBase settings row: no production credentials may survive
+        settings_raw = db.execute("SELECT value FROM _params WHERE id='settings'").fetchone()[0]
+        for secret in ("SMTP-REAL-SECRET", "S3-REAL-SECRET", "BACKUP-REAL-SECRET", "smtp.real-provider.nl", "mailer@real-domain.nl", "AKIAREAL", "AKIABACKUP", "jan@real-domain.nl", "prod-bucket"):
+            check(f"settings: '{secret}' removed", secret not in settings_raw)
+        import json as _json
+        settings = _json.loads(settings_raw)
+        check("settings: smtp/s3/backup-s3 disabled", not settings["smtp"]["enabled"] and not settings["s3"]["enabled"] and not settings["backups"]["s3"]["enabled"])
+        check("settings: non-secret config kept", settings["rateLimits"]["enabled"] is True and settings["trustedProxy"]["headers"] == ["X-Real-IP"] and settings["meta"]["appName"] == "Todoless")
 
         # tasks free text
         desc = db.execute("SELECT COUNT(*) FROM tasks WHERE description IS NOT NULL AND description != ''").fetchone()[0]
@@ -207,6 +235,10 @@ def main() -> int:
         check("tasks.location cleared", loc == 0, f"{loc} non-empty")
         title = db.execute("SELECT title FROM tasks WHERE id='t_0001'").fetchone()[0]
         check("tasks.title scrambled", title != "Opa naar ziekenhuis", title)
+        ics = db.execute("SELECT uid, external_id FROM tasks WHERE id='t_0001'").fetchone()
+        check("tasks ICS identifiers cleared", ics == ("", ""), str(ics))
+        ics = db.execute("SELECT uid, external_id FROM calendar_events WHERE id='e_0001'").fetchone()
+        check("calendar ICS identifiers cleared", ics == ("", ""), str(ics))
 
         # calendar events
         ev = db.execute("SELECT title, description, location, attendees FROM calendar_events WHERE id='e_0001'").fetchone()
@@ -249,7 +281,19 @@ def main() -> int:
         db2 = sqlite3.connect(dst)
         counts = {t: db2.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in ["users", "families", "tasks", "items", "labels"]}
         db2.close()
-        check("structure counts preserved", counts == {"users": 2, "families": 2, "tasks": 2, "items": 10, "labels": 3}, str(counts))
+        check("structure counts preserved", counts == {"users": 9, "families": 2, "tasks": 2, "items": 10, "labels": 3}, str(counts))
+
+        # a failure half-way must not leave an un-anonymized copy behind
+        broken_src = os.path.join(tmp, "broken-prod.db")
+        broken_dst = os.path.join(tmp, "broken-anon.db")
+        create_synthetic_db(broken_src)
+        bdb = sqlite3.connect(broken_src)
+        bdb.execute("ALTER TABLE tasks RENAME COLUMN title TO titel")  # script's SELECT id, title fails after the copy
+        bdb.commit(); bdb.close()
+        res_broken = run_script(broken_src, broken_dst)
+        check("failing run exits non-zero", res_broken.returncode == 1, f"rc={res_broken.returncode}")
+        check("failing run removes the output file", not os.path.exists(broken_dst) and not os.path.exists(broken_dst + "-wal"), str(os.listdir(tmp)))
+        check("failing run explains itself", "No output was written" in res_broken.stderr, res_broken.stderr[-200:])
 
     # WAL consistency: uncheckpointed source rows must survive the copy
         wal_src = os.path.join(tmp, "wal-src.db")

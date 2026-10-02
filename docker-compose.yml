@@ -2,8 +2,9 @@ name: todoless
 
 services:
   todoless:
-    # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-frontend@sha256:cf90eefdebdfc2757c21c7d0a48c4e7440553d20c7ed99234ae542fa948f715c
+    # The v1.0.0 release image. GH#47: after the release build, pin by digest
+    # (ghcr.io/...@sha256:...) for an immutable install; dependabot renews it.
+    image: ghcr.io/chalidnl/todoless-frontend:1.0.0
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -44,8 +45,8 @@ services:
             en_US: Web UI
 
   pocketbase:
-    # GH#47: digest-pinned; dependabot (docker ecosystem) renews the pin.
-    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:8dd100f9b0b3ef180a69b19cd80c2216e1f425cd53173358f8d5a24abb8f574f
+    # The v1.0.0 release image (see the note on the todoless service).
+    image: ghcr.io/chalidnl/todoless-pocketbase:1.0.0
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
@@ -57,13 +58,12 @@ services:
     cap_drop:
       - ALL
     entrypoint: ["/entrypoint.sh"]
-    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate"]
+    command: ["serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--migrationsDir=/pb_migrations", "--hooksDir=/pb_hooks", "--automigrate=false"]
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
       DEPLOY_ENV: production
       # branch/commit are baked into the image at build time (GH#33); a runtime
-      # -e COMMIT_SHA/TODOLESS_BRANCH override (as in todoless-deploy-prod.sh)
-      # wins when explicitly provided.
+      # -e COMMIT_SHA/TODOLESS_BRANCH override wins when explicitly provided.
       LOG_LEVEL: ${LOG_LEVEL:-info}
       MAIL_WEBHOOK_SECRET: ${MAIL_WEBHOOK_SECRET:-}  # inbound mail webhook shared secret (Bearer token); the mail webhook fails closed with 503 if unset
       # GH#50: optional PocketBase superuser bootstrap (admin dashboard at /_/).
@@ -79,8 +79,14 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_AUTH_METHOD: ${SMTP_AUTH_METHOD:-}
       TRUSTED_PROXY_HEADERS: ${TRUSTED_PROXY_HEADERS:-}
       TRUSTED_PROXY_USE_LEFTMOST_IP: ${TRUSTED_PROXY_USE_LEFTMOST_IP:-}
+      # Optional: encrypt the PocketBase settings row (SMTP password, S3 keys)
+      # at rest. Exactly 32 characters; the entrypoint passes
+      # --encryptionEnv=ENCRYPTION_KEY only when it is set and valid. Once
+      # settings were saved with a key, PocketBase will not start without it.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
     # No published ports — only accessible via nginx proxy on todoless-net
     volumes:
       - /DATA/AppData/todoless/pb_data:/pb_data
@@ -128,10 +134,10 @@ x-casaos:
   author: self-hosted
   category: Productivity
   description:
-    en_US: todoless — self-hosted multi-user task manager. Tasks, notes, calendar, brain dumps, real-time sync. Free forever.
+    en_US: todoless — the self-hosted family organizer for tasks, calendar and groceries. Your family. Your data. Free and open source.
   icon: https://cdn.jsdelivr.net/gh/ChalidNL/todoless@main/public/icons/icon-512.png
   tagline:
-    en_US: Self-hosted productivity app
+    en_US: Less managing. More living.
   title:
     en_US: todoless
   port_map: "${TODOLESS_PORT:-7070}"

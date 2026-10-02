@@ -44,7 +44,11 @@ export function MembersView() {
           const name = getMemberDisplayName(member);
           const status = (member as any).memberStatus || (member as any).member_status || 'active';
           const active = member.active ?? status !== 'blocked';
-          const canManageMember = canManageMembers && member.id !== currentUser?.id;
+          // The server refuses every action on the owner (set_role: 'Cannot
+          // demote the owner', set_user_block: 'Cannot block the owner',
+          // delete_user: owner protected) - do not offer them.
+          const canManageMember = canManageMembers && member.id !== currentUser?.id && member.role !== 'owner';
+          const roleLabel = member.role === 'owner' ? t('settings.owner') : member.role === 'admin' ? t('settings.admin') : member.role === 'member' || !member.role ? t('settings.member') : member.role;
           const expanded = expandedId === member.id;
           return (
             <article key={member.id} className="app-card p-4 app-animate-in">
@@ -69,7 +73,7 @@ export function MembersView() {
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <span className="app-chip inline-flex min-h-7 items-center gap-1 bg-violet-50 px-2.5 text-[11px] font-black capitalize text-violet-700">
                       <Shield className="h-3 w-3" />
-                      {member.role || t('settings.member')}
+                      {roleLabel}
                     </span>
                     <span className={`app-chip inline-flex min-h-7 items-center gap-1 px-2.5 text-[11px] font-black ${active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                       {active ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}

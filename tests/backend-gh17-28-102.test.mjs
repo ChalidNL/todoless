@@ -89,6 +89,7 @@ function mkStore() {
 function loadHooks(file, extra = {}) {
   const routes = []
   let entriesLib = null
+  let authLib = null
   const sandbox = {
     console,
     __hooks: '',
@@ -97,13 +98,40 @@ function loadHooks(file, extra = {}) {
     onRecordDelete: () => {},
     routerAdd: (method, path, handler) => routes.push({ method, path, handler }),
     require: (p) => {
-      if (String(p).includes('lib/auth.js')) return { bearerAuthMiddleware: () => null }
+      if (String(p).includes('lib/auth.js')) {
+        // The real library (label/assignee validation, #230) against the
+        // sandbox $app; only the bearer middleware is stubbed out.
+        if (!authLib) {
+          const mod = { module: { exports: {} }, $app: sandbox.$app, console, require: () => ({}) }
+          vm.createContext(mod)
+          vm.runInContext(read('pb_hooks/lib/auth.js'), mod)
+          authLib = mod.module.exports
+        }
+        return { ...authLib, bearerAuthMiddleware: () => null }
+      }
       if (String(p).includes('lib/dates.js')) return { dateOrNull: (v) => v || null }
       if (String(p).includes('task-date-sync.js')) return {}
+      if (String(p).includes('lib/task-status.js')) {
+        // The real status vocabulary (#232), run in its own context.
+        const mod = { module: { exports: {} } }
+        vm.createContext(mod)
+        vm.runInContext(read('pb_hooks/lib/task-status.js'), mod)
+        return mod.module.exports
+      }
       if (String(p).includes('lib/entries.js')) {
         // The real shared listing library, run against the sandbox $app.
         if (!entriesLib) {
-          const mod = { module: { exports: {} }, $app: sandbox.$app, console }
+          // entries.js requires the real JSON-field reader (grocery labels).
+          const jsonField = { module: { exports: {} } }
+          vm.createContext(jsonField)
+          vm.runInContext(read('pb_hooks/lib/json-field.js'), jsonField)
+          const mod = {
+            module: { exports: {} }, $app: sandbox.$app, console, __hooks: '',
+            require: (q) => {
+              if (String(q).endsWith('lib/json-field.js')) return jsonField.module.exports
+              throw new Error('unexpected require in entries.js sandbox: ' + q)
+            },
+          }
           vm.createContext(mod)
           vm.runInContext(read('pb_hooks/lib/entries.js'), mod)
           entriesLib = mod.module.exports

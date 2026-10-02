@@ -47,13 +47,8 @@ routerAdd('GET', '/api/bootstrap', (c) => {
   }
 
   // Mirrors the items listRule: owner sees all; family sees non-private.
-  function canAccessItem(record, auth, fid, uid) {
-    if (!record) return false;
-    var owner = String(record.get('user') || '');
-    if (owner === uid) return true;
-    if (record.get('is_private') === true || record.get('is_private') === 1 || record.get('is_private') === 'true') return false;
-    if (!fid || !owner) return false;
-    try { return String($app.findRecordById('users', owner).get('family_id') || '') === fid; } catch (e) { return false; }
+  function canAccessItem(record, auth) {
+    return require(__hooks + '/lib/auth.js').canAccessItemForUser(record, auth);
   }
 
 try {
@@ -83,7 +78,7 @@ try {
       .filter(function (r) { return canAccessTaskForUser(r, auth); });
 
     var items = $app.findRecordsByFilter('items', fid ? 'user.family_id = {:fid}' : 'user.id = {:uid}', '-created', 10000, 0, { fid: fid, uid: uid })
-      .filter(function (r) { return canAccessItem(r, auth, fid, uid); });
+      .filter(function (r) { return canAccessItem(r, auth); });
 
     var notes = $app.findRecordsByFilter('notes', 'user.id = {:uid}', '-created', 10000, 0, { uid: uid });
 

@@ -83,6 +83,21 @@ describe('redesign settings management parity', () => {
     expect(deleteUser).toHaveBeenCalledWith('member-1');
   });
 
+  it('does not offer role/block/delete on the owner, and translates the role chip', () => {
+    const owner = { id: 'owner-1', name: 'Owner One', email: 'owner@example.com', role: 'owner', active: true, member_type: 'human' };
+    useAppMock.mockReturnValue({ ...baseApp, users: [...baseApp.users, owner] });
+
+    render(<MembersView />);
+    // the server answers 403 to set_role / set_user_block / delete_user for the owner
+    expect(screen.queryByRole('button', { name: 'Manage Owner One' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Manage Member One' })).toBeInTheDocument();
+    // role chips are translated labels, not raw role strings
+    expect(screen.getByText('Owner')).toBeInTheDocument();
+    expect(screen.queryByText('owner')).toBeNull();
+    expect(screen.queryByText('member')).toBeNull();
+    expect(screen.getByText('Member')).toBeInTheDocument();
+  });
+
   it('creates a shared label for selected family members', () => {
     const addLabel = vi.fn();
     useAppMock.mockReturnValue({ ...baseApp, addLabel });

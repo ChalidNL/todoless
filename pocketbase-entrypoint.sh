@@ -265,6 +265,23 @@ elif [ -n "${POCKETBASE_ADMIN_EMAIL:-}" ] || [ -n "${POCKETBASE_ADMIN_PASSWORD:-
   echo "[entrypoint] WARNING: set BOTH POCKETBASE_ADMIN_EMAIL and POCKETBASE_ADMIN_PASSWORD to bootstrap the superuser (only one is set)" >&2
 fi
 
+# ── Settings encryption at rest (optional) ──────────────────────────────
+# PocketBase keeps the settings row (SMTP password, S3 and backup keys) in
+# clear text in data.db unless --encryptionEnv names an env var holding a
+# 32-character key. Pass the flag only for a valid key: an empty key means
+# "off" (today's behaviour), and PocketBase would refuse to start on an
+# invalid one. Plain settings are still readable after turning this on and
+# are re-encrypted on the next settings save; once that happened, PocketBase
+# will not start without the same key - keep it with your backups.
+if [ -n "${ENCRYPTION_KEY:-}" ]; then
+  if [ "${#ENCRYPTION_KEY}" -eq 32 ]; then
+    echo "[entrypoint] ENCRYPTION_KEY set - PocketBase settings are encrypted at rest"
+    set -- "$@" --encryptionEnv=ENCRYPTION_KEY
+  else
+    echo "[entrypoint] WARNING: ENCRYPTION_KEY must be exactly 32 characters (got ${#ENCRYPTION_KEY}) - starting WITHOUT settings encryption" >&2
+  fi
+fi
+
 # Hand off to PocketBase. The image always ships the binary at the absolute
 # path; when it is absent (dev/test runs with PB_* overrides and a stub
 # pocketbase on PATH) fall back to a PATH lookup so the entrypoint stays

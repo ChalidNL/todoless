@@ -56,7 +56,20 @@ function executeMigration({ taskRecords = [], labelRecords = [] } = {}) {
 function fakeRecord(values) {
   return {
     ...values,
-    get(name) { return this[name] },
+    // PocketBase JSVM semantics for the json field: get() hands back the raw
+    // JSON bytes (Goja shows them as an array of char codes), getString() the
+    // JSON text. A migration that treats get('labels') as the decoded array
+    // therefore never resolves a single id - exactly what happened in z062.
+    get(name) {
+      const value = this[name]
+      if (name === 'labels' && value !== undefined && value !== null) return Array.from(Buffer.from(JSON.stringify(value)))
+      return value
+    },
+    getString(name) {
+      const value = this[name]
+      if (name === 'labels') return value === undefined || value === null ? '' : JSON.stringify(value)
+      return value === undefined || value === null ? '' : String(value)
+    },
     set(name, value) { this[name] = value; return this },
   }
 }
@@ -139,6 +152,9 @@ test('already-deployed databases receive a separate paginated fail-closed privac
   assert.match(source, /offset \+= batch\.length/)
   assert.match(source, /task\.set\('is_private', true\)/)
   assert.match(source, /taskLabelField\.maxSelect = 99/)
+  // the legacy json field must be read as text, never through get() (raw bytes)
+  assert.match(source, /record\.getString\('labels'\)/)
+  assert.doesNotMatch(source, /task\.get\('labels'\)/)
   assert.match(source, /TASK_VISIBILITY_RULE/)
 })
 
@@ -230,7 +246,7 @@ test('custom task authorization matches the collection rule for mixed non-family
 })
 
 test('frontend clients propagate all labels to the canonical relation instead of only the first label', () => {
-  for (const path of ['src/lib/pocketbase-client.ts', 'src/lib/api-client.ts']) {
+  for (const path of ['src/lib/pocketbase-client.ts']) {
     const source = read(path)
     assert.doesNotMatch(source, /label:\s*[^\n]*labels\?\.\[0\]/, path)
     assert.doesNotMatch(source, /payload\.label\s*=\s*updates\.labels\?\.\[0\]/, path)

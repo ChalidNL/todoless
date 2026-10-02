@@ -67,6 +67,7 @@ function buildFamilyCalendar(auth, opts) {
     ics+='METHOD:PUBLISH\r\n';
     if(opts.calendarName)ics+=icsLine('X-WR-CALNAME',opts.calendarName)+'\r\n';
 
+    var emitted=0; // VEVENTs actually written (tasks without a usable date are skipped below)
     for(var ti=0;ti<tasks.length;ti++){
       var t=tasks[ti];
       var uid=t.get('uid')||genUid(t.id,familyId);
@@ -128,6 +129,7 @@ function buildFamilyCalendar(auth, opts) {
 
       if(!dtStart)continue; // Skip tasks without valid dates
 
+      emitted++;
       ics+='BEGIN:VEVENT\r\n';
       ics+=icsLine('UID',uid)+'\r\n';
       ics+='DTSTAMP:'+icsDt(stampFor(t))+'\r\n';
@@ -154,7 +156,7 @@ function buildFamilyCalendar(auth, opts) {
     var updatedMs = toUtcMs(tasks[mi].get('updated'));
     if (!isNaN(updatedMs) && updatedMs > lastModifiedMs) lastModifiedMs = updatedMs;
   }
-  return { ics: ics, count: tasks.length, lastModifiedMs: lastModifiedMs };
+  return { ics: ics, count: emitted, lastModifiedMs: lastModifiedMs };
 }
 
 module.exports = { buildFamilyCalendar: buildFamilyCalendar };

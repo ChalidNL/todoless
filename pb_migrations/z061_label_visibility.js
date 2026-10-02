@@ -9,6 +9,23 @@ const TASK_VISIBILITY_RULE = 'user = @request.auth.id || (is_private = false && 
 const LABEL_FAMILY_RULE = '(family = @request.auth.family_id || user.family_id = @request.auth.family_id)';
 const LABEL_VISIBILITY_RULE = 'owner = @request.auth.id || user = @request.auth.id || (' + LABEL_FAMILY_RULE + ' && (visibility = "family" || (visibility = "shared" && shared_with.id ?= @request.auth.id) || (visibility = "private" && owner = @request.auth.id)))';
 
+// Reading the legacy `labels` JSON field inside the JSVM: record.get() hands
+// back the raw JSON bytes (types.JSONRaw), which Goja exposes as an array of
+// char codes -- Array.isArray() is true, but the elements are numbers, so no
+// element ever resolves to a label id. The JSON text comes from getString().
+// (Same pitfall as pb_hooks/lib/json-field.js; kept inline because migrations
+// cannot require hook libraries.)
+function readLegacyLabels(record) {
+  let raw = '';
+  try { raw = record.getString('labels'); } catch (_) { raw = ''; }
+  raw = String(raw === null || raw === undefined ? '' : raw).trim();
+  if (!raw || raw === 'null') return [];
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch (_) { return []; }
+  if (Array.isArray(parsed)) return parsed;
+  return parsed === null || parsed === '' ? [] : [parsed];
+}
+
 migrate(
   (app) => {
     const users = app.findCollectionByNameOrId('users');
@@ -61,9 +78,12 @@ migrate(
 
     const existingTasks = app.findRecordsByFilter('tasks', '', '', 10000, 0);
     for (const task of existingTasks) {
-      if (task.get('label')) continue;
-      const legacyLabels = task.get('labels') || [];
-      if (legacyLabels && legacyLabels.length > 0) {
+      // get('label') on a multi-relation returns [] (truthy) when empty.
+      const current = task.get('label');
+      const currentLabels = Array.isArray(current) ? current.filter(Boolean) : (current ? [String(current)] : []);
+      if (currentLabels.length > 0) continue;
+      const legacyLabels = readLegacyLabels(task);
+      if (legacyLabels.length > 0) {
         const canonicalLabels = [];
         for (const legacyLabel of legacyLabels) {
           const candidate = String(legacyLabel || '');

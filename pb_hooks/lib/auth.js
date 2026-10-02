@@ -279,6 +279,74 @@ function setCanonicalTaskLabels(record, value) {
   record.set('label', ids);
 }
 
+// Validates label ids for a task write made on behalf of `user` (#230).
+// Mirrors what POST /api/tasks always did and what the tasks collection
+// rules enforce: every id must exist, belong to the user's family, and be
+// visible to the user (family; shared when owner or in shared_with; private
+// when owner). More than one label requires all of them to be
+// family-visible - the collection rules cannot evaluate per-user access
+// across several related records, so a mixed set would make the task
+// invisible to everyone but its owner. Returns { ok: true, ids } with the
+// trimmed, de-duplicated ids, or { ok: false, status, error }.
+function validateLabelIdsForUser(rawIds, user) {
+  var ids = [];
+  var list = Array.isArray(rawIds) ? rawIds : (rawIds ? [rawIds] : []);
+  for (var i = 0; i < list.length; i++) {
+    var candidate = String(list[i] === null || list[i] === undefined ? '' : list[i]).trim();
+    if (candidate && ids.indexOf(candidate) === -1) ids.push(candidate);
+  }
+  if (!user) return ids.length ? { ok: false, status: 401, error: 'Authentication required' } : { ok: true, ids: ids };
+  var userId = String(user.id || '');
+  var familyId = String(user.get('family_id') || '');
+  for (var li = 0; li < ids.length; li++) {
+    var label = null;
+    try { label = $app.findRecordById('labels', ids[li]); } catch (_e) { label = null; }
+    if (!label) return { ok: false, status: 400, error: 'Invalid label' };
+    var labelFamily = String(label.get('family') || '');
+    if (!familyId || labelFamily !== familyId) return { ok: false, status: 403, error: 'Label is outside your family' };
+    var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
+    var owner = String(label.get('owner') || label.get('user') || '');
+    var sharedWith = label.get('shared_with') || [];
+    if (!Array.isArray(sharedWith)) sharedWith = sharedWith ? [String(sharedWith)] : [];
+    if (ids.length > 1 && visibility !== 'family') return { ok: false, status: 403, error: 'Multiple labels must all be family-visible' };
+    if (visibility === 'private' && owner !== userId) return { ok: false, status: 403, error: 'Private label is not accessible' };
+    if (visibility === 'shared' && owner !== userId && sharedWith.indexOf(userId) === -1) return { ok: false, status: 403, error: 'Shared label is not accessible' };
+  }
+  return { ok: true, ids: ids };
+}
+
+// An assignee for a task owned by `user`: empty or the user itself is always
+// fine; anyone else must be a member of the same family (#17, #230).
+function isValidAssigneeForUser(id, user) {
+  var target = String(id === null || id === undefined ? '' : id).trim();
+  if (!target) return true;
+  if (!user) return false;
+  if (target === String(user.id || '')) return true;
+  var familyId = String(user.get('family_id') || '');
+  if (!familyId) return false;
+  try {
+    var record = $app.findRecordById('users', target);
+    return !!record && String(record.get('family_id') || '') === familyId;
+  } catch (_e) {
+    return false;
+  }
+}
+
+// The one access rule for groceries (items) on every custom route: the owner
+// always has access; anyone else only to a non-private item of their own
+// family. Family role (admin/owner) does not widen it, and an agent passes
+// its owner user, so it can never see more than that user.
+function canAccessItemForUser(record, user) {
+  if (!record || !user) return false;
+  var ownerId = String(record.get('user') || '');
+  if (ownerId && ownerId === user.id) return true;
+  var priv = record.get('is_private');
+  if (priv === true || priv === 1 || priv === 'true') return false;
+  var familyId = String(user.get('family_id') || '');
+  if (!familyId || !ownerId) return false;
+  try { return String($app.findRecordById('users', ownerId).get('family_id') || '') === familyId; } catch (_e) { return false; }
+}
+
 function canAccessTaskForUser(record, user) {
   if (!record || !user) return false;
   var userId = user.id;
@@ -337,5 +405,8 @@ module.exports = {
   auditLog: auditLog,
   normalizeLabelIds: normalizeLabelIds,
   setCanonicalTaskLabels: setCanonicalTaskLabels,
+  validateLabelIdsForUser: validateLabelIdsForUser,
+  isValidAssigneeForUser: isValidAssigneeForUser,
   canAccessTaskForUser: canAccessTaskForUser,
+  canAccessItemForUser: canAccessItemForUser,
 };

@@ -20,8 +20,8 @@
 // exception must propagate up the middleware chain untouched — swallowing it
 // and re-calling next() turns PB errors into silent 200 responses.
 //
-// Custom routes (/api/v1, /api/entries, companion, agent, ...) enforce
-// member_status in their own handlers — see main.pb.js and 13_companion.pb.js.
+// Since review S1 this covers every /api/ route (see the allow-list below);
+// custom routes keep their own checks as defense in depth.
 //
 // The z068 migration additionally conjoins the same status guard into every
 // member-readable listRule/viewRule as defense-in-depth at the data layer.
@@ -34,9 +34,17 @@ routerUse(function (e) {
   var path = '';
   try { path = String(e.request.url.path || ''); } catch (_p) {}
 
-  // Only gate PocketBase's native records/files API here.
-  if (path.indexOf('/api/collections/') !== 0 && path.indexOf('/api/files/') !== 0) {
-    return e.next();
+  // Review S1: every /api/ route is gated, not only the native records/files
+  // API. Custom routes that forgot their own check (/api/bootstrap,
+  // /api/tasks, /api/ics-export, /api/api-tokens, ...) let a blocked member
+  // with a still-valid session keep reading and writing family data. The
+  // routes below must stay reachable without an active account.
+  if (path.indexOf('/api/') !== 0) return e.next();
+  var open = ['/api/health', '/api/hook-health', '/api/setup-status', '/api/version', '/api/register',
+              '/api/validate-invite', '/api/docs', '/api/swagger', '/api/openapi.json',
+              '/api/integrations/mail/webhook'];
+  for (var oi = 0; oi < open.length; oi++) {
+    if (path === open[oi] || path.indexOf(open[oi] + '/') === 0) return e.next();
   }
   // Keep authentication-related endpoints reachable for blocked accounts.
   if (path.indexOf('/auth-') !== -1 ||

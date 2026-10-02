@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Share2, Copy, Trash2, Plus, UserPlus, Check, Clock, X } from 'lucide-react';
 import { copyTextToClipboard } from '../lib/clipboard';
+import { TIME_LEFT_KEYS, timeLeft } from '../lib/time-left';
 
 export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: number }) => {
   const { inviteCodes, generateInviteCode, deleteInviteCode, showCompletionMessage } = useApp();
@@ -41,7 +42,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
     }
 
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/register?invite=${invite.code}`;
+    const inviteUrl = `${baseUrl}/register#invite=${invite.code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(invite.code);
     setShowShareModal(true);
@@ -50,7 +51,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
 
   const handleShareInvite = (code: string) => {
     const baseUrl = window.location.origin;
-    const inviteUrl = `${baseUrl}/register?invite=${code}`;
+    const inviteUrl = `${baseUrl}/register#invite=${code}`;
     setCurrentInviteUrl(inviteUrl);
     setCurrentInviteCode(code);
     setShowShareModal(true);
@@ -117,8 +118,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
         <div className="space-y-3">
           {inviteCodes.map((invite) => {
             const isExpired = invite.expiresAt < Date.now();
-            const timeLeft = invite.expiresAt - Date.now();
-            const minutesLeft = Math.floor(timeLeft / (60 * 1000));
+            const remaining = timeLeft(invite.expiresAt - Date.now());
 
             return (
               <div
@@ -175,7 +175,7 @@ export const InviteManager = ({ triggerGenerate = 0 }: { triggerGenerate?: numbe
                     ) : (
                       <span className="inline-flex items-center gap-1 text-green-500">
                         <Clock className="w-3 h-3" />
-                        {t('invite.minutesRemaining').replace('{n}', String(minutesLeft))}
+                        {t(TIME_LEFT_KEYS[remaining.unit]).replace('{n}', String(remaining.n))}
                       </span>
                     )}
                   </p>

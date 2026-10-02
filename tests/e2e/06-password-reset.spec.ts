@@ -87,13 +87,17 @@ test('forgot password: email link opens the app reset page and the new password 
 
     await expect.poll(() => sink.messages.length, { timeout: 15_000 }).toBeGreaterThan(0);
     const mail = decodeQuotedPrintable(sink.messages[0]);
-    const link = mail.match(/https?:\/\/[^\s"<>]+\/reset-password\?token=[^\s"<>)]+/)?.[0];
-    expect(link, 'reset email links to the app, not to /_/').toBeTruthy();
+    const link = mail.match(/https?:\/\/[^\s"<>]+\/reset-password#token=[^\s"<>)]+/)?.[0];
+    expect(link, 'reset email links to the app with the token in the fragment').toBeTruthy();
     expect(mail).not.toContain('/_/#/auth/confirm-password-reset');
+    // The token must never travel in a query string (access logs, Referer).
+    expect(mail).not.toMatch(/reset-password\?token=/);
 
     const newPassword = 'Reset-Passw0rd!';
     await page.goto(link!.replace(/&amp;/g, '&'));
     await expect(page.getByRole('heading', { name: 'Choose a new password' })).toBeVisible();
+    // Consumed: the token is gone from the address bar and the history entry.
+    expect(page.url()).toMatch(/\/reset-password$/);
     await page.getByLabel('New password', { exact: true }).fill(newPassword);
     await page.getByLabel('Confirm new password').fill(`${newPassword}x`);
     await page.getByRole('button', { name: 'Save new password' }).click();
@@ -102,8 +106,10 @@ test('forgot password: email link opens the app reset page and the new password 
     await page.getByRole('button', { name: 'Save new password' }).click();
     await expect(page.getByRole('status')).toContainText(/password has been changed/i);
 
-    // The same link cannot be used twice.
-    await page.goto(link!.replace(/&amp;/g, '&'));
+    // The same token cannot be used twice. Re-open it in the pre-v1.0.0
+    // ?token= form: old mails still work, so the app reads and submits it.
+    await page.goto(link!.replace(/&amp;/g, '&').replace('#token=', '?token='));
+    expect(page.url()).toMatch(/\/reset-password$/);
     await page.getByLabel('New password', { exact: true }).fill('Another-Passw0rd!');
     await page.getByLabel('Confirm new password').fill('Another-Passw0rd!');
     await page.getByRole('button', { name: 'Save new password' }).click();

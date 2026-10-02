@@ -53,27 +53,13 @@ routerAdd('POST', '/api/tasks', function(c) {
       if (assignedTo && !_validAssignee(assignedTo)) return c.json(400, { error: 'Invalid assignee' });
       rec.set('assigned_to', assignedTo);
     }
-    var labelIds = [];
-    if (body.labels && Array.isArray(body.labels)) {
-      for (var li = 0; li < body.labels.length; li++) {
-        var candidate = String(body.labels[li] || '').trim();
-        if (candidate && labelIds.indexOf(candidate) === -1) labelIds.push(candidate);
-      }
-    }
-    for (var lvi = 0; lvi < labelIds.length; lvi++) {
-      var label = null;
-      try { label = $app.findRecordById('labels', labelIds[lvi]); } catch(e) {}
-      if (!label) return c.json(400, { error: 'Invalid label' });
-      var labelFamily = String(label.get('family') || '');
-      if (familyId && labelFamily !== familyId) return c.json(403, { error: 'Label is outside your family' });
-      var visibility = String(label.get('visibility') || (label.get('is_private') ? 'private' : 'family'));
-      var owner = String(label.get('owner') || label.get('user') || '');
-      var sharedWith = label.get('shared_with') || [];
-      if (!Array.isArray(sharedWith)) sharedWith = sharedWith ? [String(sharedWith)] : [];
-      if (labelIds.length > 1 && visibility !== 'family') return c.json(403, { error: 'Multiple labels must all be family-visible' });
-      if (visibility === 'private' && owner !== userId) return c.json(403, { error: 'Private label is not accessible' });
-      if (visibility === 'shared' && owner !== userId && sharedWith.indexOf(userId) === -1) return c.json(403, { error: 'Shared label is not accessible' });
-    }
+    // Label validation lives in lib/auth.js (#230) so every write path
+    // (v1, agent dispatch, ICS import) applies the same rules as this route.
+    var writer = null;
+    try { writer = $app.findRecordById('users', userId); } catch (e) { writer = null; }
+    var labelCheck = authLib.validateLabelIdsForUser(body.labels, writer);
+    if (!labelCheck.ok) return c.json(labelCheck.status, { error: labelCheck.error });
+    var labelIds = labelCheck.ids;
     rec.set('labels', labelIds);
     rec.set('label', labelIds);
     if (body.due_date) rec.set('due_date', String(body.due_date));
@@ -548,7 +534,7 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied — member belongs to another family' });
     }
 
@@ -617,8 +603,15 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
+    }
+    // #236: a token minted here acts AS the member, including their private
+    // tasks and groceries. So an admin may only mint one for an agent
+    // (family assistant) account or for themselves; a human member creates
+    // their own tokens (POST /api/api-tokens).
+    if (targetUserId !== actingUserId && String(memberUser.get('member_type') || 'human') !== 'agent') {
+      return c.json(403, { error: 'Tokens for a human member can only be created by that member' });
     }
 
     // Disable any existing tokens for this user
@@ -639,6 +632,8 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
     rec.set('token_hash', hash);
     rec.set('permissions', ['tasks:write', 'groceries:write', 'tasks:read', 'groceries:read']);
     rec.set('enabled', true);
+    // token_type is required (migration 040); without it every call here 500'd.
+    rec.set('token_type', String(memberUser.get('member_type') || '') === 'agent' ? 'agent_api_token' : 'personal_api_token');
     $app.save(rec);
 
     return c.json(201, {
@@ -695,7 +690,7 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
     try { memberUser = $app.findRecordById('users', targetUserId); } catch(e) {}
     if (!memberUser) return c.json(404, { error: 'Member not found' });
     var memberFamilyId = String(memberUser.get('family_id') || '');
-    if (memberFamilyId && memberFamilyId !== familyId) {
+    if (!familyId || memberFamilyId !== familyId) {
       return c.json(403, { error: 'Access denied' });
     }
 

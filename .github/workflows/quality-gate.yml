@@ -116,6 +116,12 @@ jobs:
       - name: Stale bundled hook/migration pruning regression (GH#35)
         run: bash scripts/test-stale-cleanup.sh
 
+      - name: Entrypoint environment contract (.env.example <-> compose <-> entrypoint)
+        run: bash scripts/test-entrypoint-env.sh
+
+      - name: ENCRYPTION_KEY lifecycle against the real PocketBase binary
+        run: bash scripts/test-encryption-key.sh
+
       - name: Setup Node.js (upgrade check)
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -125,6 +131,17 @@ jobs:
         run: |
           git fetch --force --tags origin
           bash scripts/test-migration-upgrade.sh
+
+      - name: Label privacy upgrade regression (z062 flip + z073 repair)
+        run: bash scripts/test-label-privacy-upgrade.sh
+
+      - name: Registration races and owner-role rules (fresh PocketBase)
+        run: bash scripts/test-registration-and-roles.sh
+
+      - name: Prod-to-dev anonymizer (secrets, unique identities, failure cleanup)
+        run: |
+          python3 tests/test_anonymize_prod_to_dev.py
+          bash scripts/test-anonymizer.sh
 
       - name: App-managed manifest currency lint (GH#35)
         run: |

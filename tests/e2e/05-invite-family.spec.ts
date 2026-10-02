@@ -45,9 +45,10 @@ async function generateInvite(page: Page): Promise<{ code: string; url: string }
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(code);
   const linkField = dialog.locator('input').filter({ hasNot: page.locator('[type=hidden]') }).last();
-  await expect(linkField).toHaveValue(new RegExp(`/register\\?invite=${code}$`));
+  // #258: the code travels in the fragment, never in the query string.
+  await expect(linkField).toHaveValue(new RegExp(`/register#invite=${code}$`));
   await dialog.getByRole('button', { name: 'Close' }).first().click();
-  return { code, url: `/register?invite=${code}` };
+  return { code, url: `/register#invite=${code}` };
 }
 
 async function openInFreshContext(browser: Browser, baseURL: string | undefined, viewport: (typeof VIEWPORTS)[number]) {
@@ -65,6 +66,8 @@ async function registerWithInvite(page: Page, url: string, email: string, firstN
   await page.goto(url);
   // A valid invite link is validated on arrival and opens the account form.
   await page.locator('#register-first-name').fill(firstName);
+  // The code is moved out of the address bar (and history) right away.
+  expect(page.url()).not.toContain('invite=');
   await page.locator('#register-last-name').fill('Member');
   await page.locator('#register-email').fill(email);
   await page.locator('#register-password').fill(MEMBER_PASSWORD);
@@ -87,7 +90,9 @@ test('BT-P0-003…009: invite, accept on desktop/tablet/mobile, family visibilit
   await login(page);
   for (const viewport of VIEWPORTS) {
     const email = `e2e-${viewport.width}@example.com`;
-    const { url } = await generateInvite(page);
+    const { code, url: fragmentUrl } = await generateInvite(page);
+    // Links sent before v1.0.0 used ?invite=; they keep working (mobile run).
+    const url = viewport.mobile ? `/register?invite=${code}` : fragmentUrl;
     const { context, page: memberPage } = await openInFreshContext(browser, testInfo.project.use.baseURL, viewport);
 
     // BT-P0-005: registers once, joins the inviter's family.

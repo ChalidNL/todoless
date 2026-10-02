@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
-import { api } from '../lib/api-client';
+import { api } from '../lib/pocketbase-client';
 import { ImportDialog } from './ImportDialog';
 import { CalendarSubscription } from './CalendarSubscription';
 
@@ -15,7 +15,7 @@ export function CalendarImportExport() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const result = await api.tasks.icsExport();
+      const result = await api.icsExport();
       const blob = new Blob([result.ics], { type: 'text/calendar;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');

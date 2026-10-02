@@ -25,6 +25,11 @@
 
 onRecordCreate((e) => {
   var rec = e.record;
+  // #241: only a top-level task can be a parent (no self-links, no cycles).
+  var parentError = require(__hooks + '/lib/task-parent.js').parentLinkError(rec, function (id) {
+    try { return $app.findRecordById('tasks', id); } catch (_e) { return null; }
+  });
+  if (parentError) throw new BadRequestError(parentError);
   var dateSync = require(__hooks + '/lib/task-date-sync.js');
   // Canonical defaults — always applied, no outer try/catch: a failure here
   // must fail the save rather than persist a half-initialised task.
@@ -60,6 +65,15 @@ onRecordCreate((e) => {
 
 onRecordUpdate((e) => {
   var rec = e.record;
+  // #241: re-check the parent link whenever it changes.
+  var prevLinkedTo = '';
+  try { prevLinkedTo = String(rec.original().get('linked_to') || ''); } catch (_eOrig) { prevLinkedTo = ''; }
+  if (String(rec.get('linked_to') || '') !== prevLinkedTo) {
+    var parentErrorU = require(__hooks + '/lib/task-parent.js').parentLinkError(rec, function (id) {
+      try { return $app.findRecordById('tasks', id); } catch (_e) { return null; }
+    });
+    if (parentErrorU) throw new BadRequestError(parentErrorU);
+  }
   var orig = null;
   try { if (typeof rec.original === 'function') orig = rec.original(); } catch (_errOriginal) { orig = null; }
   if (orig) {
@@ -248,8 +262,8 @@ routerAdd('GET', '/api/validate-invite', (c) => {
 // ── User registration (no auth required) ──
 routerAdd('POST', '/api/register', (c) => {
   // Inline helper: create user with hooks bypass (PB 0.34 bug workaround)
-  var createUser = function(col, data) {
-    var u = $app;
+  var createUser = function(txApp, col, data) {
+    var u = txApp;
     var rec = new Record(col);
     rec.set('id', $security.randomString(15).toLowerCase());
     rec.set('tokenKey', $security.randomString(50));
@@ -272,14 +286,13 @@ routerAdd('POST', '/api/register', (c) => {
     return rec;
   };
 
-  var createFamily = function(name, createdBy) {
-    var fc = $app.findCollectionByNameOrId('families');
+  var createFamily = function(txApp, name, createdBy) {
+    var fc = txApp.findCollectionByNameOrId('families');
     var fam = new Record(fc);
     fam.set('id', $security.randomString(15).toLowerCase());
     fam.set('name', name || 'My Family');
     fam.set('created_by', createdBy);
-    var u = $app;
-    u.save(fam);
+    txApp.save(fam);
     return fam;
   };
 
@@ -315,30 +328,37 @@ routerAdd('POST', '/api/register', (c) => {
       if (!d.email || !d.password || d.password.length < 8) return c.json(400, { error: 'Email and password (min 8) required' });
       if (d.password !== d.passwordConfirm) return c.json(400, { error: 'Passwords do not match' });
 
-      var uc = $app.findCollectionByNameOrId('users');
-      var rec = createUser(uc, {
-        email: d.email,
-        password: d.password,
-        passwordConfirm: d.passwordConfirm,
-        name: d.name || d.email.split('@')[0],
-        firstName: d.firstName || d.first_name,
-        lastName: d.lastName || d.last_name,
-        role: (memberType === 'agent') ? 'member' : 'admin',
-        family_id: '',
-        member_status: 'active',
-        member_type: memberType,
-        language: d.language
+      // Review S10: concurrent first registrations each saw "no users yet" and
+      // each bootstrapped its own admin + family. The bootstrap now runs in
+      // one transaction (PocketBase serialises write transactions) and
+      // re-checks inside it, so exactly one wins.
+      var created = null;
+      $app.runInTransaction(function (txApp) {
+        if (txApp.findRecordsByFilter('users', '', '-created', 1, 0).length > 0) {
+          throw new BadRequestError('Registration requires a valid invite code once the first account exists.', {});
+        }
+        var uc = txApp.findCollectionByNameOrId('users');
+        var rec = createUser(txApp, uc, {
+          email: d.email,
+          password: d.password,
+          passwordConfirm: d.passwordConfirm,
+          name: d.name || d.email.split('@')[0],
+          firstName: d.firstName || d.first_name,
+          lastName: d.lastName || d.last_name,
+          role: (memberType === 'agent') ? 'member' : 'admin',
+          family_id: '',
+          member_status: 'active',
+          member_type: memberType,
+          language: d.language
+        });
+        var fam = createFamily(txApp, d.family_name || 'My Family', rec.id);
+        rec.set('family_id', fam.id);
+        txApp.save(rec);
+        created = { rec: rec, fam: fam };
       });
 
-      var fam = createFamily(d.family_name || 'My Family', rec.id);
-
-      // Update user with family_id
-      rec.set('family_id', fam.id);
-      var u = $app;
-      u.save(rec);
-
       return c.json(201, {
-        user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: String(rec.get('role')||'member'), family_id: fam.id }
+        user: { id: created.rec.id, email: String(created.rec.get('email')||''), name: String(created.rec.get('name')||''), role: String(created.rec.get('role')||'member'), family_id: created.fam.id }
       });
     }
 
@@ -353,31 +373,39 @@ routerAdd('POST', '/api/register', (c) => {
     if (!fid) throw new BadRequestError('Inviter has no family — ask admin to create one.', {});
 
     var role = 'member';
-    var uc = $app.findCollectionByNameOrId('users');
-    var rec = createUser(uc, {
-      email: d.email,
-      password: d.password,
-      passwordConfirm: d.passwordConfirm,
-      name: d.name || d.email.split('@')[0],
-      firstName: d.firstName || d.first_name,
-      lastName: d.lastName || d.last_name,
-      role: role,
-      family_id: fid,
-      member_status: 'active',
-      member_type: memberType,
-      language: d.language
+    // Review S10: a single-use invite could be redeemed by several parallel
+    // registrations (each read used = false before any wrote it). Claim the
+    // invite and create the account in one serialised transaction that
+    // re-reads the invite first.
+    var newUser = null;
+    $app.runInTransaction(function (txApp) {
+      var inviteRec = null;
+      try { inviteRec = txApp.findRecordById('invite_codes', invites[0].id); } catch (_eInv) { inviteRec = null; }
+      var stillOpen = inviteRec && inviteRec.get('used') !== true && inviteRec.get('used') !== 1 && String(inviteRec.get('used')) !== 'true';
+      if (!stillOpen) throw new BadRequestError('Invalid or expired invite code.', {});
+      var uc = txApp.findCollectionByNameOrId('users');
+      var rec = createUser(txApp, uc, {
+        email: d.email,
+        password: d.password,
+        passwordConfirm: d.passwordConfirm,
+        name: d.name || d.email.split('@')[0],
+        firstName: d.firstName || d.first_name,
+        lastName: d.lastName || d.last_name,
+        role: role,
+        family_id: fid,
+        member_status: 'active',
+        member_type: memberType,
+        language: d.language
+      });
+      inviteRec.set('used', true);
+      inviteRec.set('used_at', now);
+      inviteRec.set('used_by', rec.id);
+      txApp.save(inviteRec);
+      newUser = rec;
     });
 
-    // Mark invite as used
-    var inviteRec = invites[0];
-    inviteRec.set('used', true);
-    inviteRec.set('used_at', now);
-    inviteRec.set('used_by', rec.id);
-    var uu = $app;
-    uu.save(inviteRec);
-
     return c.json(201, {
-      user: { id: rec.id, email: String(rec.get('email')||''), name: String(rec.get('name')||''), role: role, family_id: fid }
+      user: { id: newUser.id, email: String(newUser.get('email')||''), name: String(newUser.get('name')||''), role: role, family_id: fid }
     });
   } catch(e) { try { $app.logger().error('invite registration error: ' + String(e)); } catch(_e) {} return c.json(400, { error: 'Unable to register with invite code' }); }
 });
@@ -478,9 +506,10 @@ try {
     function _findEntry(type, id){ try { return $app.findRecordById(type==='task'?'tasks':'items', id); } catch(e) { return null; } }
     // #225: validated scalar fields accepted by create and update.
     var _PRIORITIES = ['low','medium','high'];
-    var _TASK_STATUSES = ['backlog','todo','done'];
+    var _taskStatus = require(__hooks + '/lib/task-status.js');
+    var _TASK_STATUSES = _taskStatus.TASK_STATUSES;
     // 'in_progress' is accepted as an alias of 'todo' (same as the agents API).
-    function _normStatus(v){ var st = String(v); return st === 'in_progress' ? 'todo' : st; }
+    function _normStatus(v){ return _taskStatus.normalizeTaskStatus(v); }
     function _parseDue(v){
       if (v === null || v === '') return { ok: true, value: null };
       var dd = new Date(String(v));
@@ -544,8 +573,9 @@ try {
         var assign = String(gv(d,'assignee_id','')).trim();
         if (assign && !_validAssignee(assign)) return c.json(400, {error:'Invalid assignee'});
         if (assign) rec.set('assigned_to', assign);
-        var labs = d.labels;
-        var canonicalLabels = Array.isArray(labs) ? labs : [];
+        var labelCheck = authLib.validateLabelIdsForUser(d.labels, _freshAuth() || auth);
+        if (!labelCheck.ok) return c.json(labelCheck.status, {error: labelCheck.error});
+        var canonicalLabels = labelCheck.ids;
         rec.set('labels', canonicalLabels);
         rec.set('label', canonicalLabels);
         var linkedTo = String(gv(d,'linked_to','')).trim();
@@ -620,8 +650,9 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
-      if(type==='task'){ rec.set('status','done'); } else { rec.set('completed',true); }
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
+      // #240: completed_by is whoever completes it, never the assignee.
+      if(type==='task'){ if (String(rec.get('status')) !== 'done') rec.set('completed_by', auth.id); rec.set('status','done'); } else { rec.set('completed',true); }
       $app.save(rec);return c.json(200,{completed:true});
     }
 
@@ -633,7 +664,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       var assigneeVal = String(gv(d,'assignee_id',''));
       if (assigneeVal && !_validAssignee(assigneeVal)) return c.json(400,{error:'Invalid assignee'});
       rec.set('assigned_to',assigneeVal);
@@ -648,15 +679,16 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       var changed = [];
       if (d.title !== undefined) { rec.set('title', String(d.title)); changed.push('title'); }
-      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); rec.set('status', stUpd); changed.push('status'); }
+      if (d.status !== undefined && type === 'task') { var stUpd = _normStatus(d.status); if (_TASK_STATUSES.indexOf(stUpd) === -1) return c.json(400,{error:'Invalid status'}); if (stUpd === 'done' && String(rec.get('status')) !== 'done') rec.set('completed_by', auth.id); else if (stUpd !== 'done') rec.set('completed_by', ''); rec.set('status', stUpd); changed.push('status'); }
       if (d.priority !== undefined) { var prUpd = d.priority === null ? '' : String(d.priority); if (prUpd && _PRIORITIES.indexOf(prUpd) === -1) return c.json(400,{error:'Invalid priority'}); rec.set('priority', prUpd); changed.push('priority'); }
       if (d.due_date !== undefined) { var dueUpd = _parseDue(d.due_date); if (!dueUpd.ok) return c.json(400,{error:'Invalid due_date'}); rec.set('due_date', dueUpd.value); changed.push('due_date'); }
       if (d.description !== undefined && type === 'task') { rec.set('blocked_comment', d.description === null ? '' : String(d.description)); changed.push('description'); }
       if (d.assignee_id !== undefined) { var assigneeUpd = d.assignee_id === null || d.assignee_id === '' ? '' : String(d.assignee_id); if (assigneeUpd && !_validAssignee(assigneeUpd)) return c.json(400,{error:'Invalid assignee'}); rec.set('assigned_to', assigneeUpd); changed.push('assignee_id'); }
-      if (d.labels !== undefined) { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); rec.set('label', ul); changed.push('labels'); }
+      if (d.labels !== undefined && type === 'task') { var labelUpd = authLib.validateLabelIdsForUser(d.labels, _freshAuth() || auth); if (!labelUpd.ok) return c.json(labelUpd.status, {error: labelUpd.error}); rec.set('labels', labelUpd.ids); rec.set('label', labelUpd.ids); changed.push('labels'); }
+      if (d.labels !== undefined && type !== 'task') { var ul = Array.isArray(d.labels) ? d.labels : (d.labels ? [String(d.labels)] : []); rec.set('labels', ul); changed.push('labels'); }
       if (type === 'grocery' && d.quantity !== undefined) { var qty = parseInt(d.quantity, 10); if (isNaN(qty) || qty < 1) qty = 1; rec.set('quantity', qty); changed.push('quantity'); }
       $app.save(rec);
       return c.json(200, { updated: true, id: rec.id, type: type, changed: changed });
@@ -670,7 +702,7 @@ try {
       var rec = _findEntry(type, id);
       if(!rec) return c.json(404,{error:'Entry not found'});
       if (type === 'task' && !_canAccessTask(rec)) return c.json(404,{error:'Entry not found'});
-      if(type!=='task' && !_canAccess(rec)) return c.json(404,{error:'Entry not found'});
+      if(type!=='task' && !require(__hooks + '/lib/auth.js').canAccessItemForUser(rec, auth)) return c.json(404,{error:'Entry not found'});
       $app.delete(rec);return c.json(200,{deleted:true});
     }
 
@@ -755,15 +787,32 @@ try {
       }
 
       var familyAdmins = $app.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
+      var actorIsOwner = String(actorRoleRecord.get('role') || '') === 'owner';
+      var currentOwner = null;
+      for (var oi = 0; oi < familyAdmins.length; oi++) {
+        if (String(familyAdmins[oi].get('role') || '') === 'owner') { currentOwner = familyAdmins[oi]; break; }
+      }
 
-      // Keep a single admin/owner per family: promoting a new admin demotes the others in that family only.
+      // The owner is the one role that cannot be demoted or blocked, so it is
+      // never handed out by an admin: only the owner transfers ownership (and
+      // becomes admin), and an admin may claim it only for a family that has
+      // no owner at all (older installs, GH#23).
+      if (newRole === 'owner' && currentOwner && !actorIsOwner) {
+        return c.json(403, { error: 'Only the owner can transfer ownership' });
+      }
+
+      // Keep a single admin per family besides the owner: promoting a new
+      // admin/owner demotes the other admins to member -- never the owner,
+      // and on an ownership transfer the previous owner becomes admin.
       if (newRole === 'admin' || newRole === 'owner') {
         var u2 = $app;
         for (var i = 0; i < familyAdmins.length; i++) {
-          if (familyAdmins[i].id !== targetId) {
-            familyAdmins[i].set('role', 'member');
-            u2.save(familyAdmins[i]);
-          }
+          var other = familyAdmins[i];
+          if (other.id === targetId) continue;
+          var otherIsOwner = String(other.get('role') || '') === 'owner';
+          if (otherIsOwner && newRole !== 'owner') continue;
+          other.set('role', otherIsOwner ? 'admin' : 'member');
+          u2.save(other);
         }
       }
 
