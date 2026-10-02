@@ -20,7 +20,7 @@ describe('per-user UI language preferences', () => {
   it('uses English as startup default', () => {
     expect(DEFAULT_UI_LANGUAGE).toBe('en');
     expect(getStoredLanguage()).toBe('en');
-    expect(t('common.settings')).toBe('Settings');
+    expect(t('settings.title')).toBe('Settings');
   });
 
   it('accepts only launch languages for persisted user preference', () => {
@@ -55,8 +55,8 @@ describe('per-user UI language preferences', () => {
   });
 
   it('falls back to English and then the key when a translation is missing', () => {
-    expect(t('common.settings', 'fr')).toBe('Paramètres');
-    expect(t('common.settings', 'de')).toBe('Einstellungen');
+    expect(t('settings.title', 'fr')).toBe('Paramètres');
+    expect(t('settings.title', 'de')).toBe('Einstellungen');
     expect(t('missing.translation.key', 'fr')).toBe('missing.translation.key');
   });
 

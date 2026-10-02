@@ -37,7 +37,7 @@ const item = {
 } as any;
 
 /**
- * GH#80 / CERT2-L10N-001/002/003 — raw dotted i18n keys were reaching the DOM as
+ * GH#80 — raw dotted i18n keys were reaching the DOM as
  * aria-labels and visible text, and some labels were hardcoded English.
  *
  * Ported from d04460e (side branch fix/rate-limit-header-spoofing-2026-09-27).
@@ -46,7 +46,7 @@ const item = {
  * settings.membersSearchPlaceholder) belong to other side-branch commits and
  * are tracked as a follow-up kanban task.
  */
-describe('localized aria-labels and stat labels (GH#80 / CERT2-L10N-001/002/003)', () => {
+describe('localized aria-labels and stat labels (GH#80)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setActiveLanguage('en');

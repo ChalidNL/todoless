@@ -1,40 +1,14 @@
-// pb_hooks/17_recurring.pb.js
-// GH#7 — recurring tasks: completing a task with repeat_interval must create
-// the next occurrence immediately.
-//
-// History: the legacy pb_hooks/cron/recurring-tasks.js lived in a subdirectory
-// without a .pb.js suffix, so PocketBase never loaded it (and it used the
-// pre-0.23 DAO/upsert action APIs that do not exist anymore).
-// Instead of an hourly cron this hook reacts to the status transition into
-// 'done' on the record update event, which fires for every persist path
-// (native collection API, /api/v1, /api/tasks, agent routes), so recurrence
-// works for the UI and all API clients with zero polling delay.
-//
-// PB 0.40 JSVM notes (all verified empirically against 0.40.4):
-// - canonical record hooks take (handler, optCollectionName...) — a
-//   (collectionName, handler) call silently registers NOTHING;
-// - record hooks fire for every persist path, including $app.save() from
-//   other hooks — no client-side fallback is needed;
-// - e.record.original() returns the pre-update snapshot; used to only react
-//   to the transition INTO done (editing a done task must not spawn
-//   duplicate occurrences);
-// - the pure date math lives in pb_hooks/lib/recurrence.js (unit-tested by
-//   node --test tests/recurrence.test.mjs).
-
-// Scoped to the tasks collection: without the tag the callback would run for
-// every update of every collection (users, items, _logs mirrors, ...).
+// Recurring tasks (GH#7): when a task with repeat_interval moves into 'done',
+// create the next occurrence right away. Runs after every successful update,
+// so it covers the app and all APIs. Only the transition into done counts
+// (editing a completed task creates nothing); the date rule is in
+// lib/recurrence.js.
 onRecordAfterUpdateSuccess((e) => {
-  // Continue the hook chain FIRST: PocketBase's realtime broadcast runs as a
-  // later handler in this chain, so a handler that never calls e.next()
-  // silently suppresses every realtime "update" event (#77).
+  // First: the realtime broadcast is a later handler in this chain (#77).
   e.next();
 
-  // The hook must NEVER break the completion request: every unexpected error
-  // is logged and swallowed so the user's action always succeeds.
+  // Never break the completion itself: errors are logged and swallowed.
   try {
-    // PocketBase's Goja runtime does not reliably expose top-level `var` values
-    // inside route/hook callbacks, so require shared libs inside the callback
-    // (same pattern as the existing route hooks).
     var recurrenceLib = require(__hooks + '/lib/recurrence.js');
     var dateSync = require(__hooks + '/lib/task-date-sync.js');
     var rec = e.record;
@@ -46,9 +20,7 @@ onRecordAfterUpdateSuccess((e) => {
     if (String(rec.get('status') || '') !== 'done') return;
     if (rec.get('archived') === true) return;
 
-    // Pre-update snapshot: skip when the task was already done before this
-    // update (e.g. the user edits the comment of a completed recurring task —
-    // that must not create a second occurrence).
+    // Already done before this update (e.g. a comment edit): nothing to do.
     var original = null;
     try { original = rec.original(); } catch (_errOriginal) { original = null; }
     if (original) {
@@ -57,9 +29,8 @@ onRecordAfterUpdateSuccess((e) => {
       } catch (_errOriginalRead) { /* ignore */ }
     }
 
-    // Base date for the interval: due_date → completed_at → now. Empty PB date
-    // fields are truthy zero DateTime objects (GH#11), so the same
-    // task-date-sync helpers used by main.pb.js decide "has a real date".
+    // Base date: due_date, else completed_at, else now (empty PocketBase dates
+    // are truthy zero objects, so toMs() decides what is set).
     var baseMs = dateSync.toMs(rec.get('due_date'));
     if (isNaN(baseMs)) baseMs = dateSync.toMs(rec.get('completed_at'));
     var baseDate = isNaN(baseMs) ? new Date() : new Date(baseMs);

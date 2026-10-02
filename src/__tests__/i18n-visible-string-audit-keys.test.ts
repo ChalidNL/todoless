@@ -28,7 +28,6 @@ const REQUIRED_KEYS = [
   'tasks.confirmDeleteSubtaskTitle',
   'tasks.deletedCount',
   'tasks.focus',
-  'tasks.moveToBacklog',
   'tasks.priorityHigh',
   'tasks.priorityLow',
   'tasks.priorityMedium',

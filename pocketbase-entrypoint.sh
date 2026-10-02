@@ -1,7 +1,6 @@
 #!/bin/sh
-# GH#34: runtime paths are env-overridable (defaults = production image paths)
-# so CI/local tests can drive this entrypoint against temp dirs; in the image
-# and compose these are never set and the defaults below always apply.
+# Paths are overridable only so the tests can run this script against temp
+# dirs; the image never sets them.
 PB_DATA_DIR="${PB_DATA_DIR:-/pb_data}"
 PB_DATA_FILE="${PB_DATA_FILE:-/pb_data/data.db}"
 PB_MIGRATIONS_DIR="${PB_MIGRATIONS_DIR:-/pb_migrations}"
@@ -9,28 +8,13 @@ PB_HOOKS_DIR="${PB_HOOKS_DIR:-/pb_hooks}"
 PB_MIGRATIONS_BUNDLED_DIR="${PB_MIGRATIONS_BUNDLED_DIR:-/pb_migrations_bundled}"
 PB_HOOKS_BUNDLED_DIR="${PB_HOOKS_BUNDLED_DIR:-/pb_hooks_bundled}"
 
-# GH#35: append-only manifests of every file the app has EVER seeded into the
-# pb_migrations/pb_hooks runtime volumes (repo: app-managed-migrations.txt /
-# app-managed-hooks.txt; CI lint scripts/check-app-manifest.sh keeps them
-# current and append-only). The entrypoint prunes listed files that are no
-# longer bundled in this image (renamed/removed upstream, or a downgrade), so
-# removed hooks stop running and removed migrations never re-apply. Files NOT
-# in the manifests are user-added and are NEVER touched. Pruned files are
-# preserved as '<name>.gh35-removed-<timestamp>' (see remove_stale below).
+# Every file the app has ever seeded (append-only; see remove_stale below).
 PB_MIGRATIONS_MANIFEST="${PB_MIGRATIONS_MANIFEST:-/app-managed-migrations.txt}"
 PB_HOOKS_MANIFEST="${PB_HOOKS_MANIFEST:-/app-managed-hooks.txt}"
 
-# GH#45: this image runs as a fixed non-root UID (1000), and the compose service
-# drops ALL capabilities (no cap_add). The runtime volumes must therefore be
-# writable by uid 1000. Installations that predate the non-root images have
-# root-owned volumes — migrate them once on the host (see README -> Updating):
-#
-#   docker compose stop
-#   sudo chown -R 1000:1000 <host>/pb_data <host>/pb_migrations <host>/pb_hooks
-#   docker compose up -d
-#
-# Fail fast instead of starting PocketBase against unwritable volumes: without
-# migrations/hooks/DB access the app would come up half-broken.
+# The image runs as uid 1000 without capabilities (GH#45), so the volumes must
+# be writable by uid 1000 (older installs: one-time chown, see README). Fail
+# fast instead of starting half-broken.
 for dir in "$PB_DATA_DIR" "$PB_MIGRATIONS_DIR" "$PB_HOOKS_DIR"; do
   if [ ! -d "$dir" ] || [ ! -w "$dir" ] || [ ! -x "$dir" ]; then
     echo "[entrypoint] ERROR: $dir is not writable by uid $(id -u)." >&2
@@ -40,10 +24,8 @@ for dir in "$PB_DATA_DIR" "$PB_MIGRATIONS_DIR" "$PB_HOOKS_DIR"; do
   fi
 done
 
-# Seed bundled PocketBase migrations/hooks into runtime volumes.
-# Bundled files in the image are the source of truth for app-managed scripts.
-# A failed copy aborts startup (returns 1) so the container never runs with a
-# partially seeded hooks/migrations volume.
+# Copy the bundled migrations/hooks (the source of truth) into the volumes.
+# A failed copy aborts startup: never run with a partially seeded volume.
 
 seed_dir() {
   src_dir="$1"
@@ -69,18 +51,12 @@ seed_dir() {
   done || return 1
 }
 
-# GH#35: prune stale bundled files from a runtime volume. The manifests list
-# every file the app has EVER seeded; any listed file that is no longer
-# bundled in this image (renamed/removed upstream, or absent on downgrade) is
-# taken OUT of the active set so stale hooks stop running and removed
-# migrations never re-apply. The stale file is preserved (renamed to
-# '<name>.gh35-removed-<timestamp>') instead of hard-deleted: a self-hoster
-# may have customized an app-seeded file in place, and the preserved copy
-# keeps that data while the suffix guarantees hook/migration loaders ignore
-# it. Files NOT listed in the manifest are user-added and are NEVER touched.
-# Missing manifest/bundled/runtime dir means dev/test overrides without
-# manifests: log a warning and continue gracefully. Directories in the volume
-# are never touched (the preserved copy stays in its original subdir).
+# GH#35: take files the app once seeded but no longer bundles (removed or
+# renamed upstream, or a downgrade) out of the volume, so stale hooks stop
+# running and removed migrations never re-apply. They are renamed to
+# '<name>.gh35-removed-<timestamp>', not deleted, in case a self-hoster edited
+# one. Files not in the manifest are user-added and never touched. Without a
+# manifest (dev/test overrides) this only warns.
 remove_stale() {
   manifest="$1"
   src_dir="$2"
@@ -138,18 +114,12 @@ remove_stale "$PB_MIGRATIONS_MANIFEST" "$PB_MIGRATIONS_BUNDLED_DIR" "$PB_MIGRATI
 remove_stale "$PB_HOOKS_MANIFEST" "$PB_HOOKS_BUNDLED_DIR" "$PB_HOOKS_DIR" "hook" || exit 1
 
 # ── Migration-rename sync (GH#34) ──────────────────────────────────────────
-# PocketBase records applied migrations by FILE NAME in its SQLite _migrations
-# table (pb_data/data.db) and re-runs any pb_migrations/*.js whose name is not
-# in that table. Migration files in this repo were renamed several times
-# (git history: dadca38, ab7f24f, 7463450), so an existing install's
-# _migrations table still holds the OLD names. Without the sync below, the NEW
-# files would re-run on the next start after an image update — crashing
-# (e.g. "Collection name must be unique") or silently re-applying.
-#
-# The sync renames the _migrations rows to the new names AND removes the stale
-# files, BEFORE PocketBase starts. The NOT EXISTS guard makes chained renames
-# safe (015_* -> 016..024) and never double-maps a row. Fresh installs have no
-# _migrations table yet, so the sync is a no-op there and every file runs once.
+# PocketBase records applied migrations by file name and re-runs any file
+# whose name it has not seen. Some migrations were renamed in the past, so
+# older installs still have the old names recorded; without this sync the
+# renamed files would run again (and fail). Rows are renamed and stale files
+# removed before PocketBase starts; the NOT EXISTS guard keeps chained renames
+# safe. Fresh installs have no _migrations table, so this is a no-op there.
 #
 # MIGRATION_RENAMES: append-only, newline-separated `old_name|current_name`
 # pairs, kept in this exact order. `current_name` is the name shipped in the

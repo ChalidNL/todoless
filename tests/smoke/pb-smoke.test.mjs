@@ -8,13 +8,6 @@
 // task → ICS export → password change → companion register → OpenAPI paths vs
 // registered routes.
 //
-// KNOWN-BROKEN flows are marked `{ todo: '<ticket ref>' }`: the assertion still
-// runs and shows as todo-failure in output, but does not fail the run. Flip them
-// to active tests when the referenced fix tickets land:
-//   (ICS VEVENT for tasks, GH#12, is fixed and active.)
-// (companion register t_gh41a39209 was flipped to an active test by GH#8;
-//  block enforcement t_318f2396 was flipped to an active test — see below.)
-//
 // GH#65 OpenAPI parity gate (active, not todo):
 //   - every documented path (from /api/openapi.json) must be registered by a
 //     routerAdd() in pb_hooks/*.pb.js or by PocketBase-native collection CRUD
@@ -1615,8 +1608,7 @@ test('companion test notification succeeds (GH#8)', async () => {
 //      is NOT registered). Placeholder params probe the route pattern, not a
 //      specific record; PB-native {collection}/records/{id} is probed via its
 //      parent list route because a missing record id legitimately 404s.
-// This gate catches the historical drift where the spec documented a
-// fictitious /todoless/* tree that 404'd on every operation (DEF-API-001).
+// This keeps the spec from documenting routes that do not exist.
 
 // PocketBase auto-registers these native collection CRUD routes (not via hooks),
 // with these HTTP methods (PB 0.35 core API).

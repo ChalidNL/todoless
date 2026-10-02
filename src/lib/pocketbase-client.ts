@@ -40,7 +40,7 @@ interface BootstrapPayload {
  * Only emits a value when the caller explicitly supplied the key. When it did,
  * a falsy value becomes an explicit `null` so PocketBase CLEARS the stored date.
  * Returning `undefined` instead would make JSON.stringify drop the key entirely
- * and PocketBase would keep the old timestamp (see GH#80 / CERT2-TSK-001).
+ * and PocketBase would keep the old timestamp (GH#80).
  */
 const toISOIfPresent = <T extends object>(updates: T, key: keyof T): string | null | undefined =>
   Object.prototype.hasOwnProperty.call(updates, key)
@@ -449,10 +449,7 @@ class PocketBaseClient {
 
   // Create a subtask — child gets linkedTo/linkedType; parent list is derived (GH#88)
   async createSubtask(title: string, parentId: string): Promise<{ id: string }> {
-    // GH#88: create the child with linkedTo set — the child's linkedTo is the
-    // single source of truth. The parent's subtask list is derived from it, so
-    // no separate parent.subtask_ids write is needed (and a failed parent write
-    // used to leave the two representations disagreeing).
+    // GH#88: the child's linkedTo is the single source of truth for subtasks.
     const child = await this.createTask({
       title,
       status: 'todo',
@@ -533,11 +530,9 @@ class PocketBaseClient {
     await pb.collection('tasks').delete(id);
   }
 
-  // Batch delete: single POST instead of N parallel DELETE requests.
-  // Keeps "Delete completed" under nginx api_general rate-limit burst (GH#87)
-  // and emits one server-side change instead of one per task.
-  // ICS import/export (custom routes). Lived in the second client
-  // (src/lib/api-client.ts) until that file was removed; same wire format.
+  // Batch delete: one POST instead of N DELETEs (stays within the nginx
+  // rate-limit burst, GH#87).
+  // ICS import/export (custom routes).
   async icsImport(events: unknown[], options?: { assignee?: string; labels?: string[] }): Promise<{
     created?: number; updated?: number; skipped?: number; errors?: Array<{ title?: string; uid?: string; error: string }>;
   }> {

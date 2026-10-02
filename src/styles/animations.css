@@ -14,11 +14,6 @@
   100% { background-position: 0% 50%; }
 }
 
-@keyframes app-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
 .app-animate-in {
   animation: app-fade-in .28s cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -32,25 +27,10 @@
   animation: app-rainbow-shift 8s ease infinite;
 }
 
-.app-shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.app-shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.55) 50%, transparent 100%);
-  animation: app-shimmer 1.35s ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app-animate-in,
   .app-scale-in,
-  .app-rainbow-animated,
-  .app-shimmer::after {
+  .app-rainbow-animated {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
   }
