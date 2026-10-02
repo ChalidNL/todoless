@@ -848,12 +848,15 @@ try {
       if (String(targetDel.get('role') || '') === 'owner') return c.json(403, { error: 'Cannot delete the owner' });
 
       var counts = { transferred: {}, cascaded_private: {}, cleared: {}, cascaded_personal: {} };
+      // N9: transfer, clear and delete in one transaction, so a failure part
+      // way leaves the member and all their records as they were.
+      var dao = $app;
       var retainedCollections = ['tasks', 'items', 'notes', 'labels', 'shops', 'calendar_events', 'sprints', 'invite_codes', 'rewards', 'goals', 'projects', 'reminders', 'briefings'];
       var personalCollections = ['app_settings', 'integrations', 'ai_settings', 'api_tokens', 'external_references', 'companion_devices'];
 
       function _hasField(collectionName, fieldName) {
         try {
-          var collection = $app.findCollectionByNameOrId(collectionName);
+          var collection = dao.findCollectionByNameOrId(collectionName);
           return !!collection.fields.getByName(fieldName);
         } catch (_) { return false; }
       }
@@ -876,18 +879,18 @@ try {
 
       function _recordsByUser(collectionName, userId) {
         try {
-          $app.findCollectionByNameOrId(collectionName);
-          return $app.findRecordsByFilter(collectionName, 'user = {:userId}', '', 10000, 0, { userId: userId });
+          dao.findCollectionByNameOrId(collectionName);
+          return dao.findRecordsByFilter(collectionName, 'user = {:userId}', '', 10000, 0, { userId: userId });
         } catch (_) { return []; }
       }
 
       function _recordsByReference(collectionName, fieldName, userId) {
         try {
-          $app.findCollectionByNameOrId(collectionName);
+          dao.findCollectionByNameOrId(collectionName);
           if (!_hasField(collectionName, fieldName)) return [];
           var filter = fieldName + ' = {:userId}';
           if (fieldName === 'shared_with') filter = fieldName + ' ?= {:userId}';
-          return $app.findRecordsByFilter(collectionName, filter, '', 10000, 0, { userId: userId });
+          return dao.findRecordsByFilter(collectionName, filter, '', 10000, 0, { userId: userId });
         } catch (_) { return []; }
       }
 
@@ -897,56 +900,58 @@ try {
         return raw === true || raw === 1 || String(raw || '').toLowerCase() === 'true';
       }
 
-      for (var rc = 0; rc < retainedCollections.length; rc++) {
-        var retainName = retainedCollections[rc];
-        var retained = _recordsByUser(retainName, targetIdDel);
-        counts.transferred[retainName] = 0;
-        counts.cascaded_private[retainName] = 0;
-        for (var rr = 0; rr < retained.length; rr++) {
-          if (_isPrivateRecord(retainName, retained[rr])) {
-            counts.cascaded_private[retainName]++;
-            continue;
+      $app.runInTransaction(function(txApp) {
+        dao = txApp;
+        for (var rc = 0; rc < retainedCollections.length; rc++) {
+          var retainName = retainedCollections[rc];
+          var retained = _recordsByUser(retainName, targetIdDel);
+          counts.transferred[retainName] = 0;
+          counts.cascaded_private[retainName] = 0;
+          for (var rr = 0; rr < retained.length; rr++) {
+            if (_isPrivateRecord(retainName, retained[rr])) {
+              counts.cascaded_private[retainName]++;
+              continue;
+            }
+            retained[rr].set('user', actorDeleteRecord.id);
+            if (retainName === 'labels') {
+              if (_sameId(retained[rr].get('owner'), targetIdDel)) retained[rr].set('owner', actorDeleteRecord.id);
+              var sharedWith = _removeId(retained[rr].get('shared_with'), targetIdDel);
+              if (sharedWith !== retained[rr].get('shared_with')) retained[rr].set('shared_with', sharedWith || []);
+            }
+            if (retainName === 'calendar_events' && _sameId(retained[rr].get('owner'), targetIdDel)) retained[rr].set('owner', actorDeleteRecord.id);
+            dao.save(retained[rr]);
+            counts.transferred[retainName]++;
           }
-          retained[rr].set('user', actorDeleteRecord.id);
-          if (retainName === 'labels') {
-            if (_sameId(retained[rr].get('owner'), targetIdDel)) retained[rr].set('owner', actorDeleteRecord.id);
-            var sharedWith = _removeId(retained[rr].get('shared_with'), targetIdDel);
-            if (sharedWith !== retained[rr].get('shared_with')) retained[rr].set('shared_with', sharedWith || []);
+        }
+
+        var referenceClears = [
+          ['tasks', 'assigned_to'], ['tasks', 'completed_by'],
+          ['items', 'assigned_to'],
+          ['notes', 'assigned_to'],
+          ['rewards', 'earned_by'], ['rewards', 'awarded_by'],
+          ['goals', 'target_user'],
+          ['invite_codes', 'used_by'],
+          ['labels', 'shared_with']
+        ];
+        for (var ci = 0; ci < referenceClears.length; ci++) {
+          var collName = referenceClears[ci][0];
+          var fieldName = referenceClears[ci][1];
+          var refs = _recordsByReference(collName, fieldName, targetIdDel);
+          counts.cleared[collName + '.' + fieldName] = refs.length;
+          for (var ri = 0; ri < refs.length; ri++) {
+            var current = refs[ri].get(fieldName);
+            var nextValue = _removeId(current, targetIdDel);
+            refs[ri].set(fieldName, nextValue || (Array.isArray(current) ? [] : ''));
+            dao.save(refs[ri]);
           }
-          if (retainName === 'calendar_events' && _sameId(retained[rr].get('owner'), targetIdDel)) retained[rr].set('owner', actorDeleteRecord.id);
-          $app.save(retained[rr]);
-          counts.transferred[retainName]++;
         }
-      }
 
-      var referenceClears = [
-        ['tasks', 'assigned_to'], ['tasks', 'completed_by'],
-        ['items', 'assigned_to'],
-        ['notes', 'assigned_to'],
-        ['rewards', 'earned_by'], ['rewards', 'awarded_by'],
-        ['goals', 'target_user'],
-        ['invite_codes', 'used_by'],
-        ['labels', 'shared_with']
-      ];
-      for (var ci = 0; ci < referenceClears.length; ci++) {
-        var collName = referenceClears[ci][0];
-        var fieldName = referenceClears[ci][1];
-        var refs = _recordsByReference(collName, fieldName, targetIdDel);
-        counts.cleared[collName + '.' + fieldName] = refs.length;
-        for (var ri = 0; ri < refs.length; ri++) {
-          var current = refs[ri].get(fieldName);
-          var nextValue = _removeId(current, targetIdDel);
-          refs[ri].set(fieldName, nextValue || (Array.isArray(current) ? [] : ''));
-          $app.save(refs[ri]);
+        for (var pc = 0; pc < personalCollections.length; pc++) {
+          var personalName = personalCollections[pc];
+          counts.cascaded_personal[personalName] = _recordsByUser(personalName, targetIdDel).length;
         }
-      }
-
-      for (var pc = 0; pc < personalCollections.length; pc++) {
-        var personalName = personalCollections[pc];
-        counts.cascaded_personal[personalName] = _recordsByUser(personalName, targetIdDel).length;
-      }
-
-      $app.delete(targetDel);
+        txApp.delete(txApp.findRecordById('users', targetIdDel));
+      });
       return c.json(200, { success: true, user_id: targetIdDel, deleted: true, counts: counts });
     }
 
