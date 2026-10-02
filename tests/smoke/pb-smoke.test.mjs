@@ -1441,7 +1441,11 @@ test('the server refuses self-links and cyclic or nested parent links (#241)', a
   const nested = await api('POST', '/api/collections/tasks/records', { token: adminToken, body: { title: 'Cycle D', status: 'todo', user: admin.id, linked_to: b, linked_type: 'task' } })
   assert.equal(nested.status, 400, 'a subtask cannot get subtasks')
   const viaV1 = await api('POST', '/api/v1', { token: adminToken, body: { action: 'add_subtask', task_id: b, subtask_id: a } })
-  assert.ok(viaV1.status >= 400, `/api/v1 add_subtask must not create A -> B -> A: ${viaV1.status}`)
+  // a refusal from the record hook is a client error, not a 500 (lib/errors.js passes the 4xx through)
+  assert.equal(viaV1.status, 400, `/api/v1 add_subtask must refuse A -> B -> A with 400: ${viaV1.status} ${JSON.stringify(viaV1.data)}`)
+  assert.match(String(viaV1.data?.error || ''), /subtask/i)
+  const viaRoute = await api('POST', `/api/tasks/${b}/subtasks`, { token: adminToken, body: { title: 'Cycle E' } })
+  assert.equal(viaRoute.status, 400, `POST /api/tasks/{subtask}/subtasks must answer 400: ${viaRoute.status} ${JSON.stringify(viaRoute.data)}`)
   const after = await api('GET', `/api/collections/tasks/records/${a}`, { token: adminToken })
   assert.equal(after.data.linked_to, '', 'A is still top-level')
   // a valid link still works
