@@ -23,6 +23,7 @@ Thanks for your interest in contributing! todoless is family data software — p
 - Every push to `main` builds the moving `:latest` images plus immutable `:<commit-sha>` images.
 - Release tags named `vX.Y.Z` or `vX.Y.Z-prerelease` build immutable semver images without the leading `v`. Stable `vX.Y.Z` tags also publish a `:X.Y` line tag.
 - Production installs should pin a release tag, semver line tag, commit SHA tag, or digest. `:latest` is convenient for fresh installs and demos, not a production pin.
+- Releasing (#263): bump `package.json` on `main`, merge, then tag **that merge commit** `vX.Y.Z` — `docker-publish` refuses a release tag that is not `main`'s current head or whose version differs from `package.json`. Once the `:X.Y.Z` images exist, run `python3 scripts/pin-release-images.py X.Y.Z` and commit the `docker-compose.yml` it writes: both images pinned by digest, with the commit each image was built from printed next to it (`--check` verifies the current pins). `tests/release-pins.test.mjs` keeps compose on one build and in step with `package.json`.
 
 ## Development setup
 

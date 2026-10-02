@@ -59,6 +59,35 @@ test('respondError returns a generic client body and logs the real error server-
   }
 })
 
+test('respondError passes a 4xx ApiError raised by the model layer through with its status and message', () => {
+  const { respondError } = require('../pb_hooks/lib/errors.js')
+  const origError = console.error
+  const origWarn = console.warn
+  const logged = []
+  global.$app = { logger: () => ({ error: (m) => logged.push(m) }) }
+  console.error = () => {}
+  console.warn = () => {}
+  try {
+    const responded = []
+    const c = { requestInfo: () => ({ method: 'POST', path: '/api/v1' }), get: () => null, json: (status, body) => { responded.push({ status, body }); return body } }
+    // what a BadRequestError thrown in a record hook looks like when a route catches it (Goja wraps the Go ApiError)
+    const hookRefusal = Object.assign(new Error('GoError: A subtask cannot have subtasks of its own.'), { value: { status: 400, message: 'A subtask cannot have subtasks of its own.', data: {} } })
+    respondError(c, hookRefusal, 500)
+    assert.deepEqual(responded, [{ status: 400, body: { error: 'A subtask cannot have subtasks of its own.' } }])
+    assert.equal(logged.length, 0, 'a refused request is not an internal error')
+    // a 5xx ApiError and a plain Error stay generic
+    const serverSide = Object.assign(new Error('GoError: boom'), { value: { status: 500, message: 'boom' } })
+    assert.deepEqual(respondError(c, serverSide, 500), { error: 'Internal server error' })
+    assert.deepEqual(respondError(c, new Error('db gone'), 500), { error: 'Internal server error' })
+    // an explicit client-facing message from the handler still wins
+    assert.deepEqual(respondError(c, hookRefusal, 502, 'Connection failed'), { error: 'Connection failed' })
+  } finally {
+    console.error = origError
+    console.warn = origWarn
+    delete global.$app
+  }
+})
+
 test('respondError supports custom message + extra response fields (constructed errors only)', () => {
   const { respondError } = require('../pb_hooks/lib/errors.js')
   const origError = console.error

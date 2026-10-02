@@ -24,7 +24,35 @@
 // defined by hook files (loader VM), so a bare `respondError(...)` throws
 // ReferenceError there — see pb_hooks/04_request_logger.pb.js.
 
+// A PocketBase ApiError with a 4xx status that was thrown on purpose - by a
+// record hook (BadRequestError from the parent-link or date-sync checks) or
+// by PocketBase's own validation inside $app.save() - and surfaced through
+// the Goja exception as `e.value`. Its message is server-authored, never raw
+// exception text, so it may go to the client with its own status. A 5xx or a
+// plain Error is not a client error and keeps the generic path below.
+function clientApiError(e) {
+  try {
+    var v = e && e.value;
+    if (!v || typeof v !== 'object') return null;
+    var st = Number(v.status);
+    if (!(st >= 400 && st < 500)) return null;
+    var msg = String(v.message || '').trim();
+    if (!msg) return null;
+    return { status: st, message: msg };
+  } catch (_err) {
+    return null;
+  }
+}
+
 function respondError(c, e, status, message, extra) {
+  // Validation refused inside the model layer is a 400 for the caller, not
+  // an internal error (it used to come back as 500 "Internal server error"
+  // from every custom route, e.g. #241's parent-link guard via /api/v1).
+  var refused = (!status || status >= 500) && !message ? clientApiError(e) : null;
+  if (refused) {
+    try { console.warn('[respondError] client error ' + refused.status + ': ' + refused.message); } catch (_w) { /* never break the request */ }
+    return c.json(refused.status, { error: refused.message });
+  }
   var route = '';
   var userId = '';
   // Prefer the raw request (method + URL path): it is available even when the

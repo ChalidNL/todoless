@@ -121,8 +121,7 @@ routerAdd('POST', '/api/tasks', function(c) {
 
     return c.json(201, response);
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -194,8 +193,7 @@ routerAdd('POST', '/api/tasks/{taskId}/subtasks', function(c) {
       visibleToMembers: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -297,8 +295,7 @@ routerAdd('PATCH', '/api/tasks/{taskId}', function(c) {
       updated: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -366,8 +363,7 @@ routerAdd('PATCH', '/api/subtasks/{subtaskId}', function(c) {
       updated: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -434,8 +430,7 @@ routerAdd('POST', '/api/groceries', function(c) {
       visibleToMembers: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -496,8 +491,7 @@ routerAdd('PATCH', '/api/groceries/{itemId}', function(c) {
       updated: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -568,8 +562,7 @@ routerAdd('GET', '/api/members/{userId}/token', function(c) {
       expiresAt: dates.dateOrNull(t.get('expires_at'))
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -657,8 +650,7 @@ routerAdd('POST', '/api/members/{userId}/token', function(c) {
       enabled: true
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -723,8 +715,7 @@ routerAdd('DELETE', '/api/members/{userId}/token', function(c) {
       message: 'All API tokens revoked for this member'
     });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });
 
@@ -809,7 +800,6 @@ routerAdd('POST', '/api/v1/tasks/batch-delete', function(c) {
 
     return c.json(200, { 'deleted': records.length, 'ids': ids });
   } catch(e) {
-    try { $app.logger().error('api route error: ' + String(e)); } catch(_e) {}
-    return c.json(500, { error: 'Internal server error' });
+    return require(__hooks + '/lib/errors.js').respondError(c, e, 500);
   }
 });

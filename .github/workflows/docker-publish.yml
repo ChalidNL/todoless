@@ -44,6 +44,20 @@ jobs:
               echo "Release tags must match vX.Y.Z or vX.Y.Z-prerelease; got ${GITHUB_REF_NAME}" >&2
               exit 1
             fi
+            # #263: a release tag must sit on main's current head and match
+            # package.json. v1.0.0 was pushed on the first commit of the release
+            # branch, so the published 1.0.0 images carried none of the release.
+            git fetch --no-tags --depth=1 origin main
+            MAIN_HEAD="$(git rev-parse origin/main)"
+            if [ "$MAIN_HEAD" != "$GITHUB_SHA" ]; then
+              echo "::error::tag ${GITHUB_REF_NAME} points at ${GITHUB_SHA} but main is at ${MAIN_HEAD}. Merge first, then tag main's head." >&2
+              exit 1
+            fi
+            PKG_VERSION="$(node -p "require('./package.json').version")"
+            if [ "$PKG_VERSION" != "$VER" ]; then
+              echo "::error::tag ${GITHUB_REF_NAME} but package.json says ${PKG_VERSION}. Bump the version in the same commit you tag." >&2
+              exit 1
+            fi
             FE="ghcr.io/chalidnl/todoless-frontend:${VER}"
             PB="ghcr.io/chalidnl/todoless-pocketbase:${VER}"
             MINOR=""
