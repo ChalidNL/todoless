@@ -123,6 +123,10 @@ function AppContent() {
   const [appScreen, setAppScreen] = useState<'checking' | 'onboarding' | 'login' | 'register' | 'reset' | 'app'>('checking');
   const [onboardingMode, setOnboardingMode] = useState<OnboardingMode>('none');
   const hasInitializedRef = useRef(false);
+  // Read by the first-run check below: it re-runs on every `user` change,
+  // including the sign-in the admin/user onboarding performs itself.
+  const screenRef = useRef<{ screen: typeof appScreen; mode: OnboardingMode }>({ screen: 'checking', mode: 'none' });
+  screenRef.current = { screen: appScreen, mode: onboardingMode };
   const { completionMessage, dataLoadState, loadError, retryLoad } = useApp();
   const { user, loading } = useAuth();
   const { language } = useLanguage();
@@ -143,6 +147,15 @@ function AppContent() {
   useEffect(() => {
     const checkFirstRun = async () => {
       if (loading) return;
+
+      // The admin and user onboarding end with their own final step ("Open
+      // todoless"); creating the account signs the user in, which re-runs
+      // this check, and depending on whether the onboarding-seen flag had
+      // already been saved it either stayed on the onboarding or jumped
+      // straight into the app, skipping that step. The onboarding's own
+      // onComplete decides where to go once it is really done.
+      const current = screenRef.current;
+      if (current.screen === 'onboarding' && (current.mode === 'admin' || current.mode === 'user')) return;
 
       // Password reset link from the email (#68) always wins.
       if (window.location.pathname.toLowerCase() === '/reset-password') {
