@@ -223,39 +223,21 @@ routerAdd('GET', '/api/setup-status', (c) => {
 });
 
 // ── Validate invite code (no auth required, public) ──
+// POST {code} is what the app sends (keeps the code out of the request log);
+// GET ?code= is kept for old clients. See lib/invite-check.js.
+routerAdd('POST', '/api/validate-invite', (c) => {
+  try {
+    var body = c.requestInfo().body || {};
+    var r = require(__hooks + '/lib/invite-check.js').checkInvite($app, body.code);
+    return c.json(r.status, r.body);
+  } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
+});
+
 routerAdd('GET', '/api/validate-invite', (c) => {
   try {
     var q = c.requestInfo().query || {};
-    var code = String(q.code || '').trim().toUpperCase();
-    if (!code) return c.json(400, { status: 'error', message: 'code required' });
-
-    var now = new Date().toISOString();
-    var invites = $app.findRecordsByFilter('invite_codes', 'code = {:code} && used = false && expires_at > {:now}', '-created', 1, 0, { code: code, now: now });
-
-    if (invites.length === 0) {
-      return c.json(200, { valid: false, status: 'invalid_or_expired' });
-    }
-
-    var inviter = $app.findRecordById('users', String(invites[0].get('user') || ''));
-    var familyName = '';
-    if (inviter) {
-      var fid = String(inviter.get('family_id') || '');
-      if (fid) {
-        var family = $app.findRecordById('families', fid);
-        if (family) familyName = String(family.get('name') || '');
-      }
-    }
-
-    return c.json(200, {
-      id: invites[0].id,
-      code: code,
-      valid: true,
-      status: 'valid',
-      message: 'Invite code is valid',
-      family_id: inviter ? String(inviter.get('family_id') || '') : '',
-      family_name: familyName,
-      invited_by: inviter ? String(inviter.get('name') || inviter.get('email') || '') : ''
-    });
+    var r = require(__hooks + '/lib/invite-check.js').checkInvite($app, q.code);
+    return c.json(r.status, r.body);
   } catch(e) { return require(__hooks + '/lib/errors.js').respondError(c, e, 500); }
 });
 

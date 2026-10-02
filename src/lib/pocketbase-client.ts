@@ -302,7 +302,12 @@ class PocketBaseClient {
 
   async validateInviteCode(inviteCode: string): Promise<{ id: string; code: string; status: string; message: string }> {
     const normalizedCode = inviteCode.trim().toUpperCase();
-    const response = await fetch(`/api/validate-invite?code=${encodeURIComponent(normalizedCode)}`);
+    // POST, not ?code=: a query string ends up in the server's request log.
+    const response = await fetch('/api/validate-invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: normalizedCode }),
+    });
 
     if (!response.ok) {
       throw new Error('Failed to validate invite code');

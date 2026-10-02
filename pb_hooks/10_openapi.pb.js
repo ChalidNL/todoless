@@ -272,23 +272,31 @@ routerAdd('GET', '/api/openapi.json', (c) => {
     };
   }
   
-  function validateInviteSchema() {
-    return {
+  function validateInviteSchema(method) {
+    var op = {
       tags: ["Auth", "Invites"],
-      summary: "Validate invite code",
-      description: "Public endpoint to check if an invite code is valid.",
-      operationId: "validateInvite",
-      parameters: [{ name: "code", in: "query", required: true, schema: { type: "string" }, example: "123456" }],
+      summary: method === "get" ? "Validate invite code (query; kept for old clients)" : "Validate invite code",
+      description: "Public endpoint to check whether an invite code can still be used. Prefer POST: a query string ends up in request logs. The answer does not reveal the family or the inviter.",
+      operationId: method === "get" ? "validateInviteQuery" : "validateInvite",
       responses: {
         "200": { description: "Invite status", content: { "application/json": { schema: { type: "object", properties: {
-          status: { type: "string", enum: ["valid", "not_found", "used", "expired"] },
+          valid: { type: "boolean" },
+          status: { type: "string", enum: ["valid", "invalid_or_expired"] },
+          id: st(),
+          code: st(),
           message: st(),
-          invite: { type: "object", properties: { id: st(), code: st(), created_by: st(), inviter: { type: "object", properties: { id: st(), name: st() } } } },
         } } } } },
+        "400": { description: "code required" },
       },
     };
+    if (method === "get") {
+      op.parameters = [{ name: "code", in: "query", required: true, schema: { type: "string" }, example: "ABCDEFGH2345" }];
+    } else {
+      op.requestBody = { required: true, content: { "application/json": { schema: { type: "object", properties: { code: st() }, required: ["code"] } } } };
+    }
+    return op;
   }
-  
+
   function unifiedApiSchema() {
     return {
       tags: ["Entries"],
@@ -942,7 +950,8 @@ routerAdd('GET', '/api/openapi.json', (c) => {
         post: registerSchema(),
       },
       "/validate-invite": {
-        get: validateInviteSchema(),
+        post: validateInviteSchema("post"),
+        get: validateInviteSchema("get"),
       },
       "/invites/create": {
         post: {

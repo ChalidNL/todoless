@@ -1,4 +1,4 @@
-import { Bell, CheckCircle2, Mail, Smartphone, TimerReset } from 'lucide-react';
+import { Bell, CheckCircle2, TimerReset } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { t } from '../i18n/translations';
@@ -84,20 +84,9 @@ export function NotificationsView() {
             description={t('settings.taskRemindersHint')}
             onChange={(taskReminders) => update({ taskReminders })}
           />
-          <SettingSwitch
-            checked={appSettings.notificationPush === true}
-            icon={Smartphone}
-            title={t('settings.pushNotifications')}
-            description={t('settings.pushNotificationsHint')}
-            onChange={(notificationPush) => update({ notificationPush })}
-          />
-          <SettingSwitch
-            checked={appSettings.notificationEmail === true}
-            icon={Mail}
-            title={t('settings.emailNotifications')}
-            description={t('settings.emailNotificationsHint')}
-            onChange={(notificationEmail) => update({ notificationEmail })}
-          />
+          {/* #254: no push subscription or mail sender exists yet, so there are
+              no push / e-mail switches. The stored notification_push and
+              notification_email fields stay for when a channel lands. */}
         </section>
 
         <section className="rounded-[var(--app-radius-xl)] bg-white p-4 shadow-[var(--app-shadow-card)]">

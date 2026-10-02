@@ -129,6 +129,14 @@ function parsePositiveInt(raw) {
  * Returns { status, body } for the caller to send. `query` holds the string
  * parameters (type, status, assignee_id, label, shop_id, updated_since, page,
  * perPage).
+ *
+ * Pagination limits the payload, not the server work (#233): every request
+ * reads all of the family's tasks and items, applies the privacy checks and
+ * filters in JS, and only then slices out the page. The privacy rules
+ * (private labels, private items, assignee visibility) are not expressible as
+ * one DB filter, so a DB-level LIMIT/OFFSET would page over records the
+ * caller may not see. Fine for household-sized data; don't rely on `page` to
+ * reduce load.
  */
 function listEntries(auth, query) {
   var q = query || {};

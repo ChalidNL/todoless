@@ -199,11 +199,22 @@ test('admin creates an invite (12-char code)', async () => {
   inviteCode = r.data.code
 })
 
-test('invite validates publicly', async () => {
-  const r = await api('GET', `/api/validate-invite?code=${encodeURIComponent(inviteCode)}`)
+test('invite validates publicly (POST body; GET kept for old clients)', async () => {
+  const r = await api('POST', '/api/validate-invite', { body: { code: inviteCode.toLowerCase() } })
   assert.equal(r.status, 200)
   assert.equal(r.data?.valid, true)
-  assert.equal(r.data?.family_id, admin.family_id)
+  assert.equal(r.data?.code, inviteCode)
+  // #235: the public answer does not reveal the household or the inviter.
+  for (const key of ['family_id', 'family_name', 'invited_by']) {
+    assert.equal(r.data?.[key], undefined, `${key} must not be in the public answer`)
+  }
+  const legacy = await api('GET', `/api/validate-invite?code=${encodeURIComponent(inviteCode)}`)
+  assert.equal(legacy.status, 200)
+  assert.equal(legacy.data?.valid, true)
+  const missing = await api('POST', '/api/validate-invite', { body: {} })
+  assert.equal(missing.status, 400)
+  const unknown = await api('POST', '/api/validate-invite', { body: { code: 'NOSUCHCODE99' } })
+  assert.equal(unknown.data?.valid, false)
 })
 
 // --- 4. Second user ---------------------------------------------------
