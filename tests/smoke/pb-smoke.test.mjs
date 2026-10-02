@@ -1554,6 +1554,23 @@ test('companion device registration succeeds (GH#8)', async () => {
   assert.ok(r.status === 201 || r.status === 200, `expected 2xx, got ${r.status} ${JSON.stringify(r.data)}`)
   assert.equal(r.data?.ok, true)
   assert.equal(r.data?.device?.deviceId, 'smoke-device-1')
+
+  // Re-registering the same device updates the row instead of adding one, and
+  // a device id with filter metacharacters is matched as plain data.
+  const again = await api('POST', '/api/companion/devices/register', {
+    token: memberToken,
+    body: { deviceId: 'smoke-device-1', deviceName: 'Smoke Phone 2', platform: 'ios', osVersion: '18', appVersion: '0.3.1' },
+  })
+  assert.equal(again.status, 200, JSON.stringify(again.data))
+  assert.equal(again.data?.created, false)
+  const odd = await api('POST', '/api/companion/devices/register', {
+    token: memberToken,
+    body: { deviceId: 'odd"id\\ && user = "x"', deviceName: 'Odd', platform: 'android', osVersion: '15', appVersion: '0.3.1' },
+  })
+  assert.equal(odd.status, 201, JSON.stringify(odd.data))
+  assert.equal(odd.data?.device?.deviceId, 'odd"id\\ && user = "x"')
+  const mine = await api('GET', '/api/collections/companion_devices/records?perPage=50', { token: memberToken })
+  assert.equal((mine.data?.items || []).filter((d) => d.device_id === 'smoke-device-1').length, 1)
 })
 
 test('companion test notification succeeds (GH#8)', async () => {
