@@ -1,15 +1,6 @@
 import { RepeatInterval } from '../types';
+import { t } from '../i18n/translations';
 
-const ORDINALS = ['first', 'second', 'third', 'fourth', 'fifth'] as const;
-const ORDINALS_NL = ['eerste', 'tweede', 'derde', 'vierde', 'vijfde'] as const;
-const ORDINALS_FR = ['premier', 'deuxième', 'troisième', 'quatrième', 'cinquième'] as const;
-const ORDINALS_DE = ['erste', 'zweite', 'dritte', 'vierte', 'fünfte'] as const;
-const ORDINALS_ES = ['primer', 'segundo', 'tercer', 'cuarto', 'quinto'] as const;
-const WEEKDAY_INDEX_TO_NAME_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const;
-const WEEKDAY_INDEX_TO_NAME_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'] as const;
-const WEEKDAY_INDEX_TO_NAME_FR = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'] as const;
-const WEEKDAY_INDEX_TO_NAME_DE = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'] as const;
-const WEEKDAY_INDEX_TO_NAME_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'] as const;
 type SupportedLanguage = 'nl' | 'en' | 'fr' | 'de' | 'es';
 
 type MonthlyWeekdayParts = {
@@ -144,69 +135,37 @@ function getMonthlyWeekdayParts(dateInput: number | string | Date): MonthlyWeekd
   return monthlyWeekdayParts(toWall(ms, isDateOnly(ms)));
 }
 
+function fill(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), template);
+}
+
+/** Full label of a repeat pattern ("Every second Monday of the month"). */
 export function getRepeatDescriptor(
   repeatInterval?: RepeatInterval | null,
   dueDate?: number | string,
   language: SupportedLanguage = 'en'
 ): string | null {
   if (!repeatInterval) return null;
-
-  const labels = language === 'nl'
-    ? { day: 'Elke dag', week: 'Elke week', month: 'Elke maand', year: 'Elk jaar' }
-    : language === 'fr'
-      ? { day: 'Chaque jour', week: 'Chaque semaine', month: 'Chaque mois', year: 'Chaque année' }
-      : language === 'de'
-        ? { day: 'Jeden Tag', week: 'Jede Woche', month: 'Jeden Monat', year: 'Jedes Jahr' }
-        : language === 'es'
-          ? { day: 'Cada día', week: 'Cada semana', month: 'Cada mes', year: 'Cada año' }
-          : { day: 'Every day', week: 'Every week', month: 'Every month', year: 'Every year' };
-
-  if (repeatInterval !== 'month_weekday') {
-    return labels[repeatInterval];
-  }
-
-  if (!dueDate) {
-    return language === 'nl' ? 'Elke eerste maandag van de maand'
-      : language === 'fr' ? 'Chaque premier lundi du mois'
-      : language === 'de' ? 'Jeden ersten Montag des Monats'
-      : language === 'es' ? 'Cada primer lunes del mes'
-      : 'Every first Monday of the month';
-  }
+  if (repeatInterval !== 'month_weekday') return t(`repeat.${repeatInterval}`, language);
+  if (!dueDate) return t('repeat.monthWeekdayFallback', language);
 
   const { weekdayIndex, occurrenceIndex, isLastOccurrence } = getMonthlyWeekdayParts(dueDate);
-  const weekday = language === 'nl' ? WEEKDAY_INDEX_TO_NAME_NL[weekdayIndex]
-    : language === 'fr' ? WEEKDAY_INDEX_TO_NAME_FR[weekdayIndex]
-    : language === 'de' ? WEEKDAY_INDEX_TO_NAME_DE[weekdayIndex]
-    : language === 'es' ? WEEKDAY_INDEX_TO_NAME_ES[weekdayIndex]
-    : WEEKDAY_INDEX_TO_NAME_EN[weekdayIndex];
+  const weekday = t(`repeat.weekday.${weekdayIndex}`, language);
+  if (isLastOccurrence) return fill(t('repeat.monthWeekdayLast', language), { weekday });
+  return fill(t('repeat.monthWeekday', language), { ordinal: t(`repeat.ordinal.${Math.min(occurrenceIndex, 4) + 1}`, language), weekday });
+}
 
-  if (isLastOccurrence) {
-    return language === 'nl' ? `Elke laatste ${weekday} van de maand`
-      : language === 'fr' ? `Chaque dernier ${weekday} du mois`
-      : language === 'de' ? `Jeden letzten ${weekday} des Monats`
-      : language === 'es' ? `Cada último ${weekday} del mes`
-      : `Every last ${weekday} of the month`;
-  }
-
-  const ordinal = language === 'nl'
-    ? ORDINALS_NL[Math.min(occurrenceIndex, ORDINALS_NL.length - 1)]
-    : language === 'fr'
-      ? ORDINALS_FR[Math.min(occurrenceIndex, ORDINALS_FR.length - 1)]
-      : language === 'de'
-        ? ORDINALS_DE[Math.min(occurrenceIndex, ORDINALS_DE.length - 1)]
-        : language === 'es'
-          ? ORDINALS_ES[Math.min(occurrenceIndex, ORDINALS_ES.length - 1)]
-          : ORDINALS[Math.min(occurrenceIndex, ORDINALS.length - 1)];
-
-  return language === 'nl'
-    ? `Elke ${ordinal} ${weekday} van de maand`
-    : language === 'fr'
-      ? `Chaque ${ordinal} ${weekday} du mois`
-      : language === 'de'
-        ? `Jeden ${ordinal}n ${weekday} des Monats`
-        : language === 'es'
-          ? `Cada ${ordinal} ${weekday} del mes`
-          : `Every ${ordinal} ${weekday} of the month`;
+/**
+ * Short chip label of a monthly-weekday pattern ("Mon · 2nd Monday"); without
+ * a date, the default pattern (first Monday).
+ */
+export function getMonthWeekdayChipLabel(dueDate: number | string | undefined, language: SupportedLanguage): string {
+  const { weekdayIndex, occurrenceIndex, isLastOccurrence } = dueDate
+    ? getMonthlyWeekdayParts(dueDate)
+    : { weekdayIndex: 1, occurrenceIndex: 0, isLastOccurrence: false };
+  const weekday = t(`repeat.weekday.${weekdayIndex}`, language);
+  if (isLastOccurrence) return fill(t('repeat.chipMonthWeekdayLast', language), { weekday });
+  return fill(t('repeat.chipMonthWeekday', language), { ordinal: t(`repeat.chipOrdinal.${Math.min(occurrenceIndex, 4) + 1}`, language), weekday });
 }
 
 export function getNextRecurringDueDate(repeatInterval: RepeatInterval, baseDateIso: string): string {

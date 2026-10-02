@@ -74,7 +74,15 @@
     "sidebar": "Barre latérale",
     "mobileSidebarDescription": "Affiche la barre latérale mobile.",
     "errorLoadingImage": "Erreur de chargement de l’image",
-    "manage": "Gérer"
+    "manage": "Gérer",
+    "back": "Retour",
+    "clearSearch": "Effacer la recherche",
+    "done": "Terminé",
+    "loadingTasks": "Chargement des tâches",
+    "organizeFamilyLife": "Organisez la vie de famille.",
+    "saved": "Enregistré",
+    "someChangesNotSaved": "Certaines modifications n’ont pas pu être enregistrées",
+    "untitled": "Sans titre"
   },
   "onboarding": {
     "accountCreationFailed": "Échec de la création du compte. Veuillez réessayer.",
@@ -83,7 +91,7 @@
     "creatingAccount": "Création du compte…",
     "email": "E-mail",
     "emailAlreadyInUse": "Cet e-mail est déjà utilisé. Essayez de vous connecter.",
-    "firstName": "Prénom *",
+    "firstName": "Prénom",
     "getStarted": "Commencer",
     "goToLogin": "Aller à la connexion",
     "lastName": "Nom de famille",
@@ -100,7 +108,7 @@
     "prefilledWithWorkspace": "Pré-rempli avec le nom de votre espace de travail, vous pouvez le modifier",
     "skip": "Passer",
     "selectLanguage": "Choisissez votre langue",
-    "languageStepTitle": "Choisissez votre langue",
+    "languageStepTitle": "Choisissez Votre Langue",
     "languageStepDesc": "Choisissez votre langue préférée pour commencer.",
     "step1Desc": "Votre assistant quotidien pour une productivité rapide et simple sans surcharge.",
     "step2Desc": "Suivez les courses avec les quantités et les magasins. Gardez votre liste de courses simple et organisée.",
@@ -193,7 +201,7 @@
     "taskAdded": "Tâche ajoutée à l’inbox",
     "movedToBacklog": "Déplacé vers le backlog",
     "noMatchingParentTask": "Aucune tâche principale correspondante trouvée",
-    "searchPlaceholder": "Rechercher des tâches...",
+    "searchPlaceholder": "Rechercher des tâches…",
     "searchAssigneePlaceholder": "Rechercher un membre...",
     "searchAssigneeAria": "Rechercher des membres",
     "labelTooltip": "Étiquettes",
@@ -218,7 +226,18 @@
     "removeAssignee": "Supprimer l'assigné",
     "deleteTask": "Supprimer la tâche",
     "confirmDeleteCompleted": "Supprimer toutes les tâches terminées ?",
-    "confirmDeleteSubtaskTitle": "Supprimer la sous-tâche « {title} » ?"
+    "confirmDeleteSubtaskTitle": "Supprimer la sous-tâche « {title} » ?",
+    "addFocus": "Ajouter le focus",
+    "deletedCount": "{n} supprimés",
+    "focusHeroSubtitle": "De l’espace pour les tâches les plus importantes du jour.",
+    "noFocusTasks": "Aucune tâche focus",
+    "priorityHigh": "Haute",
+    "priorityLow": "Basse",
+    "priorityMedium": "Moyenne",
+    "removeFocus": "Retirer le focus",
+    "saveLabel": "Enregistrer le label",
+    "startFocus": "Démarrer le focus",
+    "noTasks": "Aucune tâche trouvée"
   },
   "items": {
     "title": "Articles",
@@ -259,7 +278,7 @@
     "itemOrShopPrompt": "Article ou magasin ?",
     "sortTasks": "Trier les tâches",
     "priority": "Priorité",
-    "dueDate": "Date d’échéance",
+    "dueDate": "Échéance",
     "none": "Aucune"
   },
   "groceries": {
@@ -427,7 +446,34 @@
     "shopsCount": {
       "one": "{n} magasin",
       "other": "{n} magasins"
-    }
+    },
+    "emailNotifications": "Notifications e-mail",
+    "emailNotificationsHint": "Envoyer des e-mails de rappel si la messagerie est configurée.",
+    "labelsSearchPlaceholder": "Rechercher des étiquettes...",
+    "membersSearchPlaceholder": "Rechercher des membres...",
+    "newLabel": "Nouvelle étiquette",
+    "noLabels": "Aucune étiquette",
+    "noLabelsHint": "Créez une étiquette avec le bouton +",
+    "noShops": "Pas encore de magasins",
+    "noShopsHint": "Créez un magasin avec le bouton +",
+    "notificationsActiveHint": "Les préférences enregistrées s’appliquent aux rappels et alertes.",
+    "notificationsComingSoon": "Bientôt disponible",
+    "notificationsComingSoonHint": "Les préférences de notification seront disponibles dans une prochaine mise à jour.",
+    "notificationsDueDate": "Notifications de date d'échéance",
+    "notificationsHint": "Choisissez comment todoless vous rappelle les tâches à échéance.",
+    "notificationsSaveFailed": "Impossible d’enregistrer les préférences de notification",
+    "notificationsSaved": "Préférences de notification enregistrées",
+    "pushNotifications": "Notifications push",
+    "pushNotificationsHint": "Utiliser les notifications du navigateur/appareil si disponibles.",
+    "reminderLeadTime": "Délai de rappel",
+    "reminderMinutes": "{minutes} minutes avant",
+    "reminderOneDay": "1 jour avant",
+    "shopsSearchPlaceholder": "Rechercher des magasins...",
+    "sortColor": "Couleur",
+    "sortVisibility": "Visibilité",
+    "taskReminders": "Rappels de tâches",
+    "taskRemindersHint": "Afficher les alertes pour les tâches bientôt dues.",
+    "visibility": "Visibilité"
   },
   "projects": {
     "title": "Projets",
@@ -490,7 +536,7 @@
   },
   "calendar": {
     "title": "Calendrier",
-    "newEvent": "Nouvel événement",
+    "newEvent": "Nouvel événement…",
     "allDay": "Toute la journée",
     "startTime": "Heure de début",
     "endTime": "Heure de fin",
@@ -504,7 +550,22 @@
     "workweek": "Semaine de travail",
     "month": "Mois",
     "viewLabel": "Vue calendrier",
-    "continued": "Suite"
+    "continued": "Suite",
+    "datedTask": "Tâche",
+    "fewerDetails": "Moins de détails",
+    "location": "Lieu",
+    "moreCount": "+{n} de plus",
+    "moreDetails": "Plus de détails",
+    "next": "Suivant",
+    "noEvents": "Aucun élément d’agenda",
+    "previous": "Précédent",
+    "repeat": "Répéter",
+    "saveEvent": "Enregistrer l'événement",
+    "saveFailed": "Impossible d’enregistrer l’événement",
+    "searchPlaceholder": "Rechercher dans l’agenda...",
+    "timeRequired": "Le début et la fin sont requis",
+    "titleRequired": "Le titre est requis",
+    "today": "Aujourd’hui"
   },
   "inbox": {
     "title": "Boîte de réception",
@@ -524,7 +585,8 @@
     "clearAll": "Tout effacer",
     "empty": "Vide",
     "select": "Sélectionner",
-    "selectedCount": "{n} sélectionné(s)"
+    "selectedCount": "{n} sélectionné(s)",
+    "taskAdded": "Tâche ajoutée"
   },
   "members": {
     "title": "Famille",
@@ -535,7 +597,8 @@
     "manageMembers": "Gérer la famille",
     "addMember": "Ajouter un membre",
     "familyLabel": "Famille",
-    "sameFamilyHint": "Seuls les membres de la même famille sont affichés ici."
+    "sameFamilyHint": "Seuls les membres de la même famille sont affichés ici.",
+    "inviteSectionTitle": "Inviter"
   },
   "agent": {
     "title": "Agents",
@@ -605,7 +668,8 @@
     "confirmNewPassword": "Confirmez le nouveau mot de passe",
     "resetSubmit": "Enregistrer le mot de passe",
     "resetDone": "Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
-    "resetInvalidLink": "Ce lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’écran de connexion."
+    "resetInvalidLink": "Ce lien de réinitialisation est invalide ou a expiré. Demandez-en un nouveau depuis l’écran de connexion.",
+    "rateLimited": "Trop de tentatives. Veuillez réessayer dans un instant."
   },
   "repeat": {
     "day": "Chaque jour",
@@ -619,14 +683,41 @@
     "shortWeek": "Hebdomadaire",
     "shortMonth": "Mensuel",
     "shortYear": "Annuel",
-    "shortMonthPrefix": "Mois ·"
+    "shortMonthPrefix": "Mois ·",
+    "monthWeekday": "Chaque {ordinal} {weekday} du mois",
+    "monthWeekdayLast": "Chaque dernier {weekday} du mois",
+    "ordinal": {
+      "1": "premier",
+      "2": "deuxième",
+      "3": "troisième",
+      "4": "quatrième",
+      "5": "cinquième"
+    },
+    "chipMonthWeekday": "Mois · {ordinal} {weekday}",
+    "chipMonthWeekdayLast": "Mois · dernier {weekday}",
+    "chipOrdinal": {
+      "1": "1er",
+      "2": "2e",
+      "3": "3e",
+      "4": "4e",
+      "5": "5e"
+    },
+    "weekday": {
+      "0": "dimanche",
+      "1": "lundi",
+      "2": "mardi",
+      "3": "mercredi",
+      "4": "jeudi",
+      "5": "vendredi",
+      "6": "samedi"
+    }
   },
   "nav": {
-    "inbox": "Boîte de réception",
+    "inbox": "Inbox",
     "tasks": "Tâches",
-    "calendar": "Calendrier",
+    "calendar": "Agenda",
     "groceries": "Courses",
-    "settings": "Paramètres"
+    "settings": "Régl."
   },
   "dashboard": {
     "inbox": "Réception",
@@ -650,7 +741,37 @@
     "eventUnreadable": "Un événement n'a pas pu être lu : {error}",
     "fileUnreadable": "Le fichier n'a pas pu être lu comme agenda : {error}",
     "recurringUnsupported": "Se répète selon un schéma que todoless ne peut pas suivre ; affiché une fois",
-    "recurringShort": "Série"
+    "recurringShort": "Série",
+    "batchFailed": "Lot {batch} : {error}",
+    "chooseFile": "Choisir un fichier .ics ou .zip",
+    "date": "Date",
+    "errorsCount": "{count} erreurs",
+    "eventsFound": "{count} événements trouvés",
+    "exportButton": "Exporter en .ics",
+    "exportFailed": "Export échoué",
+    "exportTitle": "Exporter l'agenda",
+    "fileTooLarge": "Fichier trop volumineux (max 10 Mo)",
+    "googleHelpStep1": "Ouvrez Google Agenda → ⚙ Paramètres",
+    "googleHelpStep2": "Importer et exporter → Exporter",
+    "googleHelpStep3": "Téléchargez le fichier .zip",
+    "googleHelpStep4": "Téléversez-le ici — nous extrayons automatiquement le .ics",
+    "googleHelpTitle": "Exporter depuis Google Agenda",
+    "importComplete": "Import terminé",
+    "importDescription": "Importez des rendez-vous depuis Google Agenda, Apple Agenda ou tout fichier .ics.",
+    "importEvents": "Importer {count} événements",
+    "importSummary": "{created} créés · {updated} mis à jour",
+    "importTitle": "Importer un agenda (.ics)",
+    "importedToast": "Importé : {created} nouveaux, {updated} mis à jour",
+    "importingProgress": "Import… {current}/{total}",
+    "itemsCouldNotParse": "{count} éléments n’ont pas pu être analysés",
+    "maxFileSize": "Max 10 Mo",
+    "noIcsFiles": "Aucun fichier .ics trouvé dans le ZIP",
+    "parseFailed": "Impossible d’analyser le fichier",
+    "parseWarnings": "{count} avertissements d’analyse",
+    "parsingFile": "Analyse de {file}…",
+    "skippedCount": "{count} ignorés",
+    "time": "Heure",
+    "title": "Titre"
   },
   "errors": {
     "offline": "Vous êtes hors ligne ou le serveur est injoignable. Vérifiez votre connexion et réessayez.",
@@ -659,5 +780,17 @@
     "unknown": "Une erreur est survenue lors du chargement de vos données.",
     "reload": "Recharger l’application",
     "resetLocal": "Se déconnecter et réinitialiser cet appareil"
+  },
+  "labels": {
+    "anotherMember": "un autre membre",
+    "editLabel": "Modifier le label",
+    "readOnlyByOwner": "Label en lecture seule par {owner}",
+    "sharedMembers": "Membres partagés",
+    "visibilityFamily": "Famille",
+    "visibilityFamilyDescription": "Toute la famille voit les tâches avec ce label.",
+    "visibilityPrivate": "Privé",
+    "visibilityPrivateDescription": "Vous seul voyez les tâches avec ce label.",
+    "visibilityShared": "Partagé",
+    "visibilitySharedDescription": "Seuls vous et les membres sélectionnés voyez ces tâches."
   }
 }

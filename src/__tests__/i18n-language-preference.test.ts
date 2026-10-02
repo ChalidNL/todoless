@@ -70,14 +70,11 @@ describe('per-user UI language preferences', () => {
   });
 
   it('never leaks Dutch overlay strings into the English nav/dashboard translations', () => {
-    // Regression for GH#70: the English entry of `overlayTranslations` in
-    // translations.ts had been hand-edited with literal Dutch strings
-    // ("Taken", "Agenda", "Shop", "Instellingen", "Geblokkeerd") — a static
-    // data bug, not a runtime state-sync bug. Since `t(key, 'en')` always
-    // resolves through this overlay first (see lookupTranslation), no amount
-    // of re-triggering changeAppLanguage/LanguageContext could ever fix it
-    // for English. Uses the overlay lookup path directly so a full render is
-    // not needed to catch the regression.
+    // Regression for GH#70: the English entry of a translation layer had been
+    // hand-edited with literal Dutch strings ("Taken", "Agenda", "Shop",
+    // "Instellingen", "Geblokkeerd") - a static data bug, not a runtime
+    // state-sync bug. All strings now live in src/locales/<lang>.json (#260);
+    // this pins the English and Dutch values there.
     expect(t('nav.inbox', 'en')).toBe('Inbox');
     expect(t('nav.tasks', 'en')).toBe('Tasks');
     expect(t('nav.calendar', 'en')).toBe('Calendar');
