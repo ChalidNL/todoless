@@ -570,7 +570,11 @@ try {
           if (!linkParent || !_canAccessTask(linkParent)) return c.json(404, {error:'Parent task not found'});
           rec.set('linked_to', linkedTo);
         }
-        var linkedType = String(gv(d,'linked_type','')).trim();
+        // linked_to is documented as the parent TASK id; without linked_type
+        // the child was stored type-less, which the app does not treat as a
+        // subtask (it derives subtasks from linked_type = 'task') and the
+        // cycle guard could not see either.
+        var linkedType = String(gv(d,'linked_type','')).trim() || (linkedTo ? 'task' : '');
         if (linkedType) rec.set('linked_type', linkedType);
         rec.set('flag',false);
         $app.save(rec);

@@ -1447,6 +1447,24 @@ test('the server refuses self-links and cyclic or nested parent links (#241)', a
   // a valid link still works
   const ok = await api('PATCH', `/api/collections/tasks/records/${c}`, { token: adminToken, body: { linked_to: a, linked_type: 'task' } })
   assert.equal(ok.status, 200, JSON.stringify(ok.data))
+
+  // /api/v1 create with linked_to (documented as the parent task id) must
+  // produce a real subtask - linked_type 'task' - and the guard must treat a
+  // type-less child as a subtask too, or A -> B -> A is possible again.
+  const parent = await mk('Cycle P')
+  const child = await api('POST', '/api/v1', { token: adminToken, body: { action: 'create', type: 'task', title: 'Cycle Q', linked_to: parent } })
+  assert.equal(child.status, 201, JSON.stringify(child.data))
+  const childRec = await getRecord('tasks', child.data.id)
+  assert.equal(childRec.data.linked_to, parent)
+  assert.equal(childRec.data.linked_type, 'task', 'a v1-created child is a subtask the app can see')
+  const cycle2 = await api('PATCH', `/api/collections/tasks/records/${parent}`, { token: adminToken, body: { linked_to: child.data.id, linked_type: 'task' } })
+  assert.equal(cycle2.status, 400, `P under its v1-created subtask must fail: ${JSON.stringify(cycle2.data)}`)
+  // a type-less child written directly is caught as well
+  const typeless = await mk('Cycle R')
+  const link = await api('PATCH', `/api/collections/tasks/records/${typeless}`, { token: adminToken, body: { linked_to: parent } })
+  assert.equal(link.status, 200, JSON.stringify(link.data))
+  const cycle3 = await api('PATCH', `/api/collections/tasks/records/${parent}`, { token: adminToken, body: { linked_to: typeless, linked_type: 'task' } })
+  assert.equal(cycle3.status, 400, `P under a type-less child must fail: ${JSON.stringify(cycle3.data)}`)
 })
 
 // --- 8h. #240: completed_by is the person who completed it ----------------
