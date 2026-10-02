@@ -260,7 +260,7 @@ routerAdd('GET','/api/calendar.ics',function(c){
       if(!auth)return c.json(401,{error:'Invalid calendar token'});
     }else{
       var ba=authLib.bearerAuthMiddleware(c);
-      if(ba)return ba;
+      if(ba)return c.json(ba.status,{error:ba.error});
       auth=(info&&info.auth)||c.get('authRecord')||null;
       if(!auth)return c.json(401,{error:'Unauthorized'});
       if(!authLib.checkTokenPermission(c,'calendar:read'))return c.json(403,{error:'Missing permission: calendar:read'});

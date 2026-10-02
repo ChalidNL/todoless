@@ -370,7 +370,7 @@ routerAdd('GET', '/api/entries', (c) => {
 
 try {
     var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
     var info = c.requestInfo();
     var auth = (info && info.auth) || c.get('authRecord');
     if (!auth) return c.json(401, { error: 'Unauthorized' });
@@ -395,7 +395,7 @@ routerAdd('POST', '/api/v1', (c) => {
 
 try {
     var ba = bearerAuthMiddleware(c);
-    if (ba) return ba;
+    if (ba) return c.json(ba.status, { error: ba.error });
     var info = c.requestInfo();
     var body = info.body || {};
     var d = body;

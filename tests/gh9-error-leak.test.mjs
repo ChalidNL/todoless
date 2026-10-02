@@ -221,11 +221,21 @@ test('every previously-leaky hook file calls respondError in its error path', ()
     'pb_hooks/09_api_tokens.pb.js': 1,
     'pb_hooks/13_companion.pb.js': 1,
     'pb_hooks/14_ics.pb.js': 1,
-    'pb_hooks/lib/auth.js': 1,
   }
   for (const [file, min] of Object.entries(expectations)) {
     const source = read(file)
     const count = (source.match(/respondError\(/g) || []).length
     assert.ok(count >= min, `${file}: expected >= ${min} respondError( call sites, found ${count}`)
+  }
+})
+
+test('the API-token middleware never writes a response itself', () => {
+  // c.json() returns nothing in the JSVM: a middleware that wrote a 401 and
+  // returned that "result" let the route continue and answer a second time.
+  const source = read('pb_hooks/lib/auth.js')
+  const body = source.slice(source.indexOf('function bearerAuthMiddleware('), source.indexOf('function checkTokenPermission('))
+  assert.doesNotMatch(body, /c\.json\(|respondError\(/)
+  for (const file of ['pb_hooks/09_api_tokens.pb.js', 'pb_hooks/12_api_routes.pb.js', 'pb_hooks/14_ics.pb.js', 'pb_hooks/16_bootstrap.pb.js', 'pb_hooks/main.pb.js']) {
+    assert.doesNotMatch(read(file), /return (ba|tokenAuth);/, file)
   }
 })

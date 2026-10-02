@@ -2010,3 +2010,25 @@ test('new admin can list and revoke agent keys created by a demoted former admin
   assert.ok(revoked, 'revoked key should still be listed')
   assert.equal(revoked.active, false)
 })
+
+// --- The API-token middleware answers once ----------------------------------
+// It used to write its 401/403 and let the route continue (c.json() returns
+// nothing in the JSVM), so the client got the error followed by the data.
+test('custom routes answer exactly once for expired API tokens and session tokens without Bearer', async () => {
+  const created = await api('POST', '/api/api-tokens', {
+    token: memberToken,
+    body: { name: 'smoke-expired', permissions: ['tasks:read'], expires_at: '2000-01-01 00:00:00.000Z' },
+  })
+  assert.equal(created.status, 201, JSON.stringify(created.data))
+
+  const expired = await fetch(BASE + '/api/bootstrap', { headers: { Authorization: `Bearer ${created.data.token}` } })
+  const expiredText = await expired.text()
+  assert.equal(expired.status, 401)
+  assert.deepEqual(JSON.parse(expiredText), { error: 'API token has expired' }, 'one JSON body, no data after it')
+
+  // PocketBase accepts its session token with or without "Bearer".
+  const raw = await fetch(BASE + '/api/bootstrap', { headers: { Authorization: memberToken } })
+  const rawText = await raw.text()
+  assert.equal(raw.status, 200)
+  assert.ok(Array.isArray(JSON.parse(rawText).tasks), 'one JSON body with the boot payload')
+})
