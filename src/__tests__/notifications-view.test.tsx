@@ -31,22 +31,16 @@ describe('notifications view persistence (GH#69)', () => {
     useAppMock.mockReturnValue({ ...baseApp });
   });
 
-  it('persists the push notifications toggle through updateAppSettings', async () => {
-    const updateAppSettings = vi.fn().mockResolvedValue(true);
-    useAppMock.mockReturnValue({ ...baseApp, updateAppSettings });
-
+  it('offers no push / e-mail switches while nothing delivers them (#254)', () => {
     render(
       <MemoryRouter>
         <NotificationsView />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('checkbox', { name: /push notifications/i }));
-
-    await waitFor(() => {
-      expect(updateAppSettings).toHaveBeenCalledWith({ notificationPush: true });
-      expect(baseApp.showCompletionMessage).toHaveBeenCalledWith(t('settings.notificationsSaved'));
-    });
+    expect(screen.queryByRole('checkbox', { name: /push notifications/i })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: /email notifications/i })).toBeNull();
+    expect(screen.getByRole('checkbox', { name: /task reminders/i })).toBeTruthy();
   });
 
   it('persists the reminder lead time as reminderMinutes', async () => {

@@ -36,8 +36,16 @@ for v in $runtime_vars; do
 done
 ok "compose forwards every runtime variable"
 
+# Variables the web (nginx) container must receive; docker/nginx-trust.sh reads them.
+frontend_vars="TODOLESS_TRUSTED_PROXIES TODOLESS_REAL_IP_HEADER TODOLESS_DASHBOARD_ALLOW"
+for v in $frontend_vars; do
+  grep -qE "^\s+$v: \\\$\{$v" "$ROOT/docker-compose.yml" || fail "$v is documented in .env.example but docker-compose.yml does not pass it to the web container"
+  grep -qE "\b$v\b" "$ROOT/docker/nginx-trust.sh" || fail "$v is passed to the web container but docker/nginx-trust.sh does not read it"
+done
+ok "compose forwards every web-container variable"
+
 # Build-time / compose-only variables that are legitimately not read by the container.
-compose_or_build="REGISTRY TODOLESS_TAG TODOLESS_PORT TZ COMMIT_SHA PB_DATA_DIR VITE_GIT_COMMIT VITE_APP_VERSION"
+compose_or_build="$frontend_vars REGISTRY TODOLESS_TAG TODOLESS_PORT TZ COMMIT_SHA PB_DATA_DIR VITE_GIT_COMMIT VITE_APP_VERSION"
 for v in $documented; do
   case " $runtime_vars $compose_or_build " in
     *" $v "*) continue ;;

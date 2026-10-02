@@ -222,6 +222,27 @@ routerAdd('POST','/api/ics-import',function(c){
       var timezone=gv(ev,'timezone');
       var rrule=gv(ev,'rrule');
       var exdates=ev.exdates||null;
+      // #257: a series the app's recurrence model can express becomes a
+      // normal recurring task (repeat_interval + due_date anchor); only an
+      // RRULE it can't express is stored raw (shown once, exported as is).
+      var repeatInterval=null;
+      var dueAnchor=null;
+      if(rrule&&startTime){
+        var startMs=new Date(String(startTime)).getTime();
+        if(!isNaN(startMs)){
+          var recurrenceLib=require(__hooks+'/lib/recurrence.js');
+          if(allDay){
+            // Date-only anchor: UTC midnight of the Amsterdam calendar date
+            // (older clients sent local midnight converted to UTC).
+            var wall=new Date(startMs+(startMs%86400000===0?0:recurrenceLib.amsterdamOffsetMinutes(startMs)*60000));
+            dueAnchor=new Date(Date.UTC(wall.getUTCFullYear(),wall.getUTCMonth(),wall.getUTCDate()));
+          }else{
+            dueAnchor=new Date(startMs);
+          }
+          repeatInterval=require(__hooks+'/lib/ics-recurrence.js').rruleToRepeatInterval(rrule,recurrenceLib.getAnchorParts(dueAnchor));
+          if(repeatInterval){rrule='';}else{dueAnchor=null;}
+        }
+      }
       var recurrenceId=gv(ev,'recurrence_id');
 
       // Labels: merge bulk + event-specific
@@ -265,7 +286,11 @@ routerAdd('POST','/api/ics-import',function(c){
           if(description)existing.set('description',description);
           if(location)existing.set('location',location);
           if(timezone)existing.set('timezone',timezone);
-          if(rrule)existing.set('rrule',rrule);
+          if(repeatInterval){
+            existing.set('repeat_interval',repeatInterval);
+            existing.set('due_date',dueAnchor.toISOString());
+            existing.set('rrule','');
+          }else if(rrule)existing.set('rrule',rrule);
           if(exdates)existing.set('exdates',exdates);
           if(recurrenceId)existing.set('recurrence_id',recurrenceId);
           existing.set('source','ics_import');
@@ -297,7 +322,10 @@ routerAdd('POST','/api/ics-import',function(c){
           if(location)rec.set('location',location);
           if(uid)rec.set('uid',uid);
           if(timezone)rec.set('timezone',timezone);
-          if(rrule)rec.set('rrule',rrule);
+          if(repeatInterval){
+            rec.set('repeat_interval',repeatInterval);
+            rec.set('due_date',dueAnchor.toISOString());
+          }else if(rrule)rec.set('rrule',rrule);
           if(exdates)rec.set('exdates',exdates);
           if(recurrenceId)rec.set('recurrence_id',recurrenceId);
           rec.set('source','ics_import');

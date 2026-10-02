@@ -74,7 +74,15 @@
     "sidebar": "Sidebar",
     "mobileSidebarDescription": "Toont de mobiele sidebar.",
     "errorLoadingImage": "Afbeelding laden mislukt",
-    "manage": "Beheren"
+    "manage": "Beheren",
+    "back": "Terug",
+    "clearSearch": "Zoekopdracht wissen",
+    "done": "Klaar",
+    "loadingTasks": "Taken laden",
+    "organizeFamilyLife": "Organiseer je gezinsleven.",
+    "saved": "Opgeslagen",
+    "someChangesNotSaved": "Sommige wijzigingen konden niet worden opgeslagen",
+    "untitled": "Naamloos"
   },
   "onboarding": {
     "accountCreationFailed": "Account aanmaken mislukt. Probeer het opnieuw.",
@@ -83,7 +91,7 @@
     "creatingAccount": "Account aanmaken…",
     "email": "E-mail",
     "emailAlreadyInUse": "Dit e-mailadres is al in gebruik. Probeer in te loggen.",
-    "firstName": "Voornaam *",
+    "firstName": "Voornaam",
     "getStarted": "Aan de slag",
     "goToLogin": "Naar inloggen",
     "lastName": "Achternaam",
@@ -100,7 +108,7 @@
     "prefilledWithWorkspace": "Vooringevuld met uw workspace naam, u kunt het wijzigen",
     "skip": "Overslaan",
     "selectLanguage": "Kies uw taal",
-    "languageStepTitle": "Kies je taal",
+    "languageStepTitle": "Kies Uw Taal",
     "languageStepDesc": "Kies uw voorkeurstaal om te beginnen.",
     "step1Desc": "Uw dagelijkse assistent voor snelle, eenvoudige productiviteit zonder overweldiging.",
     "step2Desc": "Volg boodschappen met hoeveelheden en winkels. Houd uw boodschappenlijst eenvoudig en georganiseerd.",
@@ -193,8 +201,8 @@
     "taskAdded": "Taak toegevoegd aan inbox",
     "movedToBacklog": "Verplaatst naar backlog",
     "noMatchingParentTask": "Geen passende hoofdtaak gevonden",
-    "searchPlaceholder": "Taken zoeken…",
-    "labelInputPlaceholder": "Label toevoegen...",
+    "searchPlaceholder": "Taken zoeken...",
+    "labelInputPlaceholder": "Voeg een label toe...",
     "searchAssigneePlaceholder": "Zoek lid...",
     "searchAssigneeAria": "Leden zoeken",
     "labelTooltip": "Labels",
@@ -205,7 +213,7 @@
     "editSchedule": "Planning bewerken",
     "flagTooltip": "Markeren",
     "toggleFlag": "Markering wisselen",
-    "moveToBacklog": "Naar backlog",
+    "moveToBacklog": "Naar backlog verplaatsen",
     "labelInputAria": "Label toevoegen",
     "dueDateAria": "Vervaldatum",
     "dueTimeAria": "Tijd",
@@ -218,7 +226,18 @@
     "removeAssignee": "Toegewezen persoon verwijderen",
     "deleteTask": "Taak verwijderen",
     "confirmDeleteCompleted": "Alle voltooide taken verwijderen?",
-    "confirmDeleteSubtaskTitle": "Subtaak \"{title}\" verwijderen?"
+    "confirmDeleteSubtaskTitle": "Subtaak \"{title}\" verwijderen?",
+    "addFocus": "Focus toevoegen",
+    "deletedCount": "{n} verwijderd",
+    "focusHeroSubtitle": "Ademruimte voor de belangrijkste taken van vandaag.",
+    "noFocusTasks": "Geen focus-taken",
+    "noTasks": "Geen taken gevonden",
+    "priorityHigh": "Hoog",
+    "priorityLow": "Laag",
+    "priorityMedium": "Medium",
+    "removeFocus": "Focus verwijderen",
+    "saveLabel": "Label opslaan",
+    "startFocus": "Focus starten"
   },
   "items": {
     "title": "Items",
@@ -427,7 +446,34 @@
     "shopsCount": {
       "one": "{n} winkel",
       "other": "{n} winkels"
-    }
+    },
+    "emailNotifications": "E-mailmeldingen",
+    "emailNotificationsHint": "Stuur reminder-mails wanneer mail is geconfigureerd.",
+    "labelsSearchPlaceholder": "Zoek labels...",
+    "membersSearchPlaceholder": "Zoek leden...",
+    "newLabel": "Nieuw label",
+    "noLabels": "Nog geen labels",
+    "noLabelsHint": "Maak een label aan via de + knop",
+    "noShops": "Nog geen winkels",
+    "noShopsHint": "Maak een winkel aan via de + knop",
+    "notificationsActiveHint": "Opgeslagen voorkeuren gelden voor deadline-reminders en header-meldingen.",
+    "notificationsComingSoon": "Binnenkort beschikbaar",
+    "notificationsComingSoonHint": "Notificatievoorkeuren komen binnenkort beschikbaar.",
+    "notificationsDueDate": "Deadline meldingen",
+    "notificationsHint": "Kies hoe todoless je herinnert aan taken met deadline.",
+    "notificationsSaveFailed": "Meldingsvoorkeuren opslaan mislukt",
+    "notificationsSaved": "Meldingsvoorkeuren opgeslagen",
+    "pushNotifications": "Pushmeldingen",
+    "pushNotificationsHint": "Gebruik browser-/apparaatmeldingen wanneer beschikbaar.",
+    "reminderLeadTime": "Reminder vooraf",
+    "reminderMinutes": "{minutes} minuten vooraf",
+    "reminderOneDay": "1 dag vooraf",
+    "shopsSearchPlaceholder": "Zoek winkels...",
+    "sortColor": "Kleur",
+    "sortVisibility": "Zichtbaarheid",
+    "taskReminders": "Taakreminders",
+    "taskRemindersHint": "Toon meldingen voor taken die bijna verlopen.",
+    "visibility": "Zichtbaarheid"
   },
   "projects": {
     "title": "Projecten",
@@ -490,13 +536,13 @@
   },
   "calendar": {
     "title": "Kalender",
-    "newEvent": "Nieuw evenement",
+    "newEvent": "Nieuw event…",
     "allDay": "Hele dag",
     "startTime": "Starttijd",
     "endTime": "Eindtijd",
     "description": "Beschrijving",
     "eventDescription": "Evenement beschrijving",
-    "schedule": "Schedule",
+    "schedule": "Agenda",
     "day": "Dag",
     "3days": "3 dagen",
     "threeDays": "3 dagen",
@@ -504,7 +550,22 @@
     "workweek": "Werkweek",
     "month": "Maand",
     "viewLabel": "Agendaweergave",
-    "continued": "Vervolg"
+    "continued": "Vervolg",
+    "datedTask": "Taak",
+    "fewerDetails": "Minder details",
+    "location": "Locatie",
+    "moreCount": "+{n} meer",
+    "moreDetails": "Meer details",
+    "next": "Volgende",
+    "noEvents": "Geen agenda-items",
+    "previous": "Vorige",
+    "repeat": "Herhalen",
+    "saveEvent": "Evenement opslaan",
+    "saveFailed": "Evenement opslaan mislukt",
+    "searchPlaceholder": "Agenda zoeken...",
+    "timeRequired": "Start- en eindtijd zijn verplicht",
+    "titleRequired": "Titel is verplicht",
+    "today": "Vandaag"
   },
   "inbox": {
     "title": "Inbox",
@@ -524,7 +585,8 @@
     "clearAll": "Alles wissen",
     "empty": "Leeg",
     "select": "Selecteren",
-    "selectedCount": "{n} geselecteerd"
+    "selectedCount": "{n} geselecteerd",
+    "taskAdded": "Taak toegevoegd"
   },
   "members": {
     "title": "Familie",
@@ -535,7 +597,8 @@
     "manageMembers": "Familie beheren",
     "addMember": "Lid toevoegen",
     "familyLabel": "Familie",
-    "sameFamilyHint": "Hier zie je alleen leden uit dezelfde familie."
+    "sameFamilyHint": "Hier zie je alleen leden uit dezelfde familie.",
+    "inviteSectionTitle": "Uitnodigen"
   },
   "agent": {
     "title": "Agenten",
@@ -605,7 +668,8 @@
     "confirmNewPassword": "Bevestig nieuw wachtwoord",
     "resetSubmit": "Nieuw wachtwoord opslaan",
     "resetDone": "Je wachtwoord is gewijzigd. Je kunt nu inloggen met je nieuwe wachtwoord.",
-    "resetInvalidLink": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan via het inlogscherm."
+    "resetInvalidLink": "Deze resetlink is ongeldig of verlopen. Vraag een nieuwe aan via het inlogscherm.",
+    "rateLimited": "Te veel inlogpogingen. Probeer het even later opnieuw."
   },
   "repeat": {
     "day": "Elke dag",
@@ -619,13 +683,40 @@
     "shortWeek": "Wekelijks",
     "shortMonth": "Maandelijks",
     "shortYear": "Jaarlijks",
-    "shortMonthPrefix": "Mnd ·"
+    "shortMonthPrefix": "Mnd ·",
+    "monthWeekday": "Elke {ordinal} {weekday} van de maand",
+    "monthWeekdayLast": "Elke laatste {weekday} van de maand",
+    "ordinal": {
+      "1": "eerste",
+      "2": "tweede",
+      "3": "derde",
+      "4": "vierde",
+      "5": "vijfde"
+    },
+    "chipMonthWeekday": "Mnd · {ordinal} {weekday}",
+    "chipMonthWeekdayLast": "Mnd · laatste {weekday}",
+    "chipOrdinal": {
+      "1": "1e",
+      "2": "2e",
+      "3": "3e",
+      "4": "4e",
+      "5": "5e"
+    },
+    "weekday": {
+      "0": "zondag",
+      "1": "maandag",
+      "2": "dinsdag",
+      "3": "woensdag",
+      "4": "donderdag",
+      "5": "vrijdag",
+      "6": "zaterdag"
+    }
   },
   "nav": {
-    "inbox": "Inbox",
+    "inbox": "Postvak IN",
     "tasks": "Taken",
     "calendar": "Agenda",
-    "groceries": "Boodschappen",
+    "groceries": "Shop",
     "settings": "Instellingen"
   },
   "dashboard": {
@@ -645,7 +736,42 @@
     "linkCopied": "Link gekopieerd",
     "revokeLinks": "Abonnementslinks intrekken",
     "revokedLinks": "Abonnementslinks ingetrokken: {n}",
-    "subscribeFailed": "Kon de abonnementslink niet maken."
+    "subscribeFailed": "Kon de abonnementslink niet maken.",
+    "eventWithoutStart": "Afspraak zonder startdatum overgeslagen: {title}",
+    "eventUnreadable": "Een afspraak kon niet worden gelezen: {error}",
+    "fileUnreadable": "Het bestand kon niet als agenda worden gelezen: {error}",
+    "recurringUnsupported": "Herhaalt volgens een patroon dat todoless niet kan volgen; eenmalig getoond",
+    "recurringShort": "Reeks",
+    "batchFailed": "Batch {batch}: {error}",
+    "chooseFile": "Kies .ics of .zip bestand",
+    "date": "Datum",
+    "errorsCount": "{count} fouten",
+    "eventsFound": "{count} events gevonden",
+    "exportButton": "Exporteren als .ics",
+    "exportFailed": "Export mislukt",
+    "exportTitle": "Agenda exporteren",
+    "fileTooLarge": "Bestand te groot (max 10 MB)",
+    "googleHelpStep1": "Open Google Agenda → ⚙ Instellingen",
+    "googleHelpStep2": "Importeren en exporteren → Exporteren",
+    "googleHelpStep3": "Download het .zip-bestand",
+    "googleHelpStep4": "Upload het hier — wij halen de .ics automatisch uit de ZIP",
+    "googleHelpTitle": "Exporteren vanuit Google Agenda",
+    "importComplete": "Import voltooid",
+    "importDescription": "Importeer afspraken van Google Agenda, Apple Agenda of elk .ics-bestand.",
+    "importEvents": "{count} events importeren",
+    "importSummary": "{created} aangemaakt · {updated} bijgewerkt",
+    "importTitle": "Agenda importeren (.ics)",
+    "importedToast": "Geïmporteerd: {created} nieuw, {updated} bijgewerkt",
+    "importingProgress": "Importeren… {current}/{total}",
+    "itemsCouldNotParse": "{count} items konden niet worden gelezen",
+    "maxFileSize": "Max 10 MB",
+    "noIcsFiles": "Geen .ics-bestanden gevonden in de ZIP",
+    "parseFailed": "Bestand lezen mislukt",
+    "parseWarnings": "{count} parse-waarschuwingen",
+    "parsingFile": "{file} verwerken…",
+    "skippedCount": "{count} overgeslagen",
+    "time": "Tijd",
+    "title": "Titel"
   },
   "errors": {
     "offline": "Je bent offline of de server is niet bereikbaar. Controleer je verbinding en probeer het opnieuw.",
@@ -654,5 +780,17 @@
     "unknown": "Er ging iets mis bij het laden van je gegevens.",
     "reload": "App herladen",
     "resetLocal": "Uitloggen en dit apparaat resetten"
+  },
+  "labels": {
+    "anotherMember": "een ander lid",
+    "editLabel": "Label bewerken",
+    "readOnlyByOwner": "Alleen-lezen label door {owner}",
+    "sharedMembers": "Gedeelde leden",
+    "visibilityFamily": "Familie",
+    "visibilityFamilyDescription": "Iedereen in het gezin ziet taken met dit label.",
+    "visibilityPrivate": "Privé",
+    "visibilityPrivateDescription": "Alleen jij ziet taken met dit label.",
+    "visibilityShared": "Gedeeld",
+    "visibilitySharedDescription": "Alleen jij en geselecteerde leden zien deze taken."
   }
 }

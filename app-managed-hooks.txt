@@ -93,3 +93,5 @@ test.js
 lib/task-note.js
 lib/task-status.js
 lib/task-parent.js
+lib/invite-check.js
+lib/ics-recurrence.js

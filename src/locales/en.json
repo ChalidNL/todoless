@@ -74,7 +74,15 @@
     "sidebar": "Sidebar",
     "mobileSidebarDescription": "Displays the mobile sidebar.",
     "errorLoadingImage": "Error loading image",
-    "manage": "Manage"
+    "manage": "Manage",
+    "back": "Back",
+    "clearSearch": "Clear search",
+    "done": "Done",
+    "loadingTasks": "Loading tasks",
+    "organizeFamilyLife": "Organize Family Life.",
+    "saved": "Saved",
+    "someChangesNotSaved": "Some changes could not be saved",
+    "untitled": "Untitled"
   },
   "onboarding": {
     "accountCreationFailed": "Account creation failed. Please try again.",
@@ -83,7 +91,7 @@
     "creatingAccount": "Creating account…",
     "email": "Email",
     "emailAlreadyInUse": "This email is already in use. Try logging in.",
-    "firstName": "First name *",
+    "firstName": "First name",
     "getStarted": "Get Started",
     "goToLogin": "Go to login",
     "lastName": "Last name",
@@ -194,7 +202,7 @@
     "movedToBacklog": "Moved to backlog",
     "noMatchingParentTask": "No matching main task found",
     "searchPlaceholder": "Search tasks…",
-    "labelInputPlaceholder": "Add label...",
+    "labelInputPlaceholder": "Add a label...",
     "searchAssigneePlaceholder": "Search member...",
     "searchAssigneeAria": "Search members",
     "labelTooltip": "Labels",
@@ -218,14 +226,25 @@
     "removeAssignee": "Remove assignee",
     "deleteTask": "Delete task",
     "confirmDeleteCompleted": "Delete all completed tasks?",
-    "confirmDeleteSubtaskTitle": "Delete subtask \"{title}\"?"
+    "confirmDeleteSubtaskTitle": "Delete subtask \"{title}\"?",
+    "addFocus": "Add focus",
+    "deletedCount": "{n} deleted",
+    "focusHeroSubtitle": "Breathing room for today’s most important tasks.",
+    "noFocusTasks": "No focus tasks",
+    "noTasks": "No tasks found",
+    "priorityHigh": "High",
+    "priorityLow": "Low",
+    "priorityMedium": "Medium",
+    "removeFocus": "Remove focus",
+    "saveLabel": "Save label",
+    "startFocus": "Start focus"
   },
   "items": {
     "title": "Items",
     "newItem": "New Item",
     "quantity": "Quantity",
     "category": "Category",
-    "searchPlaceholder": "Search items...",
+    "searchPlaceholder": "Search items…",
     "confirmDelete": "Delete this item?",
     "confirmRestock": "Restock all completed groceries?",
     "empty": "Empty",
@@ -427,7 +446,34 @@
     "shopsCount": {
       "one": "{n} shop",
       "other": "{n} shops"
-    }
+    },
+    "emailNotifications": "Email notifications",
+    "emailNotificationsHint": "Send reminder emails when mail is configured.",
+    "labelsSearchPlaceholder": "Search labels...",
+    "membersSearchPlaceholder": "Search members...",
+    "newLabel": "New label",
+    "noLabels": "No labels yet",
+    "noLabelsHint": "Create a label with the + button",
+    "noShops": "No shops yet",
+    "noShopsHint": "Create a shop with the + button",
+    "notificationsActiveHint": "Saved preferences apply to due-date reminders and header alerts.",
+    "notificationsComingSoon": "Coming soon",
+    "notificationsComingSoonHint": "Notification preferences will be available in a future update.",
+    "notificationsDueDate": "Due date notifications",
+    "notificationsHint": "Choose where todoless reminds you about due tasks.",
+    "notificationsSaveFailed": "Could not save notification preferences",
+    "notificationsSaved": "Notification preferences saved",
+    "pushNotifications": "Push notifications",
+    "pushNotificationsHint": "Use browser/device notifications when available.",
+    "reminderLeadTime": "Reminder lead time",
+    "reminderMinutes": "{minutes} minutes before",
+    "reminderOneDay": "1 day before",
+    "shopsSearchPlaceholder": "Search shops...",
+    "sortColor": "Color",
+    "sortVisibility": "Visibility",
+    "taskReminders": "Task reminders",
+    "taskRemindersHint": "Show alerts for tasks due soon.",
+    "visibility": "Visibility"
   },
   "projects": {
     "title": "Projects",
@@ -490,7 +536,7 @@
   },
   "calendar": {
     "title": "Calendar",
-    "newEvent": "New Event",
+    "newEvent": "New event…",
     "allDay": "All Day",
     "startTime": "Start Time",
     "endTime": "End Time",
@@ -504,7 +550,22 @@
     "workweek": "Work week",
     "month": "Month",
     "viewLabel": "Calendar view",
-    "continued": "Continued"
+    "continued": "Continued",
+    "datedTask": "Task",
+    "fewerDetails": "Fewer details",
+    "location": "Location",
+    "moreCount": "+{n} more",
+    "moreDetails": "More details",
+    "next": "Next",
+    "noEvents": "No calendar items",
+    "previous": "Previous",
+    "repeat": "Repeat",
+    "saveEvent": "Save event",
+    "saveFailed": "Could not save event",
+    "searchPlaceholder": "Search calendar…",
+    "timeRequired": "Start and end time are required",
+    "titleRequired": "Title is required",
+    "today": "Today"
   },
   "inbox": {
     "title": "Inbox",
@@ -516,7 +577,7 @@
     "deselectAll": "Deselect All",
     "cancelSelection": "Cancel Selection",
     "pushSelected": "Push Selected",
-    "searchPlaceholder": "Search inbox...",
+    "searchPlaceholder": "Search inbox…",
     "noTasksFound": "No tasks found",
     "noTasks": "No tasks found",
     "noResults": "No results",
@@ -524,7 +585,8 @@
     "clearAll": "Clear All",
     "empty": "Empty",
     "select": "Select",
-    "selectedCount": "{n} selected"
+    "selectedCount": "{n} selected",
+    "taskAdded": "Task added"
   },
   "members": {
     "title": "Family",
@@ -535,7 +597,8 @@
     "manageMembers": "Manage Family",
     "addMember": "Add Member",
     "familyLabel": "Family",
-    "sameFamilyHint": "Only members from the same family are shown here."
+    "sameFamilyHint": "Only members from the same family are shown here.",
+    "inviteSectionTitle": "Invite"
   },
   "agent": {
     "title": "Agents",
@@ -605,7 +668,8 @@
     "confirmNewPassword": "Confirm new password",
     "resetSubmit": "Save new password",
     "resetDone": "Your password has been changed. You can now log in with your new password.",
-    "resetInvalidLink": "This reset link is invalid or has expired. Request a new one from the login screen."
+    "resetInvalidLink": "This reset link is invalid or has expired. Request a new one from the login screen.",
+    "rateLimited": "Too many attempts. Please try again in a moment."
   },
   "repeat": {
     "day": "Every day",
@@ -619,7 +683,34 @@
     "shortWeek": "Weekly",
     "shortMonth": "Monthly",
     "shortYear": "Yearly",
-    "shortMonthPrefix": "Mon ·"
+    "shortMonthPrefix": "Mon ·",
+    "monthWeekday": "Every {ordinal} {weekday} of the month",
+    "monthWeekdayLast": "Every last {weekday} of the month",
+    "ordinal": {
+      "1": "first",
+      "2": "second",
+      "3": "third",
+      "4": "fourth",
+      "5": "fifth"
+    },
+    "chipMonthWeekday": "Mon · {ordinal} {weekday}",
+    "chipMonthWeekdayLast": "Mon · last {weekday}",
+    "chipOrdinal": {
+      "1": "1st",
+      "2": "2nd",
+      "3": "3rd",
+      "4": "4th",
+      "5": "5th"
+    },
+    "weekday": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    }
   },
   "nav": {
     "inbox": "Inbox",
@@ -645,7 +736,42 @@
     "linkCopied": "Link copied",
     "revokeLinks": "Revoke subscription links",
     "revokedLinks": "Subscription links revoked: {n}",
-    "subscribeFailed": "Could not create the subscription link."
+    "subscribeFailed": "Could not create the subscription link.",
+    "eventWithoutStart": "Event without a start date skipped: {title}",
+    "eventUnreadable": "An event could not be read: {error}",
+    "fileUnreadable": "The file could not be read as a calendar: {error}",
+    "recurringUnsupported": "Repeats in a pattern todoless can't follow; shown once",
+    "recurringShort": "Series",
+    "batchFailed": "Batch {batch}: {error}",
+    "chooseFile": "Choose .ics or .zip file",
+    "date": "Date",
+    "errorsCount": "{count} errors",
+    "eventsFound": "{count} events found",
+    "exportButton": "Export as .ics",
+    "exportFailed": "Export failed",
+    "exportTitle": "Export Calendar",
+    "fileTooLarge": "File too large (max 10 MB)",
+    "googleHelpStep1": "Open Google Calendar → ⚙ Settings",
+    "googleHelpStep2": "Import & export → Export",
+    "googleHelpStep3": "Download the .zip file",
+    "googleHelpStep4": "Upload it here — we extract the .ics automatically",
+    "googleHelpTitle": "How to export from Google Calendar",
+    "importComplete": "Import complete",
+    "importDescription": "Import appointments from Google Calendar, Apple Calendar, or any .ics file.",
+    "importEvents": "Import {count} events",
+    "importSummary": "{created} created · {updated} updated",
+    "importTitle": "Import Calendar (.ics)",
+    "importedToast": "Imported: {created} new, {updated} updated",
+    "importingProgress": "Importing… {current}/{total}",
+    "itemsCouldNotParse": "{count} items could not be parsed",
+    "maxFileSize": "Max 10 MB",
+    "noIcsFiles": "No .ics files found in the ZIP",
+    "parseFailed": "Failed to parse file",
+    "parseWarnings": "{count} parse warnings",
+    "parsingFile": "Parsing {file}…",
+    "skippedCount": "{count} skipped",
+    "time": "Time",
+    "title": "Title"
   },
   "errors": {
     "offline": "You're offline or the server can't be reached. Check your connection and try again.",
@@ -654,5 +780,17 @@
     "unknown": "Something went wrong while loading your data.",
     "reload": "Reload app",
     "resetLocal": "Sign out and reset this device"
+  },
+  "labels": {
+    "anotherMember": "another member",
+    "editLabel": "Edit label",
+    "readOnlyByOwner": "Read-only label by {owner}",
+    "sharedMembers": "Shared members",
+    "visibilityFamily": "Family",
+    "visibilityFamilyDescription": "Everyone in the family sees tasks with this label.",
+    "visibilityPrivate": "Private",
+    "visibilityPrivateDescription": "Only you see tasks with this label.",
+    "visibilityShared": "Shared",
+    "visibilitySharedDescription": "Only you and selected members see these tasks."
   }
 }

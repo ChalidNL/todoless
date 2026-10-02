@@ -142,6 +142,8 @@ All settings are optional. Put them in a `.env` file next to `docker-compose.yml
 | `APP_URL` | Public address of your install, used in e-mail links (for example `https://todo.example.org`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_AUTH_METHOD` | Your SMTP server, used for password-reset e-mails. E-mail is enabled when `SMTP_HOST` is set. |
 | `TRUSTED_PROXY_HEADERS`, `TRUSTED_PROXY_USE_LEFTMOST_IP` | Advanced; normally leave empty. A fresh install already trusts only the rightmost `X-Forwarded-For` address, which the bundled nginx adds itself. Never set `TRUSTED_PROXY_USE_LEFTMOST_IP=true`: clients can forge the leftmost address. |
+| `TODOLESS_TRUSTED_PROXIES`, `TODOLESS_REAL_IP_HEADER` | Only behind a reverse proxy: the address(es) your proxy connects from, and the header that carries the visitor's IP (default `X-Forwarded-For`, cloudflared: `CF-Connecting-IP`). Then rate limits, logs and the dashboard check use the real visitor IP. Empty (default): no header is trusted. See [Running securely](#running-securely). |
+| `TODOLESS_DASHBOARD_ALLOW` | Addresses allowed to open the PocketBase dashboard (`/_/`). Default: loopback, `10.0.0.0/8`, `192.168.0.0/16`, Tailscale `100.64.0.0/10`, IPv6 ULA. |
 | `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD` | Create or update the PocketBase dashboard login on every start |
 | `LOG_LEVEL` | Backend log verbosity: `info` (default), `warn`, `error` or `debug` |
 | `MAIL_WEBHOOK_SECRET` | Shared secret for the optional inbound-mail webhook |
@@ -194,8 +196,11 @@ What happens automatically when PocketBase restarts:
 - **Schema changes in the dashboard** no longer write migration files (`--automigrate=false`). If `pb_migrations/` contains files whose names start with a 10-digit timestamp, created by older versions, review them and remove the ones you don't need.
 
 Things that behave differently:
-- The PocketBase dashboard (`/_/`) no longer answers through a reverse proxy. Use it directly on the LAN, via Tailscale or through an SSH tunnel (see [Running securely](#running-securely)).
+- The PocketBase dashboard (`/_/`) no longer answers through a reverse proxy, and no longer from `172.16.0.0/12` by default (that is where Docker's networks live). Use it directly on the LAN, via Tailscale or through an SSH tunnel, or adjust `TODOLESS_DASHBOARD_ALLOW` (see [Running securely](#running-securely)).
+- The web container no longer trusts a client-IP header from a fixed address. Behind a reverse proxy or cloudflared, set `TODOLESS_TRUSTED_PROXIES` (and `TODOLESS_REAL_IP_HEADER`) so rate limits use the real visitor IP.
 - Admins can no longer create API tokens for other human family members.
+- Recurring tasks with a time keep their clock time across daylight-saving changes (a weekly 09:00 task stays at 09:00), and the calendar shows exactly the occurrences the server will create.
+- Imported calendar series that repeat daily, weekly, monthly, on the n-th weekday or yearly now become normal recurring tasks. Other patterns are shown once with a "Series" marker. Re-import a calendar you imported before to convert its series.
 
 Optional: set `ENCRYPTION_KEY` to encrypt the PocketBase settings. Keep the key with your backups (see [Settings encryption](#settings-encryption)).
 </details>
@@ -232,7 +237,7 @@ docker compose start pocketbase
 todoless is meant to live on your own network. The container serves plain HTTP on port 7070, so **never expose that port directly to the internet**.
 
 - **Private network (recommended for families):** install [Tailscale](https://tailscale.com) or WireGuard on the server and your devices, and open `http://your-server:7070` from anywhere. Nothing is exposed publicly.
-- **Public domain:** put a reverse proxy with HTTPS in front, for example Caddy (`todo.example.org { reverse_proxy localhost:7070 }`), Traefik or nginx with Let's Encrypt. Set `APP_URL` to the public address. Behind a reverse proxy, todoless sees every visitor as coming from the proxy's address, so they share one login rate limit (5 attempts per minute with a small burst) and the dashboard is not reachable through the proxy. Leave `TRUSTED_PROXY_HEADERS` empty: PocketBase already trusts only the address that the bundled nginx adds itself.
+- **Public domain:** put a reverse proxy with HTTPS in front, for example Caddy (`todo.example.org { reverse_proxy localhost:7070 }`), Traefik or nginx with Let's Encrypt. Set `APP_URL` to the public address. Behind a reverse proxy, todoless sees every visitor as coming from the proxy's address, so they share one login rate limit (5 attempts per minute with a small burst). To fix that, set `TODOLESS_TRUSTED_PROXIES` to the address your proxy connects from (for a proxy on the Docker host usually the compose network gateway, shown by `docker network inspect`; check the client IP in `docker compose logs todoless`) and, for cloudflared, `TODOLESS_REAL_IP_HEADER=CF-Connecting-IP`. Only list an address that nothing but your proxy can connect from. Leave `TRUSTED_PROXY_HEADERS` empty: PocketBase already trusts only the address that the bundled nginx adds itself.
 
 Built-in hardening:
 - Both containers run as non-root, with all Linux capabilities dropped; the web container's filesystem is read-only.
@@ -245,7 +250,7 @@ To report a vulnerability, see [SECURITY.md](SECURITY.md).
 <details>
 <summary><b>PocketBase admin dashboard</b></summary>
 
-PocketBase's own dashboard at **http://your-server:7070/_/** gives access to the data, settings, backups and logs. It only answers **direct** requests from private networks (LAN, loopback and the Tailscale range). A request that arrives through a reverse proxy (it carries `X-Forwarded-For`, `Forwarded`, `X-Real-IP` or `CF-Connecting-IP`) gets `403`: behind a proxy, every visitor appears to come from the proxy's private address, so the allow-list could not tell the internet from your LAN. If you used to open the dashboard through your reverse proxy, open it directly on the LAN, via Tailscale or through an SSH tunnel instead.
+PocketBase's own dashboard at **http://your-server:7070/_/** gives access to the data, settings, backups and logs. It only answers requests from private networks: loopback, `10.0.0.0/8`, `192.168.0.0/16`, the Tailscale range and IPv6 ULA (change the list with `TODOLESS_DASHBOARD_ALLOW`). `172.16.0.0/12` is not in the default list because Docker's own networks live there: a proxy on the Docker host would make every internet visitor look like a LAN client. A request that arrives through a reverse proxy (it carries `X-Forwarded-For`, `Forwarded`, `X-Real-IP` or `CF-Connecting-IP`) gets `403`, unless the proxy is listed in `TODOLESS_TRUSTED_PROXIES`: then the visitor's real address is checked against the list. If you used to open the dashboard through your reverse proxy, open it directly on the LAN, via Tailscale or through an SSH tunnel instead.
 
 Set `POCKETBASE_ADMIN_EMAIL` and `POCKETBASE_ADMIN_PASSWORD` in `.env` to create the dashboard login automatically, or create it once by hand:
 ```bash

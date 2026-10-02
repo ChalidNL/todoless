@@ -6,6 +6,16 @@
 import ICAL from 'ical.js';
 import { t } from '../i18n/translations';
 
+function message(key: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce((text, [name, value]) => text.split(`{${name}}`).join(value), t(key));
+}
+
+// An all-day DTSTART/DTEND (VALUE=DATE) as the app's date-only value: UTC
+// midnight of that calendar date, independent of the browser's timezone.
+function dateOnlyIso(time: ICAL.Time): string {
+  return new Date(Date.UTC(time.year, time.month - 1, time.day)).toISOString();
+}
+
 export interface ParsedEvent {
   uid: string;
   title: string;
@@ -46,29 +56,22 @@ export function parseIcs(icsText: string): ParseResult {
       try {
         const event = new ICAL.Event(vevent);
 
-        const startDate = event.startDate?.toJSDate();
-        const endDate = event.endDate?.toJSDate();
-
-        if (!startDate) {
-          errors.push(`Event without DTSTART skipped: ${event.summary || '(no title)'}`);
+        if (!event.startDate) {
+          errors.push(message('ics.eventWithoutStart', { title: event.summary || t('common.untitled') }));
           continue;
         }
 
-        const startISO = startDate.toISOString();
-        const endISO = endDate ? endDate.toISOString() : startISO;
+        // All-day is what the file says (DTSTART;VALUE=DATE), not a guess
+        // from the clock: a timed event at exactly 00:00 stays timed (#257).
+        const allDay = event.startDate.isDate;
+        const startISO = allDay ? dateOnlyIso(event.startDate) : event.startDate.toJSDate().toISOString();
+        const endISO = event.endDate
+          ? (allDay && event.endDate.isDate ? dateOnlyIso(event.endDate) : event.endDate.toJSDate().toISOString())
+          : startISO;
 
         // Track date range
         if (!minDate || startISO < minDate) minDate = startISO;
         if (!maxDate || endISO > maxDate) maxDate = endISO;
-
-        // Determine all-day
-        const allDay =
-          event.startDate.isDate ||
-          (event.startDate.hour === 0 &&
-           event.startDate.minute === 0 &&
-           event.startDate.second === 0 &&
-           (!event.endDate || event.endDate.isDate ||
-            (event.endDate.hour === 0 && event.endDate.minute === 0)));
 
         // Extract recurrence info
         const rruleProp = event.component?.getFirstPropertyValue('rrule');
@@ -116,11 +119,11 @@ export function parseIcs(icsText: string): ParseResult {
           recurrence_id: recIdStr,
         });
       } catch (e: any) {
-        errors.push(`Error parsing event: ${e?.message || String(e)}`);
+        errors.push(message('ics.eventUnreadable', { error: e?.message || String(e) }));
       }
     }
   } catch (e: any) {
-    errors.push(`Failed to parse ICS file: ${e?.message || String(e)}`);
+    errors.push(message('ics.fileUnreadable', { error: e?.message || String(e) }));
   }
 
   return {
