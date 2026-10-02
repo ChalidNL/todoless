@@ -19,6 +19,11 @@ services:
     environment:
       TZ: ${TZ:-Europe/Amsterdam}
       DEPLOY_ENV: production
+      # Reverse proxies whose client-IP header nginx may believe (default: none)
+      # and the addresses allowed to open the dashboard (/_/). See .env.example.
+      TODOLESS_TRUSTED_PROXIES: ${TODOLESS_TRUSTED_PROXIES:-}
+      TODOLESS_REAL_IP_HEADER: ${TODOLESS_REAL_IP_HEADER:-}
+      TODOLESS_DASHBOARD_ALLOW: ${TODOLESS_DASHBOARD_ALLOW:-}
     ports:
       - target: 8080
         published: "${TODOLESS_PORT:-7070}"
