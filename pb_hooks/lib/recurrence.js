@@ -13,9 +13,15 @@
 // dates (#256). Change both or neither.
 //
 // The rule:
-//   * A date at exactly 00:00:00.000 UTC is a date-only value (how the app
-//     stores a due date without a time): it moves by calendar days in UTC and
-//     stays at UTC midnight.
+//   * A date at exactly 00:00:00.000 UTC is a date-only value (a plain date
+//     from /api/v1 or an agent, an all-day ICS entry): it moves by calendar
+//     days in UTC and stays at UTC midnight. The clock time is the only
+//     reliable signal: all_day is false unless a client set it, and the
+//     calendar stores its all-day entries at local midnight, which must keep
+//     moving on the wall clock below. The one value this misreads is a timed
+//     task at exactly 02:00 CEST / 01:00 CET (00:00 UTC): it is kept at
+//     00:00 UTC and so shifts by an hour at each DST change. Accepted (#270);
+//     tests/recurrence.test.mjs pins it.
 //   * Any other date is a moment in time: it moves on the Europe/Amsterdam
 //     wall clock, so "every Monday 09:00" stays 09:00 across DST changes.
 //   * month: same day of the month, clamped to the month's last day.

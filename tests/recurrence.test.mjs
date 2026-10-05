@@ -73,6 +73,18 @@ test('daily timed recurrence keeps the Amsterdam wall-clock time across autumn D
   assert.equal(next.toISOString(), '2026-10-25T08:30:00.000Z') // Sun 09:30 CET
 })
 
+// The accepted edge of the rule (#270): a timed task at exactly 02:00 CEST is
+// 00:00 UTC and therefore read as date-only, so it stays at 00:00 UTC across
+// the October change (01:00 CET) instead of keeping 02:00 on the wall clock.
+// Any other summer time keeps its wall-clock time. If this test starts to
+// fail, the rule changed on purpose: change src/lib/repeat-schedule.ts too.
+test('a timed value at exactly 00:00 UTC counts as date-only (documented trade-off, #270)', () => {
+  const next = getNextRecurringDate('week', '2026-10-19T00:00:00.000Z') // Mon 02:00 CEST
+  assert.equal(next.toISOString(), '2026-10-26T00:00:00.000Z') // Mon 01:00 CET, not 02:00
+  const timed = getNextRecurringDate('week', '2026-10-19T00:01:00.000Z') // Mon 02:01 CEST
+  assert.equal(timed.toISOString(), '2026-10-26T01:01:00.000Z') // Mon 02:01 CET
+})
+
 test('monthly weekday uses the Amsterdam weekday of a late-evening timed value', () => {
   // Sunday 2026-05-31 23:30 CEST is still Sunday 31 May in Amsterdam (21:30Z)
   // and the last Sunday of May; the next is the last Sunday of June.
