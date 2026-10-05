@@ -743,48 +743,61 @@ try {
         return c.json(400, { error: 'Agents cannot be assigned admin or owner roles.' });
       }
 
-      var familyAdmins = $app.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
-      var actorIsOwner = String(actorRoleRecord.get('role') || '') === 'owner';
-      var currentOwner = null;
-      for (var oi = 0; oi < familyAdmins.length; oi++) {
-        if (String(familyAdmins[oi].get('role') || '') === 'owner') { currentOwner = familyAdmins[oi]; break; }
-      }
-
-      // The owner is the one role that cannot be demoted or blocked, so it is
-      // never handed out by an admin: only the owner transfers ownership (and
-      // becomes admin), and an admin may claim it only for a family that has
-      // no owner at all (older installs, GH#23).
-      if (newRole === 'owner' && currentOwner && !actorIsOwner) {
-        return c.json(403, { error: 'Only the owner can transfer ownership' });
-      }
-
-      // Keep a single admin per family besides the owner: promoting a new
-      // admin/owner demotes the other admins to member -- never the owner,
-      // and on an ownership transfer the previous owner becomes admin.
-      if (newRole === 'admin' || newRole === 'owner') {
-        var u2 = $app;
-        for (var i = 0; i < familyAdmins.length; i++) {
-          var other = familyAdmins[i];
-          if (other.id === targetId) continue;
-          var otherIsOwner = String(other.get('role') || '') === 'owner';
-          if (otherIsOwner && newRole !== 'owner') continue;
-          other.set('role', otherIsOwner ? 'admin' : 'member');
-          u2.save(other);
+      // The admin snapshot, the demotions and the target's own role change
+      // commit together or not at all (#269): written as separate saves, a
+      // failure between them left the family without an owner (the previous
+      // owner already demoted, the new one not yet promoted). The checks that
+      // depend on the snapshot run inside as well, so they see the same state
+      // the writes are based on; a refusal commits nothing and keeps its
+      // status and message.
+      var refused = null;
+      $app.runInTransaction(function (txApp) {
+        var familyAdmins = txApp.findRecordsByFilter('users', 'family_id = {:familyId} && (role = "admin" || role = "owner")', '', 10000, 0, { familyId: actorFamilyId });
+        var actorIsOwner = String(actorRoleRecord.get('role') || '') === 'owner';
+        var currentOwner = null;
+        for (var oi = 0; oi < familyAdmins.length; oi++) {
+          if (String(familyAdmins[oi].get('role') || '') === 'owner') { currentOwner = familyAdmins[oi]; break; }
         }
-      }
 
-      // Prevent the only family admin from demoting themselves without promoting someone else first.
-      if (newRole !== 'admin' && newRole !== 'owner' && actorRoleRecord.id === targetId) {
-        var otherAdmins = [];
-        for (var i = 0; i < familyAdmins.length; i++) {
-          if (familyAdmins[i].id !== targetId) otherAdmins.push(familyAdmins[i]);
+        // The owner is the one role that cannot be demoted or blocked, so it is
+        // never handed out by an admin: only the owner transfers ownership (and
+        // becomes admin), and an admin may claim it only for a family that has
+        // no owner at all (older installs, GH#23).
+        if (newRole === 'owner' && currentOwner && !actorIsOwner) {
+          refused = { status: 403, error: 'Only the owner can transfer ownership' };
+          return;
         }
-        if (otherAdmins.length === 0) return c.json(400, { error: 'You are the only admin. Promote someone else first.' });
-      }
 
-      var u = $app;
-      target.set('role', newRole);
-      u.save(target);
+        // Prevent the only family admin from demoting themselves without promoting someone else first.
+        if (newRole !== 'admin' && newRole !== 'owner' && actorRoleRecord.id === targetId) {
+          var otherAdmins = [];
+          for (var ai = 0; ai < familyAdmins.length; ai++) {
+            if (familyAdmins[ai].id !== targetId) otherAdmins.push(familyAdmins[ai]);
+          }
+          if (otherAdmins.length === 0) {
+            refused = { status: 400, error: 'You are the only admin. Promote someone else first.' };
+            return;
+          }
+        }
+
+        // Keep a single admin per family besides the owner: promoting a new
+        // admin/owner demotes the other admins to member -- never the owner,
+        // and on an ownership transfer the previous owner becomes admin.
+        if (newRole === 'admin' || newRole === 'owner') {
+          for (var i = 0; i < familyAdmins.length; i++) {
+            var other = familyAdmins[i];
+            if (other.id === targetId) continue;
+            var otherIsOwner = String(other.get('role') || '') === 'owner';
+            if (otherIsOwner && newRole !== 'owner') continue;
+            other.set('role', otherIsOwner ? 'admin' : 'member');
+            txApp.save(other);
+          }
+        }
+
+        target.set('role', newRole);
+        txApp.save(target);
+      });
+      if (refused) return c.json(refused.status, { error: refused.error });
       return c.json(200, { success: true, user_id: targetId, role: newRole });
     }
 
