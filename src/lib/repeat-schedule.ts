@@ -15,8 +15,14 @@ type MonthlyWeekdayParts = {
 // this copy. src/__tests__/recurrence-client-server.test.ts requires both to
 // produce identical dates (#256). Change both or neither.
 //
-//   * 00:00:00.000 UTC is a date-only value: it moves by calendar days in
-//     UTC and stays at UTC midnight.
+//   * 00:00:00.000 UTC is a date-only value (a plain date from /api/v1 or an
+//     agent, an all-day ICS entry): it moves by calendar days in UTC and
+//     stays at UTC midnight. The clock time is the only reliable signal:
+//     all_day is false unless a client set it, and the calendar stores its
+//     all-day entries at local midnight, which must keep moving on the wall
+//     clock. A timed task at exactly 02:00 CEST / 01:00 CET (00:00 UTC) is
+//     misread as date-only and shifts by an hour at each DST change;
+//     accepted (#270).
 //   * Any other date moves on the Europe/Amsterdam wall clock, so "every
 //     Monday 09:00" stays 09:00 across DST changes.
 //   * month: same day, clamped to the month's last day. month_weekday: the
