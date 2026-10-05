@@ -5,6 +5,7 @@
 #   1. 8 parallel first registrations -> exactly one admin + family
 #   2. 8 parallel registrations with one single-use invite -> one account
 #   3. the owner is never demoted; only the owner transfers ownership
+#   4. a role change that fails half-way commits nothing (one transaction, #269)
 #
 #   PB_BIN=/path/to/pocketbase bash scripts/test-registration-and-roles.sh
 set -euo pipefail
@@ -17,7 +18,7 @@ cleanup() { [[ -n "$PB_PID" ]] && kill "$PB_PID" 2>/dev/null || true; rm -rf "$W
 trap cleanup EXIT
 PB="$(pocketbase_bin "$WORK")"
 boot() {
-  "$PB" serve --http="127.0.0.1:${PB_PORT}" --dir="$1" --migrationsDir="$ROOT/pb_migrations" --hooksDir="$ROOT/pb_hooks" --automigrate=false >"$1.log" 2>&1 &
+  "$PB" serve --http="127.0.0.1:${PB_PORT}" --dir="$1" --migrationsDir="$ROOT/pb_migrations" --hooksDir="${2:-$ROOT/pb_hooks}" --automigrate=false >"$1.log" 2>&1 &
   PB_PID=$!
   for _ in $(seq 1 60); do curl -fsS "http://127.0.0.1:${PB_PORT}/api/health" >/dev/null 2>&1 && return 0; sleep 0.5; done
   cat "$1.log" >&2; exit 1
@@ -56,4 +57,11 @@ stop
 boot "$WORK/roles"
 python3 "$ROOT/tests/registration/owner-roles.py" "http://127.0.0.1:${PB_PORT}"
 stop
-echo "PASS: registration is race-free and the owner role cannot be taken over or lost."
+
+# The repo hooks plus a test-only failpoint hook that refuses to save one user.
+mkdir -p "$WORK/hooks-failpoint"
+cp -r "$ROOT/pb_hooks/." "$ROOT/tests/fixtures/hooks/." "$WORK/hooks-failpoint/"
+boot "$WORK/atomic" "$WORK/hooks-failpoint"
+python3 "$ROOT/tests/registration/set-role-atomic.py" "http://127.0.0.1:${PB_PORT}"
+stop
+echo "PASS: registration is race-free, the owner role cannot be taken over or lost, and a role change commits whole or not at all."
