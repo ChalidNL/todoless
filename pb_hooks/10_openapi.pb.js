@@ -1072,7 +1072,7 @@ routerAdd('GET', '/api/openapi.json', (c) => {
       },
       "/agent/keys/{id}/revoke": { post: { tags: ["Agents"], summary: "Revoke an agent API key", operationId: "revokeAgentKey", parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }], security: authRequired(), responses: { "200": { description: "Revoked" } } } },
       "/agent/dispatch": {
-        post: { tags: ["Agents"], summary: "Dispatch an agent-scoped action", operationId: "agentDispatchPost", description: "Agent-key-authenticated CRUD dispatcher, scoped by key permissions.", security: [], responses: { "200": { description: "Result" }, "401": { description: "Invalid/missing API key" }, "403": { description: "Missing scope" } } },
+        post: { tags: ["Agents"], summary: "Dispatch an agent-scoped action", operationId: "agentDispatchPost", description: "Agent-key-authenticated CRUD dispatcher, scoped by key permissions. An entry the key's owner may not access answers 404, like /api/v1.", security: [], responses: { "200": { description: "Result" }, "401": { description: "Invalid/missing API key" }, "403": { description: "Missing scope" }, "404": { description: "Unknown or inaccessible entry" } } },
         get: { tags: ["Agents"], summary: "Dispatch an agent-scoped read", operationId: "agentDispatchGet", security: [], responses: { "200": { description: "Result" }, "401": { description: "Invalid/missing API key" } } },
       },
       "/agent/auth-test": { get: { tags: ["Agents"], summary: "Verify an agent API key", operationId: "agentAuthTest", security: [], responses: { "200": { description: "Key is valid" }, "401": { description: "Invalid API key" } } } },
