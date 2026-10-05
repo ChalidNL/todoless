@@ -278,22 +278,23 @@ try {
         var rec = findEntryRecord(collectionName, id);
         if (!rec) return c.json(404, { error: 'Entry not found' });
 
-        // Ensure family-scoped access
+        // Ensure family-scoped access. An entry the agent may not see answers
+        // 404 like /api/v1 does (#268): a 403 would confirm that the id exists.
         var recFamily = String(rec.get('user') || '');
         var recUser = $app.findRecordById('users', recFamily);
         var recFamilyId = recUser ? String(recUser.get('family_id') || '') : '';
         if (recFamilyId !== familyId && recFamily !== actingUserId) {
           // If no family, check individual match
           if (!familyId && recFamily !== actingUserId) {
-            return c.json(403, { error: 'Access denied' });
+            return c.json(404, { error: 'Entry not found' });
           }
           // If has family, the family check above already passed or failed
           if (familyId && recFamilyId !== familyId) {
-            return c.json(403, { error: 'Access denied' });
+            return c.json(404, { error: 'Entry not found' });
           }
         }
         if (!canAccessEntry(rec, collectionName === 'tasks' ? 'task' : 'grocery')) {
-          return c.json(403, { error: 'Access denied' });
+          return c.json(404, { error: 'Entry not found' });
         }
 
         auditLog(agentKey, 'read', type || collectionName, rec.id, {}, c);
@@ -460,8 +461,8 @@ try {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessEntry(rec, type)) return c.json(404, { error: 'Entry not found' });
 
       if (Object.prototype.hasOwnProperty.call(d, 'title')) rec.set('title', gv(d, 'title', ''));
       if (Object.prototype.hasOwnProperty.call(d, 'assignee_id')) {
@@ -508,8 +509,8 @@ try {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessEntry(rec, type)) return c.json(404, { error: 'Entry not found' });
 
       var title = String(rec.get('title') || '');
       $app.delete(rec);
@@ -529,8 +530,8 @@ try {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessEntry(rec, type)) return c.json(404, { error: 'Entry not found' });
 
       if (type === 'task') {
         // #240: the agent completes on behalf of its owner user.
@@ -557,8 +558,8 @@ try {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessEntry(rec, type)) return c.json(404, { error: 'Entry not found' });
 
       if (!authLib.isValidAssigneeForUser(gv(d, 'assignee_id', ''), ownerUser)) return c.json(400, { error: 'Invalid assignee' });
       rec.set('assigned_to', String(gv(d, 'assignee_id', '')));
@@ -578,8 +579,8 @@ try {
       var collName = type === 'task' ? 'tasks' : 'items';
       var rec = findEntryRecord(collName, id);
       if (!rec) return c.json(404, { error: 'Entry not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessEntry(rec, type)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessEntry(rec, type)) return c.json(404, { error: 'Entry not found' });
 
       var newLabels = gv(d, 'labels', []);
       if (type === 'task') {
@@ -598,8 +599,8 @@ try {
 
       var rec = findEntryRecord('tasks', id);
       if (!rec) return c.json(404, { error: 'Task not found' });
-      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(403, { error: 'Access denied' });
-      if (!canAccessTaskForUser(rec, ownerUser)) return c.json(403, { error: 'Access denied' });
+      if (!recordInFamily(rec, familyId, actingUserId)) return c.json(404, { error: 'Entry not found' });
+      if (!canAccessTaskForUser(rec, ownerUser)) return c.json(404, { error: 'Entry not found' });
 
       rec.set('due_date', String(gv(d, 'due_date', '') || ''));
       $app.save(rec);

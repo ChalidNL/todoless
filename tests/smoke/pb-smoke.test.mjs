@@ -1373,11 +1373,12 @@ db.commit()
       { action: 'delete', type, id },
     ]) {
       const r = await api('POST', '/api/agent/dispatch', { token: agentKey, body })
-      assert.ok(r.status === 403 || r.status === 404, `agent: ${body.action} ${type} -> ${r.status} ${JSON.stringify(r.data)}`)
+      // #268: the same 404 as /api/v1 - a 403 would tell the agent that the id exists
+      assert.equal(r.status, 404, `agent: ${body.action} ${type} -> ${r.status} ${JSON.stringify(r.data)}`)
     }
   }
   const agentDue = await api('POST', '/api/agent/dispatch', { token: agentKey, body: { action: 'set_due_date', id: ptask.data.id, due_date: '2030-01-01' } })
-  assert.ok(agentDue.status === 403 || agentDue.status === 404, `agent: set_due_date -> ${agentDue.status}`)
+  assert.equal(agentDue.status, 404, `agent: set_due_date -> ${agentDue.status}`)
   assert.deepEqual(listed((await api('POST', '/api/agent/dispatch', { token: agentKey, body: { action: 'read' } })).data), [], 'agent: POST dispatch list')
   assert.deepEqual(listed((await api('GET', '/api/agent/dispatch', { token: agentKey })).data), [], 'agent: GET dispatch list')
   // Unknown ids answer 404, not a server error.
