@@ -8,10 +8,46 @@ updates:
       actions:
         patterns:
           - "*"
+
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    # Packages that only install in matching versions move together: a lone
+    # vitest 5 bump leaves @vitest/coverage-v8 4 behind (#276), @eslint/js 10
+    # needs eslint 10 (#277), and with the default limit of five open PRs the
+    # partner bump never got one of its own. Minor and patch updates of
+    # everything else arrive as one weekly PR; majors outside the families
+    # below stay separate so each one is a deliberate step.
+    groups:
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "@eslint/*"
+          - "typescript-eslint"
+          - "@typescript-eslint/*"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vite-plugin-pwa"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: docker
     directory: /
     schedule:
