@@ -185,7 +185,7 @@ docker compose up -d
 ```
 New database migrations are applied automatically when PocketBase restarts. Read the [release notes](https://github.com/ChalidNL/todoless/releases) before updating.
 
-`docker-compose.yml` uses the images of the release you checked out (`:1.0.1`). For a fully immutable install, replace the tag with the image digest shown on the [release page](https://github.com/ChalidNL/todoless/releases).
+`docker-compose.yml` pins the release images by manifest digest (`@sha256:…`) — the multi-arch index published for this release — so a pull always gets exactly the code in this checkout. Dependabot opens a PR when a newer digest is published. To follow a tag instead, replace the digest with the tag shown on the [release page](https://github.com/ChalidNL/todoless/releases).
 
 <details>
 <summary><b>Upgrading to v1.0.1 from an earlier install (including v1.0.0)</b></summary>
