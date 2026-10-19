@@ -6,8 +6,9 @@ services:
     # for commit 36fa97d. GH#263: the :1.0.1 *tag* was never published (compose and
     # README were bumped to 1.0.1 before the v1.0.1 git tag was pushed), so a tag
     # pin made `docker compose pull` fail with "manifest unknown". The digest is
-    # immutable and architecture-independent; dependabot renews it.
-    image: ghcr.io/chalidnl/todoless-frontend@sha256:6ac89af19549fd2a228c1efe5fae25122ac9985ff86f318d542151bbdbb24c84
+    # immutable and architecture-independent; the sha tag names the build it came
+    # from, the digest pins it. Dependabot renews the digest.
+    image: ghcr.io/chalidnl/todoless-frontend:36fa97d1b7e0d3accd8178d8c0dc0539d63d12b6@sha256:6ac89af19549fd2a228c1efe5fae25122ac9985ff86f318d542151bbdbb24c84
     container_name: todoless
     restart: unless-stopped
     security_opt:
@@ -53,8 +54,8 @@ services:
             en_US: Web UI
 
   pocketbase:
-    # v1.0.1 code, pinned by manifest digest (see the note on the todoless service).
-    image: ghcr.io/chalidnl/todoless-pocketbase@sha256:b8aa7c323a39fbe5cb52b7a587297877033a1bf75fe6e138c9c752ece69744ed
+    # v1.0.1 code, pinned by commit sha + manifest digest (see the note on the todoless service).
+    image: ghcr.io/chalidnl/todoless-pocketbase:36fa97d1b7e0d3accd8178d8c0dc0539d63d12b6@sha256:b8aa7c323a39fbe5cb52b7a587297877033a1bf75fe6e138c9c752ece69744ed
     container_name: todoless-pocketbase
     restart: unless-stopped
     security_opt:
