@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -86,6 +87,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
+    "test:e2e": "bash scripts/e2e-regression.sh",
     "test:watch": "vitest",
     "security:secrets": "bash scripts/security/scan-secrets.sh",
     "vendor:swagger-ui": "node scripts/vendor-swagger-ui.mjs",

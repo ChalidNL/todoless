@@ -1,0 +1,52 @@
+name: E2E regression (release candidate gate)
+
+# Runs the Playwright regression suite against a disposable stack built from the
+# commit under test. This is the gate that is supposed to catch user-facing
+# breakage before Chalid finds it by hand (tech#49 / henry-todoless-regression-coverage).
+#
+# Deliberately NOT yet a `needs:` of build-and-push: the false-positive rate has to
+# stay at zero for a few cycles first. Promote it by adding this job to
+# `build-and-push.needs` once it has been green on red/dev for 2+ weeks.
+
+on:
+  push:
+    branches: [main, beta, red, dev]
+  pull_request:
+    branches: [main, red, dev]
+  workflow_dispatch:
+
+jobs:
+  e2e-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the regression suite (boots PocketBase + Vite, seeds, runs specs)
+        run: bash scripts/e2e-regression.sh
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-regression-artifacts
+          path: |
+            tests/regression/artifacts
+            test-results
+          retention-days: 14
