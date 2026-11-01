@@ -29,27 +29,36 @@ export async function passFirstRunGate(page: Page) {
       .then(() => true)
       .catch(() => false);
     if (!hasNext) return;
+    // From here on the gate is a transition, not the subject of the test: tolerate
+    // it disappearing mid-interaction (locator detaches when the shell swaps in).
+    try {
     // "Next" stays disabled until a language is actually selected; the grid can
     // swallow the first click while the app is still hydrating, so retry.
     for (let i = 0; i < 6; i++) {
-      if ((await next.count()) > 0 && (await next.isEnabled())) break;
+      if (await next.isEnabled().catch(() => false)) break;
       await page.getByRole('button', { name: /English/i }).first().click({ timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(500);
     }
-    if (await next.isEnabled()) {
-      await next.click();
+    if (await next.isEnabled().catch(() => false)) {
+      await next.click({ timeout: 5_000 }).catch(() => {});
     } else {
       // Language selection occasionally does not register (hydration); "Skip"
       // is the equivalent way past this step and keeps the suite deterministic.
-      await page.getByRole('button', { name: /^Skip$/i }).first().click();
+      await page.getByRole('button', { name: /^Skip$/i }).first().click({ timeout: 5_000 }).catch(() => {});
     }
     await page.waitForTimeout(1200);
+    } catch {
+      // gate vanished / navigated away — nothing left to step through
+    }
   }
-  // The tour screen exposes "Go to login" (older builds: "Skip").
+  // The tour screen exposes "Go to login" (older builds: "Skip"). Same caveat as
+  // above: this is a transition, and the locator can detach mid-click, so every
+  // interaction gets a short timeout instead of inheriting the 45s test timeout.
   for (let i = 0; i < 3; i++) {
+    if (await page.locator('#login-email').isVisible().catch(() => false)) break;
     const exit = page.getByRole('button', { name: /^(Go to login|Skip)$/i }).first();
-    if ((await exit.count()) === 0) break;
-    await exit.click().catch(() => {});
+    if (!(await exit.isVisible().catch(() => false))) break;
+    await exit.click({ timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(1000);
   }
 }
@@ -58,7 +67,16 @@ export async function passFirstRunGate(page: Page) {
 export async function login(page: Page) {
   await page.goto('/');
   await passFirstRunGate(page);
-  await page.locator('#login-email').waitFor({ state: 'visible', timeout: 15_000 });
+  const loginReady = await page
+    .locator('#login-email')
+    .waitFor({ state: 'visible', timeout: 15_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!loginReady) {
+    // Already authenticated in this context: the app shell is up, nothing to fill in.
+    await expect(page.locator('body')).toContainText(/INBOX|TAKEN|Inbox/i, { timeout: 20_000 });
+    return;
+  }
   await page.fill('#login-email', QA.email);
   await page.fill('#login-password', QA.password);
   await page.getByRole('button', { name: /^Log In$/i }).first().click();
