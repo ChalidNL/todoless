@@ -1,4 +1,4 @@
-FROM ghcr.io/muchobien/pocketbase:0.40.4
+FROM ghcr.io/muchobien/pocketbase:0.40.6
 
 # Runtime version endpoint (GH#33): branch/commit/pb baked at build time so
 # /api/version reports the real source branch, commit and PocketBase version
