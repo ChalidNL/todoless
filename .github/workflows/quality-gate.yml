@@ -162,7 +162,10 @@ jobs:
   # Playwright at 320-1280px (no horizontal overflow, single scroll surface,
   # onboarding/auth, CRUD journey, docs link, service worker/offline states).
   mobile-e2e:
-    runs-on: ubuntu-latest
+    # Pinned below ubuntu-latest (now 26.04): Playwright 1.56.1 has no supported
+    # browser install path for ubuntu26.04-x64 yet ("Playwright does not support
+    # chromium on ubuntu26.04-x64"). Unpin once Playwright publishes 26.04 support.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
