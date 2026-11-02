@@ -873,8 +873,16 @@ class PocketBaseClient {
    * custom hook route, not a PocketBase collection SDK call.
    */
   async getBootstrap(): Promise<BootstrapPayload> {
+    // DEF-HYDRATION-001: this fetch previously had no timeout. A stalled
+    // connection (upstream hiccup, dropped socket) left it pending
+    // indefinitely — dataLoadState stays 'loading' and the user sees a stuck
+    // spinner/"Loading..." for as long as the underlying TCP/platform
+    // timeout takes (observed up to ~45s), instead of falling back quickly
+    // to the per-collection refresh path that already exists in refreshAll's
+    // catch block. Bound it so a stall surfaces as a fast, recoverable error.
     const response = await fetch('/api/bootstrap', {
       headers: { 'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '' },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) {
       throw new Error(`Bootstrap request failed with status ${response.status}`);
